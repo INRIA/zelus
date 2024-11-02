@@ -157,20 +157,22 @@
     markfunctions ; mark function calls to be inlined
     static ; static reduction
     inline ; inlining of function calls
-    der ; remove the initialization and handler part of a derivative equation
+    automata ; rewrite automata into match/reset
+    present ; rewrite present into match
     lastinpatterns ; remove last in patterns
     copylast ; add copies [lx = last*x] for [last x] when [x] is local
              ; all variables in patterns must be value (remove last)
-    automata ; rewrite automata into match/reset
-    present ; rewrite present into match
+    der ; remove the initialization and reset part of a derivative equation
     exp2eq ; translate match and reset expressions into their equational form
     returns ; rewrite [returns (p) eq]
+    complete ; complete equations with [der x = 0.0]
+    default ; translate blocks into let/rec (propagate
+            ; the default and initialisation values)
     pre ; rewrite fby/fby into (init/last)
     period ; translate periods into horizons
     encore ; add horizons [horizon h = 0.0] for zero-crossings
     disc ; compile the operation disc with an horizon
     reset ; rewrite -> and resets
-    complete ; complete equations with [der x = 0.0]
     shared ; normalise equations to shared variables into [x = ...]
     letin ; un-nesting of let/in and blocks
     aform ; A-normal form

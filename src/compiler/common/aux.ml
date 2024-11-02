@@ -93,8 +93,8 @@ let wildpat_eq e =
   eqmake Defnames.empty (EQeq(wildpat, e))
 
 let eq_init id e : Typinfo.eq =
-  let eq = eqmake (Defnames.singleton id) (EQinit(id, e)) in
-  let eq, _ = Write.equation eq in eq
+  let open Defnames in
+  eqmake { empty with di = Ident.S.singleton id } (EQinit(id, e))
 
 let eq_der id e =
   let w = { Defnames.empty with der = S.singleton id } in

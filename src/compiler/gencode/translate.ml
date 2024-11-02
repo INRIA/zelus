@@ -386,12 +386,12 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   match desc with
   | Zelus.Econst(i) -> Econst(immediate i), code
   | Zelus.Evar(n)
-  | Zelus.Elast { id = n } -> var (entry_of n env), code
+    | Zelus.Elast { id = n } -> var (entry_of n env), code
   | Zelus.Eglobal { lname = ln } -> Eglobal { lname = ln }, code
   | Zelus.Econstr0 { lname } -> Econstr0 { lname }, code
   | Zelus.Econstr1 { lname; arg_list } ->
-      let arg_list, code = Util.mapfold (exp env loop_path) code arg_list in
-      Econstr1 { lname; arg_list }, code
+     let arg_list, code = Util.mapfold (exp env loop_path) code arg_list in
+     Econstr1 { lname; arg_list }, code
   | Zelus.Etuple(e_list) ->
      let e_list, code = Util.mapfold (exp env loop_path) code e_list in
      Etuple(e_list), code
@@ -501,7 +501,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Elet _ | Zelus.Ematch _ | Zelus.Elocal _ ->
      Misc.not_yet_implemented "let"
   | Zelus.Eop(Eperiod, _)  | Zelus.Eop _ | Zelus.Epresent _ -> assert false
- 
+
 and arg a_list =
   match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
 
@@ -525,7 +525,7 @@ and exp_to_code env ({ Zelus.e_desc } as e) =
   | Zelus.Elet(l, e_let) -> local env empty_path l e_let
   | _ -> let e, code = exp env empty_path empty_code e in
 	 { code with step = e }       
- 
+
 (* Patterns *)
 and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
   let ty = Typinfo.get_type info in
@@ -534,7 +534,7 @@ and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
   | Zelus.Econstpat(im) -> Econstpat(immediate im)
   | Zelus.Econstr0pat(c0) -> Econstr0pat(c0)
   | Zelus.Econstr1pat(c1, p_list) ->
-      Econstr1pat(c1, List.map pattern p_list)
+     Econstr1pat(c1, List.map pattern p_list)
   | Zelus.Etuplepat(p_list) -> Etuplepat(List.map pattern p_list)
   | Zelus.Evarpat(id) -> Evarpat { id; ty = Interface.type_expression_of_typ ty }
   | Zelus.Erecordpat(label_pat_list) ->
@@ -546,7 +546,7 @@ and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
      Etypeconstraintpat(pattern p, ty)
   | Zelus.Ealiaspat(p, n) -> Ealiaspat(pattern p, n)
   | Zelus.Eorpat(p1, p2) -> Eorpat(pattern p1, pattern p2)
-				  
+
 (* Equations *)
 and equation env loop_path { Zelus.eq_desc = desc } code =
   match desc with
@@ -571,11 +571,11 @@ and equation env loop_path { Zelus.eq_desc = desc } code =
      { code with step =
                    ifthen r_e (Oaux.seq (assign (entry_of x env) e) i_code) s }
   | Zelus.EQreset(eq, r_e) ->
-      let { init = i_code } = code in
-      let { init = ri_code } as r_code =
-        equation env loop_path eq { code with init = Esequence [] } in
-      let r_e, r_code = exp env loop_path r_code r_e in
-      (* execute the initialization code when [e] is true *)
+     let { init = i_code } = code in
+     let { init = ri_code } as r_code =
+       equation env loop_path eq { code with init = Esequence [] } in
+     let r_e, r_code = exp env loop_path r_code r_e in
+     (* execute the initialization code when [e] is true *)
      let { step = s } as code = seq r_code { empty_code with init = i_code } in
      { code with step = ifthen r_e ri_code s }
   | Zelus.EQinit(x, e) ->
@@ -588,18 +588,24 @@ and equation env loop_path { Zelus.eq_desc = desc } code =
   | Zelus.EQempty -> code
   | Zelus.EQand { ordered = true; eq_list } ->
      equation_list env loop_path eq_list code
-  | Zelus.EQif _ -> Misc.not_yet_implemented "if"
+  | Zelus.EQlocal(b) ->
+     let code_b = block env loop_path b in
+     seq code code_b
+  | Zelus.EQif { e; eq_true; eq_false } ->
+     let e, code = exp env loop_path code e in
+     let code_true = equation env loop_path eq_true in
+     let code_false = equation env loop_path eq_false in
+     code
+  | Zelus.EQand { ordered = false } | Zelus.EQder { handlers = _ :: _ }
+    | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQassert _ -> Misc.not_yet_implemented "assert"
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQlet _ -> Misc.not_yet_implemented "let"
   | Zelus.EQsizefun _ -> Misc.not_yet_implemented "sizefun"
-  | Zelus.EQand _ | Zelus.EQlocal _
-  | Zelus.EQder _ | Zelus.EQemit _ | Zelus.EQautomaton _ 
-  | Zelus.EQpresent _ -> assert false
-				
+  
 and equation_list env loop_path eq_list code =
   List.fold_right (fun eq code -> equation env loop_path eq code) eq_list code
-		  
+
 (* Translation of a math/with handler. *)
 and match_handlers env loop_path p_h_list =
   let body code { Zelus.m_pat = p; Zelus.m_body = eq; Zelus.m_env = m_env } =
@@ -608,16 +614,16 @@ and match_handlers env loop_path p_h_list =
       equation env loop_path eq empty_code in
     { m_pat = pattern p; m_body = letvar var_acc s_code },
     seq code
-	{ eq_code with step = Esequence []; mem = Parseq.seq mem_acc m_code } in
+      { eq_code with step = Esequence []; mem = Parseq.seq mem_acc m_code } in
   Util.mapfold body empty_code p_h_list
-	  
+
 and local env loop_path { Zelus.l_eq = eq; Zelus.l_env = l_env } e =
   let env, mem_acc, var_acc = append loop_path l_env env in
   let e, code = exp env loop_path empty_code e in
   let eq_code =
     equation env loop_path eq { code with step = e } in
   add_mem_vars_to_code eq_code mem_acc var_acc
-    
+
 and block env loop_path { Zelus.b_body = eq; Zelus.b_env = b_env  } =
   let env, mem_acc, var_acc = append loop_path b_env env in
   let eq_code = equation env loop_path eq empty_code in

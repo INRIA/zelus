@@ -30,7 +30,7 @@ let der_eq_zero x = Aux.eq_der x zero
     match e with ...| Pi -> der x = 0.0 and ... eqi | ...] if x in der\der(eqi) *)
 let complete { der = der_global} ({ eq_desc; eq_write } as eq) =
   let l = S.diff der_global eq_write.der in
-  let eq_list = S.fold (fun x acc -> (der_eq_zero x) :: acc) l [eq] in
+  let eq_list = S.fold (fun x eq_list -> (der_eq_zero x) :: eq_list) l [eq] in
   Aux.par eq_list
 
 let equation funs acc eq =
@@ -44,7 +44,6 @@ let equation funs acc eq =
      let handler ({ m_body } as m_h) =
        let m_body = complete eq_write m_body in
        { m_h with m_body } in
-     let e, acc = funs.expression funs acc e in
      let handlers = List.map handler handlers in
      { eq with eq_desc = EQmatch { m with e; handlers } }, acc
   | _ -> eq, acc

@@ -16,13 +16,6 @@
 open Misc
 open Location
                
-let hybrid_list =
-  ["der", "Remove handlers in definitions of derivatives. See below:",
-   Der.program;
-   "period", "Translation of periods done. See below:",
-   Period.program;
-   "disc", "Translation of disc done. See below:",
-   Disc.program]
 
 let optim_list =
   ["aform", "A-normal form. See below:",
@@ -41,30 +34,46 @@ let default_list =
   ["static", "Static reduction done. See below:",
    Static.program;
    "inline", "Inlining done. See below:",
-   Inline.program] @ hybrid_list @ [
+   Inline.program;
    "automata", "Translation of automata. See below:",
    Automata.program;
    "present", "Translation of present. See below:",
    Present.program;
-   "pre", "Compilation of memories (fby/pre) into (init/last). See below:",
-   Pre.program;
-   "reset", "Compilation of initialization and resets. See below:",
-   Reset.program;
-   "complete", "Complete equations with [der x = 0.0]. See below:",
-   Complete.program;
-   "shared",
-   "Normalise equations to shared variables in [x = ...]. See below:",
-   Shared.program;
-   "encore", "Add an extra discrete step for weak transitions. See below:",
-    Encore.program;
    "lastinpatterns",
-   "Replace [last x] by [last* m] when [x] is an input variable.\n\
-    See below:",
+   "Replace [last x] by [last* m] when [x] is an input variable. See below:",
    Lastinpatterns.program;
    "copylast",
    "Add a copy [lx = last* x] to remore false cycles when [x] \n\
     is a local variable. See below:",
    Copylast.program;
+   "der", "Remove initialisation and reset handlers in definitions of derivatives.\
+           See below:",
+   Der.program;
+   "exp2eq",
+   "translate match and reset expressions in their equational form. See below:",
+   Exp2eq.program;
+   "returns",
+   "Rewrite [returns (p) eq]. See below:",
+   Returns.program;
+   "complete", "Complete equations with [der x = 0.0]. See below:",
+   Complete.program;
+   "default",
+   "Translate locals into let/rec (propagate default/initialisation).\
+    See below:",
+   Default.program;
+   "pre", "Compilation of memories (fby/pre) into (init/last). See below:",
+   Pre.program;
+   "period", "Translation of periods done. See below:",
+   Period.program;
+   "encore", "Add horizons [horizon h = 0.0] for zero-crossings. See below:",
+   Encore.program;
+   "disc", "Translation of disc done. See below:",
+   Disc.program;
+   "reset", "Compilation of initialization and resets. See below:",
+   Reset.program;
+   "shared",
+   "Normalise equations to shared variables in [x = ...]. See below:",
+   Shared.program;
    "letin", "Un-nesting of let/in and blocks. See below:",
    Letin.program] @ optim_list @ [
    "schedule", "Static scheduling. See below:",
@@ -83,7 +92,8 @@ let set_steps w =
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "reset" | "complete" | "shared" | "encore" | "letin" 
-    | "schedule" | "aform" | "deadcode" | "copy" | "exp2seq" | "returns" ->
+    | "schedule" | "aform" | "deadcode" | "copy" | "exp2seq" | "default"
+    | "returns" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()
     | _ -> raise (Arg.Bad ("unknown pass " ^ s)) in
