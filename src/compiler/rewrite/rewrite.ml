@@ -46,11 +46,10 @@ let default_list =
    "Add a copy [lx = last* x] to remore false cycles when [x] \n\
     is a local variable. See below:",
    Copylast.program;
-   "der", "Remove initialisation and reset handlers in definitions of derivatives.\
-           See below:",
+   "der", "Remove init and reset handlers in ODEs. See below:",
    Der.program;
    "exp2eq",
-   "translate match and reset expressions in their equational form. See below:",
+   "translate match/reset expressions in their equational form. See below:",
    Exp2eq.program;
    "returns",
    "Rewrite [returns (p) eq]. See below:",
@@ -58,8 +57,7 @@ let default_list =
    "complete", "Complete equations with [der x = 0.0]. See below:",
    Complete.program;
    "default",
-   "Translate locals into let/rec (propagate default/initialisation).\
-    See below:",
+   "Propagate default/initialisation into equations. See below:",
    Default.program;
    "pre", "Compilation of memories (fby/pre) into (init/last). See below:",
    Pre.program;
