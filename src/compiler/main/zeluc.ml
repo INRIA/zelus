@@ -49,7 +49,9 @@ and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t  Locate standard libray"
 and doc_no_stdlib = "\t  Do not load the stdlib module"
 and doc_no_zlstdlib = "\t  Do not load the zlstdlib module"
+and doc_parseonly = "\t  Stop after parsing"
 and doc_typeonly = "\t  Stop after typing"
+and doc_rewriteonly = "\t  Stop after rewritting"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
@@ -127,7 +129,9 @@ let main () =
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
           "-nostdlib", Arg.Set no_stdlib, doc_no_stdlib;
+          "-parseonly", Arg.Set parseonly, doc_parseonly;
           "-typeonly", Arg.Set typeonly, doc_typeonly;
+          "-rewriteonly", Arg.Set rewriteonly, doc_rewriteonly;
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
           "-gtk2", Arg.Unit set_gtk, doc_use_gtk;

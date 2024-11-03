@@ -85,13 +85,12 @@ let equations eqs =
 let eq_local { c_vardec; c_eq } =
   let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
-  Aux.eq_local (block_make vardec_list eq_list)     
+  Aux.eq_local_vardec vardec_list eq_list     
 
 let e_local { c_vardec; c_eq } e =
   let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
-  match eq_list with
-  | [] -> e | _ -> Aux.e_local (Aux.block_make vardec_list eq_list) e    
+  Aux.e_local_vardec vardec_list eq_list e
 
 let pattern funs acc p = p, acc
 

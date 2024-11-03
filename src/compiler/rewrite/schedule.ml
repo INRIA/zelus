@@ -91,8 +91,8 @@ let leq_t funs acc leq =
 
 let block funs acc ({ b_vars; b_body } as b) =
   let b_vars, acc =
-    Util.mapfold (Mapfold.vardec funs) acc b_vars in
-  let b_body, acc = Mapfold.equation funs acc b_body in
+    Util.mapfold (Mapfold.vardec_it funs) acc b_vars in
+  let b_body, acc = Mapfold.equation_it funs acc b_body in
   let b_body = Aux.seq (schedule b_body) in
   { b with b_vars; b_body }, acc
 

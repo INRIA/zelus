@@ -169,8 +169,10 @@ let compile modname filename =
     (* Add Stdlib *)
     let genv0 = Genv.add_module genv0 (Primitives.stdlib_env ()) in
 
-    let _ = Rewrite.main print_message genv0 p !Misc.n_steps in
+    let p = Rewrite.main print_message genv0 p !Misc.n_steps in
 
+    if !Misc.rewriteonly then raise Stop;
+    
     (* generation of sequential code *)
     let p = do_step "Generation of sequential code done. See below:"
               Oprinter.program Translate.program p in

@@ -24,7 +24,7 @@ let exp_of_block { b_vars } =
   | [v] -> v
   | _ -> Aux.tuple v_list
 
-  let result funs acc r =
+let result funs acc r =
   let { r_desc; r_info; r_loc } as r, acc = Mapfold.result funs acc r in
   let r_desc, acc = match r_desc with
     | Exp _ -> r_desc, acc
