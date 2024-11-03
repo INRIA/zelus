@@ -105,23 +105,23 @@ let move_inits_into_equations acc ({ var_name; var_init } as v) =
 (* [expression funs { c_vardec; c_eq } e = [e', { c_vardec'; c_eq'}] *)
 (* such that [local c_vardec do c_eq in e] and *)
 (* [local c_vardec' do c_eq' in e'] are equivalent *)
-let rec expression funs acc ({ e_desc } as e) =
+let expression funs acc ({ e_desc } as e) =
   let e, acc_e = match e_desc with
     | Eop(Eseq, [e1; e2]) ->
        (* the sequential order is preserved *)
        (* [e1; e2] is a short-cut for [let _ = e1 in e2] *)
-       let e1, acc_e1 = expression funs empty e1 in
-       let e2, acc_e2 = expression funs empty e2 in
+       let e1, acc_e1 = Mapfold.expression_it funs empty e1 in
+       let e2, acc_e2 = Mapfold.expression_it funs empty e2 in
        e2, seq acc_e1 (add_seq (Aux.wildpat_eq e1) acc_e2)
     | Elet(l, e) ->
        (* the sequential order is preserved *)
-       let _, acc_l = Mapfold.leq_t funs empty l in
-       let e, acc_e = expression funs empty e in
+       let _, acc_l = Mapfold.leq_it funs empty l in
+       let e, acc_e = Mapfold.expression_it funs empty e in
        e, seq acc_l acc_e
     | Elocal(b, e) ->
        (* the sequential order is preserved *)
-       let _, acc_b = Mapfold.block funs empty b in
-       let e, acc_e = expression funs empty e in
+       let _, acc_b = Mapfold.block_it funs empty b in
+       let e, acc_e = Mapfold.expression_it funs empty e in
        e, seq acc_b acc_e
     | _ ->
        Mapfold.expression funs empty e in
@@ -154,7 +154,7 @@ let equation funs acc ({ eq_desc } as eq) =
     | EQlet(l, eq) ->
        (* definitions in [l] are merges with equations in [eq] *)
        (* but sequential order between them is preserved *)
-       let _, acc_l = Mapfold.leq_t funs acc l in
+       let _, acc_l = Mapfold.leq_it funs acc l in
        let _, acc_eq = Mapfold.equation_it funs empty eq in
        seq acc_l acc_eq
     | EQlocal { b_vars; b_body } ->
@@ -224,7 +224,7 @@ let for_exp_t funs acc for_body =
        Util.optional_with_map (atomic_expression funs) acc default in
      Forexp { exp; default }, acc
   | Forreturns(f) ->
-     let f, acc = Mapfold.for_returns funs acc f in
+     let f, acc = Mapfold.for_returns_it funs acc f in
      Forreturns f, acc
 
 let for_eq_t funs acc ({ for_out; for_block } as for_eq) =

@@ -2,7 +2,8 @@ let node f0(x) returns (o)
     o = 0 -> pre(o+1) + x
 
 let node f00(x) returns (o)
-    local m do o = 0 fby o + x and m = let t = o + 1 in t + 1 done
+    local m do o = 0 fby o + x
+    and m = let t = o + 1 in t + 1 done
 
     (*
 let node f1 () returns (o)
