@@ -169,6 +169,11 @@ let equation funs acc ({ eq_desc } as eq) =
        seq acc (add_seq eq empty) in
   empty_eq, par acc acc_eq
 
+let leq_t funs acc ({ l_eq; l_env } as l) =
+  let l_eq, acc = Mapfold.equation_it funs acc l_eq in
+  let n_names = Env.fold (fun x _ acc -> S.add x acc) l_env S.empty in
+  { l with l_eq }, add_names n_names acc
+
 let atomic_equation funs acc eq =
   let eq, acc = equation funs acc eq in
   eq_local acc, empty
