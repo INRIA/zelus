@@ -20,7 +20,9 @@
 (* those of [e2] *)
 (* [let x = e1 in e2] has the behavior of [let x = e1 andthen y = e2 in y] *)
 
-(* Invariant: an expression is normalized into a pair [(vardec, eq), e] *)
+(* Assume that default and init values have been propagated into equations *)
+(* and are no more at the declaration point *)
+(* Invariant: an expression is normalized into a pair [(vardec_list, eq), e] *)
 (* whose meaning is [local vardec do eq in e] *)
 (* An equation is normalized into [local vardec do eq] *)
 
@@ -94,13 +96,6 @@ let e_local { c_vardec; c_eq } e =
 
 let pattern funs acc p = p, acc
 
-let move_inits_into_equations acc ({ var_name; var_init } as v) =
-  match var_init with
-  | None -> v, acc
-  | Some(e) ->
-     { v with var_init = None; var_init_in_eq = true },
-     par acc (add_seq (Aux.eq_init var_name e) empty)
-
 (* Translation of expressions *)
 (* [expression funs { c_vardec; c_eq } e = [e', { c_vardec'; c_eq'}] *)
 (* such that [local c_vardec do c_eq in e] and *)
@@ -129,15 +124,8 @@ let expression funs acc ({ e_desc } as e) =
   e, acc_e
 
 let atomic_expression funs acc e =
-  let e, acc = Mapfold.expression funs acc e in
+  let e, acc = Mapfold.expression_it funs acc e in
   e_local acc e, empty
-
-let vardec funs acc ({ var_default; var_init } as v) =
-  let var_default, _ =
-    Util.optional_with_map (atomic_expression funs) acc var_default in
-  let var_init, _ =
-    Util.optional_with_map (atomic_expression funs) acc var_init in
-  { v with var_default; var_init }, acc
 
 (* Translate an equation. *)
 (* [equation funs { c_vardec; c_eq } eq = empty_eq, [{ c_vardec'; c_eq'}] *)
@@ -149,24 +137,20 @@ let equation funs acc ({ eq_desc } as eq) =
        let _, acc = Util.mapfold (Mapfold.equation_it funs) empty eq_list in
        acc
     | EQinit(id, e_init) ->
-       let e, acc = expression funs acc e_init in
+       let e, acc = Mapfold.expression_it funs empty e_init in
        add_par { eq with eq_desc = EQinit(id, e) } empty
     | EQlet(l, eq) ->
        (* definitions in [l] are merges with equations in [eq] *)
        (* but sequential order between them is preserved *)
-       let _, acc_l = Mapfold.leq_it funs acc l in
+       let _, acc_l = Mapfold.leq_it funs empty l in
        let _, acc_eq = Mapfold.equation_it funs empty eq in
        seq acc_l acc_eq
-    | EQlocal { b_vars; b_body } ->
-       let b_vars, acc_b_vars =
-         Util.mapfold (Mapfold.vardec_it funs) empty b_vars in
-       let b_vars, acc_b_vars =
-         Util.mapfold move_inits_into_equations acc_b_vars b_vars in
-       let _, acc_b_body = Mapfold.equation_it funs empty b_body in
-       add_vardec b_vars (seq acc_b_vars acc_b_body)
+    | EQlocal(b) ->
+       let _, acc_b = Mapfold.block_it funs empty b in
+       acc_b
     | _ ->
-       let eq, acc = Mapfold.equation funs empty eq in
-       seq acc (add_seq eq empty) in
+       let eq, acc_eq = Mapfold.equation funs empty eq in
+       seq acc_eq (add_seq eq empty) in
   empty_eq, par acc acc_eq
 
 let leq_t funs acc ({ l_eq; l_env } as l) =
@@ -175,14 +159,13 @@ let leq_t funs acc ({ l_eq; l_env } as l) =
   { l with l_eq }, add_names n_names acc
 
 let atomic_equation funs acc eq =
-  let eq, acc = equation funs acc eq in
+  let eq, acc = Mapfold.equation_it funs acc eq in
   eq_local acc, empty
 
 let block funs acc ({ b_vars; b_body } as b) =
-  let b_vars, acc =
-    Util.mapfold (vardec funs) acc b_vars in
-  let b_body, acc = atomic_equation funs acc b_body in
-  { b with b_vars; b_body }, acc
+  (* assume that [b_vars] does not contain expressions (default/init) anymore *)
+  let b_body, acc = Mapfold.equation_it funs acc b_body in
+  b, add_vardec b_vars acc
     
 let if_eq funs acc (eq_true, eq_false) =
   let eq_true, _ = atomic_equation funs acc eq_true in
@@ -217,7 +200,7 @@ let result funs acc ({ r_desc } as r) =
      let e, acc = atomic_expression funs acc e in
      Exp(e), acc
   | Returns(b) ->
-     let b, acc = block funs acc b in
+     let b, acc = Mapfold.block_it funs acc b in
      Returns(b), acc in
   { r with r_desc }, acc
 
@@ -252,7 +235,7 @@ let letdecl funs acc (d_names, ({ l_eq } as leq)) =
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with pattern; expression; vardec; equation; block;
+    { Mapfold.defaults with pattern; expression; equation; block; leq_t; 
                             if_eq; match_handler_eq; match_handler_e;
                             present_handler_eq; present_handler_e;
                             reset_e; reset_eq; result;

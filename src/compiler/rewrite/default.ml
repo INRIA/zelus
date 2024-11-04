@@ -23,20 +23,22 @@ open Mapfold
 
 (* The accumulator is an environment of default values [name -> exp] *)
 let block funs acc ({ b_vars; b_body; b_write; b_env } as b) =
-  let vardec (init_list, acc) ({ var_name; var_default; var_init } as v) =
+  let vardec
+        (init_list, acc) ({ var_name; var_default; var_init; var_init_in_eq } as v) =
     let acc =
       match var_default with
       | None -> acc
       | Some(e) ->
          let e, _ = Mapfold.expression_it funs acc e in
          Env.add var_name e acc in
-    let init_list =
+    let var_init_in_eq, init_list =
       match var_init with
-      | None -> init_list
+      | None -> var_init_in_eq, init_list
       | Some(e) ->
          let e, _ = Mapfold.expression_it funs acc e in
-         (Aux.eq_init var_name e) :: init_list in
-    { v with var_default = None; var_init = None }, (init_list, acc) in
+         true, (Aux.eq_init var_name e) :: init_list in
+    { v with var_default = None; var_init = None; var_init_in_eq },
+    (init_list, acc) in
   let b_vars, (init_list, acc) =
     Util.mapfold vardec ([], acc) b_vars in
   let b_body, _ =
