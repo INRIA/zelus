@@ -12,7 +12,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* elimation of periods. *)
+(* elimation of periods. Periods are only allowed in continuous-time nodes *)
 
 (* For every function, an extra input [time] is added. A period (v1|v2) *)
 (* is translated into the computation of an horizon *)
