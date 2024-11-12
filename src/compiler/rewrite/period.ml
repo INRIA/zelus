@@ -77,24 +77,44 @@ let intro { time } =
 
 (* The translation function for periods *)
 let period major time phase period =
-  (* [local h init time + phase, z *)
-  (*  do h = horizon (if z then last h + period else last h) *)
+  (* [local h, z *)
+  (*  do init h = time + phase
+      and h = horizon (if z then last h + period else last h) *)
   (*  and z = major && (time >= last h) in z] *)
   let h = Ident.fresh "h" in
   let z = Ident.fresh "z" in
-  Aux.e_local
-    (Aux.block_make [Aux.vardec h false
-                       (Some(Aux.plus (Aux.var time) phase)) None;
-                     Aux.vardec z false None None]
-       [Aux.eq_and
-          (Aux.id_eq h (Aux.horizon
-                          (Aux.ifthenelse (Aux.var z)
-                             (Aux.plus (Aux.last_star h) period)
-                             (Aux.last_star h))))
-          (Aux.id_eq z (Aux.and_op major
-                          (Aux.greater_or_equal (Aux.var time)
-                             (Aux.last_star z))))])
+  Aux.e_local_vardec [Aux.id_vardec h; Aux.id_vardec z]
+    [Aux.par
+       [Aux.eq_init h (Aux.plus (Aux.var time) phase);
+        Aux.id_eq h (Aux.horizon
+                       (Aux.ifthenelse (Aux.var z)
+                          (Aux.plus (Aux.last_star h) period)
+                          (Aux.last_star h)));
+        Aux.id_eq z (Aux.and_op major
+                       (Aux.greater_or_equal (Aux.var time)
+                          (Aux.last_star z)))]]
     (Aux.var z)
+(* Ensure that a zero-crossing cannot be done *)
+(* twice without time passing *)
+    (*
+      let up major time e =
+  let z = Zident.fresh "z" in
+  let ztime = Zident.fresh "ztime" in
+  let env =
+    Env.add ztime (Deftypes.entry imemory Initial.typ_float)
+	    (Env.add z (Deftypes.entry Sval Initial.typ_float)
+		     Env.empty) in
+  let eq_list =
+    [eq_init ztime minus_one;
+     eq_make ztime
+	     (ifthenelse (float_var z) (float_var time) (float_last ztime));
+     eq_make z
+	     (Zaux.up (ifthenelse (greater (float_var time) (float_last ztime))
+				e one))] in
+  make_let env eq_list (float_var z)
+     *)
+
+let up major time e = e
 
 (* Add the extra input parameter "time" for hybrid nodes *)
 let funexp funs acc ({ f_kind } as f) =
