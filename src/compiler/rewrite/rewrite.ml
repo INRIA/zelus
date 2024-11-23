@@ -44,10 +44,8 @@ let default_list =
    Static.program;
    "inline", "Inlining done. See below:", nothing,
    Inline.program;
-   "automata", "Translation of automata. See below:", nothing,
-   Automata.program;
-   (* "typing", "Second typing: See below:", nothing,
-      Typing.program Format.std_formatter false; *)
+   "typing", "Second typing: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p);
    "automata", "Translation of automata. See below:", nothing,
    Automata.program;
    "present", "Translation of present. See below:", nothing,
