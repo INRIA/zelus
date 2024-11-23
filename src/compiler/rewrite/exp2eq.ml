@@ -48,7 +48,7 @@ let expression funs acc e =
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
      Aux.e_let (Aux.leq [eq]) (Aux.var result), acc
-     | _ -> e, acc
+  | _ -> e, acc
 
 let set_index funs acc n =
   let _ = Ident.set n in n, acc

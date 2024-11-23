@@ -20,12 +20,13 @@ open Location
 module Printer = Printer.Make(Typinfo) 
 module Write = Write.Make(Typinfo)
 
-let nothing = fun p -> p
-
+let nothing p = p
+let type_check p = Typing.program Format.std_formatter false p
+    
 let optim_list =
   ["aform", "A-normal form. See below:",
    (* type checks before computing A-normal form *)
-   Typing.program Format.std_formatter false,
+   type_check,
    Aform.program;
    "deadcode", "Dead-code removal. See below:", nothing,
    Deadcode.program;
@@ -43,6 +44,10 @@ let default_list =
    Static.program;
    "inline", "Inlining done. See below:", nothing,
    Inline.program;
+   "automata", "Translation of automata. See below:", nothing,
+   Automata.program;
+   (* "typing", "Second typing: See below:", nothing,
+      Typing.program Format.std_formatter false; *)
    "automata", "Translation of automata. See below:", nothing,
    Automata.program;
    "present", "Translation of present. See below:", nothing,
