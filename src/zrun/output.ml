@@ -17,7 +17,9 @@
 open Format
 open Lident
 open Value
-   
+
+module Printer = Printer.Make(Noinfo)
+
 let lident ff lid =
   match lid with
   | Name(s) -> fprintf ff "%s" s

@@ -88,7 +88,12 @@ module Env =
       S.fold (fun s acc -> let m = fresh s in add s m acc) defnames env
   end
 
-module type INFO = sig type info val no_info : info end
+module type INFO =
+  sig
+    type info
+    val no_info : info
+    val print: Format.formatter -> info -> unit
+  end
 
 module Make (Info: INFO) =
   struct

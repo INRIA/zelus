@@ -61,13 +61,13 @@ type error =
 exception Error of Location.t * error
 				
 let error loc kind = raise (Error(loc, kind))
-
-type warning =
-  | Wpartial_matching: 'a Zelus.pattern -> warning
-  | Wunreachable_state: Ident.t -> warning
-  | Wmatch_unused: 'a Zelus.pattern -> warning
+                       
+type 'info warning =
+  | Wpartial_matching of  'info Zelus.pattern
+  | Wunreachable_state of Ident.t
+  | Wmatch_unused of 'info Zelus.pattern
   | Wequation_does_not_define_a_name
-  | Wreset_target_state: bool * bool -> warning
+  | Wreset_target_state of bool * bool
     		       
 let kind_of_global_ident k = match k with
     | Value -> "value" | Type -> "type" 
@@ -97,7 +97,8 @@ let message loc kind =
         output_location loc
         (Ident.source s);
   | Eglobal_undefined(k, lname) ->
-          eprintf "@[%aType error: the global value identifier %s %s is unbound.@.@]"
+     eprintf
+       "@[%aType error: the global value identifier %s %s is unbound.@.@]"
             output_location loc (kind_of_global_ident k)
             (Lident.modname lname)
   | Eglobal_already(k, s) ->
@@ -137,7 +138,7 @@ let message loc kind =
                    give a default value.@.@]"
         output_location loc
         (Ident.source s)
-	Ptypes.output expected_ty
+	Ptypes.output_type expected_ty
   | Ecannot_be_set(is_next, s) ->
       eprintf "@[%aType error: the %s value of %s cannot be set. @,\
                  This is either because the %s value is set or @,\
@@ -150,13 +151,13 @@ let message loc kind =
       eprintf "@[%aType error: this expression has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         output_location loc
-        Ptypes.output actual_ty
-        Ptypes.output expected_ty
+        Ptypes.output_type  actual_ty
+        Ptypes.output_type  expected_ty
   | Etype_kind_clash(k, actual_ty) ->
       eprintf "@[%aType error: this expression has type@ %a,@ \
                which does not belong to the %s kind.@.@]"
         output_location loc
-        Ptypes.output actual_ty
+        Ptypes.output_type  actual_ty
         (vkind_message k)
   | Earity_clash(actual_arit, expected_arit) ->
       eprintf "@[%aType error: this expression expects %d arguments,@ \
@@ -232,9 +233,10 @@ let message loc kind =
        "@[%aType error: this pattern has type@ %a,@ \
         which contains the variable %s that is bounded later or never.@.@]"
 	output_location loc
-        Ptypes.output ty
+        Ptypes.output_type ty
 	(Ident.name n)
  | Econstr_arity(ln, expected_arity, actual_arity) ->
+     let module Printer = Printer.Make(Typinfo) in
      eprintf
        "@[%aType error: the type constructor %a expects %d argument(s),@ \
         but is here given %d arguments(s).\n"
@@ -247,6 +249,7 @@ let message loc kind =
 
     
 let warning loc w =
+  let module Printer = Printer.Make(Typinfo) in
   if not !Misc.no_warning then
   match w with
   | Wpartial_matching(p) ->

@@ -57,8 +57,8 @@ let check_type_of_main_node name
       eprintf "@[The name %s has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         name
-        Ptypes.output actual_ty
-        Ptypes.output expected_ty;
+        Ptypes.output_type actual_ty
+        Ptypes.output_type expected_ty;
       raise Error
 
 (* the  main node must be of type [unit -> unit] *)

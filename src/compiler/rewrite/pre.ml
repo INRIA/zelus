@@ -14,9 +14,9 @@
 
 (* Translation of fby/pre into init/last *)
 (*
-    [pre(e)] => [local x, (last m) do m = e and x = last* m in x]
+    [pre(e)] => [let rec m = e in last* m]
 
-    [e1 fby e2] => [local x, m init e1 do m = e2 and x = last* m in x]
+    [e1 fby e2] => [let rec init m = e1 and m = e2 in last*m]
 *)
 
 open Misc
@@ -30,6 +30,7 @@ open Mapfold
 let fresh_x () = fresh "x"
 let fresh_m () = fresh "m"
 
+(* some auxiliary functions; not used for the moment *)
 (* Defines a value [let x = e in e_let] *)
 let let_value e =
   let x = fresh_x () in
@@ -66,19 +67,25 @@ let local_init_mem_value e1 e2 =
                                Aux.vardec m false (Some(e1)) None]
                  [Aux.id_eq m e2; Aux.id_eq x (Aux.last_star m)]) (var x)
 
+
+(* translation of [pre] and [fby] *)
+let pre e =
+  let m = fresh_m () in
+  Aux.e_letrec [Aux.id_eq m e] (Aux.last_star m)
+let fby e1 e2 =
+  let m = fresh_m () in
+  Aux.e_letrec [Aux.eq_init m e1; Aux.id_eq m e2] (Aux.last_star m)
+
 (* Translation of expressions. *)
 let expression funs acc e =
   let ({ e_desc } as e), acc = Mapfold.expression funs acc e in
   match e_desc with
   | Eop(Efby, [e1; e2]) ->
      (* [let rec init m = e1 and m = e2 and x = last* m in x] *)
-     local_init_mem_value e1 e2, acc
+     fby e1 e2, acc
   | Eop(Eunarypre, [e1]) ->
      (* [let rec m = e1 and x = last* m in x] *)
-     local_mem_value e1, acc
-  | Eop(Eminusgreater, [e1; e2]) ->
-     (* turns it into [let m = e1 -> e2 in x] *)
-     let_value e, acc
+     pre e1, acc
   | Eop(Eifthenelse, [e1; e2; e3]) ->
      (* if [e2] (and [e3]) is stateful, name the result *)
      let e2 = if Unsafe.expression e2 then let_value e2 else e2 in

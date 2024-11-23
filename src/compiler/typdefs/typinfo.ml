@@ -40,3 +40,6 @@ let set_init typinfo ti = { typinfo with t_init = ti }
 
 let get_type { t_typ } = t_typ
 let get_caus { t_caus } = t_caus
+
+let print ff { t_typ } = Ptypes.output_type ff t_typ
+let pienv ff tentry = Ptypes.output_tentry ff tentry

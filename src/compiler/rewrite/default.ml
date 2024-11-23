@@ -24,7 +24,8 @@ open Mapfold
 (* The accumulator is an environment of default values [name -> exp] *)
 let block funs acc ({ b_vars; b_body; b_write; b_env } as b) =
   let vardec
-        (init_list, acc) ({ var_name; var_default; var_init; var_init_in_eq } as v) =
+        (init_list, acc)
+        ({ var_name; var_default; var_init; var_init_in_eq } as v) =
     let acc =
       match var_default with
       | None -> acc

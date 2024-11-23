@@ -90,9 +90,8 @@ let eq_local { c_vardec; c_eq } =
   Aux.eq_local_vardec vardec_list eq_list     
 
 let e_local { c_vardec; c_eq } e =
-  let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
-  Aux.e_local_vardec vardec_list eq_list e
+  Aux.e_letrec eq_list e
 
 let pattern funs acc p = p, acc
 

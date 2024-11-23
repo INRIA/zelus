@@ -87,7 +87,7 @@ let rec print prio ff { t_desc; t_level; t_index } =
       fprintf ff "@['%s%s@]" p (type_name#name t_index)
   | Tproduct [] ->
      (* this situation should not happen after typing *)
-     fprintf ff "ERROR"
+     fprintf ff "?"
   | Tproduct(ty_list) -> print_list (print (prio_current + 1)) " *" ff ty_list
   | Tconstr(name, ty_list, _) ->
      let n = List.length ty_list in
@@ -169,11 +169,13 @@ let print_value_type_declaration ff { qualid; info = (is_const, ty_scheme) } =
 
 
 (* the main printing functions *)
-let output ff ty =
-  fprintf ff "%a" (print 0) ty
+let output_type ff ty =
+  fprintf ff "@[%a@]" (print 0) ty
 
 let output_size ff si = print_size ff si
 
+let output_tentry ff { t_tys } = print_scheme ff t_tys
+                                
 let output_type_declaration ff global_list =
   fprintf ff "@[<hov 2>%a@.@]"
     (print_list_l print_type_declaration "type ""and """)

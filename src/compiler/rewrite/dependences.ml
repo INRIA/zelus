@@ -19,6 +19,8 @@ open Defnames
 open Graph
 open Vars
 
+module Printer = Printer.Make(Typinfo)
+
 type 'a collection =
   | And of 'a collection list (* parallel set of equations *)
   | Then of 'a collection list (* sequentiel set of equations *)

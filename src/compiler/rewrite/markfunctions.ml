@@ -19,10 +19,10 @@
 open Zelus
 
 type io_table =
-  { inputs: Causal.S.t; (* the causality tags of inputs of the function *)
-    outputs: Causal.S.t; (* the causality tags of outputs *)
-    o_table: Causal.S.t Causal.M.t; (* outputs of a causality tag *)
-    io_table: Causal.S.t Causal.M.t; (* the IO relation for all *)
+  { inputs: Tcausal.S.t; (* the causality tags of inputs of the function *)
+    outputs: Tcausal.S.t; (* the causality tags of outputs *)
+    o_table: Tcausal.S.t Tcausal.M.t; (* outputs of a causality tag *)
+    io_table: Tcausal.S.t Tcausal.M.t; (* the IO relation for all *)
                                      (* accessible causality tags in the body *)
    }
   
@@ -62,7 +62,7 @@ let funexp_build_io_table { f_args; f_body = ({ r_info } as r) } =
            List.map (fun { e_info } -> Typinfo.get_caus e_info) (arg_list) in
          let tc = Typinfo.get_caus f.e_info in
          let c_set =
-           List.fold_left Causal.vars (Causal.vars c_set tc) tc_list in
+           List.fold_left Tcausal.vars (Tcausal.vars c_set tc) tc_list in
          e, c_set
       | _ -> Mapfold.expression funs c_set e in
     let global_funs = Mapfold.default_global_funs in
@@ -80,19 +80,19 @@ let funexp_build_io_table { f_args; f_body = ({ r_info } as r) } =
   let tc = Typinfo.get_caus r_info in
   
   (* mark inputs/outputs *)
-  List.iter (Causal.mark_and_polarity false) tc_list;
-  Causal.mark_and_polarity true tc;
+  List.iter (Tcausal.mark_and_polarity false) tc_list;
+  Tcausal.mark_and_polarity true tc;
   let c_set =
-    Causal.vars (List.fold_left Causal.vars Causal.S.empty tc_list) tc in
-  let inputs, outputs = Causal.ins_and_outs c_set in
+    Tcausal.vars (List.fold_left Tcausal.vars Tcausal.S.empty tc_list) tc in
+  let inputs, outputs = Tcausal.ins_and_outs c_set in
   (* computes the set of causality tags that appear in [f_body] *)
   let c_set = result c_set r in
 
   (* compute the table of outputs for all the variables *)
-  let o_table = Causal.build_o_table c_set Causal.M.empty in
+  let o_table = Tcausal.build_o_table c_set Tcausal.M.empty in
 
   (* then the table of io for every causality tag *)
-  let io_table = Causal.build_io_table inputs o_table c_set Causal.M.empty in
+  let io_table = Tcausal.build_io_table inputs o_table c_set Tcausal.M.empty in
   { inputs = inputs;
     outputs = outputs;
     io_table = io_table;
@@ -103,10 +103,10 @@ let funexp_build_io_table { f_args; f_body = ({ r_info } as r) } =
 let to_inline { io_table; o_table } tc_arg_list tc_res =
   let _, out_of_inputs =
     List.fold_left
-      (Causal.ins_and_outs_of_a_type true) (Causal.S.empty, Causal.S.empty)
+      (Tcausal.ins_and_outs_of_a_type true) (Tcausal.S.empty, Tcausal.S.empty)
       tc_arg_list in
   let _, out_of_result =
-    Causal.ins_and_outs_of_a_type true (Causal.S.empty, Causal.S.empty)
+    Tcausal.ins_and_outs_of_a_type true (Tcausal.S.empty, Tcausal.S.empty)
       tc_res in
   (* inline if not [\/_{i in out_of_inputs} IO(i) 
                     subset /\_{j in out_of_result} IO(j)] *)
@@ -114,30 +114,30 @@ let to_inline { io_table; o_table } tc_arg_list tc_res =
   (* if [inline = false], add extra dependences so that all output of the *)
   (* result depends on all inputs. *)
   let inline =
-    not (Causal.S.for_all
+    not (Tcausal.S.for_all
            (fun i ->
             let io_of_i =
-	      try Causal.M.find i io_table with Not_found -> Causal.S.empty in
-            Causal.S.for_all
+	      try Tcausal.M.find i io_table with Not_found -> Tcausal.S.empty in
+            Tcausal.S.for_all
               (fun o ->
                try
-		 let io_of_o = Causal.M.find o io_table in
-                 not (Causal.strict_path o i) &&
-                   (Causal.S.subset io_of_i io_of_o)
+		 let io_of_o = Tcausal.M.find o io_table in
+                 not (Tcausal.strict_path o i) &&
+                   (Tcausal.S.subset io_of_i io_of_o)
 	       with Not_found -> true)
               out_of_result)
            out_of_inputs) in
    try
     if not inline then
-      Causal.S.iter
+      Tcausal.S.iter
         (fun i ->
-           Causal.S.iter
-             (fun o -> if not (Causal.equal i o) then Causal.less_c i o)
+           Tcausal.S.iter
+             (fun o -> if not (Tcausal.equal i o) then Tcausal.less_c i o)
              out_of_result)
         out_of_inputs;
     inline
   with
-  | Causal.Clash _ -> assert false
+  | Tcausal.Clash _ -> assert false
  
 (* Mark function calls to be inlined *)
 let funexp_apply_io_table io_table ({ f_body } as f) =

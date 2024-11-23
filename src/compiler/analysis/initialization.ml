@@ -28,7 +28,7 @@ open Zelus
 open Location
 open Deftypes
 open Definit
-open Init
+open Tinit
 
 let print x = Misc.internal_error "unbound" Printer.name x
 
@@ -81,21 +81,21 @@ let message loc kind =
 
 let less_than loc actual_ti expected_ti =
   try
-    Init.less actual_ti expected_ti
+    Tinit.less actual_ti expected_ti
   with
-    | Init.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
+    | Tinit.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
 
 let less_for_last loc n actual_i expected_i =
   try
-    Init.less_i actual_i expected_i
+    Tinit.less_i actual_i expected_i
   with
-    | Init.Clash _ -> error loc (Ilast(n))
+    | Tinit.Clash _ -> error loc (Ilast(n))
 
 let less_for_var loc n actual_ti expected_ti =
   try
-    Init.less actual_ti expected_ti
+    Tinit.less actual_ti expected_ti
   with
-    | Init.Clash _ -> error loc (Ivar(n))
+    | Tinit.Clash _ -> error loc (Ivar(n))
 
 (* Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] then
@@ -107,10 +107,10 @@ let build_env l_env env =
     | Sort_mem { m_init } ->
        let t_last = match m_init with | Eq | Decl _ -> izero | No -> ione in
        let t_tys =
-         Definit.scheme (Init.skeleton_on_i (Init.new_var ()) typ_body) in
+         Definit.scheme (Tinit.skeleton_on_i (Tinit.new_var ()) typ_body) in
        { t_last; t_tys }
     | _ ->
-       let t_tys = Definit.scheme (Init.skeleton typ_body) in
+       let t_tys = Definit.scheme (Tinit.skeleton typ_body) in
        { t_last = ione; t_tys } in
   Env.fold (fun n tentry acc -> Env.add n (entry n tentry) acc) l_env env
 
@@ -123,7 +123,7 @@ let build_env l_env env =
 let last_env shared defnames env =
   let add n acc =
     let { t_tys = { typ_body } } = Env.find n env in
-    Env.add n { t_tys = Definit.scheme (Init.fresh_on_i izero typ_body);
+    Env.add n { t_tys = Definit.scheme (Tinit.fresh_on_i izero typ_body);
                 t_last = izero } acc in
   let names = Defnames.cur_names Ident.S.empty defnames in
   let env_defnames =
@@ -134,7 +134,7 @@ let last_env shared defnames env =
 let add_last_to_env env last_names =
   let add n acc =
     let { t_tys = { typ_body } } = Env.find n env in
-    Env.add n { t_tys = Definit.scheme (Init.fresh_on_i izero typ_body);
+    Env.add n { t_tys = Definit.scheme (Tinit.fresh_on_i izero typ_body);
                 t_last = izero } acc in
   let env_last_names =
     Ident.S.fold add last_names Env.empty in
@@ -167,7 +167,7 @@ let initialized loc env shared =
   let check n =
     let { t_tys = { typ_body } } =
       try Env.find n env with Not_found -> assert false in
-    less_for_var loc n typ_body (Init.fresh_on_i izero typ_body) in
+    less_for_var loc n typ_body (Tinit.fresh_on_i izero typ_body) in
   Ident.S.iter check shared
 
 (** Patterns *)
@@ -183,18 +183,18 @@ let rec pattern env ({ pat_desc; pat_loc; pat_info } as p) expected_ti =
         let t_tys =
           try let { t_tys } = Env.find x env in t_tys
           with | Not_found -> assert false in
-        let ti = Init.instance t_tys pat_typ in
+        let ti = Tinit.instance t_tys pat_typ in
         less_than pat_loc expected_ti ti
     | Econstr1pat(_, pat_list) ->
-        let i = Init.new_var () in
-        less_than pat_loc expected_ti (Init.skeleton_on_i i pat_typ);
+        let i = Tinit.new_var () in
+        less_than pat_loc expected_ti (Tinit.skeleton_on_i i pat_typ);
         List.iter
           (fun p -> pattern_less_than_on_i env p i) pat_list
     | Etuplepat(pat_list) ->
-        let ty_list = Init.filter_product expected_ti in
+        let ty_list = Tinit.filter_product expected_ti in
         List.iter2 (pattern env) pat_list ty_list
     | Erecordpat(l) -> 
-        let i = Init.new_var () in
+        let i = Tinit.new_var () in
         List.iter
           (fun { arg } -> pattern_less_than_on_i env arg i) l
     | Etypeconstraintpat(p, _) -> pattern env p expected_ti
@@ -206,12 +206,12 @@ let rec pattern env ({ pat_desc; pat_loc; pat_info } as p) expected_ti =
         let t_tys_n = 
           try let { t_tys } = Env.find n env in t_tys
           with | Not_found -> assert false in
-        let ti = Init.instance t_tys_n pat_typ in
+        let ti = Tinit.instance t_tys_n pat_typ in
         less_than pat_loc expected_ti ti
 
 and pattern_less_than_on_i env ({ pat_info } as pat) i =
   let pat_typ = Typinfo.get_type pat_info in
-  let expected_ti = Init.skeleton_on_i i pat_typ in
+  let expected_ti = Tinit.skeleton_on_i i pat_typ in
   pattern env pat expected_ti
         
 (** Match handler *)
@@ -295,45 +295,45 @@ let rec exp env ({ e_desc; e_info; e_loc } as e) =
   let e_typ = Typinfo.get_type e_info in
   let ti =
     match e_desc with
-    | Econst _ | Econstr0 _ -> Init.skeleton_on_i (Init.new_var ()) e_typ
+    | Econst _ | Econstr0 _ -> Tinit.skeleton_on_i (Tinit.new_var ()) e_typ
     | Eglobal { lname = lname } ->
        let { info } =
          try Modules.find_value lname with | Not_found -> assert false in
-       Init.instance_of_global_value info e_typ
+       Tinit.instance_of_global_value info e_typ
     | Evar(x) -> 
        let t_tys = try let { t_tys } = Env.find x env in t_tys 
                    with | Not_found -> print x in
-       Init.instance t_tys e_typ
+       Tinit.instance t_tys e_typ
     | Elast { id } -> 
        begin try 
            (* [last x] is initialized only if an equation [init x = e] *)
            (* appears and [e] is also initialized *)
            let { t_tys = { typ_body } ; t_last } = Env.find id env in
-           Init.fresh_on_i t_last typ_body
+           Tinit.fresh_on_i t_last typ_body
          with 
-         | Not_found -> Init.skeleton_on_i ione e_typ end
+         | Not_found -> Tinit.skeleton_on_i ione e_typ end
     | Etuple(e_list) -> 
        product (List.map (exp env) e_list)
     | Econstr1 { arg_list } ->
-       let i = Init.new_var () in
+       let i = Tinit.new_var () in
        List.iter (fun e -> exp_less_than_on_i env e i) arg_list;
-       Init.skeleton_on_i i e_typ
+       Tinit.skeleton_on_i i e_typ
     | Eop(op, e_list) -> operator env op e_typ e_list
     | Eapp { f; arg_list } ->
        app env (exp env f) arg_list
     | Erecord_access { arg } -> 
-       let i = Init.new_var () in
+       let i = Tinit.new_var () in
        exp_less_than_on_i env arg i;
-       Init.skeleton_on_i i e_typ
+       Tinit.skeleton_on_i i e_typ
     | Erecord(l) -> 
-       let i = Init.new_var () in
+       let i = Tinit.new_var () in
        List.iter (fun { arg } -> exp_less_than_on_i env arg i) l;
-       Init.skeleton_on_i i e_typ
+       Tinit.skeleton_on_i i e_typ
     | Erecord_with(e_record, l) -> 
-       let i = Init.new_var () in
+       let i = Tinit.new_var () in
        exp_less_than_on_i env e_record i;
        List.iter (fun { arg } -> exp_less_than_on_i env arg i) l;
-       Init.skeleton_on_i i e_typ
+       Tinit.skeleton_on_i i e_typ
     | Etypeconstraint(e, _) -> exp env e
     | Elet(l, e_let) -> 
        let env = leq env l in
@@ -342,14 +342,14 @@ let rec exp env ({ e_desc; e_info; e_loc } as e) =
     | Epresent { handlers; default_opt } ->
        (* if [e] returns a tuple, all type element are synchronised, i.e., *)
        (* if one is un-initialized, the whole is un-initialized *)
-       let ti = Init.skeleton_on_i (Init.new_var ()) e_typ in
+       let ti = Tinit.skeleton_on_i (Tinit.new_var ()) e_typ in
        present_handler_exp_list env handlers default_opt ti;
        ti
     | Ematch { e; handlers } ->
        (* we force [e] to be always initialized. This is overly constraining *)
        (* but correct and simpler to justify *)
        exp_less_than_on_i env e izero;
-       let ti = Init.skeleton_on_i (Init.new_var ()) e_typ in
+       let ti = Tinit.skeleton_on_i (Tinit.new_var ()) e_typ in
        match_handler_exp_list env handlers ti;
        ti
     | Ereset(e_body, e_res) ->
@@ -372,7 +372,7 @@ and operator env op ty e_list =
   | Eunarypre, [e] -> 
      (* input of a unit delay must be of type 0 *)
      exp_less_than_on_i env e izero; 
-     Init.skeleton_on_i ione ty
+     Tinit.skeleton_on_i ione ty
   | Efby, [e1;e2] ->
      (* right input of a initialized delay must be of type 0 *)
      exp_less_than_on_i env e2 izero;
@@ -383,36 +383,36 @@ and operator env op ty e_list =
      t1
   | Eifthenelse, [e1; e2; e3] ->
      (* a conditional does not force all element to be initialized *)
-     let i = Init.new_var () in
+     let i = Tinit.new_var () in
      exp_less_than_on_i env e1 i;
      exp_less_than_on_i env e2 i;
      exp_less_than_on_i env e3 i;
-     Init.skeleton_on_i i ty
+     Tinit.skeleton_on_i i ty
   | Eatomic, [e] ->
-     let i = Init.new_var () in
+     let i = Tinit.new_var () in
      exp_less_than_on_i env e i;
-     Init.skeleton_on_i i ty
+     Tinit.skeleton_on_i i ty
   | Etest, [e] ->
-     let i = Init.new_var () in
+     let i = Tinit.new_var () in
      exp_less_than_on_i env e i;
-     Init.skeleton_on_i i ty
+     Tinit.skeleton_on_i i ty
   | Eup, [e] ->
      exp_less_than_on_i env e izero;
-     Init.skeleton_on_i izero ty
+     Tinit.skeleton_on_i izero ty
   | Eperiod, [e1; e2] ->
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
-     Init.skeleton_on_i izero ty
+     Tinit.skeleton_on_i izero ty
   | Ehorizon, [e] ->
      exp_less_than_on_i env e izero;
-     Init.skeleton_on_i izero ty
+     Tinit.skeleton_on_i izero ty
   | Eseq, [e1; e2] ->
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
-     Init.skeleton_on_i izero ty
+     Tinit.skeleton_on_i izero ty
   | Erun _, [e1; e2] ->
      let t1 = exp env e1 in
-     let ti1, ti2 = Init.filter_arrow t1 in
+     let ti1, ti2 = Tinit.filter_arrow t1 in
      exp_less_than env e2 ti1;
      ti2
   | _ -> assert false
@@ -424,7 +424,7 @@ and app env ti_fct arg_list =
   let rec args ti_fct = function
     | [] -> ti_fct
     | arg :: arg_list ->
-       let ti1, ti2 = Init.filter_arrow ti_fct in
+       let ti1, ti2 = Tinit.filter_arrow ti_fct in
        exp_less_than env arg ti1;
        args ti2 arg_list in
   args ti_fct arg_list
@@ -433,11 +433,11 @@ and funexp env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
   let env = build_env f_env env in
   let ti_list = List.map (arg env) f_args in
   let ti_res = result env f_body in
-  let actual_ti = Init.funtype_list ti_list ti_res in
+  let actual_ti = Tinit.funtype_list ti_list ti_res in
   (* for an atomic node, input/outputs get the same init type variable *)
   if f_atomic then
-    let i = Init.new_var () in
-    let expected_ti = Init.fresh_on_i i actual_ti in
+    let i = Tinit.new_var () in
+    let expected_ti = Tinit.fresh_on_i i actual_ti in
     less_than f_loc actual_ti expected_ti;
     expected_ti
   else actual_ti
@@ -447,7 +447,7 @@ and arg h n_list = type_of_vardec_list h n_list
 and exp_less_than_on_i env e expected_i =
   let actual_ti = exp env e in
   let e_typ = Typinfo.get_type e.e_info in
-  less_than e.e_loc actual_ti (Init.skeleton_on_i expected_i e_typ);
+  less_than e.e_loc actual_ti (Tinit.skeleton_on_i expected_i e_typ);
 
 and exp_less_than env ({ e_loc } as e) expected_ti =
   let actual_ty = exp env e in
@@ -472,7 +472,7 @@ and equation env
         with | Not_found -> assert false in
       exp_less_than env e ti_n;
       let e_typ = Typinfo.get_type e.e_info in
-      less_than loc ti_n (Init.skeleton_on_i Init.izero e_typ);
+      less_than loc ti_n (Tinit.skeleton_on_i Tinit.izero e_typ);
       (match e_opt with
        | Some(e0) -> exp_less_than_on_i env e0 izero
        | None -> less_for_last loc id last izero);
@@ -483,7 +483,7 @@ and equation env
       let ti_n = 
         try let { t_tys = { typ_body } } = Env.find n env in typ_body
         with | Not_found -> assert false in
-      less_than loc ti_n (Init.atom izero);
+      less_than loc ti_n (Tinit.atom izero);
       Util.optional_unit
         (fun i e -> exp_less_than_on_i env e i) izero e_opt
   | EQautomaton {is_weak; handlers; state_opt } ->
@@ -581,15 +581,15 @@ and type_of_vardec_list env n_list =
   let type_of_vardec ({ var_name; var_info } as v) =
     let { t_tys } = try Env.find var_name env with Not_found -> print var_name in
     let ty = Typinfo.get_type var_info in
-    let ti = Init.instance t_tys ty in
+    let ti = Tinit.instance t_tys ty in
     (* annotate with the initialization type *)
     v.var_info <- Typinfo.set_init var_info ti;
     ti in
   let ti_list = List.map type_of_vardec n_list in
   match ti_list with
-  | [] -> Init.atom(Init.new_var ())
+  | [] -> Tinit.atom(Tinit.new_var ())
   | [ti] -> ti  
-  | _ -> Init.product ti_list
+  | _ -> Tinit.product ti_list
 
 and result env ({ r_desc; r_info } as r) =
   let ti =

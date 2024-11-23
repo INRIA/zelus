@@ -19,3 +19,6 @@ type ienv = unit
 
 let no_info = ()
 let no_ienv = ()
+
+let print ff _ = ()
+let pienv ff _ = ()

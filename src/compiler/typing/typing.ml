@@ -343,28 +343,18 @@ and env_of_statepat expected_k spat =
 
 let env_of_pattern expected_k pat = env_of_pattern expected_k Env.empty pat  
 
-(* for every entry [x, tentry] in [env], add the tag [InitEq] if [x in di] *)
-let add_init_eq_of_env env { di } =
-  Env.mapi
-    (fun n ({ t_sort } as entry) ->
-      if S.mem n di then { entry with t_sort = Deftypes.init t_sort }
-      else entry)
-    env
-
 (* introduce an entry for name [n] according to [expected_k] *)
 let intro_sort expected_k =
   match expected_k with
   | Tfun _ -> Sort_val
   | Tnode _ -> Sort_mem Deftypes.empty_mem
     
-(* introduce a typing environment from a set of names *)
+(* introduce a typing environment according to [expected_k] for an equation *)
 let env_of_equation expected_k { eq_write } =
   let n_set = Defnames.names S.empty eq_write in
-  let env =
-    S.fold
-      (fun n acc -> Env.add n (entry expected_k (intro_sort expected_k)) acc)
-      n_set Env.empty in
-  add_init_eq_of_env env eq_write
+  S.fold
+    (fun n acc -> Env.add n (entry expected_k (intro_sort expected_k)) acc)
+    n_set Env.empty
 
 (** Typing a pateq **)
 let pateq h { desc; loc } ty_e =
@@ -1124,8 +1114,6 @@ and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
 
 and block_eq expected_k h ({ b_vars; b_body = { eq_write } as b_body } as b) =
   let h0, actual_k_h0 = vardec_list expected_k h b_vars in
-  (* if [init x = ...] appears in [b_body], update [h0] *)
-  let h0 = add_init_eq_of_env h0 eq_write in
   let h = Env.append h0 h in
   let defined_names, actual_k_body = equation expected_k h b_body in
   (* check that every name in [n_list] has a definition *)
@@ -1230,11 +1218,15 @@ and state_expression h def_states actual_reset { desc; loc } =
      Kind.sup actual_k (Kind.sup actual_k1 actual_k2)
 
      
-let implementation ff is_first { desc; loc } =
+let implementation ff is_first impl =
+  (* first set the read/write information. The write information is *)
+  (* used to type declarations [let eq in ...] *)
+  let { desc; loc } as impl =
+    if is_first then impl else Write.implementation impl in
   try
     match desc with
     | Eopen(modname) ->
-       if is_first then Modules.open_module modname
+       if is_first then Modules.open_module modname; impl
     | Eletdecl { d_leq } ->
        let new_h, actual_k = leq (Tfun(Tany)) Env.empty d_leq in
        (* check that there is no unbounded size variables *)
@@ -1249,19 +1241,21 @@ let implementation ff is_first { desc; loc } =
          Env.iter
            (fun name { t_tys; t_path } ->
              Interface.update_type_of_value ff loc
-               (Ident.source name) (Kind.is_const t_path) t_tys) new_h
+               (Ident.source name) (Kind.is_const t_path) t_tys) new_h;
+       impl
     | Etypedecl { name; ty_params; ty_decl } ->
        if is_first then
-         Interface.typedecl ff loc name ty_params ty_decl
+         Interface.typedecl ff loc name ty_params ty_decl;
+       impl
   with
   | Typerrors.Error(loc, err) ->
      if is_first then Typerrors.message loc err
      else
        begin
          Format.eprintf
-           "@[Internal error: type error during the second step \n\
-            after static reduction and inlining\n\
-            Be carreful, the localisation of errors is misleading@.@.@]";
+           "@[Internal error: type error during type verification \n\
+            performed on an intermediate form. \n\
+            Be carreful, the localisation of errors can be misleading@.@.@]";
          Typerrors.message loc err
        end
 
@@ -1269,7 +1263,7 @@ let implementation ff is_first { desc; loc } =
 let program ff is_first ({ p_impl_list } as p) =
   (* turn off warning when not the first typing step *)
   Misc.no_warning := not is_first;
-  List.iter (implementation ff is_first) p_impl_list;
+  let p_impl_list = Util.iter (implementation ff is_first) p_impl_list in
   Misc.no_warning := not is_first;
-  p
+  { p with p_impl_list }
 

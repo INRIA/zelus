@@ -13,6 +13,7 @@
 (* *********************************************************************)
 
 (* elimation of periods. Periods are only allowed in continuous-time nodes *)
+(* This step needs valid type information at application points to be done *)
 
 (* For every function, an extra input [time] is added. A period (v1|v2) *)
 (* is translated into the computation of an horizon *)
@@ -122,24 +123,28 @@ let funexp funs acc ({ f_kind } as f) =
   | Knode(Kcont) ->
      let { f_args; f_env } as f, acc_local = Mapfold.funexp funs empty f in
      let time, _ = intro acc_local in
-     { f with f_args = [Aux.vardec time false None None] :: f_args;
-              f_env = Env.add time Typinfo.no_ienv f_env }, acc
+     let head, tail = Util.firsts f_args in
+     let f_args =
+       head @ [Aux.vardec time false None None :: tail] in
+     { f with f_args; f_env = Env.add time Typinfo.no_ienv f_env }, acc
   | _ -> Mapfold.funexp funs acc f
 
 (* add the extra time argument for the application of hybrid nodes *)
-let expression funs acc ({ e_desc } as e) =
+let expression funs acc e =
+  let { e_desc; e_info } as e, acc = Mapfold.expression funs acc e in
   match e_desc with
   | Eapp({ f; arg_list } as app) ->
-     (* we need to know if [f] is hybrid or not *)
-     (* for the moment, we suppose it is; this means that this rewriting *)
-     (* step must be done after type inference *)
-     let f, acc = Mapfold.expression_it funs acc f in
-     let arg_list, acc =
-       Util.mapfold (Mapfold.expression_it funs) acc arg_list in
+     (* The type of [f] must be known *)
+     let ty_f = Typinfo.get_type f.e_info in
+     let time, acc = intro acc in
+     let arg_list =
+       if Types.is_hybrid_funtype (List.length arg_list) ty_f then
+         let head, tail = Util.firsts arg_list in
+         head @ [Aux.pair (Aux.var time) tail]
+       else arg_list in
      let t, acc = intro acc in
-     { e with e_desc = Eapp({ app with f; arg_list = (Aux.var t) :: arg_list }) },
-     acc
-  | _ -> raise Mapfold.Fallback
+     { e with e_desc = Eapp { app with arg_list } }, acc
+  | _ -> e, acc
 
 let set_index funs acc n =
   let _ = Ident.set n in n, acc

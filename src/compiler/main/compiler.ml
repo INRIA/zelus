@@ -93,7 +93,7 @@ let apply_with_close_out f o =
 
 let print_message comment =
   if !verbose then
-    Format.fprintf Format.err_formatter
+    Format.fprintf Format.std_formatter
       "@[------------------------------------------------------------------\n\
        %s\n\
        --------------------------------------------------------------------@]@."
@@ -102,7 +102,7 @@ let print_message comment =
 let do_step comment output step input = 
   print_message comment;
   let o = step input in
-  if !Misc.verbose then output Format.err_formatter o;
+  if !Misc.verbose then output Format.std_formatter o;
   o
 
 let do_optional_step no_step comment output step input = 
@@ -137,6 +137,7 @@ let compile modname filename =
 
   try
     (* Associate unique index to variables *)
+    let module Printer = Printer.Make(Typinfo) in
     let module Scoping = Scoping.Make(Typinfo) in
     let p = do_step "Scoping done. See below:" Printer.program
               Scoping.program p in

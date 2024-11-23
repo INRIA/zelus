@@ -19,7 +19,8 @@ open Ident
 open Global
 open Deftypes
 open Obc
-       
+module Printer = Printer.Make(Typinfo)
+
 (* is-it a mutable value? Only vectors are considered at the moment *)
 let rec is_mutable { t_desc = desc } =
   match desc with
@@ -45,7 +46,7 @@ type env = entry Env.t (* the symbol table *)
 let fprint ff (env: entry Env.t) =
   let fprint_entry ff { e_typ = ty; e_sort = sort; e_size = size } =
     Format.fprintf ff "@[{ typ = %a;@,size = %a}@]"
-		   Ptypes.output ty
+		   Ptypes.output_type ty
 		   (Pp_tools.print_list_r Printer.name "[" "," "]") size in
   Ident.Env.fprint_t fprint_entry ff env
 		   

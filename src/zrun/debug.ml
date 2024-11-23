@@ -15,6 +15,8 @@ open Misc
 open Ident
 open Value
 
+module Printer = Printer.Make(Noinfo)
+
 let print_message comment =
   if !verbose then Format.fprintf Format.err_formatter "@[%s@]@." comment 
 

@@ -21,7 +21,8 @@ open Defcaus
 open Global
 open Zelus
 open Genames
-   
+module Printer = Printer.Make(Typinfo)
+
 (** a set of causality names *)
 module S = struct
   include (Set.Make(Defcaus))

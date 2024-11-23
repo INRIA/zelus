@@ -52,6 +52,52 @@ module Make (Info: INFO) =
       | Eorpat(p1, _) -> fv_pat acc p1
       | Etypeconstraintpat(p, _) -> fv_pat acc p
 
+    (* names defined by an equation *)
+    let defnames eq =
+      (* computes the set of names that appear on the left of an "=" *)
+      let rec equation bounded acc { eq_desc } = match eq_desc with
+        | EQeq(p, _) -> fv_pat acc p
+        | EQsizefun { sf_id = n } | EQder { id = n }
+          | EQinit(n, _) | EQemit(n, _) ->
+           if S.mem n bounded then acc else S.add n acc
+        | EQif { eq_true; eq_false } ->
+           equation bounded (equation bounded acc eq_true) eq_false
+        | EQand { eq_list } -> List.fold_left (equation bounded) acc eq_list
+        | EQlocal(b) -> let _, acc = block bounded acc b in acc
+        | EQlet(l_eq, eq) ->
+           let bounded = leq bounded acc l_eq in equation bounded acc eq
+        | EQreset(eq, _) -> equation bounded acc eq
+        | EQautomaton { handlers } ->
+           let trans bounded acc { e_body } =
+             let _, acc = block bounded acc e_body in acc in
+           let handler bounded acc { s_body; s_trans } =
+             let bounded, acc = block bounded acc s_body in
+             List.fold_left (trans bounded) acc s_trans in
+           List.fold_left (handler bounded) acc handlers
+        | EQpresent { handlers; default_opt } ->
+           let handler bounded acc { p_body } = equation bounded acc p_body in
+           let acc = List.fold_left (handler bounded) acc handlers in
+           let acc = match default_opt with
+             | NoDefault -> acc | Init(eq) | Else(eq) ->
+                                   equation bounded acc eq in
+           acc
+        | EQmatch { handlers } ->
+           let handler acc { m_pat; m_body } =
+             equation (fv_pat bounded m_pat) acc m_body in
+           List.fold_left handler acc handlers
+        | EQempty | EQassert _ -> acc
+        | EQforloop { for_body = { for_out } } ->
+           let for_out_one bounded acc { desc = { for_name } } =
+             if S.mem for_name bounded then acc else S.add for_name acc in
+           List.fold_left (for_out_one bounded) acc for_out
+        and block bounded acc { b_vars; b_body } =
+          let bounded =
+            List.fold_left (fun bounded { var_name } -> S.add var_name bounded)
+              bounded b_vars in
+          bounded, equation bounded acc b_body
+        and leq bounded acc { l_eq } = equation bounded acc l_eq in
+      equation S.empty S.empty eq
+    
     (* computes [dv] and [di] *)
     let rec equation ({ eq_desc } as eq)=
       let eq_desc, def =
@@ -375,7 +421,7 @@ module Make (Info: INFO) =
         | Eletdecl({ d_leq } as d) ->
            Eletdecl { d with d_leq = leq d_leq }
         | Etypedecl _ -> desc in
-      { i with desc = desc }
+      { i with desc }
     
     let program ({ p_impl_list } as p) = 
       { p with p_impl_list = List.map implementation p_impl_list }
