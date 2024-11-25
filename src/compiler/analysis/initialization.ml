@@ -356,12 +356,13 @@ let rec exp env ({ e_desc; e_info; e_loc } as e) =
        exp_less_than_on_i env e_res izero;
        exp env e_body
     | Eassert(e_body) -> exp env e_body
+    | Elocal(b_eq, e_body) ->
+       let env = block_eq Ident.S.empty env b_eq in
+       exp env e_body
     | Eforloop _ ->
        Misc.not_yet_implemented "initialisation analysis for for-loops"
     | Esizeapp _ ->
-       Misc.not_yet_implemented "initialisation analysis for size functions"
-    | Elocal _ ->
-       Misc.not_yet_implemented "initialisation analysis for local definitions" in
+       Misc.not_yet_implemented "initialisation analysis for size functions" in
   (* annotate the expression with the initialization type *)
   e.e_info <- Typinfo.set_init e.e_info ti;
   ti

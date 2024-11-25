@@ -418,12 +418,13 @@ let rec exp env c_free ({ e_desc; e_info; e_loc } as e) =
        let c_e = Tcausal.intro_less_c c_free in
        exp_less_than_on_c env c_free e_body c_e;
        Tcausal.skeleton_on_c c_e e_typ
+    | Elocal(b_eq, e_body) ->
+       let env = block_eq Ident.S.empty env c_free b_eq in
+       exp env c_free e_body
     | Eforloop _ ->
        Misc.not_yet_implemented "causality analysis for for-loops"
     | Esizeapp _ ->
-       Misc.not_yet_implemented "causality analysis for size functions"
-    | Elocal _ ->
-       Misc.not_yet_implemented "causality analysis for local definitions" in
+       Misc.not_yet_implemented "causality analysis for size functions" in
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info tc;
   tc
