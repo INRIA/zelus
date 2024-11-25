@@ -1,5 +1,9 @@
 let static x = (1, 2)
 
+let y = x
+
+let f = fun x -> x + 1
+
 let node f0(x) returns (o, m0, m1)
     let m = (1, 2) in
     do m0, m1 = m and o = 0 -> pre(o+1) + x done

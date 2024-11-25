@@ -1227,21 +1227,23 @@ let implementation ff is_first impl =
     match desc with
     | Eopen(modname) ->
        if is_first then Modules.open_module modname; impl
-    | Eletdecl { d_leq } ->
+    | Eletdecl { d_names; d_leq } ->
+       (* type the set of equations *)
        let new_h, actual_k = leq (Tfun(Tany)) Env.empty d_leq in
        (* check that there is no unbounded size variables *)
        check_no_unbounded_size_name loc new_h;
+
+       (* add entry [n : tys] for every [n in d_names] in the global env. *)
+       let setenv (n, id) =
+         let { t_tys; t_path } = var loc new_h id in
+         let is_const = Kind.is_const t_path in
+         if is_first then
+           Interface.add_type_of_value ff loc n is_const t_tys
+         else
+           Interface.update_type_of_value ff loc n is_const t_tys in
+
        (* update the global environment *)
-       if is_first then
-         Env.iter
-           (fun name { t_tys; t_path } ->
-             Interface.add_type_of_value ff loc
-               (Ident.source name) (Kind.is_const t_path) t_tys) new_h
-       else
-         Env.iter
-           (fun name { t_tys; t_path } ->
-             Interface.update_type_of_value ff loc
-               (Ident.source name) (Kind.is_const t_path) t_tys) new_h;
+       List.iter setenv d_names;
        impl
     | Etypedecl { name; ty_params; ty_decl } ->
        if is_first then

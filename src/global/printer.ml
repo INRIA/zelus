@@ -675,7 +675,9 @@ module Make (Info: INFO) =
          (* print the set of equations and the list of globally defined names *)
          leq ff d_leq;
          List.iter
-           (fun (n, id) -> fprintf ff "@[<v 0>let %s = %a@]@." n name id) d_names
+           (fun (n, id) ->
+             fprintf ff "@[<v 0>(* globally defined names *)@,\
+                         let %s = %a@]@." n name id) d_names
     
     let program ff { p_impl_list; p_index } = 
       fprintf ff "Index number = %d@." p_index;

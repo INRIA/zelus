@@ -44,7 +44,7 @@ let default_list =
    Static.program;
    "inline", "Inlining done. See below:", nothing,
    Inline.program;
-   "typing", "Second typing: See below:", nothing,
+   "typing", "New typing step: See below:", nothing,
    (fun _ p -> Typing.program Format.std_formatter false p);
    "automata", "Translation of automata. See below:", nothing,
    Automata.program;
@@ -86,8 +86,11 @@ let default_list =
    Pre.program;
    "init", "Compilation of initializations. See below:", nothing,
    Init.program;
-   "letin", "Un-nesting of let/in and blocks. See below:", Write.program,
-   Letin.program] @ optim_list @ [
+   "letin", "Un-nesting of let/in and blocks. See below:", nothing,
+   Letin.program;
+   "typing", "New typing step: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p);
+   ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
    Schedule.program ]
 
