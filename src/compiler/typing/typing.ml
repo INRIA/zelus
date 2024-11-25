@@ -809,7 +809,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        Initial.typ_unit, actual_k
     | Elocal(b, e_body) ->
        let _, new_h, _, actual_k = block_eq expected_k h b in
-       let ty, actual_k_e = expression expected_k h e_body in
+       let ty, actual_k_e = expression expected_k new_h e_body in
        ty, Kind.sup actual_k actual_k_e
     | Esizeapp _ ->
        Misc.not_yet_implemented "typing for size functions"
