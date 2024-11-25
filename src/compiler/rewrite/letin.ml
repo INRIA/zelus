@@ -153,9 +153,9 @@ let equation funs acc ({ eq_desc } as eq) =
        seq acc_eq (add_seq eq empty) in
   empty_eq, par acc acc_eq
 
-let leq_t funs acc ({ l_eq; l_env } as l) =
+let leq_t funs acc ({ l_eq = { eq_write } as l_eq } as l) =
   let l_eq, acc = Mapfold.equation_it funs acc l_eq in
-  let n_names = Env.fold (fun x _ acc -> S.add x acc) l_env S.empty in
+  let n_names = Defnames.names S.empty eq_write in
   { l with l_eq }, add_names n_names acc
 
 let atomic_equation funs acc eq =
@@ -180,12 +180,12 @@ let match_handler_e funs acc ({ m_body } as m_h) =
   let e, acc = atomic_expression funs acc m_body in 
   { m_h with m_body = e }, acc
 
-let present_handler_eq funs acc ({ p_cond; p_body; p_env } as p_b) =
+let present_handler_eq funs acc ({ p_cond; p_body } as p_b) =
   let p_cond, acc = Mapfold.scondpat_it funs acc p_cond in
   let p_body, acc = atomic_equation funs acc p_body in
   { p_b with p_cond; p_body }, acc
 
-let present_handler_e funs acc ({ p_cond; p_body; p_env } as p_b) =
+let present_handler_e funs acc ({ p_cond; p_body } as p_b) =
   let p_cond, acc = Mapfold.scondpat_it funs acc p_cond in
   let p_body, acc = atomic_expression funs acc p_body in
   { p_b with p_cond; p_body }, acc
