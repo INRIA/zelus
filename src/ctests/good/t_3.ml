@@ -3,19 +3,9 @@
 open Ztypes
 let m = machine(discrete) { 
           memories
-            m_23 : int = 42;
-            i_31 : bool = false; m_29 : int = 42; o_16 : int = 42 instances
+            m_13 : int = 42;
+            i_17 : bool = false; m_16 : int = 42; o_10 : int = 42 instances
                                                                     
-          method reset  = ((i_31 <- true):unit)
-          method step ((m_23:Stdlib.int)) = (():int)]}
+          method reset  = ((i_17 <- true):unit)
+          method step ((m_13:Stdlib.int)) = (():int)]}
 
-let m = T_3.r_10
-let m = machine(discrete) { 
-          memories
-            m_26 : int = 42;
-            i_32 : bool = false; m_30 : int = 42; o_20 : int = 42 instances
-                                                                    
-          method reset  = ((i_32 <- true):unit)
-          method step ((m_26:Stdlib.int)) = (():int)]}
-
-let m = T_3.r_13
