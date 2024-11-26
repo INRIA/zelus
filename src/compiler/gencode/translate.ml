@@ -335,10 +335,10 @@ let apply k env loop_path context e e_list =
      let reset_context =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.reset;
 		     met_instance = Some(o, loop_path); met_args = [] }) in
-     let step_context =
+     let step =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.step;
 		     met_instance = Some(o, loop_path); met_args = [arg] }) in
-     step_context,
+     step,
      { context with instances = Parseq.cons j_context context.instances;
                  reset = Oaux.seq reset_context context.reset }
 
@@ -557,7 +557,8 @@ and result env { Zelus.r_desc } =
 
 (* Translation of equations. They are traversed in reverse order *)
 (* from the last one to the first one *)
-(* [context, e] is the already generated context. The generated context for [eq] is *)
+(* [step,context] is the already generated context. The generated *)
+(* context for [eq] is *)
 (* executed before [step] *)
 and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
   match desc with
@@ -577,7 +578,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
          (fun env loop_path eq context ->
            equation env loop_path eq (Oaux.void, context))
          env loop_path context handlers in
-     Ematch(e, handlers), context
+     Oaux.seq (Ematch(e, handlers)) step, context
   | Zelus.EQreset({ Zelus.eq_desc = Zelus.EQinit(x, e) }, r_e)
        when not (Types.static e) ->
      let r_e, context = expression env loop_path context r_e in
@@ -593,12 +594,13 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      Oaux.seq (ifthen r_e init) e, seq context context_eq
   | Zelus.EQinit(x, e) ->
      let e_c, context = expression env loop_path context e in
-     let x_e = assign (entry_of x env) e_c in
+     let x_equal_e = assign (entry_of x env) e_c in
      (* initialization of a state variable with a static value *)
      if Types.static e
-     then Oaux.void, seq { empty_context with init = x_e; reset = x_e } context
-     else x_e, context
-  | Zelus.EQempty -> Oaux.void, context
+     then step,
+          seq { empty_context with init = x_equal_e; reset = x_equal_e } context
+     else Oaux.seq x_equal_e step, context
+  | Zelus.EQempty -> step, context
   | Zelus.EQand { ordered = true; eq_list } ->
      equation_list env loop_path eq_list (step, context)
   | Zelus.EQlocal(b) ->
@@ -607,14 +609,16 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      leq_in_eq env loop_path l eq_let (step, context)
   | Zelus.EQif { e; eq_true; eq_false } ->
      let e, context = expression env loop_path context e in
-     let e_true, context = equation env loop_path eq_true (Oaux.void, context) in
-     let e_false, context = equation env loop_path eq_false (Oaux.void, context) in
-     Oaux.ifthenelse e e_true e_false, context
+     let e_true, context =
+       equation env loop_path eq_true (Oaux.void, context) in
+     let e_false, context =
+       equation env loop_path eq_false (Oaux.void, context) in
+     Oaux.seq (Oaux.ifthenelse e e_true e_false) step, context
   | Zelus.EQand _  | Zelus.EQder _
     | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQassert(e) ->
      let e, context = expression env loop_path context e in
-     Eassert(e), context
+     Oaux.seq (Eassert(e)) step, context
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQsizefun _ -> Misc.not_yet_implemented "sizefun"
   

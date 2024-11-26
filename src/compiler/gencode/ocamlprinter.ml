@@ -237,7 +237,7 @@ and exp prio ff e =
              (exp 0) left_size (exp 0) right_size (exp 2) left
              (exp 2) left (exp 0) left_size
              (exp 2) right (exp 0) right_size
-  | Emachine(ma) -> machine ff ma
+  | Emachine(ma) -> machine "self" ff ma
   | Efun _ -> ()
   end;
   if prio_e < prio then fprintf ff ")"
@@ -311,23 +311,23 @@ and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
 and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
 
 (* Print the method as a function *)
-let pmethod f ff { me_name; me_params; me_body; me_typ } =
+and pmethod f ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
     f (method_name me_name) pattern_list me_params (exp 2) me_body
     ptype me_typ
 
-let constructor_for_kind = function
+and constructor_for_kind = function
   | Deftypes.Tnode _ -> "Node"
   | Deftypes.Tfun _ -> assert false
 
-let expected_list_of_methods = default_list_of_methods
+and expected_list_of_methods = default_list_of_methods
 
 (* Print initialization code *)
-let print_initialize ff e_opt =
+and print_initialize ff e_opt =
   match e_opt with
   | None -> fprintf ff "()" | Some(e) -> fprintf ff "%a" (exp 0) e
 
-let palloc f i_opt memories ff instances =
+and palloc f i_opt memories ff instances =
   if memories = []
   then if instances = []
        then fprintf ff "@[let %s_alloc _ = %a in@]" f print_initialize i_opt
@@ -348,7 +348,7 @@ let palloc f i_opt memories ff instances =
 
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
 (* for every instance *)
-let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
+and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
   (* Define the method *)
   let method_name ff me_name =
     let m = method_name me_name in
@@ -378,7 +378,7 @@ let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
  *   let f_step y = ... in
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)
-let machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
+and machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
                    ma_instances; ma_methods } =
   (* print either [(f)] *)
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
@@ -399,12 +399,12 @@ let machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
   def_type_for_a_machine ff f ma_memories ma_instances;
   (* print the code for [f] *)
   fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
-	  f
-	  pattern_list ma_params
-	  (print_list_r def_instance_function "" "" "") ma_instances
-	  (palloc f ma_initialize ma_memories) ma_instances
-	  (print_list_r (pmethod f) """""") ma_methods
-	  tuple_of_methods ma_methods
+    f
+    pattern_list ma_params
+    (print_list_r def_instance_function "" "" "") ma_instances
+    (palloc f ma_initialize ma_memories) ma_instances
+    (print_list_r (pmethod f) """""") ma_methods
+    tuple_of_methods ma_methods
 
 let implementation ff impl = match impl with
   | Eletdef(n_e_list) ->
@@ -416,12 +416,12 @@ let implementation ff impl = match impl with
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
      fprintf ff "@[%a@.@]"
-             (print_list_l
-                (fun ff (s, s_list, ty_decl) ->
-                  fprintf ff "%a%s =@ %a"
-                          Ptypes.print_type_params s_list
-                          s type_decl ty_decl)
-                "type ""and """)
+       (print_list_l
+          (fun ff (s, s_list, ty_decl) ->
+            fprintf ff "%a%s =@ %a"
+              Ptypes.print_type_params s_list
+              s type_decl ty_decl)
+          "type ""and """)
              l
 
 let implementation_list ff impl_list =
