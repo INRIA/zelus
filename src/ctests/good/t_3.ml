@@ -2,7 +2,7 @@
   (2024-11-26-13:35) *)
 open Ztypes
 type ('d, 'c, 'b, 'a) machine_18 =
- = {mutable m_13: 'd; mutable i_17: 'c; mutable m_16: 'b; mutable o_10: 'a}
+{mutable m_13: 'd; mutable i_17: 'c; mutable m_16: 'b; mutable o_10: 'a}
 let m = let machine_18  = 
           
           let machine_18_alloc _ =

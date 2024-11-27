@@ -317,19 +317,19 @@ let constr_decl ff c_decl =
            "@[%s of %a@]" n (print_list_l Printer.ptype "(" "* " ")") ty_list
 
 let type_decl ff ty_decl =
-      match ty_decl with
-      | Eabstract_type -> ()
-      | Eabbrev(ty) ->
-         fprintf ff " = %a" Printer.ptype ty
-      | Evariant_type(constr_decl_list) ->
-         fprintf
-           ff " = %a" (print_list_l constr_decl "" "|" "") constr_decl_list
-      | Erecord_type(mut_n_ty_list) ->
-         let print ff (is_mutable, n, ty) =
-           fprintf ff "@[%s%a: %a@]" (if is_mutable then "mutable " else "")
-             Printer.shortname n Printer.ptype ty in
-         fprintf ff " = %a"
-           (print_list_r print "{" ";" "}") mut_n_ty_list
+  match ty_decl with
+  | Eabstract_type -> ()
+  | Eabbrev(ty) ->
+     fprintf ff "%a" Printer.ptype ty
+  | Evariant_type(constr_decl_list) ->
+     fprintf
+       ff "%a" (print_list_l constr_decl "" "|" "") constr_decl_list
+  | Erecord_type(mut_n_ty_list) ->
+     let print ff (is_mutable, n, ty) =
+       fprintf ff "@[%s%a: %a@]" (if is_mutable then "mutable " else "")
+         Printer.shortname n Printer.ptype ty in
+     fprintf ff "%a"
+       (print_list_r print "{" ";" "}") mut_n_ty_list
 
 (* The main entry functions for expressions and instructions *)
 let implementation ff impl = match impl with
@@ -342,9 +342,9 @@ let implementation ff impl = match impl with
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
      let print ff (s, s_list, ty_decl) =
-       fprintf ff "%a%s =@ %a" Ptypes.print_type_params s_list
+       fprintf ff "%a%s =@ %a" print_type_params s_list
          s type_decl ty_decl in
-     fprintf ff "@[%a@.@]" (print_list_l print "type ""and """) l
+     fprintf ff "@[<hov2>%a@.@]" (print_list_l print "type ""and """) l
 
 let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" Misc.header_in_file;

@@ -469,7 +469,7 @@ let implementation ff impl =
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
      let print ff (s, s_list, ty_decl) =
-       fprintf ff "%a%s =@ %a" Ptypes.print_type_params s_list
+       fprintf ff "%a%s =@ %a" print_type_params s_list
          s type_decl ty_decl in
      fprintf ff "@[%a@.@]" (print_list_l print "type ""and """) l
 
