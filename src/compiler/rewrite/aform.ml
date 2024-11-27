@@ -111,6 +111,9 @@ let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
+(* Warning: this part does not work. *)
+(* let eq => let eq' *)
+(* where def names are renamed. they must be renamed. *)
 let program genv p =
   let global_funs = { Mapfold.default_global_funs with build } in
   let funs =

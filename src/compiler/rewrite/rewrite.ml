@@ -24,10 +24,14 @@ let nothing p = p
 let type_check p = Typing.program Format.std_formatter false p
     
 let optim_list =
-  ["aform", "A-normal form. See below:",
-   (* type checks before computing A-normal form *)
-   type_check,
-   Aform.program;
+  [(* Warning: this step does not work for the moment. The renaming *)
+    (* of variables does not work. See [aform.ml] *)
+    (* "aform", "A-normal form. See below:",
+       (* type checks before computing A-normal form *)
+       type_check,
+       Aform.program; *)
+   "typing", "New typing step: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p);
    "deadcode", "Dead-code removal. See below:", nothing,
    Deadcode.program;
    (* "cse", "Common sub-expression elimination. See below:", nothing,
@@ -92,7 +96,8 @@ let default_list =
    (fun _ p -> Typing.program Format.std_formatter false p);
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
-   Schedule.program ]
+   Schedule.program;
+   ]
 
 (* select the rewritting steps *)
 module S = Set.Make (String)
