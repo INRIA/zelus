@@ -81,7 +81,7 @@ let rec pattern ff pat = match pat with
           "" " =" "") "{" ";" "}" ff n_pat_list
 
 and pattern_list ff pat_list =
-  print_list_r pattern """""" ff pat_list
+  print_list_r pattern "" "" "" ff pat_list
 
 and pattern_comma_list ff pat_list =
   print_list_r pattern "("","")" ff pat_list
@@ -237,7 +237,9 @@ and exp prio ff e =
      fprintf ff "{%a:%a | %a:%a}"
        (exp 0) left (exp 0) left_size (exp 0) right (exp 0) right_size
   | Emachine(ma) -> machine ff ma
-  | Efun _ -> ()
+  | Efun { pat_list; e } ->
+     fprintf ff
+       "@[<hov2>(fun@ %a ->@ %a)@]" pattern_list pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
 
@@ -339,14 +341,10 @@ let implementation ff impl = match impl with
   | Eopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
-     fprintf ff "@[%a@.@]"
-             (print_list_l
-                (fun ff (s, s_list, ty_decl) ->
-                  fprintf ff "%a%s =@ %a"
-                    print_type_params s_list
-                    s type_decl ty_decl)
-            "type ""and """)
-        l
+     let print ff (s, s_list, ty_decl) =
+       fprintf ff "%a%s =@ %a" Ptypes.print_type_params s_list
+         s type_decl ty_decl in
+     fprintf ff "@[%a@.@]" (print_list_l print "type ""and """) l
 
 let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" Misc.header_in_file;

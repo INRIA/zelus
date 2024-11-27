@@ -42,31 +42,33 @@ let default_list_of_methods = [Oaux.step; Oaux.reset]
 (* Define the data-type for the internal state of a machine *)
 (* A prefix "_" is added to the name of the machine to avoid *)
 (* name conflicts *)
-let def_record_type_for_a_machine ff f memories instances =
+let def_type_for_a_machine ma_name ma_memories ma_instances =
   let unit_type =
     let open Zelus in
     { desc = Etypeconstr(Lident.Modname(Initial.unit_ident), []);
     loc = Location.no_location } in
   let one_entry (n, m) =
     let open Zelus in
-    (true, Ident.source n, { desc = Etypevar m; loc = Location.no_location }) in
+    (true, Ident.name n, { desc = Etypevar m; loc = Location.no_location }) in
   let i, params, entries =
     List.fold_right
       (fun { m_name = n } (i, params, entries) ->
         let m = Genames.int_to_alpha i in
         (i+1, m :: params, (n, m) :: entries))
-      memories (0, [], []) in
+      ma_memories (0, [], []) in
   let i, params, entries =
     List.fold_right
       (fun { i_name = n } (i, params, entries) ->
         let m = Genames.int_to_alpha i in
         (i+1, m :: params, (n, m) :: entries))
-      instances (i, params, entries) in
+      ma_instances (i, params, entries) in
   (* if the state is empty, produce the dummy state type [unit] *)
   if entries = []
-  then Etypedecl [f, [], Eabbrev(unit_type)]
+  then
+    Etypedecl [Ident.name ma_name, [], Eabbrev(unit_type)]
   else
-    Etypedecl [f, params, Erecord_type(List.map one_entry entries)]
+    Etypedecl
+      [Ident.name ma_name, params, Erecord_type(List.map one_entry entries)]
 
 (* produce the set of type declaration for state for a whole program *)
 
@@ -242,7 +244,9 @@ and exp prio ff e =
              (exp 2) left (exp 0) left_size
              (exp 2) right (exp 0) right_size
   | Emachine(ma) -> machine ff ma
-  | Efun _ -> ()
+  | Efun { pat_list; e } ->
+     fprintf ff
+       "@[<hov2>(fun@ %a ->@ %a)@]" pattern_list pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
 
@@ -401,53 +405,61 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
 	       k f (print_list_r method_name "" ";" "") m_name_list in
 
   (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
+  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a in@ %s@]@.@]"
     f
     pattern_list ma_params
     (print_list_r def_instance_function "" "" "") ma_instances
     (palloc f ma_initialize ma_memories) ma_instances
     (print_list_r (pmethod f) """""") ma_methods
-    tuple_of_methods ma_methods
+    tuple_of_methods ma_methods f
 
-let rec def_types acc e =
-  match e with
-  | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate_access _ -> acc
-  | Econstr1 { arg_list } | Etuple arg_list
-    | Emethodcall { met_args = arg_list } | Esequence(arg_list)->
-     List.fold_left def_types acc arg_list
-  | Eapp { f; arg_list } ->
-     List.fold_left def_types (def_types acc f) arg_list
-  | Erecord(label_e_list) ->
-     List.fold_left (fun { arg } acc -> def_types acc arg) acc label_e_list
-  | Erecord_access { arg } -> def_types acc arg
-  | Erecord_with(e_record, label_e_list) ->
-     List.fold_left
-       (fun { arg } acc -> def_types acc arg) (def_types acc e_record)
-       label_e_list
-  | Etypeconstraint(e, _) -> def_types acc e
-  | Eifthenelse(e, e1, e2) ->
-      def_types (def_types (def_types acc e) e1) e2
-  | Elet(_, e1, e2) -> def_types (def_types acc e1) e2
-  | Eletvar { e } | Eletmem(_, e) | Eletinstance(_, e) -> def_types acc e
-  | Ematch(e, m_h) ->
-     List.fold_left (fun acc { m_body } -> def_types acc m_body) acc m_h
-  | Efor { left; right; e } | Eupdate { e; index = left; arg = right }
-    | Eslice { e; left; right } ->
-     def_types (def_types (def_types acc left) right) e
-  | Ewhile { cond; e } | Eget { e; index = cond } | Evec { e; size = cond } ->
-     def_types (def_types acc cond) e
-  | Eassert(e) | Eassign(_, e) | Eassign_state(_, e) -> 
-     def_types acc e
-  | Econcat { left; left_size; right; right_size } ->
-     def_types
-       (def_types (def_types (def_types acc left) left_size) right) right_size
-  | Emachine(ma) -> machine acc ma
-  | Efun _ -> ()
-  end;
-  if prio_e < prio then fprintf ff ")"
+(* computes the set of type declarations for representing the state *)
+(* for every machines defined in expression [e] *)
+let def_types acc impl =
+  let rec def_types acc e =
+    match e with
+    | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate_access _ -> acc
+    | Econstr1 { arg_list } | Etuple arg_list
+      | Emethodcall { met_args = arg_list } | Esequence(arg_list)->
+       List.fold_left def_types acc arg_list
+    | Eapp { f; arg_list } ->
+       List.fold_left def_types (def_types acc f) arg_list
+    | Erecord(label_e_list) ->
+       List.fold_left (fun acc { arg } -> def_types acc arg) acc label_e_list
+    | Erecord_access { arg } -> def_types acc arg
+    | Erecord_with(e_record, label_e_list) ->
+       List.fold_left
+         (fun acc { arg } -> def_types acc arg) (def_types acc e_record)
+         label_e_list
+    | Etypeconstraint(e, _) | Efun { e } -> def_types acc e
+    | Eifthenelse(e, e1, e2) ->
+       def_types (def_types (def_types acc e) e1) e2
+    | Elet(_, e1, e2) -> def_types (def_types acc e1) e2
+    | Eletvar { e } | Eletmem(_, e) | Eletinstance(_, e) -> def_types acc e
+    | Ematch(e, m_h) ->
+       List.fold_left (fun acc { m_body } -> def_types acc m_body) acc m_h
+    | Efor { left; right; e } | Eupdate { e; index = left; arg = right }
+      | Eslice { e; left; right } ->
+       def_types (def_types (def_types acc left) right) e
+    | Ewhile { cond; e } | Eget { e; index = cond } | Evec { e; size = cond } ->
+       def_types (def_types acc cond) e
+    | Eassert(e) | Eassign(_, e) | Eassign_state(_, e) -> 
+       def_types acc e
+    | Econcat { left; left_size; right; right_size } ->
+       def_types
+         (def_types (def_types (def_types acc left) left_size) right) right_size
+    | Emachine { ma_name; ma_initialize;
+                 ma_memories; ma_instances; ma_methods } ->
+       let def_method acc { me_body } = def_types acc me_body in
+       let acc = List.fold_left def_method acc ma_methods in
+       def_type_for_a_machine ma_name ma_memories ma_instances :: acc in
+  match impl with
+  | Eletdef(n_e_list) ->
+     List.fold_left (fun acc (n, e) -> def_types acc e) acc n_e_list
+  | Eopen _ | Etypedecl _ -> acc     
 
-
-let implementation ff impl = match impl with
+let implementation ff impl =
+  match impl with
   | Eletdef(n_e_list) ->
      let print ff (n, e) =
        fprintf ff "@[%a = %a@]" Printer.shortname n (exp 0) e in
@@ -456,18 +468,18 @@ let implementation ff impl = match impl with
   | Eopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
-     fprintf ff "@[%a@.@]"
-       (print_list_l
-          (fun ff (s, s_list, ty_decl) ->
-            fprintf ff "%a%s =@ %a"
-              Ptypes.print_type_params s_list
-              s type_decl ty_decl)
-          "type ""and """)
-             l
+     let print ff (s, s_list, ty_decl) =
+       fprintf ff "%a%s =@ %a" Ptypes.print_type_params s_list
+         s type_decl ty_decl in
+     fprintf ff "@[%a@.@]" (print_list_l print "type ""and """) l
+
 
 let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";
+  (* first extract the set of type definitions for states *)
+  let ty_decl_list = List.fold_left def_types [] impl_list in
+  List.iter (implementation ff) ty_decl_list;
   List.iter (implementation ff) impl_list
 
 let program ff { p_impl_list } =
