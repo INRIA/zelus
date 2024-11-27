@@ -116,10 +116,13 @@ let initialize modname =
   current.name <- modname;
   List.iter open_module !default_used_modules
   
+(* value names cannot be defined twice in a module *)
 let add_value f signature = 
   if E.mem f current.values then raise (Already_defined f);
   current.values <- E.add f signature current.values
   
+(* type names, type constructors and record constructors *)
+(* cannot be defined twice in a module *)
 let add_type f typ_desc =
   if E.mem f current.types then raise (Already_defined f);
   current.types <- E.add f typ_desc current.types
