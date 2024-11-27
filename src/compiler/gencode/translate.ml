@@ -343,7 +343,7 @@ let apply k env loop_path context e e_list =
                  reset = Oaux.seq reset_context context.reset }
 
 (* Define a function or a machine according to a kind [k] *)
-let machine k pat_list { mem; instances; reset } e ty_res =
+let machine f k pat_list { mem; instances; reset } e ty_res =
   let k = Interface.kindtype k in
   match k with
   | Deftypes.Tfun _ -> Efun { pat_list; e }
@@ -351,17 +351,18 @@ let machine k pat_list { mem; instances; reset } e ty_res =
     (* the [n-1] parameters are static *)
     let pat_list, p = Util.firsts pat_list in
     let body =
-       { ma_kind = k;
-	 ma_params = pat_list;
-	 ma_initialize = None;
-	 ma_memories = Parseq.list [] mem;
-	 ma_instances = Parseq.list [] instances;
-	 ma_methods = 
-	   [ { me_name = Oaux.reset; me_params = []; me_body = reset;
-               me_typ = Initial.typ_unit };
-	     { me_name = Oaux.step; me_params = [p]; me_body = e;
-               me_typ = ty_res } ] } in
-     Emachine(body)
+      { ma_name = f;
+        ma_kind = k;
+	ma_params = pat_list;
+	ma_initialize = None;
+	ma_memories = Parseq.list [] mem;
+	ma_instances = Parseq.list [] instances;
+	ma_methods = 
+	  [ { me_name = Oaux.reset; me_params = []; me_body = reset;
+              me_typ = Initial.typ_unit };
+	    { me_name = Oaux.step; me_params = [p]; me_body = e;
+              me_typ = ty_res } ] } in
+    Emachine(body)
 
 let add_mem_vars_to_context mem_acc var_acc (e, ({ mem } as context)) =
   letvar var_acc e, { context with mem = Parseq.seq mem_acc mem } 
@@ -514,7 +515,8 @@ let rec expression env loop_path context { Zelus.e_desc } =
      let e, context_body = result env r in
      let e, context_body =
        add_mem_vars_to_context mem_acc var_acc (e, context_body) in
-     machine k pat_list context_body e ty, context
+     let f = Ident.fresh "machine" in
+     machine f k pat_list context_body e ty, context
   | Zelus.Ereset(e, r_e) ->
      let r_e, context = expression env loop_path context r_e in
      let e, ({ init } as context_e) = expression env loop_path empty_context e in
@@ -661,12 +663,27 @@ and block_in_e env loop_path { Zelus.b_body; Zelus.b_env } context e =
   let step, context = equation env loop_path b_body (step, context) in
   add_mem_vars_to_context mem_acc var_acc (step, context)
 
+(* translate a type declaration *)
+let rec type_decl { Zelus.desc } =
+  match desc with
+  | Zelus.Eabstract_type -> Eabstract_type
+  | Zelus.Eabbrev(ty) -> Eabbrev(ty)
+  | Zelus.Evariant_type(c_list) ->
+     Evariant_type(List.map constr_decl c_list)
+  | Zelus.Erecord_type(label_ty_list) ->
+     Erecord_type(List.map (fun (l, ty) -> (false, l, ty)) label_ty_list)
+
+and constr_decl { Zelus.desc } =
+  match desc with
+  | Zelus.Econstr0decl(n) -> Econstr0decl(n)
+  | Zelus.Econstr1decl(n, ty_list) -> Econstr1decl(n, ty_list)
+
 (* Translation of a declaration *)
 let implementation { Zelus.desc } =
   match desc with
   | Zelus.Eopen(n) -> Eopen(n)
   | Zelus.Etypedecl { name; ty_params; ty_decl } ->
-     Etypedecl [name, ty_params, ty_decl]
+     Etypedecl [name, ty_params, type_decl ty_decl]
   | Zelus.Eletdecl { d_leq = { Zelus.l_eq = { eq_desc } } } ->
      match eq_desc with
        | Zelus.EQeq({ pat_desc = Evarpat(name) }, e) ->

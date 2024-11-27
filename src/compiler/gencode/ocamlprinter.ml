@@ -37,34 +37,38 @@ let immediate ff = function
   | Evoid -> pp_print_string ff "()"
   | Eany -> fprintf ff "Obj.magic ()"
 		    
-		    
 let default_list_of_methods = [Oaux.step; Oaux.reset]
 
 (* Define the data-type for the internal state of a machine *)
 (* A prefix "_" is added to the name of the machine to avoid *)
 (* name conflicts *)
-let def_type_for_a_machine ff f memories instances =
-  let one_entry ff (n, m) =
-    fprintf ff "@[mutable %a : '%s@]" Printer.name n m in
+let def_record_type_for_a_machine ff f memories instances =
+  let unit_type =
+    let open Zelus in
+    { desc = Etypeconstr(Lident.Modname(Initial.unit_ident), []);
+    loc = Location.no_location } in
+  let one_entry (n, m) =
+    let open Zelus in
+    (true, Ident.source n, { desc = Etypevar m; loc = Location.no_location }) in
   let i, params, entries =
     List.fold_right
       (fun { m_name = n } (i, params, entries) ->
-        let m = Genames.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
+        let m = Genames.int_to_alpha i in
+        (i+1, m :: params, (n, m) :: entries))
       memories (0, [], []) in
   let i, params, entries =
     List.fold_right
       (fun { i_name = n } (i, params, entries) ->
-        let m = Genames.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
+        let m = Genames.int_to_alpha i in
+        (i+1, m :: params, (n, m) :: entries))
       instances (i, params, entries) in
   (* if the state is empty, produce the dummy state type [unit] *)
   if entries = []
-  then fprintf ff "@[type _%s = unit@.@.@]" f
+  then Etypedecl [f, [], Eabbrev(unit_type)]
   else
-    fprintf ff "@[<v 2>type @[%a@] _%s =@ { @[%a@] }@.@.@]"
-      (Pp_tools.print_list_r (fun ff s -> fprintf ff "'%s" s)
-         "("","")") params
-      f
-      (Pp_tools.print_list_r one_entry """;""") entries
+    Etypedecl [f, params, Erecord_type(List.map one_entry entries)]
+
+(* produce the set of type declaration for state for a whole program *)
 
 (* Print the call to a method *)
 let method_call ff { met_name; met_instance; met_args } =
@@ -237,7 +241,7 @@ and exp prio ff e =
              (exp 0) left_size (exp 0) right_size (exp 2) left
              (exp 2) left (exp 0) left_size
              (exp 2) right (exp 0) right_size
-  | Emachine(ma) -> machine "self" ff ma
+  | Emachine(ma) -> machine ff ma
   | Efun _ -> ()
   end;
   if prio_e < prio then fprintf ff ")"
@@ -378,10 +382,11 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
  *   let f_step y = ... in
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)
-and machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
+and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
                    ma_instances; ma_methods } =
   (* print either [(f)] *)
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
+  let f = Ident.name ma_name in
   let tuple_of_methods ff m_name_list =
     match ma_kind with
     | Deftypes.Tfun _ -> fprintf ff "%s" f
@@ -395,8 +400,6 @@ and machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
        fprintf ff "@[%s { alloc = %s_alloc; %a }@]"
 	       k f (print_list_r method_name "" ";" "") m_name_list in
 
-  (* print the type for [f] *)
-  def_type_for_a_machine ff f ma_memories ma_instances;
   (* print the code for [f] *)
   fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
     f
@@ -405,6 +408,44 @@ and machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
     (palloc f ma_initialize ma_memories) ma_instances
     (print_list_r (pmethod f) """""") ma_methods
     tuple_of_methods ma_methods
+
+let rec def_types acc e =
+  match e with
+  | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate_access _ -> acc
+  | Econstr1 { arg_list } | Etuple arg_list
+    | Emethodcall { met_args = arg_list } | Esequence(arg_list)->
+     List.fold_left def_types acc arg_list
+  | Eapp { f; arg_list } ->
+     List.fold_left def_types (def_types acc f) arg_list
+  | Erecord(label_e_list) ->
+     List.fold_left (fun { arg } acc -> def_types acc arg) acc label_e_list
+  | Erecord_access { arg } -> def_types acc arg
+  | Erecord_with(e_record, label_e_list) ->
+     List.fold_left
+       (fun { arg } acc -> def_types acc arg) (def_types acc e_record)
+       label_e_list
+  | Etypeconstraint(e, _) -> def_types acc e
+  | Eifthenelse(e, e1, e2) ->
+      def_types (def_types (def_types acc e) e1) e2
+  | Elet(_, e1, e2) -> def_types (def_types acc e1) e2
+  | Eletvar { e } | Eletmem(_, e) | Eletinstance(_, e) -> def_types acc e
+  | Ematch(e, m_h) ->
+     List.fold_left (fun acc { m_body } -> def_types acc m_body) acc m_h
+  | Efor { left; right; e } | Eupdate { e; index = left; arg = right }
+    | Eslice { e; left; right } ->
+     def_types (def_types (def_types acc left) right) e
+  | Ewhile { cond; e } | Eget { e; index = cond } | Evec { e; size = cond } ->
+     def_types (def_types acc cond) e
+  | Eassert(e) | Eassign(_, e) | Eassign_state(_, e) -> 
+     def_types acc e
+  | Econcat { left; left_size; right; right_size } ->
+     def_types
+       (def_types (def_types (def_types acc left) left_size) right) right_size
+  | Emachine(ma) -> machine acc ma
+  | Efun _ -> ()
+  end;
+  if prio_e < prio then fprintf ff ")"
+
 
 let implementation ff impl = match impl with
   | Eletdef(n_e_list) ->

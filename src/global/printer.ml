@@ -123,9 +123,6 @@ module Make (Info: INFO) =
     let print_type_params ff pl =
       print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
     
-    let print_size_params ff pl =
-      print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "["",""] " ff pl
-    
     let print_record print1 print2 po sep pf ff { label; arg } =
       fprintf ff
         "@[<hov>%s@[%a@]%s@ @[%a@]%s@]" po print1 label sep print2 arg pf
@@ -664,7 +661,7 @@ module Make (Info: INFO) =
     
     let interface_list ff int_list =
       List.iter (interface ff) int_list
-    
+
     let implementation ff { desc } =
       match desc with
       | Eopen(n) -> open_module ff n

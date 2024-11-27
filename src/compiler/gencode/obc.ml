@@ -132,7 +132,8 @@ and primitive_access =
 
 (* Definition of a sequential machine *)
 and machine =
-  { ma_kind: Deftypes.kind;
+  { ma_name: Ident.t; (* name of the machine *)
+    ma_kind: Deftypes.kind;
     (* combinatorial, continuous-time or discrete-time *)
     ma_initialize: exp option;
     ma_params: pattern list; (* list of static parameters *)
@@ -186,7 +187,15 @@ and mkind =
         
 and 'a path = 'a list
 
-type type_decl = Zelus.type_decl
+type type_decl =
+  | Eabstract_type
+  | Eabbrev of Zelus.type_expression 
+  | Evariant_type of constr_decl list 
+  | Erecord_type of (is_mutable * name * Zelus.type_expression) list
+
+and constr_decl =
+  | Econstr0decl of name 
+  | Econstr1decl of name * Zelus.type_expression list
 
 type implementation = 
   | Eletdef of (name * exp) list
