@@ -180,6 +180,18 @@ let immediate = function
   | Estring(c) -> Initial.typ_string
   | Evoid -> Initial.typ_unit
 
+(* once all branch of the automaton has been typed *)
+(* incorporate the information computed about variables from *)
+(* the initial environment into the global one *)
+let incorporate_into_env first_h h =
+  let mark n { t_sort = sort } =
+    let tentry = Env.find n h in
+    match sort with
+    | Sort_mem({ m_init = Eq } as m) ->
+       tentry.t_sort <- Sort_mem { m with m_init = No }
+    | _ -> () in
+  Env.iter mark first_h
+
 (* Types for local identifiers *)
 let var loc h n =
   try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
@@ -600,7 +612,8 @@ let rec automaton_handlers
       let h, defined_names, actual_k_body =
         body_escape expected_k h e_body in
       (* checks that [state] belond to the current set of [states] *)
-      let actual_k_state = state_expression h env_of_states e_reset e_next_state in
+      let actual_k_state =
+        state_expression h env_of_states e_reset e_next_state in
       (* checks that names are not defined twice in a state *)
       let state_names =
         if is_weak then S.singleton source_state
@@ -638,6 +651,15 @@ let rec automaton_handlers
 
     defined_names, actual_k in
 
+  (*** TODO
+       1. compute the potential set of initial states;
+       2. type check them.
+       3. compute the union of the defnames;
+       4. in all the other states, in case of a weak preemption,
+       all shared variable do have a last value.
+       5. modify the global env to indicate that all those variable
+       do have an initial value that is defered to the body *)
+
   let defined_names_k_list = List.map (typing_handler h) handlers in
   let defined_names_list, k_list = List.split defined_names_k_list in
 
@@ -650,6 +672,11 @@ let rec automaton_handlers
       b.b_write <- defined_names)
     handlers defined_names_list;
 
+
+  (* incorporate all the information computed concerning variables *)
+  (* from the initial handler into the global one *)
+  (**** incorporate_into_env first_h h;  ****)
+    
   (* finally, indicate for every state handler if it is entered *)
   (* by reset or not *)
   mark_reset_state env_of_states handlers;

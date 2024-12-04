@@ -408,7 +408,8 @@ let rec expression env loop_path context { Zelus.e_desc } =
   match e_desc with
   | Zelus.Econst(i) -> Econst(immediate i), context
   | Zelus.Evar(n)
-    | Zelus.Elast { id = n } -> var (entry_of n env), context
+    | Zelus.Elast { id = n } ->
+     var (entry_of n env), context
   | Zelus.Eglobal { lname = ln } ->
      Eglobal { lname = ln }, context
   | Zelus.Econstr0 { lname } ->

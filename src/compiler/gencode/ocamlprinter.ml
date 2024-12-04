@@ -19,7 +19,6 @@ open Obc
 open Format
 open Pp_tools
 module Printer = Printer.Make(Typinfo)
-open Oprinter
                  
 let immediate ff = function
   | Eint i ->
@@ -73,8 +72,8 @@ let def_type_for_a_machine ma_name ma_memories ma_instances =
 (* produce the set of type declaration for state for a whole program *)
 
 (* Print the call to a method *)
-let method_call ff { met_name; met_instance; met_args } =
-  let m = method_name met_name in
+let rec method_call ff { met_name; met_instance; met_args } =
+  let m = Oprinter.method_name met_name in
   let instance_name ff i_opt =
     match i_opt with
     | None -> fprintf ff "self" | Some(o, _) -> Printer.name ff o in
@@ -93,12 +92,12 @@ let method_call ff { met_name; met_instance; met_args } =
 	  instance_name met_instance m instance met_instance
 	  (print_list_r (exp 3) "" "" "") met_args
 
-let var ff left =
+and var ff left =
   match left with
   | Eleft_name(n) -> fprintf ff "@[!%a@]" Printer.name n
-  | _ -> left_value ff left
+  | _ -> Oprinter.left_value ff left
 
-let left_state_value ff left =
+and left_state_value ff left =
   match left with
   | Eself -> fprintf ff "self."
   | Eleft_instance_name(n) -> fprintf ff "self.%a" Printer.name n
@@ -109,34 +108,34 @@ let left_state_value ff left =
   | Eleft_state_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
-     fprintf ff "@[%a%s@]" left_state_value left
+     fprintf ff "@[%a.%s@]" left_state_value left
        (Oprinter.state_primitive_access a)
 
-let assign ff left e =
+and assign ff left e =
   match left with
   | Eleft_name(n) ->
      fprintf ff "@[<v 2>%a := %a@]" Printer.name n (exp 2) e
   | _ ->
-     fprintf ff "@[<v 2>%a <- %a@]" left_value left (exp 2) e
+     fprintf ff "@[<v 2>%a <- %a@]" Oprinter.left_value left (exp 2) e
 
-let assign_state ff left e =
+and assign_state ff left e =
   match left with
   | Eleft_state_global(gname) ->
      fprintf ff "@[<v 2>%a := %a@]" Printer.longname gname (exp 2) e
   | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
-let rec letvar ff n is_mutable ty e_opt e =
+and letvar ff n is_mutable ty e_opt e =
   let s = if is_mutable then "" else "ref " in
   match e_opt with
   | None ->
      fprintf ff "@[<v 0>let %a = %s(Obj.magic (): %a) in@ %a@]"
-	     Printer.name n s ptype ty (exp 0) e
+	     Printer.name n s Oprinter.ptype ty (exp 0) e
   | Some(e0) ->
      fprintf ff "@[<v 0>let %a = %s(%a:%a) in@ %a@]"
-	     Printer.name n s (exp 0) e0 ptype ty (exp 0) e
+	     Printer.name n s (exp 0) e0 Oprinter.ptype ty (exp 0) e
 
 and exp prio ff e =
-  let prio_e = priority_exp e in
+  let prio_e = Oprinter.priority_exp e in
   if prio_e < prio then fprintf ff "(";
   begin match e with
   | Econst(i) -> immediate ff i
@@ -156,7 +155,7 @@ and exp prio ff e =
   | Emethodcall m -> method_call ff m
   | Erecord(label_e_list) ->
      print_list_r
-       (print_record Printer.longname
+       (Oprinter.print_record Printer.longname
           (exp 0) "" " =" "") "{" ";" "}" ff label_e_list
   | Erecord_access { label; arg } ->
      fprintf ff "%a.%a" (exp prio_e) arg Printer.longname label
@@ -164,7 +163,7 @@ and exp prio ff e =
      fprintf ff "@[{ %a with %a }@]"
        (exp prio_e) e_record
        (print_list_r
-          (print_record Printer.longname (exp 0)
+          (Oprinter.print_record Printer.longname (exp 0)
              "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
       fprintf ff "@[(%a : %a)@]" (exp prio_e) e Printer.ptype ty_e
@@ -246,15 +245,15 @@ and exp prio ff e =
   | Emachine(ma) -> machine ff ma
   | Efun { pat_list; e } ->
      fprintf ff
-       "@[<hov2>(fun@ %a ->@ %a)@]" pattern_list pat_list (exp 0) e
+       "@[<hov2>(fun@ %a ->@ %a)@]" Oprinter.pattern_list pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
 
 and pat_exp ff (p, e) =
-  fprintf ff "@[@[%a@] =@ @[%a@]@]" pattern p (exp 0) e
+  fprintf ff "@[@[%a@] =@ @[%a@]@]" Oprinter.pattern p (exp 0) e
 
 and match_handler ff { m_pat; m_body } =
-  fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern m_pat (exp 0) m_body
+  fprintf ff "@[<hov 4>| %a ->@ %a@]" Oprinter.pattern m_pat (exp 0) m_body
 
 (* create an array of type t[n_1]...[n_k] *)
 and array_make : 'a. (_ -> 'a -> _) -> 'a -> _ -> _ -> _ =
@@ -270,7 +269,7 @@ and array_of e_opt ty ff ie_size =
   let exp_of ff (e_opt, ty) =
     match e_opt, ty with
     | Some(e), _ -> exp 2 ff e
-    | _ -> fprintf ff "(Obj.magic (): %a)" ptype ty in
+    | _ -> fprintf ff "(Obj.magic (): %a)" Oprinter.ptype ty in
   match ie_size with
   | [] -> exp_of ff (e_opt, ty)
   | [ie] -> fprintf ff "Array.make %a %a" (exp 3) ie exp_of (e_opt, ty)
@@ -289,7 +288,7 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
        | None ->
 	  fprintf ff "@[%a = %a@]" Printer.name m_name
 	    (array_make (fun ff _ -> fprintf ff "(Obj.magic (): %a)"
-				       ptype m_typ) ())
+				       Oprinter.ptype m_typ) ())
 	    m_size
        | Some(e) ->
 	  fprintf ff "@[%a = %a@]" Printer.name m_name
@@ -314,15 +313,15 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
 and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
     fprintf ff "@[%a = %a (* %s *)@ @]" Printer.name i_name
       (array_make (fun ff n -> fprintf ff "%a_alloc ()" Printer.name n) i_name)
-      i_size (kind i_kind)
+      i_size (Oprinter.kind i_kind)
 
-and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
+and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e Oprinter.ptype ty
 
 (* Print the method as a function *)
 and pmethod f ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
-    f (method_name me_name) pattern_list me_params (exp 2) me_body
-    ptype me_typ
+    f (Oprinter.method_name me_name) Oprinter.pattern_list me_params (exp 2) me_body
+    Oprinter.ptype me_typ
 
 and constructor_for_kind = function
   | Deftypes.Tnode _ -> "Node"
@@ -359,7 +358,7 @@ and palloc f i_opt memories ff instances =
 and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
   (* Define the method *)
   let method_name ff me_name =
-    let m = method_name me_name in
+    let m = Oprinter.method_name me_name in
     fprintf ff "%s = %a_%s" m Printer.name i_name m in
 
   let list_of_methods ff m_list =  print_list_r method_name """;""" ff m_list in
@@ -396,7 +395,7 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
     | Deftypes.Tfun _ -> fprintf ff "%s" f
     | Deftypes.Tnode _ ->
        let method_name ff me_name =
-	 let m = method_name me_name in
+	 let m = Oprinter.method_name me_name in
 	 fprintf ff "@[%s = %s_%s@]" m f m in
        let k = constructor_for_kind ma_kind in
        let m_name_list =
@@ -407,7 +406,7 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
   (* print the code for [f] *)
   fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a in@ %s@]@.@]"
     f
-    pattern_list ma_params
+    Oprinter.pattern_list ma_params
     (print_list_r def_instance_function "" "" "") ma_instances
     (palloc f ma_initialize ma_memories) ma_instances
     (print_list_r (pmethod f) """""") ma_methods
@@ -469,8 +468,8 @@ let implementation ff impl =
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
      let print ff (s, s_list, ty_decl) =
-       fprintf ff "%a%s =@ %a" print_type_params s_list
-         s type_decl ty_decl in
+       fprintf ff "%a%s =@ %a" Oprinter.print_type_params s_list
+         s Oprinter.type_decl ty_decl in
      fprintf ff "@[%a@.@]" (print_list_l print "type ""and """) l
 
 

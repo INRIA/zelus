@@ -97,7 +97,9 @@ let default_list =
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
    Schedule.program;
-   ]
+   "typing", "New typing step: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p);
+     ]
 
 (* select the rewritting steps *)
 module S = Set.Make (String)

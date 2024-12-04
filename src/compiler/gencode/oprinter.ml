@@ -124,7 +124,7 @@ and left_state_value ff left =
   | Eleft_state_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
-     fprintf ff "@[%a%s@]" left_state_value left (state_primitive_access a)
+     fprintf ff "@[%a.%s@]" left_state_value left (state_primitive_access a)
 
 and assign ff left e =
   match left with
@@ -141,8 +141,8 @@ and assign_state ff left e =
 
 and state_primitive_access a =
   match a with
-  | Eder -> ".der" | Epos -> ".pos"
-  | Ezero_out -> ".zout"  | Ezero_in -> ".zin" 
+  | Eder -> "der" | Epos -> "pos"
+  | Ezero_out -> "zout"  | Ezero_in -> "zin" 
 
 and var ff n = Printer.name ff n
 
@@ -268,7 +268,7 @@ and mkind mk =
 
 and memory ff { m_name; m_value; m_typ; m_kind; m_size } =
   let mem = function
-    | None -> "" | Some(k) -> (Ptypes.kind k) ^ " " in
+    | None -> "" | Some(k) -> (Ptypes.mkind k) ^ " " in
   fprintf ff "%s%a%a : %a = %a" (mem m_kind) Printer.name m_name
     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
     m_size ptype m_typ (print_opt (exp 0)) m_value
