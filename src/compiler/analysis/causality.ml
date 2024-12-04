@@ -541,7 +541,8 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
       (match t_last_typ with
        | None -> () | Some(ltc) -> less_than e0.e_loc env actual_tc ltc)
   | EQder { id; e; e_opt = None; handlers = [] } ->
-      (* do nothing *) ()
+     (* do nothing; only check that [e] is correct *)
+     let _ = exp env c_free e in ()
   | EQder { id; e; e_opt; handlers } ->
      let { t_tys = { typ_body }; t_last_typ } =
        try Env.find id env with | Not_found -> print id in 
