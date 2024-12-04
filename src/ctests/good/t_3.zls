@@ -1,7 +1,12 @@
+let hybrid something_2 () =
+  let der x_3 = 1.000000 in x_3
+
+(*
+
 let node f1(x) returns (o)
   do o = 0 -> pre(o+1) + x done
 
-(*
+
 
 let node f1 () returns (o)
   if true then o = 1 else o = 2
