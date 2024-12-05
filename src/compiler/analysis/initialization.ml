@@ -100,10 +100,14 @@ let less_for_var loc n actual_ti expected_ti =
 (* Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] then
  *- [x] is initialized, that is [last x: 0]; otherwise [last x: 1] *)
-let build_env l_env env =
+let build_env loc l_env env =
   let open Deftypes in
   let entry x { t_sort; t_tys = { typ_body } } =
     match t_sort with
+    | Sort_mem { m_mkind = Some(Cont); m_init = No } ->
+        (* if an equation [der x = ...] is given but no initialisation *)
+        (* either through [init x = ...] or [x = ...], [x] is not initialized *)
+        error loc (Ider(x))
     | Sort_mem { m_init } ->
        let t_last = match m_init with | Eq | Decl _ -> izero | No -> ione in
        let t_tys =
@@ -217,14 +221,14 @@ and pattern_less_than_on_i env ({ pat_info } as pat) i =
 (** Match handler *)
 let match_handlers body env m_h_list =
   let handler { m_pat; m_env; m_body; m_loc } =
-    let env = build_env m_env env in
+    let env = build_env m_pat.pat_loc m_env env in
     ignore (body env m_body) in
   List.iter handler m_h_list
 
 (** Present handler *)
 let present_handlers scondpat body env p_h_list default_opt =
   let handler { p_cond; p_body; p_env; p_loc } =
-    let env = build_env p_env env in
+    let env = build_env p_loc p_env env in
     scondpat env p_cond;
     ignore (body env p_body) in
   List.iter handler p_h_list;
@@ -253,7 +257,7 @@ let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
        block (List.fold_left escape Ident.S.empty trans) b in
      (* transitions *)
      let escape shared env { e_cond; e_let; e_body; e_next_state; e_env } =
-       let env = build_env e_env env in
+       let env = build_env e_cond.loc e_env env in
        scondpat env e_cond;
        (* typing local definitions *)
        let env = leqs env e_let in
@@ -264,7 +268,7 @@ let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
      let handler shared env { s_state; s_let; s_body; s_trans; s_env } =
        (* remove from [shared] names defined in the current state *)
        let shared = Ident.S.diff shared (cur_names_in_state s_body s_trans) in
-       let env = build_env s_env env in
+       let env = build_env s_state.loc s_env env in
        (* typing local definitions *)
        let env = leqs env s_let in
        (* then the body *)
@@ -431,7 +435,7 @@ and app env ti_fct arg_list =
   args ti_fct arg_list
 
 and funexp env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
-  let env = build_env f_env env in
+  let env = build_env f_loc f_env env in
   let ti_list = List.map (arg env) f_args in
   let ti_res = result env f_body in
   let actual_ti = Tinit.funtype_list ti_list ti_res in
@@ -552,13 +556,13 @@ and automaton_handler_eq_list loc is_weak defnames env s_h_list se_opt =
 and block_eq shared env { b_loc; b_body; b_env; b_write } =
   (* shared variables depend on their last causality *)
   let env = last_env shared b_write env in
-  let env = build_env b_env env in
+  let env = build_env b_loc b_env env in
   equation env b_body;
   env
 
-and leq env { l_eq; l_env } =
+and leq env { l_eq; l_env; l_loc } =
   (* First extend the typing environment *)
-  let env = build_env l_env env in
+  let env = build_env l_loc l_env env in
   (* then type the body *)
   equation env l_eq;
   env
@@ -567,7 +571,7 @@ and leqs env l = List.fold_left leq env l
                
 (* we force that the signal pattern be initialized. E.g.,
  *- [present s(x) -> ...] gives the type 0 to s and x *)
-and scondpat env { desc = desc } =
+and scondpat env { desc } =
   match desc with
   | Econdand(sc1, sc2) | Econdor(sc1, sc2) -> 
      scondpat env sc1; scondpat env sc2
