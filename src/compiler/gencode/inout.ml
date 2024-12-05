@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -101,119 +101,116 @@
  *-    zmax zsize
  *- which increments the size of the continuous state and zero-crossing vectors *)
 
-open Zmisc
-open Zident
+open Misc
+open Ident
 open Lident
 open Deftypes
 open Obc
 open Oaux
        
-let typ_cstate = Otypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, [])
+let typ_cstate =
+  Aux.make (Zelus.Etypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, []))
 
-let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
+let varpat id ty = Evarpat { id; ty }
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 				     
-let i = Zident.fresh "i"
-
-(* Convert a size into an expression *)
-let rec size s =
-  match s with
-  | Sconst(i) -> Oconst(Oint(i))
-  | Sglobal(ln) -> Oglobal(ln)
-  | Sname n -> Olocal(n)
-  | Sop(op, s1, s2) ->
-     let s1 = size s1 in
-     let s2 = size s2 in
-     match op with
-     | Splus -> plus_opt s1 s2
-     | Sminus -> minus_opt s1 s2
+let i = Ident.fresh "i"
 
 let set_horizon cstate h =
-  Oassign(Oleft_record_access(Oleft_name(cstate), Name "horizon"),
-          min (Orecord_access(varmut cstate, Name "horizon"))
-            (Ostate(Oleft_state_name h)))
+  Eassign(Eleft_record_access
+            { arg = Eleft_name(cstate); label = Name "horizon" },
+          min (Erecord_access { arg = varmut cstate; label = Name "horizon" })
+            (Estate(Eleft_state_name h)))
 
 let set_major cstate m =
-  Oassign_state(Oleft_state_name(m), Orecord_access(varmut cstate, Name "major"))
+  Eassign_state(Eleft_state_name(m),
+                Erecord_access { arg = varmut cstate; label = Name "major" })
 	       
 (* [x := !x + 1] *)
-let incr_pos x = Oassign(Oleft_name x, Oaux.plus_opt (var x) one)
-let set_pos x e = Oassign(Oleft_name x, e)
+let incr_pos x = Eassign(Eleft_name x, Oaux.plus_opt (varmut x) one)
+let set_pos x e = Eassign(Eleft_name x, e)
 
 (* [cstate.field <- cstate.field + i] *)
 let incr cstate field ie =
-  Oassign(Oleft_record_access(Oleft_name cstate, Name(field)),
-          Oaux.plus_opt (Orecord_access(Olocal(cstate), Name(field))) ie)
+  Eassign(Eleft_record_access { arg = Eleft_name cstate; label = Name(field) },
+          Oaux.plus_opt(Erecord_access { arg = local cstate;
+                                         label = Name(field)} ) ie)
              
 let cmax cstate ie = incr cstate "cmax" ie
 let zmax cstate ie = incr cstate "zmax" ie
 let cincr cstate ie = incr cstate "cindex" ie
 let zincr cstate ie = incr cstate "zindex" ie
 
-let major cstate = Orecord_access(varmut cstate, Name("major"))
+let major cstate = Erecord_access { arg = varmut cstate; label = Name("major") }
 			
 (* [x.cont.(i1)....(in).(j1)...(jk) <- cstate.cvec.(pos)] *)
 (* [x.zero_in.(i1)...(in).(j1)...(jk) <- cstate.zin.(pos)] *)
 
 let write_into_internal_state (x, cont) i_list j_list get pos =
-  Oassign_state
+  Eassign_state
     (left_state_access
        (left_state_access
-	  (Oleft_state_primitive_access(Oleft_state_name(x), cont))
-          i_list) j_list, get (var pos))
+	  (Eleft_state_primitive_access(Eleft_state_name(x), cont))
+          i_list) j_list, get (varmut pos))
     
-let app f args = Oapp(global(modname f), args)
+let app f arg_list = Eapp { f = global(modname f); arg_list }
 let getc cstate pos =
-  app "get" [Orecord_access(varmut cstate, Name("cvec")); pos]
+  app "get" [Erecord_access { arg = varmut cstate; label = Name("cvec") }; pos]
 let get_zin cstate pos =
-  app "get_zin" [Orecord_access(varmut cstate, Name("zinvec")); pos]
+  app "get_zin"
+    [Erecord_access { arg = varmut cstate; label = Name("zinvec") }; pos]
 let setc cstate pos e =
-  app "set" [Orecord_access(varmut cstate, Name("cvec")); pos; e]
+  app "set" [Erecord_access { arg = varmut cstate; label = Name("cvec") };
+             pos; e]
 let setd cstate pos e =
-  app "set" [Orecord_access(varmut cstate, Name("dvec")); pos; e]
+  app "set" [Erecord_access { arg = varmut cstate; label = Name("dvec") };
+             pos; e]
 let set_zout cstate pos e =
-    app "set" [Orecord_access(varmut cstate, Name("zoutvec")); pos; e]
+  app "set" [Erecord_access { arg = varmut cstate; label = Name("zoutvec") };
+             pos; e]
 
+(* sets the continuous state vector - from the csolver to the internal state *)
 let cin cstate x i_list j_list pos =
   let getc pos = getc cstate pos in
-  write_into_internal_state (x, Ocont) i_list j_list getc pos
+  write_into_internal_state (x, Epos) i_list j_list getc pos
 			    
+(* sets the zero-crossing vector - from the zsolver to the internal state *)
 let zin cstate x i_list j_list pos =
   let get_zin pos = get_zin cstate pos in
-  write_into_internal_state (x, Ozero_in) i_list j_list get_zin pos
+  write_into_internal_state (x, Ezero_in) i_list j_list get_zin pos
 
 (* [cstate.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
 let write_from_internal_state set (x, cont) i_list j_list pos =
-  Oexp
-    (set (var pos)
-	 (Ostate
-	    (left_state_access
-               (left_state_access
-		  (Oleft_state_primitive_access(Oleft_state_name(x), cont))
-		  i_list) j_list)))
+  set (local pos)
+    (Estate
+       (left_state_access
+          (left_state_access
+	     (Eleft_state_primitive_access(Eleft_state_name(x), cont))
+	     i_list) j_list))
 let cout cstate x i_list j_list pos =
   let setc pos e = setc cstate pos e in
-  write_from_internal_state setc (x, Ocont) i_list j_list pos
+  write_from_internal_state setc (x, Epos) i_list j_list pos
 let dout cstate x i_list j_list pos =
   let setd pos e = setd cstate pos e in
-  write_from_internal_state setd (x, Oder) i_list j_list pos
+  write_from_internal_state setd (x, Eder) i_list j_list pos
 let zout cstate x i_list j_list pos =
   let set_zout pos e = set_zout cstate pos e in
-  write_from_internal_state set_zout (x, Ozero_out) i_list j_list pos
+  write_from_internal_state set_zout (x, Ezero_out) i_list j_list pos
 let set_zin_to_false x i_list j_list pos =
-  Oassign_state
+  Eassign_state
     (left_state_access
        (left_state_access
-          (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
+          (Eleft_state_primitive_access(Eleft_state_name(x), Ezero_in))
           i_list) j_list,
      ffalse)
 
 let set_dvec_to_zero cstate c_start csize =
-  if is_zero csize then Oexp(void)
-  else Ofor(true, i, local c_start, minus_opt csize one,
-            Oexp(setd cstate (local i) (float_const 0.0)))
+  if is_zero csize then void
+  else Efor { dir = true; index = i; left = local c_start;
+              right = minus_opt csize one;
+              e = setd cstate (local i) (float_const 0.0) }
 
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), h_opt, major_opt] *)
@@ -230,13 +227,13 @@ let build_index m_list =
    *- [ztable] do the same for zero-crossings
    *- the variable [h_opt] which defines the next horizon
    *- the variable [major_opt] which is true in a discrete mode *)
-  let size s = size (Translate.size_of_type s) in
+  let size s = Translate.exp_of_sizetype s in
   let build (ctable, ztable, h_opt, major_opt)
 	    { m_typ = typ; m_name = n; m_kind = m; m_size = e_list } = 
     let add_opt v opt =
       match opt with
       | None -> Some(v)
-      | Some(w) -> Zmisc.internal_error "Inout" Printer.name w in
+      | Some(w) -> Misc.internal_error "Inout" Ident.fprint_t w in
     match m with
     | None -> ctable, ztable, h_opt, major_opt
     | Some(k) ->
@@ -244,11 +241,11 @@ let build_index m_list =
        | Horizon -> ctable, ztable, add_opt n h_opt, major_opt
        | Period | Encore -> ctable, ztable, h_opt, major_opt
        | Zero ->
-	  let s_list = Ztypes.size_of typ in
+	  let s_list = Types.size_of typ in
           ctable, Env.add n (List.map size s_list, e_list) ztable,
 	  h_opt, major_opt
        | Cont ->
-	  let s_list = Ztypes.size_of typ in
+	  let s_list = Types.size_of typ in
 	  Env.add n (List.map size s_list, e_list) ctable, ztable,
 	  h_opt, major_opt
        | Major -> ctable, ztable, h_opt, add_opt n major_opt in
@@ -265,10 +262,10 @@ let size_of table =
     plus_opt acc s2 in
   Env.fold size table zero
 	   
-(** Add a method to copy back and forth the internal representation
+(* Add a method to copy back and forth the internal representation
  *- of the continuous state vector to the external flat representation
  *- This function is generic: table contains the association table
- *- [name, ([s1]...[sn], [e1]...[ek]). *)
+ *- [name, ([s1]...[sn], [e1]...[ek])]. *)
 let cinout table call pos incr =
   (* For every input x associated to ([s1]...[sn], [e1]...[ek])) from [table] *)
   (* for i1 = 0 to s1 - 1 do
@@ -286,12 +283,13 @@ let cinout table call pos incr =
     match i_list, e_list with
     | [], [] -> body
     | i :: i_list, e :: e_list ->
-       Ofor(true, i, int_const 0, e, copy i_list e_list body)
+       Efor { dir = true; index = i; left = int_const 0;
+              right = e; e = copy i_list e_list body }
     | _ -> assert false in
 
   let add x (s_list, e_list) acc =
-    let i_list = List.map (fun _ -> Zident.fresh "i") s_list in
-    let j_list = List.map (fun _ -> Zident.fresh "j") e_list in
+    let i_list = List.map (fun _ -> Ident.fresh "i") s_list in
+    let j_list = List.map (fun _ -> Ident.fresh "j") e_list in
     (copy i_list s_list
 	  (copy j_list e_list
 		(sequence [call x i_list j_list pos; incr pos]))) :: acc in
@@ -320,7 +318,7 @@ let zout table cstate pos =
 
 let set_zin_to_false table pos =
    let call x i_list j_list pos = set_zin_to_false x i_list j_list pos in
-   cinout table call pos (fun _ -> Oexp(void))
+   cinout table call pos (fun _ -> void)
  
 (* increments the maximum size of the continuous state vector and that of *)
 (* the zero-crossing vector *)
@@ -334,17 +332,18 @@ let maxsize call size i_opt =
 (* for every horizon state variable *)
 let set_horizon cstate h_opt =
   match h_opt with
-  | None -> Oexp(Oconst(Ovoid)) | Some(h) -> set_horizon cstate h
+  | None -> Econst(Evoid) | Some(h) -> set_horizon cstate h
 
 (* If the current block contains a major state variable *)
 let set_major cstate major_opt =
   match major_opt with
-  | None -> Oexp(Oconst(Ovoid)) | Some(m) -> set_major cstate m
+  | None -> Econst(Evoid) | Some(m) -> set_major cstate m
 
-(** Translate a continuous-time machine *)
-let machine f
+(* Translate a continuous-time machine *)
+let hybrid_machine 
     ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list;
-       ma_instances = mi_list; ma_methods = method_list } as mach) cstate =
+       ma_instances = mi_list; ma_methods = method_list } as mach) =
+  let cstate = Ident.fresh "cstate" in
   (* auxiliary function. Find the method "step" in the list of methods *)
   let rec find_step method_list =
     match method_list with
@@ -357,7 +356,7 @@ let machine f
   (* pass the extra argument [cstate] *)
   let add_extra_param ({ i_kind = k; i_params = params } as ientry) =
     match k with
-    | Tcont -> { ientry with i_params = (varmut cstate) :: params }
+    | Tnode(Tcont) -> { ientry with i_params = (varmut cstate) :: params }
     | _ -> ientry in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
@@ -378,31 +377,34 @@ let machine f
     let i_opt =
       maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize i_opt) in
           
-    let c_start = Zident.fresh "cindex" in
-    let z_start = Zident.fresh "zindex" in
-    let cstate_cpos = Orecord_access(varmut cstate, Name("cindex")) in
-    let cstate_zpos = Orecord_access(varmut cstate, Name("zindex")) in
+    let c_start = Ident.fresh "cindex" in
+    let z_start = Ident.fresh "zindex" in
+    let cstate_cpos =
+      Erecord_access { arg = varmut cstate; label = Name("cindex") } in
+    let cstate_zpos =
+      Erecord_access { arg = varmut cstate; label = Name("zindex") } in
     
-    let cpos = Zident.fresh "cpos" in
-    let zpos = Zident.fresh "zpos" in
-    let result = Zident.fresh "result" in
+    let cpos = Ident.fresh "cpos" in
+    let zpos = Ident.fresh "zpos" in
+    let result = Ident.fresh "result" in
 
     let letin_only cond pat e body =
       if cond then letin pat e body else body in
     let letvar_only cond v ty e body =
       if cond then letvar v ty e body else body in
-    let only cond inst = if cond then inst else Oexp(void) in
+    let only cond inst = if cond then inst else void in
     let only_else cond inst1 inst2 = if cond then inst1 else inst2 in
         
+    let typ_int = Interface.type_expression_of_typ Initial.typ_int in
     let body =
       letin_only c_is_not_zero
         (* compute the current position of the cvector *)
-	(varpat c_start Initial.typ_int) cstate_cpos
+	(varpat c_start typ_int) cstate_cpos
         (letvar_only
            c_is_not_zero cpos Initial.typ_int (local c_start)
 	   (* compute the current position of the zvector *)
            (letin_only
-              z_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
+              z_is_not_zero (varpat z_start typ_int) cstate_zpos
               (letvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
@@ -415,7 +417,8 @@ let machine f
                      (only_else
                         (c_is_not_zero || z_is_not_zero || h_is_not_zero)
                         (letin
-		           (varpat result ty) (Oinst(body))
+		           (varpat result (Interface.type_expression_of_typ ty))
+                           body
 		           (sequence
 			      [set_horizon cstate h_opt;
                                only
@@ -438,9 +441,10 @@ let machine f
                                        z_is_not_zero (zout ztable cstate zpos);
 	                             only
                                        c_is_not_zero (dout ctable cstate cpos)]);
-                        Oexp (local result)]))
-                        body)])))) in
-    { mach with ma_params = (Ovarpat(cstate, typ_cstate)) :: params;
+                               local result]))
+                        body)
+        ])))) in
+    { mach with ma_params = (Evarpat { id = cstate; ty = typ_cstate }) :: params;
 		ma_initialize = i_opt;
 		ma_methods = { mdesc with me_body = body } :: method_list;
 		ma_instances = List.map add_extra_param mi_list }
@@ -448,15 +452,65 @@ let machine f
     (* no step method is present *)
     Not_found -> mach
 
-                       
-(** The main entry. Add new methods to copy the continuous state vector *)
-(** back and forth into the internal state *)
+let machine({ ma_kind } as mach) =
+  match ma_kind with
+  | Deftypes.Tnode(Tcont) -> hybrid_machine mach
+  | _ -> mach
+
+let rec exp e = match e with
+  | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate _ -> e
+  | Econstr1 { lname; arg_list } ->
+     Econstr1 { lname; arg_list = List.map exp arg_list }
+  | Etuple(e_list) -> Etuple(List.map exp e_list)
+  | Erecord(r_list) ->
+     Erecord(List.map (fun { label; arg } -> { label; arg = exp arg }) r_list)
+  | Erecord_access { arg; label } -> Erecord_access { arg = exp arg; label }
+  | Erecord_with(e, r_list) ->
+     Erecord_with(exp e,
+                  List.map (fun { label; arg } -> { label; arg = exp arg })
+                    r_list)
+  | Eifthenelse(e1,e2,e3) ->
+     Eifthenelse(exp e1, exp e2, exp e3)
+  | Ematch(e, m_h_list) ->
+     Ematch(exp e,
+            List.map (fun { m_pat; m_body } -> { m_pat; m_body = exp m_body })
+            m_h_list)
+  | Elet(p, e1, e2) -> Elet(p, exp e1, exp e2)
+  | Eletvar({ e_opt; e } as l) ->
+     Eletvar({ l with e_opt = Util.optional_map exp e_opt; e = exp e })
+  | Eletmem(m_list, e) -> Eletmem(m_list, exp e)
+  | Eletinstance(i_list, e) -> Eletinstance(i_list, exp e)
+  | Eassign(lv, e) -> Eassign(lv, exp e)
+  | Eassign_state(lsv, e) -> Eassign_state(lsv, exp e)
+  | Esequence(e_list) -> Esequence(List.map exp e_list)
+  | Eapp { f; arg_list } -> Eapp { f = exp f; arg_list = List.map exp arg_list }
+  | Emethodcall(m_call) -> e
+  | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
+  | Efor({ left; right; e } as f) ->
+     Efor({ f with left = exp left; right = exp right; e = exp e })
+  | Ewhile { cond; e } -> Ewhile { cond = exp cond; e = exp e }
+  | Eassert(e) -> Eassert(exp e)
+  | Emachine(m) -> Emachine(machine m)
+  | Efun { pat_list; e } -> Efun { pat_list; e = exp e }
+  | Eget { e; index } -> Eget { e = exp e; index = exp index }
+  | Eupdate { e; size; index; arg } ->
+     Eupdate { e = exp e; size = exp size; index = exp index; arg = exp arg }
+  | Eslice { e; left; right } ->
+     Eslice { e = exp e; left = exp e; right = exp e }
+  | Econcat { left; left_size; right; right_size } ->
+     Econcat { left = exp left; left_size = exp left_size;
+               right = exp right; right_size = exp right_size }
+  | Evec { e; size } -> Evec { e = exp e; size = exp size }
+
+(* The main entry. Add new methods to copy the continuous state vector *)
+(* back and forth into the internal state *)
 let implementation impl =
   match impl with
-  | Oletmachine(f, ({ ma_kind = Deftypes.Tcont } as mach)) -> 
-     (* only continuous machines are concerned *)
-     let cstate = Zident.fresh "cstate" in
-     Oletmachine(f, machine f mach cstate)
-  | Oletmachine _ | Oletvalue _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
+  | Eletdef(n_e_list) ->
+     Eletdef(List.map (fun (n, e) -> (n, exp e)) n_e_list)
+  | Eopen _ | Etypedecl _ -> impl
 									 
-let implementation_list impl_list = Zmisc.iter implementation impl_list
+let implementation_list impl_list = Util.iter implementation impl_list
+
+let program { p_impl_list } =
+  { p_impl_list = implementation_list p_impl_list }
