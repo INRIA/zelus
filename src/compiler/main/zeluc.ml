@@ -136,6 +136,7 @@ let main () =
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
           "-gtk2", Arg.Unit set_gtk, doc_use_gtk;
           "-nocausality", Arg.Set no_causality, doc_nocausality;
+          "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
           "-noinit", Arg.Set no_initialization, doc_no_initialization;
           "-inline", Arg.Int set_inlining_level, doc_inlining_level;
           "-inlineall", Arg.Set inline_all, doc_inline_all;

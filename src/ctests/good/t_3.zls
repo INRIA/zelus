@@ -1,16 +1,22 @@
-let node f1(x) returns (o)
+let f x = (x, x)
+
+let x = (+)
+
+let f0 x = x + 1
+
+(* let node f1(x) returns (o)
   do o = 0 -> pre(o+1) + x done
 
 let f3 (x, y) = x +. y
 
 let f4 x = f3 x
-
-let node f23(x) = o where rec o = 0.0 -> pre(f3(1.0, 2.0))
+(*
+let node f23(x) = o where rec o = 0.0 -> pre(f3(1.0, 2.0)) *)
 
 let hybrid f22(x) = o where rec der o = f3 (1.0, 2.0) init x
 
 let hybrid f2(x) returns (o)
-  do der o = f3 (1.0, o) init x done
+  do der o = f3 (1.0, o) init x done *)
 
 (*
 

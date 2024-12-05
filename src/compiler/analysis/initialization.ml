@@ -303,7 +303,7 @@ let rec exp env ({ e_desc; e_info; e_loc } as e) =
     | Eglobal { lname = lname } ->
        let { info } =
          try Modules.find_value lname with | Not_found -> assert false in
-       Tinit.instance_of_global_value info e_typ
+       let ti = Tinit.instance_of_global_value info e_typ in ti
     | Evar(x) -> 
        let t_tys = try let { t_tys } = Env.find x env in t_tys 
                    with | Not_found -> print x in
@@ -324,7 +324,7 @@ let rec exp env ({ e_desc; e_info; e_loc } as e) =
        Tinit.skeleton_on_i i e_typ
     | Eop(op, e_list) -> operator env op e_typ e_list
     | Eapp { f; arg_list } ->
-       app env (exp env f) arg_list
+       let ti_f = exp env f in app env ti_f arg_list
     | Erecord_access { arg } -> 
        let i = Tinit.new_var () in
        exp_less_than_on_i env arg i;
