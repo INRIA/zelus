@@ -156,7 +156,7 @@ and less_i left_i right_i =
     if left_i == right_i then ()
     else
       match left_i.i_desc, right_i.i_desc with
-      | (Ivalue(Izero), _) | (_, Ivalue(Ione))
+      | (Ivalue(Izero), _) | (_, Ivalue(Ione)) -> ()
       | Ivalue(Ione), Ivar -> saturate_i true right_i
       | Ivar, Ivalue(Izero) -> saturate_i false left_i
       | Ivar, Ivar ->
