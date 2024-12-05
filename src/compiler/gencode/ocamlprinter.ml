@@ -70,7 +70,7 @@ let def_type_for_a_machine ma_name ma_memories ma_instances =
     Etypedecl
       [Ident.name ma_name, params, Erecord_type(List.map one_entry entries)]
 
-(* produce the set of type declaration for state for a whole program *)
+(* produce the set of type declarations for state for a whole program *)
 
 (* Print the call to a method *)
 let method_call ff { met_name; met_instance; met_args } =
@@ -104,8 +104,8 @@ let left_state_value ff left =
   | Eleft_instance_name(n) -> fprintf ff "self.%a" Printer.name n
   | Eleft_state_global(ln) -> Printer.longname ff ln
   | Eleft_state_name(n) -> fprintf ff "self.%a" Printer.name n
-  | Eleft_state_record_access(left, n) ->
-     fprintf ff "@[%a.%a@]" left_state_value left Printer.longname n
+  | Eleft_state_record_access { label; arg } ->
+     fprintf ff "@[%a.%a@]" left_state_value arg Printer.longname label
   | Eleft_state_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
@@ -147,7 +147,7 @@ and exp prio ff e =
   | Eglobal { lname } -> Printer.longname ff lname
   | Evar { is_mutable; id } ->
      fprintf ff "@[%s%a@]" (if is_mutable then "" else "!") Printer.name id
-  | Estate_access(l) -> left_state_value ff l
+  | Estate(l) -> left_state_value ff l
   | Etuple(e_list) ->
       fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Eapp { f; arg_list } ->
@@ -414,11 +414,11 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
     tuple_of_methods ma_methods f
 
 (* computes the set of type declarations for representing the state *)
-(* for every machines defined in expression [e] *)
+(* for every machines defined in expression [e]. This is done by a first step *)
 let def_types acc impl =
   let rec def_types acc e =
     match e with
-    | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate_access _ -> acc
+    | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate _ -> acc
     | Econstr1 { arg_list } | Etuple arg_list
       | Emethodcall { met_args = arg_list } | Esequence(arg_list)->
        List.fold_left def_types acc arg_list
