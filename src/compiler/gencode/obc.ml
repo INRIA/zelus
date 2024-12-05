@@ -68,7 +68,7 @@ and exp =
   | Eglobal of { lname : Lident.t } (* global variable *)
   | Evar of { is_mutable: is_mutable; id : Ident.t }
   (* read of local value - shared (reference) or not *)
-  | Estate_access of left_state_value (* read of a state variable *)
+  | Estate of left_state_value (* read of a state variable *)
   | Etuple of exp list
   | Erecord of exp record list
   | Erecord_access of exp record
@@ -86,7 +86,7 @@ and exp =
   | Esequence of exp list
   | Eapp of { f: exp; arg_list: exp list }
   | Emethodcall of methodcall
-  | Etypeconstraint of exp * type_expression
+  | Etypeconstraint of exp * Zelus.type_expression
   | Efor of { index: Ident.t; dir: bool; left: exp; right: exp; e: exp }
   | Ewhile of { cond: exp; e: exp }
   | Eassert of exp
@@ -111,7 +111,7 @@ and is_mutable = bool
 
 and left_value = 
   | Eleft_name of Ident.t
-  | Eleft_record_access of left_value * Lident.t
+  | Eleft_record_access of left_value record
   | Eleft_index of left_value * exp
   
 and left_state_value =
@@ -119,7 +119,7 @@ and left_state_value =
   | Eleft_state_global of Lident.t 
   | Eleft_instance_name of Ident.t
   | Eleft_state_name of Ident.t
-  | Eleft_state_record_access of left_state_value * Lident.t
+  | Eleft_state_record_access of left_state_value record
   | Eleft_state_index of left_state_value * exp
   | Eleft_state_primitive_access of left_state_value * primitive_access
 
