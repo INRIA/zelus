@@ -178,7 +178,10 @@ let compile modname filename =
     let p = do_step "Generation of sequential code done. See below:"
               Oprinter.program Translate.program p in
 
-    (* emit OCaml code and write it in the appropriate file *)
+    (* prepare the hybrid code for the interaction with the numerical solvers *)
+    let p = do_step "Add code for the interface with the solver. See below:"
+            Oprinter.program Inout.program p in
+    
     let mlc = open_out ml_name in
     let _ = do_step "Emit OCaml code. See below:"
               Ocamlprinter.program (write_implementation mlc) p in
