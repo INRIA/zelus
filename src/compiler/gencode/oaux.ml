@@ -25,7 +25,7 @@ let crossing = "crossing" (* computes the zero-crossing functions *)
 let horizon = "horizon"  (* compute the next time horizon *)
 
 (* auxiliary functions *)
-let letin p e1 i2 = Elet(p, e1, i2)
+let letin p e1 e2 = Elet(p, e1, e2)
 let letvar id ty e1 e2 = Eletvar { id; is_mutable = false;
                                    ty; e_opt = Some(e1); e = e2 }
 let bool v = Econst(Ebool(v))
@@ -61,8 +61,9 @@ let mult_opt e1 e2 =
   | Econst(Eint(v1)), Econst(Eint(v2)) -> Econst(Eint(v1 * v2))
   | _ -> mult e1 e2
 
-let var is_mutable id = Evar { is_mutable; id }
 let global lname = Eglobal { lname }
+let var is_mutable id = Evar { is_mutable; id }
+let local id = Evar { is_mutable = false; id }
 let varmut x = var true x
 
 let ifthenelse c e1 e2 = Eifthenelse(c, e1, e2)
@@ -86,8 +87,8 @@ let sequence e_list =
   | [] -> Econst(Evoid)
   | _ -> Esequence e_list
                    
-let rec left_state_access lv e_list =
-  match e_list with
+let rec left_state_access lv x_list =
+  match x_list with
   | [] -> lv
-  | e :: e_list -> left_state_access (Eleft_state_index(lv, e)) e_list
+  | x :: x_list -> left_state_access (Eleft_state_index(lv, local x)) x_list
 
