@@ -132,7 +132,7 @@ let var { e_sort; e_typ; e_size = ei_list } =
         let i = is_mutable e_typ in
         index (Evar { is_mutable = i; id = n }) ei_list
      | Sort_mem { m_mkind } ->
-        Estate_access(left_state_value_index (state true n m_mkind) ei_list)
+        Estate(left_state_value_index (state true n m_mkind) ei_list)
 
 (* Make an assignment according to the sort of a variable [n] *)
 let assign { e_sort; e_size = ei_list } e =
@@ -199,16 +199,16 @@ let out_of n env =
   | Out(x, sort) -> x, ty, sort, ix_list
 
 (* Translate size expressions *)
-let rec size_of_type si =
+let rec exp_of_sizetype si =
   let open Deftypes in
   match si with
   | Sint(i) -> Oaux.int_const i
   | Svar(n) -> Evar { is_mutable = false; id = n }
   | Sfrac { num; denom } ->
-     Oaux.div (size_of_type num) (Oaux.int_const denom)
+     Oaux.div (exp_of_sizetype num) (Oaux.int_const denom)
   | Sop(op, s1, s2) ->
-     let e1 = size_of_type s1 in
-     let e2 = size_of_type s2 in
+     let e1 = exp_of_sizetype s1 in
+     let e2 = exp_of_sizetype s2 in
      match op with
      | Splus -> Oaux.plus e1 e2
      | Sminus -> Oaux.minus e1 e2
@@ -246,7 +246,7 @@ let choose env ty =
     | Tvar -> eany
     | Tproduct(ty_l) -> tuple (List.map value ty_l)
     | Tarrow _ -> eany
-    | Tvec(ty, si) -> vec (value ty) (size_of_type si)
+    | Tvec(ty, si) -> vec (value ty) (exp_of_sizetype si)
     | Tconstr(id, _, _) ->
        if id = Initial.int_ident then ezero
        else if id = Initial.bool_ident then efalse
@@ -462,7 +462,7 @@ let rec expression env loop_path context { Zelus.e_desc } =
   | Zelus.Eop(Zelus.Earray(Eupdate), [e1; i; e2]) ->
      let ty = Typinfo.get_type e1.e_info in
      let _, se = Types.filter_vec ty in
-     let se = size_of_type se in
+     let se = exp_of_sizetype se in
      let e1, context = expression env loop_path context e1 in
      let i, context = expression env loop_path context i in
      let e2, context = expression env loop_path context e2 in
@@ -477,8 +477,8 @@ let rec expression env loop_path context { Zelus.e_desc } =
      let ty2 = Typinfo.get_type e2.e_info in
      let _, s1 = Types.filter_vec ty1 in
      let _, s2 = Types.filter_vec ty2 in
-     let s1 = size_of_type s1 in
-     let s2 = size_of_type s2 in
+     let s1 = exp_of_sizetype s1 in
+     let s2 = exp_of_sizetype s2 in
      let e1, context = expression env loop_path context e1 in
      let e2, context = expression env loop_path context e2 in
      Econcat { left = e1; left_size = s1; right = e2; right_size = s2 }, context
@@ -623,7 +623,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      Oaux.seq (Eassert(e)) step, context
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQsizefun _ -> Misc.not_yet_implemented "sizefun"
-  
+
 and equation_list env loop_path eq_list (step, context) =
   List.fold_right
     (fun eq (step, context) ->
