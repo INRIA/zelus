@@ -248,7 +248,8 @@ let match_handlers body env c_body c_e m_h_list =
     body env c_body b in
   List.map handler m_h_list
     
-(** Tcausality analysis of a present handler *)
+(* Causality analysis of a present handler *)
+(* assume that [p_h_list] U [default_opt] is not empty *)
 let present_handlers
     scondpat body env c_free c_e c_body p_h_list default_opt =
   let handler { p_cond = scpat; p_body = b; p_env = p_env } =
@@ -539,22 +540,25 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
       less_than e0.e_loc env actual_tc typ_body;
       (match t_last_typ with
        | None -> () | Some(ltc) -> less_than e0.e_loc env actual_tc ltc)
+  | EQder { id; e; e_opt = None; handlers = [] } ->
+     (* do nothing; only check that [e] is correct *)
+     let _ = exp env c_free e in ()
   | EQder { id; e; e_opt; handlers } ->
-      let { t_tys = { typ_body }; t_last_typ } =
-        try Env.find id env with | Not_found -> print id in 
-      let _ = exp env c_free e in
-      let c_body = Tcausal.intro_less_c c_free in
-      (match e_opt, t_last_typ with
-       | Some(e0), Some(ltc) ->
-          let actual_ltc = exp env c_body e0 in
-          less_than e0.e_loc env actual_ltc ltc
-       | _ -> ());
-      let c_e = Tcausal.intro_less_c c_body in
-      let actual_tc =
-        present_handler_exp_list
-          env c_free c_e c_body handlers NoDefault in
-      let actual_tc = on_c actual_tc c_body in
-      less_than eq_loc env actual_tc typ_body
+     let { t_tys = { typ_body }; t_last_typ } =
+       try Env.find id env with | Not_found -> print id in 
+     let _ = exp env c_free e in
+     let c_body = Tcausal.intro_less_c c_free in
+     let c_e = Tcausal.intro_less_c c_body in
+     let e_opt = match e_opt with | None -> NoDefault | Some(e) -> Init(e) in
+     let actual_tc =
+       present_handler_exp_list env c_free c_e c_body handlers e_opt in
+     let actual_tc = on_c actual_tc c_body in
+     less_than eq_loc env actual_tc typ_body;
+     (match e_opt, t_last_typ with
+      | Init(e0), Some(ltc) ->
+         let actual_ltc = exp env c_body e0 in
+         less_than e0.e_loc env actual_ltc ltc
+      | _ -> ())
   | EQemit(n, e_opt) ->
       let c_res = Tcausal.new_var () in
       Util.optional_unit

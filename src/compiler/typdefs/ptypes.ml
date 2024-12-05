@@ -41,18 +41,23 @@ let print_list print_el sep ff l =
   in
     printrec ff l
 
-let kind k =
+let mkind k =
   match k with
   | Cont -> "cont" | Zero -> "zero"
   | Period -> "period" | Horizon -> "horizon"
   | Encore -> "encore" | Major -> "major"
+
+let vkind = function Tconst -> "const " | Tstatic -> "static " | Tany -> "any"
+let tkind = function Tdiscrete -> "discrete" | Tcont -> "hybrid"
+
+let kind k = match k with | Tfun(v) -> vkind v | Tnode(t) -> tkind t
 
 let arrow_tostring = function 
   | Tfun(k) ->
      (match k with Tconst -> "-V->" | Tstatic -> "-S->" | Tany -> "-A->")
   | Tnode(k) ->
      (match k with Tdiscrete -> "-D->" | Tcont -> "-C->")
-
+    
 let print_size ff si =
   let operator = function Splus -> "+" | Sminus -> "-" | Smult -> "*" in
   let priority = function Splus -> 0 | Sminus -> 1 | Smult -> 3 in
@@ -174,8 +179,28 @@ let output_type ff ty =
 
 let output_size ff si = print_size ff si
 
-let output_tentry ff { t_tys } = print_scheme ff t_tys
-                                
+let output_tentry ff { t_path; t_sort; t_tys } = 
+  let vkind = function Tconst -> "c" | Tstatic -> "s" | Tany -> "a" in
+  let tkind = function Tdiscrete -> "d" | Tcont -> "h" in
+  let kind k = match k with | Tfun(v) -> vkind v | Tnode(t) -> tkind t in
+  let init pref i =
+    match i with | No -> "" | Eq | Decl _ -> pref ^ "/" in
+  let rec path ff p = match p with
+    | Pkind(k) -> fprintf ff "%s" (kind k)
+    | Pon(p, k) -> fprintf ff "@[<hov 2>%a on@ %s@]" path p (kind k) in
+  
+  let sort ff t_sort = match t_sort with
+    | Sort_val -> fprintf ff "val/"
+    | Sort_var -> fprintf ff "var/"
+    | Sort_mem { m_mkind = mk; m_last; m_init; m_default } ->
+       fprintf ff "@[<hov2>%s%s%s%s@]"
+         ((match mk with | None -> "mem" | Some(mk) -> mkind mk) ^ "/")
+         (if m_last then "l/" else "")
+         (init "i" m_init)
+         (init "d" m_default) in
+  fprintf ff "@[<hov2>%a/%a%a@]"
+    path t_path sort t_sort print_scheme t_tys
+
 let output_type_declaration ff global_list =
   fprintf ff "@[<hov 2>%a@.@]"
     (print_list_l print_type_declaration "type ""and """)

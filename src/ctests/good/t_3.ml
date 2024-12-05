@@ -1,21 +1,23 @@
 (* The Zelus compiler, version 2024-dev
-  (2024-11-26-13:35) *)
+  (2024-10-30-16:57) *)
 open Ztypes
-type ('d, 'c, 'b, 'a) machine_18 =
-{mutable m_13: 'd; mutable i_17: 'c; mutable m_16: 'b; mutable o_10: 'a}
-let m = let machine_18  = 
+type ('d, 'c, 'b, 'a) machine_13 =
+{mutable m_9: 'd; mutable i_12: 'c; mutable m_11: 'b; mutable o_7: 'a}
+let m = let machine_13  = 
           
-          let machine_18_alloc _ =
+          let machine_13_alloc _ =
             ();
-            { m_13 = (42:int);
-              i_17 = (false:bool); m_16 = (42:int); o_10 = (42:int) } in
-          let machine_18_reset self  =
-            ((self.i_17 <- true):unit) in
-          let machine_18_step self ((m_13 : int)) =
-            ((self.o_10 <- (if self.i_17 then 0 else Stdlib.(+) self.m_16 m_13);
-              self.i_17 <- false; self.m_16 <- Stdlib.(+) self.o_10 1; self.o_10):
-            int) in
-          Node { alloc = machine_18_alloc; reset = machine_18_reset;
-                                           step = machine_18_step } in
-          machine_18
+            { m_9 = (42:int);
+              i_12 = (false:bool); m_11 = (42:int); o_7 = (42:int) } in
+          let machine_13_reset self  =
+            ((self.i_12 <- true):unit) in
+          let machine_13_step self ((m_9:Stdlib.int)) =
+            ((self.o_7 <- (if self.i_12
+                           then 0
+                           else Stdlib.(+) self.m_11 self.m_9);
+              self.i_12 <- false;
+              self.m_11 <- Stdlib.(+) self.o_7 1; self.o_7):int) in
+          Node { alloc = machine_13_alloc; reset = machine_13_reset;
+                                           step = machine_13_step } in
+          machine_13
 
