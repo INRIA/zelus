@@ -30,7 +30,7 @@ let kind = function
 (* Priorities *)
 let priority_exp = function
   | Econst _ | Econstr0 _| Eglobal _ | Evar _ 
-    | Estate_access _ | Eget _ | Eupdate _ | Eslice _
+    | Estate _ | Eget _ | Eupdate _ | Eslice _
     | Econcat _ | Evec _ | Erecord _ | Erecord_access _ | Erecord_with _
   | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
   | Econstr1 _ | Eapp _ | Emethodcall _ | Eassert _ -> 2
@@ -108,8 +108,8 @@ and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
 and left_value ff left =
   match left with
   | Eleft_name(n) -> Printer.name ff n
-  | Eleft_record_access(left, n) ->
-     fprintf ff "@[%a.%a@]" left_value left Printer.longname n
+  | Eleft_record_access { label; arg } ->
+     fprintf ff "@[%a.%a@]" left_value arg Printer.longname label
   | Eleft_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_value left (exp 0) idx
 
@@ -119,8 +119,8 @@ and left_state_value ff left =
   | Eleft_instance_name(n) -> Printer.name ff n
   | Eleft_state_global(ln) -> Printer.longname ff ln
   | Eleft_state_name(n) -> Printer.name ff n
-  | Eleft_state_record_access(left, n) ->
-     fprintf ff "@[%a.%a@]" left_state_value left Printer.longname n
+  | Eleft_state_record_access { label; arg } ->
+     fprintf ff "@[%a.%a@]" left_state_value arg Printer.longname label
   | Eleft_state_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
@@ -166,7 +166,7 @@ and exp prio ff e =
        Printer.longname lname (print_list_r (exp prio_e) "("","")") arg_list
   | Eglobal { lname } -> Printer.longname ff lname
   | Evar { id } -> var ff id
-  | Estate_access(l) -> left_state_value ff l
+  | Estate(l) -> left_state_value ff l
   | Etuple(e_list) ->
      fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Eapp { f; arg_list } ->
