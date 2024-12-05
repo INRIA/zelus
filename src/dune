@@ -201,6 +201,8 @@
     oprinter; the printer
     ocamlprinter; print OCaml code
     translate; translate into sequential code
+    inout; add extra code for in-place modification
+         ; of the continuous state vectors
   )
   (libraries zelus.global_lib zelus.typdefs_lib
    zelus.common_lib zelus.typing_lib)
