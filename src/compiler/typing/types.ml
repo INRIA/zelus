@@ -260,7 +260,20 @@ let rec copy ty =
     | Tvec(ty, si) ->
        if level = generic then vec (copy ty) si
        else ty
-      
+
+(** Compute the size of an array type [t]. *)
+(* [t] is either a basic type float/int/bool or an nested *)
+(* array of that *)
+let size_of ty =
+  let rec size_of ty =
+    match ty.t_desc with
+    | Tvar | Tproduct _ | Tarrow _ -> assert false
+    | Tlink(link) -> size_of link
+    | Tconstr _ -> []
+    | Tvec(ty, s) ->
+       s :: (size_of ty) in
+  List.rev (size_of ty)
+
 (* instanciation *)
 let instance { typ_body } =
   let typ_body = copy typ_body in
