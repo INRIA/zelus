@@ -1,6 +1,9 @@
 let node f1(x) returns (o)
   do o = 0 -> pre(o+1) + x done
 
+let hybrid f2(x) returns (o)
+  do der o = 1.0 +. o init x done
+  
 (*
 
 let node f1 () returns (o)
