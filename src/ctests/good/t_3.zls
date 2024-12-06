@@ -1,4 +1,4 @@
-let f x = (x, x)
+let f = node x -> x + pre x
 
 let x = (+)
 
