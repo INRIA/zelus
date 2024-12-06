@@ -156,12 +156,12 @@ let increase_polarity p c =
 
 (** check for cycles. Does [left_c] appears in [right_c] and its *)
 (* greater elements *)
-let occur_check ({ c_level = level; c_index = index } as c_left) c_right =
+let occur_check ({ c_level; c_index } as c_left) c_right =
   let rec check path c_right =
     match c_right.c_desc with
     | Cvar -> 
-       if c_right.c_level > level then c_right.c_level <- level;
-       if c_right.c_index = index 
+       if c_right.c_level > c_level then c_right.c_level <- c_level;
+       if c_right.c_index = c_index 
        then raise (Clash(List.rev path))
        else List.iter (check (c_right :: path)) c_right.c_sup
     | Clink(link) -> check path link
@@ -777,30 +777,6 @@ let filter_arrow tc =
   match tc with
   | Cfun(tc1, tc2) -> tc1, tc2
   | _ -> assert false
-
-(*
-(* simplifies a typing environment *)
-let simplify_by_io_env env expected_tc actual_tc =
-  let mark_env _ { t_tys = { typ_body }; t_last_typ = ltc_opt } =
-    mark_and_polarity true typ_body;
-    Util.optional_unit mark_and_polarity true ltc_opt in
-  let simplify_env { t_tys = { typ_body }; t_last_typ = ltc_opt } =
-    let typ_body = simplify_by_io typ_body in
-    let ltc_opt = Util.optional_map simplify_by_io ltc_opt in
-    { t_tys = p = tc; t_last_typ = ltc_opt } in
-  Env.iter mark_env env;
-  mark_and_polarity true expected_tc;
-  mark_and_polarity true actual_tc;
-  let env = Env.map simplify_env env in
-  (* Computes the set of free variables and dependence relations *)
-  let cset =
-    Env.fold
-      (fun _ { t_typ = tc; t_last_typ = ltc_opt } acc ->
-         Util.optional vars (vars acc tc) ltc_opt) env S.empty in
-  let cset = vars (vars cset expected_tc) actual_tc in
-  let already, rel = relation (S.empty, []) cset in
-  env, cset, rel, simplify_by_io expected_tc, simplify_by_io actual_tc
- *)
 
 (* compute the dependence relations *)
 let prel ff rel =

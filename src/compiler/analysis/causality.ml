@@ -127,11 +127,10 @@ let pattern env pat =
     | Ewildpat | Econstpat _ | Econstr0pat _ ->
         Tcausal.skeleton_on_c (Tcausal.new_var ()) pat_typ
     | Evarpat(x) ->
-       let { t_tys } =
+       let { t_tys = { typ_body = actual_tc } } =
          try Env.find x env with | Not_found -> print x in
        (* every variable that is not a function has an atomic type *)
        let expected_tc = Tcausal.skeleton_for_variables pat_typ in
-       let actual_tc = Tcausal.instance t_tys pat_typ in
        less_than pat_loc env expected_tc actual_tc;
        expected_tc
     | Econstr1pat(_, pat_list) ->
@@ -153,15 +152,14 @@ let pattern env pat =
         Tcausal.suptype true tc1 tc2
     | Ealiaspat(p, x) ->
         let tc_p = pattern p in
-        let tc_n =
-          let { t_tys } =
+        let tc_x =
+          let { t_tys = { typ_body = actual_tc } } =
 	    try Env.find x env with | Not_found -> print x  in
           (* every variable that is not a function has an atomic type *)
           let expected_tc = Tcausal.skeleton_for_variables pat_typ in
-          let actual_tc = Tcausal.instance t_tys pat_typ in
           less_than pat_loc env expected_tc actual_tc;
           expected_tc in
-        less_than pat_loc env tc_n tc_p;
+        less_than pat_loc env tc_x tc_p;
         tc_p in
   (* annotate the pattern with the causality type *)
   pat.pat_info <- Typinfo.set_caus pat.pat_info tc;
@@ -712,10 +710,8 @@ and scondpat env c_free sc =
 (* Computes the result type for [returns (...) eq] *)
 and type_of_vardec_list env n_list =
   let type_of_vardec ({ var_name; var_info } as v) =
-    let { t_tys } =
+    let { t_tys = { typ_body = tc } } =
       try Env.find var_name env with Not_found -> print var_name in
-    let ty = Typinfo.get_type var_info in
-    let tc = Tcausal.instance t_tys ty in
     (* annotate with the causality type *)
     v.var_info <- Typinfo.set_caus var_info tc;
     tc in

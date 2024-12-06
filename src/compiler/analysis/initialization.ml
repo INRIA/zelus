@@ -184,10 +184,9 @@ let rec pattern env ({ pat_desc; pat_loc; pat_info } as p) expected_ti =
   match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> ()
     | Evarpat(x) -> 
-        let t_tys =
-          try let { t_tys } = Env.find x env in t_tys
+        let ti =
+          try let { t_tys = { typ_body = ti } } = Env.find x env in ti
           with | Not_found -> assert false in
-        let ti = Tinit.instance t_tys pat_typ in
         less_than pat_loc expected_ti ti
     | Econstr1pat(_, pat_list) ->
         let i = Tinit.new_var () in
@@ -584,9 +583,8 @@ and scondpat env { desc } =
 (* Computes the result type for [returns (...) eq] *)
 and type_of_vardec_list env n_list =
   let type_of_vardec ({ var_name; var_info } as v) =
-    let { t_tys } = try Env.find var_name env with Not_found -> print var_name in
-    let ty = Typinfo.get_type var_info in
-    let ti = Tinit.instance t_tys ty in
+    let { t_tys = { typ_body = ti } } =
+      try Env.find var_name env with Not_found -> print var_name in
     (* annotate with the initialization type *)
     v.var_info <- Typinfo.set_init var_info ti;
     ti in
