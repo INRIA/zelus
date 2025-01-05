@@ -107,8 +107,7 @@ let message loc kind =
   | Ealready(k, s) ->
      let k = kind_of_ident k in
      eprintf
-       "@[%aType error: the identifier %s is defined twice with kind %s \
-        in a parallel branch.@.@]"
+       "@[%aType error: the identifier %s, with kind %s, is defined twice.@.@]"
         output_location loc (Ident.source s) k
   | Ealready_with_different_kinds(k1, k2, s) ->
      let k1 = kind_of_ident k1 in
