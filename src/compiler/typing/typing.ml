@@ -693,7 +693,101 @@ and mark_reset_state def_states handlers =
     handler.Zelus.s_reset <- v in
   List.iter mark handlers
 
+(*
+(* Typing of a for loop *)
+let forloop expected_k h for_body_t
+  ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
+  let size = for_size_t expected_k h for_size in
+  for_kind_t expected_k h for_kind;
+  let h_index = for_index_t expected_k h for_index in
+  let h_input = 
+    List.fold_left (for_input_t expected_k) Env.empty for_input in
+  let h_env = Env.append h_index h_input in
+  (* if [for_resume = false] the body of the for loop considered to be *)
+  (* combinational, even if the body is not *)
+  let h_body = for_body_t Tnode h_env for_body in
+  (* set the type environment *)
+  f.for_env <- h_env;
+  h_body
+  
+let for_size_t expected_k h for_size_opt =
+  match for_size_opt with
+  | None -> None
+  | Some(s) -> Some(expression expected_k h s)
 
+let for_kind_t expected_k h for_kind =
+  match for_kind with
+  | Kforeach -> Tany
+  | Kforward(for_exit_opt) ->
+     Util.optional (for_exit_t expected_k) h for_exit_opt
+
+let for_exit_t expected_k h { for_exit } =
+  expect expected_k h e (Initial.typ_bool)
+
+let for_index_t expected_k for_index_opt =
+  match for_index_opt with
+  | None -> Env.empty
+  | Some(id) -> 
+     Env.singleton id 
+       (Deftypes.entry expected_k Deftypes.Sort_val 
+          (Deftypes.scheme Initial.typ_int)
+
+let for_eq_t expected_k h ({ for_out; for_block } as f) =
+  let h_out = List.fold_left (for_out_t expected_k h) Env.empty for_out in
+  let h = Env.append h_out h in
+  block_eq expected_k h;
+  (* set the type environment *)
+  f.for_out_env <- h_out;
+  h_out
+
+let for_out_t expected_k h acc_h
+      { desc = { for_name; for_out_name; for_init; for_default } } =
+  let expected_ty = Types.new_var in
+  let actual_k_default =
+    Util.optional_with_default
+      (fun e -> expect expected_k h e expected_ty)
+      (Tfun(Tconst)) for_default in
+    (* the initialization must appear in a statefull function *)
+    let actual_k_init =
+      Util.optional_with_default
+        (fun e -> stateful e.e_loc expected_k;
+                  expect (Tnode(Tdiscrete)) h e expected_ty)
+        (Tfun(Tconst)) for_init in
+    let actual_k = Kind.sup actual_k_default actual_k_init in
+    let t_sort = intro expected_k var_init var_default in
+    let entry =
+      Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
+    Env.add for_name entry acc_h
+
+let for_input_t expected_k h acc_h ({ desc } as f) =
+  match desc with
+  | Einput { id; e; by } ->
+     (* check that [id] is not already in [h_inputs] *)
+     if Env.mem id acc_h then error loc (Ealready(Current, id));
+     (* [e] must be an array of type [...]t *)
+     let ty = Types.new_var () in
+     (* sizes are not taken into account *)
+     let ty_e = Types.vec ty (Sint 0) in
+     let actual_k = expect expected_k h e ty_e in
+     let actual_k =
+       match by with 
+       | None -> actual_k 
+       | Some(e) -> 
+          let actual_k_e = expect expected_k h e (Initial.typ_int) in
+1          Kind.sup actual_k actual_k_e in
+     Env.add id 
+       (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty_e)) 
+       acc_h
+  | Eindex { id; e_left; e_right; dir } ->
+     (* [i in e0 to e1] or [i in e1 downto e0] *)
+     let actual_k_left = expect expected_k h e_left Initial.typ_int in
+     let actual_k_right = expect expected_k h e_right Initial.typ_int in
+     Env.add id
+       (Deftypes.entry expected_k Deftypes.Sort_val 
+          (Deftypes.scheme Initial.typ_int))
+       acc_h
+
+*)
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
 let rec vardec_list expected_k h v_list =
@@ -715,7 +809,7 @@ let rec vardec_list expected_k h v_list =
           var_typeconstraint; var_loc } as v) =
     let expected_ty = Types.new_var () in
     let h = Env.append acc_h h in
-    let actual_k =
+    let actual_k_default =
       Util.optional_with_default
         (fun e -> expect expected_k h e expected_ty)
         (Tfun(Tconst)) var_default in
@@ -725,7 +819,7 @@ let rec vardec_list expected_k h v_list =
         (fun e -> stateful e.e_loc expected_k;
                   expect (Tnode(Tdiscrete)) h e expected_ty)
         (Tfun(Tconst)) var_init in
-    let actual_k = Kind.sup actual_k actual_k_init in
+    let actual_k = Kind.sup actual_k_default actual_k_init in
     let t_sort = intro expected_k var_init var_default in
     let entry =
       Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
@@ -840,7 +934,8 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        ty, Kind.sup actual_k actual_k_e
     | Esizeapp _ ->
        Misc.not_yet_implemented "typing for size functions"
-    | Eforloop _ ->
+    | Eforloop(fe) -> 
+       (* forloop_exp expected_k h fe in *)
        Misc.not_yet_implemented "typing for for-loops" in
   e.e_info <- Typinfo.set_type e.e_info ty;
   ty, actual_k
@@ -1085,7 +1180,8 @@ and equation expected_k h { eq_desc; eq_loc } =
   | EQassert(e) ->
      let actual_k = expect expected_k h e Initial.typ_bool in
      Defnames.empty, actual_k
-  | EQforloop _ ->
+  | EQforloop(f_eq) -> 
+     (* forloop_eq expected_k h f_eq *)
      Misc.not_yet_implemented "typing for for-loops"
   | EQsizefun _ ->
      Misc.not_yet_implemented "typing for size functions"
@@ -1138,6 +1234,7 @@ and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
       is_weak loc expected_k h handlers se_opt in
   (* the actual kind is necessarily stateful *)
   defined_names, expected_k
+
 
 and block_eq expected_k h ({ b_vars; b_body = { eq_write } as b_body } as b) =
   let h0, actual_k_h0 = vardec_list expected_k h b_vars in
