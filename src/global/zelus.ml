@@ -273,6 +273,25 @@ and ('info, 'ienv, 'size, 'body) forloop =
     for_env : 'ienv Ident.Env.t; (* names (index and inputs) *)
   }
 
+and ('info, 'ienv) for_eq =
+  { for_out : ('info, 'ienv) for_out list; (* outputs *)
+    (* loop body *)
+    for_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
+    mutable for_out_env: 'ienv Ident.Env.t; (* names in output *)
+  }
+
+and 'exp for_kind =
+  | Kforeach
+  (* parallel loop *)
+  | Kforward of 'exp for_exit option 
+(* iteration during one instant. The argument is the stoping condition *)
+
+and 'exp for_exit = 
+  { for_exit : 'exp;
+    for_exit_kind : for_exit_kind }
+
+and for_exit_kind = | Ewhile | Euntil | Eunless
+
 (* result expression of a loop *)
 and ('info, 'ienv) for_exp =
   | Forexp of { exp : ('info, 'ienv) exp; default : ('info, 'ienv) exp option } 
@@ -356,25 +375,6 @@ and ('info, 'ienv) eq_desc =
 (* [foreach [e]* [id in e [by e],]* returns (vardec_list) do eq] *)
 (* [forward [resume] [e]* [id in e [by e],]* returns (vardec_list) *)
 (*  do eq [while/unless/until e] e done]  *)
-
-and ('info, 'ienv) for_eq =
-  { for_out : ('info, 'ienv) for_out list; (* outputs *)
-    (* loop body *)
-    for_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
-    mutable for_out_env: 'ienv Ident.Env.t; (* names in output *)
-  }
-
-and 'exp for_kind =
-  | Kforeach
-  (* parallel loop *)
-  | Kforward of 'exp for_exit option 
-(* iteration during one instant. The argument is the stoping condition *)
-
-and 'exp for_exit = 
-  { for_exit : 'exp;
-    for_exit_kind : for_exit_kind }
-
-and for_exit_kind = | Ewhile | Euntil | Eunless
 
 (* input definition for a loop *)
 and 'exp for_input = 'exp for_input_desc localized
