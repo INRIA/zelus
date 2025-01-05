@@ -430,6 +430,12 @@ let filter_arrow expected_k ty =
      unify ty (arrowtype expected_k None ty_arg ty_res);
      expected_k, None, ty_arg, ty_res
 
+let filter_vec ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tvec(ty_arg, si) -> ty_arg, si
+  | _ -> raise Unify
+
 let filter_actual_arrow ty =
   let ty = typ_repr ty in
   match ty.t_desc with
@@ -453,11 +459,6 @@ let rec split_arguments ty_fun e_list =
 	e :: se_list, ne_list, ty_res
      | _ -> [], e_list, ty_fun
 
-let filter_vec ty =
-  let ty = typ_repr ty in
-  match ty.t_desc with
-  | Tvec(ty_arg, si) -> ty_arg, si
-  | _ -> raise Unify
 
 (* All the function below are pure. They do not modify the internal *)
 (* representation of types. This is mandatory for them to be used once *)
