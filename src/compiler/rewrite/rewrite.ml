@@ -24,15 +24,7 @@ let nothing p = p
 let type_check p = Typing.program Format.std_formatter false p
     
 let optim_list =
-  [(* Warning: this step does not work for the moment. The renaming *)
-    (* of variables does not work. See [aform.ml] *)
-    (* "aform", "A-normal form. See below:",
-       (* type checks before computing A-normal form *)
-       type_check,
-       Aform.program; *)
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p);
-   "deadcode", "Dead-code removal. See below:", nothing,
+  ["deadcode", "Dead-code removal. See below:", nothing,
    Deadcode.program;
    (* "cse", "Common sub-expression elimination. See below:", nothing,
    Cse.program; *)
@@ -44,7 +36,15 @@ let optim_list =
 
 (* source-to-source transformations *)
 let default_list =
-   ["static", "Static reduction done. See below:", nothing,
+   [(* Warning: this step does not work for the moment. The renaming *)
+    (* of variables does not work. See [aform.ml] *)
+    (* "aform", "A-normal form. See below:",
+       (* type checks before computing A-normal form *)
+       type_check,
+       Aform.program;
+   "typing", "New typing step: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p); *)
+   "static", "Static reduction done. See below:", nothing,
    Static.program;
    "inline", "Inlining done. See below:", nothing,
    Inline.program;
