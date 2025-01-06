@@ -1296,14 +1296,15 @@ and for_index_t expected_k for_index_opt =
     Env.empty for_index_opt
 
 and for_eq_t expected_k h ({ for_out; for_block } as f) =
-  let h_out = List.fold_left (for_out_t expected_k h) Env.empty for_out in
+  let h_out, actual_k_out =
+    List.fold_left (for_out_t expected_k h) (Env.empty, Tfun(Tconst)) for_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
   f.for_out_env <- h_out;
-  h_out
+  h_out, Kind.sup actual_k_out actual_k
 
-and for_out_t expected_k h acc_h
+and for_out_t expected_k h (acc_h, acc_k)
       { desc = { for_name; for_out_name; for_init; for_default } } =
   let expected_ty = Types.new_var () in
   let actual_k_default =
@@ -1320,9 +1321,11 @@ and for_out_t expected_k h acc_h
     let t_sort = intro expected_k for_init for_default in
     let entry =
       Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
-    Env.add for_name entry acc_h
+    let acc_h = Env.add for_name entry acc_h in
+    let acc_k = Kind.sup acc_k actual_k in
+    acc_h, acc_k
 
-and for_input_t expected_k h acc_h ({ desc } as f) =
+and for_input_t expected_k h acc_h ({ desc; loc } as f) =
   match desc with
   | Einput { id; e; by } ->
      (* check that [id] is not already in [h_inputs] *)
