@@ -270,7 +270,7 @@ and ('info, 'ienv, 'size, 'body) forloop =
     for_input : ('info, 'ienv) exp for_input list;
     for_body : 'body;
     for_resume : bool; (* resume or restart *)
-    for_env : 'ienv Ident.Env.t; (* names (index and inputs) *)
+    mutable for_env : 'ienv Ident.Env.t; (* names (index and inputs) *)
   }
 
 and ('info, 'ienv) for_eq =
