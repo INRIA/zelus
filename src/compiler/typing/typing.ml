@@ -1280,9 +1280,12 @@ and for_exp_t expected_k h for_exp =
      let h_returns, k_returns =
        List.fold_left (for_vardec expected_k h)
          (Env.empty, Tfun(Tconst)) r_returns in
-     
-     
+     let h = Env.append h_returns h in
+     let h0, h, d_names, k_block = block_eq expected_k h r_block in
+     type_of_for_vardec_list r_returns, Kind.sup k_returns k_block
 
+and for_vardec expected_k h (acc_h, acc_k) { desc = { for_array; for_vardec } } =
+  
 and for_size_t expected_k h for_size_opt =
   match for_size_opt with
   | None -> None
