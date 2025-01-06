@@ -694,21 +694,23 @@ and mark_reset_state def_states handlers =
   List.iter mark handlers
 
 
+(* makes an entry *)
+let decl m_opt =
+  match m_opt with
+  | None -> No
+  | Some({ e_desc = Econst(i) }) -> Decl(Some(i)) | _ -> Decl(None)
+
+let intro expected_k var_init var_default =
+  match expected_k with
+  | Tfun _ -> Sort_val
+  | Tnode _ ->
+     let m_init = decl var_init in
+     let m_default = decl var_default in
+     Sort_mem { Deftypes.empty_mem with m_init; m_default }    
+
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
 let rec vardec_list expected_k h v_list =
-  (* makes an entry *)
-  let decl m_opt =
-    match m_opt with
-    | None -> No
-    | Some({ e_desc = Econst(i) }) -> Decl(Some(i)) | _ -> Decl(None) in
-  let intro expected_k var_init var_default =
-    match expected_k with
-    | Tfun _ -> Sort_val
-    | Tnode _ ->
-       let m_init = decl var_init in
-       let m_default = decl var_default in
-       Sort_mem { Deftypes.empty_mem with m_init; m_default } in    
   (* typing every declaration *)
   let vardec (acc_h, acc_k)
         ({ var_name; var_default; var_init; var_clock;
@@ -1303,7 +1305,7 @@ and for_eq_t expected_k h ({ for_out; for_block } as f) =
 
 and for_out_t expected_k h acc_h
       { desc = { for_name; for_out_name; for_init; for_default } } =
-  let expected_ty = Types.new_var in
+  let expected_ty = Types.new_var () in
   let actual_k_default =
     Util.optional_with_default
       (fun e -> expect expected_k h e expected_ty)
@@ -1315,7 +1317,7 @@ and for_out_t expected_k h acc_h
                   expect (Tnode(Tdiscrete)) h e expected_ty)
         (Tfun(Tconst)) for_init in
     let actual_k = Kind.sup actual_k_default actual_k_init in
-    let t_sort = intro expected_k var_init var_default in
+    let t_sort = intro expected_k for_init for_default in
     let entry =
       Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
     Env.add for_name entry acc_h
