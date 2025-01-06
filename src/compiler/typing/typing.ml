@@ -1250,7 +1250,7 @@ and state_expression h def_states actual_reset { desc; loc } =
      Kind.sup actual_k (Kind.sup actual_k1 actual_k2)
 
 (* Typing of a for loop *)
-and forloop expected_k h
+and forloop_exp expected_k h
   ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
@@ -1263,13 +1263,26 @@ and forloop expected_k h
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
-  let h_body, actual_k_for_body = for_body_t expected_k_for_body h_env for_body in
+  let actual_ty, actual_k_for_body =
+    for_exp_t expected_k_for_body h_env for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup actual_k_input actual_k in
   f.for_env <- h_env;
-  h_body, actual_k
-  
+  actual_ty, actual_k
+
+and for_exp_t expected_k h for_exp =
+  match for_exp with
+  | Forexp { exp; default } ->
+     let actual_ty, actual_k = expression expected_k h exp in
+     Util.optional_map (fun e -> expect expected_k h e actual_ty) default
+  | Forreturns({ r_returns; r_block; r_env } as r) ->
+     let h_returns, k_returns =
+       List.fold_left (for_vardec expected_k h)
+         (Env.empty, Tfun(Tconst)) r_returns in
+     
+     
+
 and for_size_t expected_k h for_size_opt =
   match for_size_opt with
   | None -> None
