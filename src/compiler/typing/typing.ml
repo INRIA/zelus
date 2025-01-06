@@ -1256,9 +1256,9 @@ and forloop expected_k h
   (* combinational, even if the body is not *)
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
-  let s_opt = for_size_t expected_k h for_size in
+  let size_opt = for_size_t expected_k h for_size in
   let h_input, actual_k_input = 
-    List.fold_left (for_input_t expected_k s_opt)
+    List.fold_left (for_input_t expected_k size_opt h)
       (Env.empty, Tfun(Tconst)) for_input in
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_index = for_index_t expected_k for_index in
@@ -1325,14 +1325,14 @@ and for_out_t expected_k h (acc_h, acc_k)
     let acc_k = Kind.sup acc_k actual_k in
     acc_h, acc_k
 
-and for_input_t expected_k h acc_h ({ desc; loc } as f) =
+and for_input_t expected_k size_opt h (acc_h, acc_k) { desc; loc } =
   match desc with
   | Einput { id; e; by } ->
      (* check that [id] is not already in [h_inputs] *)
      if Env.mem id acc_h then error loc (Ealready(Current, id));
      (* [e] must be an array of type [...]t *)
      let ty = Types.new_var () in
-     (* sizes are not taken into account *)
+     (* sizes are not taken into account; TODO *)
      let ty_e = Types.vec ty (Sint 0) in
      let actual_k = expect expected_k h e ty_e in
      let actual_k =
@@ -1341,17 +1341,21 @@ and for_input_t expected_k h acc_h ({ desc; loc } as f) =
        | Some(e) -> 
           let actual_k_e = expect expected_k h e (Initial.typ_int) in
           Kind.sup actual_k actual_k_e in
-     Env.add id 
-       (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty_e)) 
-       acc_h
+     let acc_h =
+       Env.add id 
+         (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty_e)) 
+         acc_h in
+     acc_h, Kind.sup acc_k actual_k
   | Eindex { id; e_left; e_right; dir } ->
      (* [i in e0 to e1] or [i in e1 downto e0] *)
      let actual_k_left = expect expected_k h e_left Initial.typ_int in
      let actual_k_right = expect expected_k h e_right Initial.typ_int in
-     Env.add id
-       (Deftypes.entry expected_k Deftypes.Sort_val 
-          (Deftypes.scheme Initial.typ_int))
-       acc_h
+     let acc_h =
+       Env.add id
+         (Deftypes.entry expected_k Deftypes.Sort_val 
+            (Deftypes.scheme Initial.typ_int))
+         acc_h in
+     acc_h, Kind.sup acc_k (Kind.sup actual_k_left actual_k_right)
 
 let implementation ff is_first impl =
   (* first set the read/write information. The write information is *)
