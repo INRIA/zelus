@@ -1257,21 +1257,21 @@ and forloop_exp expected_k h
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
   let size_opt = for_size_t expected_k h for_size in
-  let h_input, actual_k_input = 
-    List.fold_left (for_input_t expected_k size_opt h)
-      (Env.empty, Tfun(Tconst)) for_input in
+  let h_input, actual_k_input, size_opt = 
+    List.fold_left (for_input_t expected_k h)
+      (Env.empty, Tfun(Tconst), size_opt) for_input in
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
   let actual_ty, actual_k_for_body =
-    for_exp_t expected_k_for_body h_env for_body in
+    for_exp_t expected_k_for_body h_env size_opt for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup actual_k_input actual_k in
   f.for_env <- h_env;
   actual_ty, actual_k
 
-and for_exp_t expected_k h for_exp =
+and for_exp_t expected_k h size_opt for_exp =
   match for_exp with
   | Forexp { exp; default } ->
      let actual_ty, k_exp = expression expected_k h exp in
@@ -1323,7 +1323,7 @@ and for_index_t expected_k for_index_opt =
                           (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
-and for_eq_t expected_k h ({ for_out; for_block } as f) =
+and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left (for_out_t expected_k h) (Env.empty, Tfun(Tconst)) for_out in
   let h = Env.append h_out h in
@@ -1353,7 +1353,7 @@ and for_out_t expected_k h (acc_h, acc_k)
     let acc_k = Kind.sup acc_k actual_k in
     acc_h, acc_k
 
-and for_input_t expected_k size_opt h (acc_h, acc_k) { desc; loc } =
+and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
   match desc with
   | Einput { id; e; by } ->
      (* check that [id] is not already in [h_inputs] *)
@@ -1373,7 +1373,7 @@ and for_input_t expected_k size_opt h (acc_h, acc_k) { desc; loc } =
        Env.add id 
          (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty_e)) 
          acc_h in
-     acc_h, Kind.sup acc_k actual_k
+     acc_h, Kind.sup acc_k actual_k, size_opt
   | Eindex { id; e_left; e_right; dir } ->
      (* [i in e0 to e1] or [i in e1 downto e0] *)
      let actual_k_left = expect expected_k h e_left Initial.typ_int in
@@ -1383,7 +1383,7 @@ and for_input_t expected_k size_opt h (acc_h, acc_k) { desc; loc } =
          (Deftypes.entry expected_k Deftypes.Sort_val 
             (Deftypes.scheme Initial.typ_int))
          acc_h in
-     acc_h, Kind.sup acc_k (Kind.sup actual_k_left actual_k_right)
+     acc_h, Kind.sup acc_k (Kind.sup actual_k_left actual_k_right), size_opt
 
 (* Typing of a for loop *)
 and forloop_eq expected_k h
@@ -1393,14 +1393,14 @@ and forloop_eq expected_k h
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
   let size_opt = for_size_t expected_k h for_size in
-  let h_input, actual_k_input = 
-    List.fold_left (for_input_t expected_k size_opt h)
-      (Env.empty, Tfun(Tconst)) for_input in
+  let h_input, actual_k_input, size_opt = 
+    List.fold_left (for_input_t expected_k h)
+      (Env.empty, Tfun(Tconst), size_opt) for_input in
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
   let h_out, actual_k_for_body =
-    for_eq_t expected_k_for_body h_env for_body in
+    for_eq_t expected_k_for_body size_opt h_env for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup actual_k_input actual_k in
