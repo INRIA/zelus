@@ -1407,41 +1407,6 @@ and forloop_eq expected_k h
   f.for_env <- h_env;
   h_out, actual_k
 
-           (*
-             and for_eq_t expected_k h ({ for_out; for_block } as f) =
-  let h_out, k_out =
-    List.fold_left (for_out_t expected_k h) (Env.empty, Tfun(Tconst)) for_out in
-  let h = Env.append h_out h in
-  let _, _, _, k_block = block_eq expected_k h for_block in
-  (* annotation *)
-  f.for_out_env <- h_out;
-  h_out, Kind.sup k_out k_block
-
-(* TODO: factorize with vardec *)
-and for_out_t expected_k h (acc_h, acc_k)
-  { desc = { for_name; for_out_name; for_init; for_default }; loc } =
-   let expected_ty = Types.new_var () in
-   let h = Env.append acc_h h in
-   let actual_k_default =
-     Util.optional_with_default
-       (fun e -> expect expected_k h e expected_ty)
-       (Tfun(Tconst)) for_default in
-   (* the initialization must appear in a statefull function *)
-   let actual_k_init =
-     Util.optional_with_default
-       (fun e -> stateful e.e_loc expected_k;
-                 expect (Tnode(Tdiscrete)) h e expected_ty)
-       (Tfun(Tconst)) for_init in
-   let actual_k = Kind.sup actual_k_default actual_k_init in
-   let t_sort = intro expected_k for_init for_default in
-   let entry =
-     Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
-   (* type annotation *)
-   (* TODO: v.for_info <- Typinfo.set_type v.var_info expected_ty; *)
-  Env.add for_name entry acc_h,
-  Kind.sup actual_k (Kind.sup actual_k_init acc_k)
-            *)
-
 let implementation ff is_first impl =
   (* first set the read/write information. The write information is *)
   (* used to type declarations [let eq in ...] *)
