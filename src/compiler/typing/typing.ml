@@ -846,7 +846,6 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        Misc.not_yet_implemented "typing for size functions"
     | Eforloop(fe) -> 
        forloop_exp expected_k h fe in
-  (* Misc.not_yet_implemented "typing for for-loops" in *)
   e.e_info <- Typinfo.set_type e.e_info ty;
   ty, actual_k
 
@@ -1091,8 +1090,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      let actual_k = expect expected_k h e Initial.typ_bool in
      Defnames.empty, actual_k
   | EQforloop(f_eq) -> 
-     (* forloop_eq expected_k h f_eq *)
-     Misc.not_yet_implemented "typing for for-loops"
+     forloop_eq expected_k h f_eq
   | EQsizefun _ ->
      Misc.not_yet_implemented "typing for size functions"
 
@@ -1332,7 +1330,7 @@ and for_eq_t expected_k h ({ for_out; for_block } as f) =
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
   f.for_out_env <- h_out;
-  h_out, Kind.sup actual_k_out actual_k
+  d_names, Kind.sup actual_k_out actual_k
 
 and for_out_t expected_k h (acc_h, acc_k)
       { desc = { for_name; for_out_name; for_init; for_default } } =
@@ -1386,6 +1384,63 @@ and for_input_t expected_k size_opt h (acc_h, acc_k) { desc; loc } =
             (Deftypes.scheme Initial.typ_int))
          acc_h in
      acc_h, Kind.sup acc_k (Kind.sup actual_k_left actual_k_right)
+
+(* Typing of a for loop *)
+and forloop_eq expected_k h
+  ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
+  (* if [for_resume = false] the for loop is considered to be *)
+  (* combinational, even if the body is not *)
+  let expected_k_for_body =
+    if for_resume then expected_k else Tnode(Tdiscrete) in
+  let size_opt = for_size_t expected_k h for_size in
+  let h_input, actual_k_input = 
+    List.fold_left (for_input_t expected_k size_opt h)
+      (Env.empty, Tfun(Tconst)) for_input in
+  let k_kind = for_kind_t expected_k_for_body h for_kind in
+  let h_index = for_index_t expected_k for_index in
+  let h_env = Env.append h_index h_input in
+  let h_out, actual_k_for_body =
+    for_eq_t expected_k_for_body h_env for_body in
+  let actual_k =
+    if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
+  let actual_k = Kind.sup actual_k_input actual_k in
+  f.for_env <- h_env;
+  h_out, actual_k
+
+           (*
+             and for_eq_t expected_k h ({ for_out; for_block } as f) =
+  let h_out, k_out =
+    List.fold_left (for_out_t expected_k h) (Env.empty, Tfun(Tconst)) for_out in
+  let h = Env.append h_out h in
+  let _, _, _, k_block = block_eq expected_k h for_block in
+  (* annotation *)
+  f.for_out_env <- h_out;
+  h_out, Kind.sup k_out k_block
+
+(* TODO: factorize with vardec *)
+and for_out_t expected_k h (acc_h, acc_k)
+  { desc = { for_name; for_out_name; for_init; for_default }; loc } =
+   let expected_ty = Types.new_var () in
+   let h = Env.append acc_h h in
+   let actual_k_default =
+     Util.optional_with_default
+       (fun e -> expect expected_k h e expected_ty)
+       (Tfun(Tconst)) for_default in
+   (* the initialization must appear in a statefull function *)
+   let actual_k_init =
+     Util.optional_with_default
+       (fun e -> stateful e.e_loc expected_k;
+                 expect (Tnode(Tdiscrete)) h e expected_ty)
+       (Tfun(Tconst)) for_init in
+   let actual_k = Kind.sup actual_k_default actual_k_init in
+   let t_sort = intro expected_k for_init for_default in
+   let entry =
+     Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
+   (* type annotation *)
+   (* TODO: v.for_info <- Typinfo.set_type v.var_info expected_ty; *)
+  Env.add for_name entry acc_h,
+  Kind.sup actual_k (Kind.sup actual_k_init acc_k)
+            *)
 
 let implementation ff is_first impl =
   (* first set the read/write information. The write information is *)
