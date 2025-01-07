@@ -1256,7 +1256,7 @@ and forloop_exp expected_k h
   (* combinational, even if the body is not *)
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
-  let size_opt = for_size_t expected_k h for_size in
+  let size_opt, k_size = for_size_t expected_k h for_size in
   let h_input, actual_k_input, size_opt = 
     List.fold_left (for_input_t expected_k h)
       (Env.empty, Tfun(Tconst), size_opt) for_input in
@@ -1267,7 +1267,7 @@ and forloop_exp expected_k h
     for_exp_t expected_k_for_body h_env size_opt for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
-  let actual_k = Kind.sup actual_k_input actual_k in
+  let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   actual_ty, actual_k
 
@@ -1300,11 +1300,11 @@ and type_of_for_vardec_list size_opt n_list =
 
 and for_size_t expected_k h for_size_opt =
   match for_size_opt with
-  | None -> None
+  | None -> None, Tfun(Tconst)
   | Some(e) ->
-     let _ = expect (Tfun(Tany)) h e Initial.typ_int in
+     let actual_k = expect (Tfun(Tany)) h e Initial.typ_int in
      let s = size_of_exp e in
-     Some(s)
+     Some(s), actual_k
 
 and for_kind_t expected_k h for_kind =
   match for_kind with
@@ -1392,7 +1392,7 @@ and forloop_eq expected_k h
   (* combinational, even if the body is not *)
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
-  let size_opt = for_size_t expected_k h for_size in
+  let size_opt, k_size = for_size_t expected_k h for_size in
   let h_input, actual_k_input, size_opt = 
     List.fold_left (for_input_t expected_k h)
       (Env.empty, Tfun(Tconst), size_opt) for_input in
@@ -1403,7 +1403,7 @@ and forloop_eq expected_k h
     for_eq_t expected_k_for_body size_opt h_env for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
-  let actual_k = Kind.sup actual_k_input actual_k in
+  let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   h_out, actual_k
 
