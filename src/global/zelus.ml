@@ -302,7 +302,7 @@ and ('info, 'ienv) for_returns =
   { r_returns : ('info, 'ienv) for_vardec list; (* return *)
     r_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block;
     (* body *)
-    r_env : 'ienv Ident.Env.t; (* environment for the return *)
+    mutable r_env : 'ienv Ident.Env.t; (* environment for the return *)
     (* [for[each|ward] ... returns (...) local ... do eq ... done] *)
   }
 

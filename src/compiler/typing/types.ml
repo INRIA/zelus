@@ -35,6 +35,8 @@ let make ty =
 let product ty_list =
   make (Tproduct(ty_list))
 let vec ty e = make (Tvec(ty, e))
+let rec vec_n n ty size =
+  if n <= 0 then ty else vec_n (n-1) (vec ty size) size
 let arrowtype ty_kind ty_name_opt ty_arg ty_res =
   make (Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res })
 let rec arrowtype_list k ty_arg_list ty_res =

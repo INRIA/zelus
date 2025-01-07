@@ -290,14 +290,15 @@ let check_definitions_for_every_name defined_names n_list =
     defined_names n_list
 
 (* Computes the type from a vardec list *)
-let type_of_vardec_list n_list =
-  let type_of_vardec { var_info } = Typinfo.get_type var_info in
-  let ty_list = List.map type_of_vardec n_list in
+let type_of_vardec { var_info } = Typinfo.get_type var_info
+let type_of_n_list type_of n_list =
+  let ty_list = List.map type_of n_list in
   match ty_list with
   | [] -> Initial.typ_unit
   | [ty] -> ty
   | _ -> Types.product ty_list
-    
+let type_of_vardec_list n_list = type_of_n_list type_of_vardec n_list
+
 (* make a function type from a function definition. *)
 (* remove useless dependences:
  * - (n:ty_arg) -k-> ty_res => ty_arg -k-> ty_res if n not in fv_size(ty_res) *)
@@ -710,33 +711,34 @@ let intro expected_k var_init var_default =
 
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
+(* typing every declaration *)
 let rec vardec_list expected_k h v_list =
-  (* typing every declaration *)
-  let vardec (acc_h, acc_k)
-        ({ var_name; var_default; var_init; var_clock;
-          var_typeconstraint; var_loc } as v) =
-    let expected_ty = Types.new_var () in
-    let h = Env.append acc_h h in
-    let actual_k_default =
-      Util.optional_with_default
-        (fun e -> expect expected_k h e expected_ty)
-        (Tfun(Tconst)) var_default in
-    (* the initialization must appear in a statefull function *)
-    let actual_k_init =
-      Util.optional_with_default
-        (fun e -> stateful e.e_loc expected_k;
-                  expect (Tnode(Tdiscrete)) h e expected_ty)
-        (Tfun(Tconst)) var_init in
-    let actual_k = Kind.sup actual_k_default actual_k_init in
-    let t_sort = intro expected_k var_init var_default in
-    let entry =
-      Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
-    (* type annotation *)
-    v.var_info <- Typinfo.set_type v.var_info expected_ty;
-    Env.add var_name entry acc_h,
-    Kind.sup actual_k (Kind.sup actual_k_init acc_k) in
-  List.fold_left vardec (Env.empty, Tfun(Tconst)) v_list
+  List.fold_left (vardec expected_k h) (Env.empty, Tfun(Tconst)) v_list
 
+and vardec expected_k h (acc_h, acc_k)
+ ({ var_name; var_default; var_init; var_clock;
+    var_typeconstraint; var_loc } as v) =
+  let expected_ty = Types.new_var () in
+  let h = Env.append acc_h h in
+  let actual_k_default =
+    Util.optional_with_default
+      (fun e -> expect expected_k h e expected_ty)
+      (Tfun(Tconst)) var_default in
+  (* the initialization must appear in a statefull function *)
+  let actual_k_init =
+    Util.optional_with_default
+      (fun e -> stateful e.e_loc expected_k;
+                expect (Tnode(Tdiscrete)) h e expected_ty)
+      (Tfun(Tconst)) var_init in
+  let actual_k = Kind.sup actual_k_default actual_k_init in
+  let t_sort = intro expected_k var_init var_default in
+  let entry =
+    Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
+  (* type annotation *)
+  v.var_info <- Typinfo.set_type v.var_info expected_ty;
+  Env.add var_name entry acc_h,
+  Kind.sup actual_k (Kind.sup actual_k_init acc_k)
+  
 (* [expression expected_k h e] returns the type for [e] and [actual kind] *)
 and expression expected_k h ({ e_desc; e_loc } as e) =
   let ty, actual_k = match e_desc with
@@ -1274,18 +1276,30 @@ and forloop_exp expected_k h
 and for_exp_t expected_k h for_exp =
   match for_exp with
   | Forexp { exp; default } ->
-     let actual_ty, actual_k = expression expected_k h exp in
-     Util.optional_map (fun e -> expect expected_k h e actual_ty) default
-  | Forreturns({ r_returns; r_block; r_env } as r) ->
+     let actual_ty, k_exp = expression expected_k h exp in
+     let k_default =
+       Util.optional_with_default
+         (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
+     actual_ty, Kind.sup k_exp k_default
+  | Forreturns({ r_returns; r_block } as r) ->
      let h_returns, k_returns =
        List.fold_left (for_vardec expected_k h)
          (Env.empty, Tfun(Tconst)) r_returns in
      let h = Env.append h_returns h in
      let h0, h, d_names, k_block = block_eq expected_k h r_block in
+     (* annotation *)
+     r.r_env <- h_returns;
      type_of_for_vardec_list r_returns, Kind.sup k_returns k_block
 
-and for_vardec expected_k h (acc_h, acc_k) { desc = { for_array; for_vardec } } =
-  
+and for_vardec expected_k h (acc_h, acc_k) { desc = { for_vardec } } =
+  vardec expected_k h (acc_h, acc_k) for_vardec
+
+and type_of_for_vardec_list n_list =
+  let type_of { desc = { for_array; for_vardec } } =
+    let ty = type_of_vardec for_vardec in
+    Types.vec_n for_array ty (Sint 0) in
+  type_of_n_list type_of n_list
+
 and for_size_t expected_k h for_size_opt =
   match for_size_opt with
   | None -> None
