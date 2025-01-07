@@ -1278,7 +1278,7 @@ and for_exp_t expected_k h size_opt for_exp =
      let k_default =
        Util.optional_with_default
          (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
-     actual_ty, Kind.sup k_exp k_default
+     Types.vec_opt actual_ty size_opt, Kind.sup k_exp k_default
   | Forreturns({ r_returns; r_block } as r) ->
      let h_returns, k_returns =
        List.fold_left (for_vardec expected_k h)
@@ -1287,15 +1287,15 @@ and for_exp_t expected_k h size_opt for_exp =
      let h0, h, d_names, k_block = block_eq expected_k h r_block in
      (* annotation *)
      r.r_env <- h_returns;
-     type_of_for_vardec_list r_returns, Kind.sup k_returns k_block
+     type_of_for_vardec_list size_opt r_returns, Kind.sup k_returns k_block
 
 and for_vardec expected_k h (acc_h, acc_k) { desc = { for_vardec } } =
   vardec expected_k h (acc_h, acc_k) for_vardec
 
-and type_of_for_vardec_list n_list =
+and type_of_for_vardec_list size_opt n_list =
   let type_of { desc = { for_array; for_vardec } } =
     let ty = type_of_vardec for_vardec in
-    Types.vec_n for_array ty (Sint 0) in
+    Types.vec_n for_array ty size_opt in
   type_of_n_list type_of n_list
 
 and for_size_t expected_k h for_size_opt =
