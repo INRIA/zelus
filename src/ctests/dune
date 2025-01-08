@@ -1,0 +1,11 @@
+(test
+ (name zeluctest)
+ ; name of the test
+ (modules zeluctest)
+ ; ml file test runner
+ (deps (glob_files good/*.zls) (glob_files bad/*.zls))
+ ; files dependencies
+ (libraries unix zelus.parser_lib zelus.global_lib zelus.zrun_lib
+  zelus.typing_lib zelus.causality_lib zelus.initialization_lib
+  zelus.rewrite_lib zelus.seqcode_lib alcotest))
+ ; libraries dependencies
