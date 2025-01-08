@@ -7,7 +7,7 @@ let hybrid timer1 p = z where
 
 let hybrid timer2 () = period (1.0 | 3.0)
 
-let discrete print (x, message) =
+let print (x, message) =
   print_string message;
   print_float x;
   print_newline ()

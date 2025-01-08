@@ -26,4 +26,4 @@ let hybrid legsegment ((min, max, i), rate, (extend, retract, stop)) =
         until up(min -. pos) then do next segin = true in Stationary
         else  stop()         then Stationary
         else  extend()       then Extending
-
+    end

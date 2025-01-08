@@ -8,7 +8,8 @@ let node up_down () = o where
       | Down -> 
           let rec cpt = 0 -> pre cpt + 1 in
           do o = cpt
-          until (o = 10) then Up 
+          until (o = 10) then Up
+      end
   and init o = 0
 
 let node main1 () =
@@ -26,6 +27,7 @@ let hybrid f2 () = o where
   rec automaton
   | Up -> do der o = 1.0 until (up(o -. 10.0)) continue Down
   | Down -> do der o = -1.0 until (up(-. o +. 10.0)) continue Up
+  end
   and init o = 0.0
 
 open Scope

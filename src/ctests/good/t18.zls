@@ -1,4 +1,3 @@
-
 let hybrid model () = y where
   rec
       init y = -.1.0
@@ -12,4 +11,4 @@ let hybrid model () = y where
           do
             der y = -1.0
           done
-
+      end

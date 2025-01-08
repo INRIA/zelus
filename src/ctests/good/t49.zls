@@ -7,6 +7,7 @@ let hybrid hyfun rate = pos where
     | S -> do
           der pos = 0.0
         done
+    end
 
 let hybrid model () =
   let leg_pos = hyfun 1.0

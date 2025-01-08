@@ -8,6 +8,7 @@ let hybrid model (z) = y1 where
           do
               der y1 = 1.0
           done
+      end
   and init y1 = 0.0
 
 let hybrid model1 (z) = y where
