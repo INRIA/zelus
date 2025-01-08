@@ -135,7 +135,7 @@ let mem = previous imem
 let memory = Sort_mem mem
 let imemory = Sort_mem imem
 		   
-let entry k sort t_tys = { t_path = Pkind(k); t_sort = sort; t_tys }
+let entry v_kind sort t_tys = { t_path = Pkind(v_kind); t_sort = sort; t_tys }
 
 let last t_sort =
   match t_sort with

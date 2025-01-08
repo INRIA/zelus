@@ -41,6 +41,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "const", CONST;
   "default", DEFAULT;
   "der", DER;
+  "disc", DISC;
   "do", DO;
   "done", DONE;
   "downto", DOWNTO;

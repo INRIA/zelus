@@ -164,6 +164,7 @@ let foreach_loop resume (size_opt, index_opt, input_list, body) =
 %token DOTDOT         /* ".." */
 %token DOWNTO         /* "downto" */
 %token DER            /* "der" */
+%token DISC           /* "disc" */
 %token DIV            /* "/" */
 %token ELSE           /* "else" */
 %token EMIT           /* "emit" */
@@ -290,7 +291,7 @@ let foreach_loop resume (size_opt, index_opt, input_list, body) =
 %left ON
 %right prec_uminus
 %right PREFIX
-%right PRE TEST UP
+%right PRE TEST UP DISC
 %left TRANSPOSE FLATTEN REVERSE
 %left DOT
 %left INIT DEFAULT
@@ -555,7 +556,7 @@ equation:
    eq = localized(equation_desc) { eq }
 ;
 
-/* a single equation; either ended by a terminal or an expression */
+/* an equation; either ended by a terminal or an expression */
 equation_desc:
   | LOCAL v_list = vardec_comma_list IN eq = equation
     { EQlocal(v_list, eq) } 
@@ -571,7 +572,8 @@ equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
     { EQautomaton(List.rev a, None) }
   | AUTOMATON opt_bar
-       a = automaton_handlers(equation_empty_and_list) INIT e = state END
+      a = automaton_handlers(equation_empty_and_list)
+      INIT e = state_expression
     { EQautomaton(List.rev a, Some(e)) }
   | MATCH e = seq_expression WITH opt_bar
     m = match_handlers(equation) opt_end
@@ -654,11 +656,11 @@ automaton_handler(X):
 		       e_next_state = st_e } $endpos(b) $endpos(e)];
 	   s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER l = let_list b = block(X)
-    UNTIL el = list_of(UNTIL, escape(X))
+    UNTIL el = list_of(ELSE, escape(X))
     { make { s_state = sp; s_let = l; s_body = b;
 	     s_until = el; s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER l = let_list b = block(X)
-    UNLESS el = list_of(UNLESS, escape(X))
+    UNLESS el = list_of(ELSE, escape(X))
     { make { s_state = sp; s_let = l; s_body = b;
 	     s_until = []; s_unless = el } $startpos $endpos }
 ;
@@ -676,14 +678,14 @@ escape(X) :
       $startpos $endpos }
 ;
 
-state :
+state_expression :
   | c = CONSTRUCTOR
       { make (Estate0(c)) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN e = expression RPAREN
       { make (Estate1(c, [e])) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN l = expression_comma_list RPAREN
     { make (Estate1(c, List.rev l)) $startpos $endpos }
-  | IF e = expression THEN s1 = state ELSE s2 = state
+  | IF e = expression THEN s1 = state_expression ELSE s2 = state_expression
     { make (Estateif(e, s1, s2)) $startpos $endpos }
 ;
 
@@ -719,10 +721,10 @@ block(X):
 ;
 
 emission(X):
-  | s = state
+  | s = state_expression
     { make { b_vars = []; b_body = no_eq $startpos $endpos }
       $startpos $endpos, s }
-  | b = block(X) IN s = state
+  | b = block(X) IN s = state_expression
     { b, s }
 ;
 
@@ -1054,6 +1056,8 @@ expression_desc:
       { Eop(Eup, [e]) }
   | TEST e = expression
       { Eop(Etest, [e]) }
+  | DISC e = expression
+      { Eop(Edisc, [e]) }
   | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = seq_expression
       { Eop(Eifthenelse, [e1; e2; e3]) }
   | MINUS e = expression  %prec prec_uminus
@@ -1098,7 +1102,8 @@ expression_desc:
       { unop p e ($startpos(p)) ($endpos(p)) }
   | LET v = vkind_opt i = is_rec eq = equation_and_list IN e = seq_expression
     { Elet(make { l_rec = i; l_kind = v; l_eq = eq } $startpos $endpos(eq), e) }
-  | LOCAL v_list = vardec_comma_list DO eq = equation_and_list IN e = seq_expression
+  | LOCAL v_list = vardec_comma_list
+    DO eq = equation_and_list IN e = seq_expression
     { Elocal(v_list, eq, e) }  
   | MATCH e = seq_expression WITH
       opt_bar m = match_handlers(expression) opt_end
@@ -1143,6 +1148,7 @@ expression_desc:
     {}
   | END {}
 ;
+
 
 /* Loops for equations */
 foreach_loop_exp:

@@ -153,7 +153,24 @@ let run_type expected_k =
   let ty_arg = new_var () in
   let ty_res = new_var () in
   arrowtype expected_k None ty_arg ty_res
-							      
+
+(* The type of zero-crossing condition. *)
+(* [zero] when [expected_k = Tnode(Tcont)] *)
+(* [bool] otherwise. *)
+let zero_type expected_k =
+  match expected_k with
+    | Tfun _ | Tnode(Tdiscrete) -> Initial.typ_bool 
+    | Tnode(Tcont) -> Initial.typ_zero
+
+let is_continuous_kind expected_k = 
+  match expected_k with
+  | Tnode(Tcont) -> true | _ -> false
+
+(* Make a discrete sort. *)
+let lift_to_discrete expected_k =
+  match expected_k with
+  | Tnode(cont) -> Tnode(Tdiscrete) | _ -> expected_k
+
 (* shortening types *)
 let rec typ_repr ty =
   match ty.t_desc with

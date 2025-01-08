@@ -525,9 +525,16 @@ let present_handlers scondpat body loc expected_k h h_list opt ty_res =
     (* local variables from [scpat] cannot be accessed through a last *)
     let h0 = env_of_scondpat expected_k p_cond in
     let h = Env.append h0 h in
-    let actual_k_spat = scondpat expected_k Initial.typ_bool h p_cond in
+    let is_zero = Types.is_continuous_kind expected_k in
+    let ty_cond =
+      if is_zero then Initial.typ_zero else Initial.typ_bool in
+    let actual_k_spat = scondpat expected_k ty_cond h p_cond in
+    (* sets [zero = true] if [expected_k = Tcont] *)
+    ph.p_zero <- is_zero;
     ph.p_env <- h0;
+    let expected_k = if is_zero then Tnode(Tdiscrete) else expected_k in
     let defined_names, actual_k = body expected_k h p_body ty_res in
+    let actual_k = if is_zero then Tnode(Tcont) else actual_k in
     defined_names, Kind.sup actual_k_spat actual_k in
 
   let defined_names_k_list = List.map handler h_list in
@@ -596,7 +603,9 @@ let rec automaton_handlers
     | Some(se) -> state_expression h env_of_states true se in
   
   (* the type for conditions on transitions *)
-  let type_of_condition = Initial.typ_bool in
+  let type_of_condition =
+    if Types.is_continuous_kind expected_k
+    then Initial.typ_zero else Initial.typ_bool in
 
   (* typing the body of the automaton *)
   let typing_handler h ({ s_state; s_let; s_body; s_trans } as s) =
@@ -747,7 +756,8 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        let { t_tys; t_sort; t_path } = var e_loc h x in
        (* H, [k1 on ... on kn x :t ] |- expected_k : t *)
        (* if k1 <= expected_k /\ k1 <= ki *)
-       let actual_k = kind_of_path e_loc t_path in
+       let vkind = Kind.vkind_of_kind (kind_of_path e_loc t_path) in
+       let actual_k = Tfun(vkind) in
        less_than e_loc actual_k expected_k;
        let ty = Types.instance t_tys in
        ty, actual_k
@@ -876,21 +886,24 @@ and operator expected_k h loc op e_list =
        let ty_f = Types.arrowtype expected_k None ty_arg ty_res in
        expected_k, [ty_f; ty_arg], ty_res
     | Eseq ->
-       let ty = new_var () in
-       Tfun(Tconst), [Initial.typ_unit; ty], ty
+       let ty_1 = new_var () in
+       let ty_2 = new_var () in
+       Tfun(Tconst), [ty_1; ty_2], ty_2
     | Eatomic ->
        let ty = new_var () in
        Tfun(Tconst), [ty], ty
     | Etest ->
        let ty = new_var () in
        Tfun(Tconst), [Initial.typ_signal ty], Initial.typ_bool
+    | Edisc ->
+       let ty = new_var () in
+       Tnode(Tcont), [ty], Initial.typ_zero
     | Eup ->
        Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
     | Eperiod ->
-       Tfun(Tconst), [Initial.typ_float; Initial.typ_float], Initial.typ_zero
+       Tfun(Tconst), [Initial.typ_float; Initial.typ_float],
+       Types.zero_type expected_k
     | Ehorizon ->
-       Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
-    | Edisc ->
        Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
     | Earray(op) ->
        let actual_k, ty_args, ty_res =
@@ -1030,6 +1043,7 @@ and equation expected_k h { eq_desc; eq_loc } =
        match e_opt with
        | None -> S.empty
        | Some(e) ->
+          let expected_k = Types.lift_to_discrete expected_k in
           let _ = expect expected_k h e Initial.typ_float in
           let _ = init eq_loc h id in S.singleton id in
      ignore (present_handler_exp_list
@@ -1039,7 +1053,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      (* an initialization is valid only in a stateful context *)
      stateful eq_loc expected_k;
      let actual_ty = init eq_loc h n in
-     let _ = expect expected_k h e0 actual_ty in
+     let _ = expect (Types.lift_to_discrete expected_k) h e0 actual_ty in
      { Defnames.empty with di = S.singleton n }, expected_k
   | EQemit(n, e_opt) ->
      let ty_e = new_var () in
