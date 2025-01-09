@@ -1,4 +1,5 @@
 all:
+	dune test
 
 clean:
 	(cd good; rm -r -f *.zci *~)

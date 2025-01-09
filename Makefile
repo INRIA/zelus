@@ -21,8 +21,6 @@ opam-uninstall: ## Remove opam pin
 
 clean:
 	dune clean;
-	(cd tests/good/; rm -f *.zlo);
-	(cd tests/bad/; rm -f *.zlo)
 
 wc:
 	(cd src; \

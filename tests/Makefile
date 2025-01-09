@@ -1,7 +1,8 @@
 all:
-	dune test
+	(cd compiler; make);
+	(cd zrun; make)
 
 clean:
-	dune clean;
-	(cd good/; rm -f *.zlo);
-	(cd bad/; rm -f *.zlo)
+	(cd compiler; make clean);
+	(cd zrun; make clean)
+

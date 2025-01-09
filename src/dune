@@ -67,6 +67,7 @@
   (libraries zelus.parser_lib zelus.global_lib))
 
  ;; the Zelus compiler
+
  ; type definition and global info in the global type environment
  (library
   (name typdefs_lib)
@@ -88,7 +89,8 @@
   (libraries zelus.global_lib)
 )
 
-(library
+; useful functions
+ (library
   (name common_lib)
   (public_name zelus.common_lib)
   (wrapped false)
@@ -209,17 +211,28 @@
 )
 
 ; The compiler
+(library
+ (name compiler_lib)
+ (public_name zelus.compiler_lib)
+ (wrapped false)
+ (modules
+   compiler; the compiler
+   simulator; the generation of the main function
+ )
+ (libraries unix zelus.parser_lib zelus.global_lib zelus.zrun_lib
+  zelus.typing_lib zelus.causality_lib zelus.initialization_lib
+  zelus.rewrite_lib zelus.seqcode_lib)
+)
+
 (executable
  (name zeluc)
   (modes (byte exe))
   (modules
-	compiler; the compiler
-	simulator; the generation of the main function
 	zeluc; the main function
   )
   (libraries unix zelus.parser_lib zelus.global_lib zelus.zrun_lib
   zelus.typing_lib zelus.causality_lib zelus.initialization_lib
-  zelus.rewrite_lib zelus.seqcode_lib)
+  zelus.rewrite_lib zelus.seqcode_lib zelus.compiler_lib)
   (preprocess (pps ppx_deriving.show))
   (promote (until-clean) (into ..)))
 
