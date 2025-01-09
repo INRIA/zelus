@@ -15,8 +15,8 @@ debug:
 
 # Local install to test the compiler
 install:
-	mkdir -f _build/install/default/share/zelus
-	cp -f -r _build/default/lib/std _build/install/default/share/zelus
+	mkdir -p _build/install/default/share/zelus
+	cp -f -r _build/default/lib/std/ _build/install/default/share/zelus
 
 opam-install: ## Install as an opam development package pinned to this directory
 	opam pin -k path .
