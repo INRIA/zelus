@@ -1,11 +1,16 @@
 #!/usr/bin/env ocaml -I +unix unix.cma
 
+(* ./configure generates a file config.ml. *)
+
 let version = "2024"
 let subversion = "dev"
 
-let prefix = ref (Filename.concat (Sys.getcwd ()) "_build/install/default/")
+let prefix = "_build/install/default/"
+let suffix = "share/zelus"
 
-let get_stdlib_prefix () = Filename.concat !prefix "share/zelus"
+let prefix = ref (Filename.concat (Sys.getcwd ()) prefix)
+
+let get_stdlib_prefix () = Filename.concat !prefix suffix
 
 let get_current_date () =
   let open Unix in
