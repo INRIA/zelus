@@ -1347,22 +1347,26 @@ and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
   d_names, Kind.sup actual_k_out actual_k
 
 and for_out_t expected_k h (acc_h, acc_k)
-      { desc = { for_name; for_out_name; for_init; for_default } } =
-  let expected_ty = Types.new_var () in
+      { desc = { for_name; for_out_name; for_init; for_default }; loc } =
+  let ty = Types.new_var () in
+  let ty_e = Types.vec ty (Sint 0) in
+  (* check that [for_name] is an array *)
+  let actual_ty_e = Types.instance (typ_of_var loc h for_name) in
+  unify loc ty_e actual_ty_e;
   let actual_k_default =
     Util.optional_with_default
-      (fun e -> expect expected_k h e expected_ty)
+      (fun e -> expect expected_k h e ty)
       (Tfun(Tconst)) for_default in
     (* the initialization must appear in a statefull function *)
     let actual_k_init =
       Util.optional_with_default
         (fun e -> stateful e.e_loc expected_k;
-                  expect (Tnode(Tdiscrete)) h e expected_ty)
+                  expect (Tnode(Tdiscrete)) h e ty)
         (Tfun(Tconst)) for_init in
     let actual_k = Kind.sup actual_k_default actual_k_init in
     let t_sort = intro expected_k for_init for_default in
     let entry =
-      Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
+      Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
     let acc_h = Env.add for_name entry acc_h in
     let acc_k = Kind.sup acc_k actual_k in
     acc_h, acc_k
@@ -1385,7 +1389,7 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
           Kind.sup actual_k actual_k_e in
      let acc_h =
        Env.add id 
-         (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty_e)) 
+         (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty)) 
          acc_h in
      acc_h, Kind.sup acc_k actual_k, size_opt
   | Eindex { id; e_left; e_right; dir } ->

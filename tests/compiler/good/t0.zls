@@ -24,15 +24,12 @@ let node f(x) =
   end
     
 let node g(x) =
-  present x(v1, v2) ->
-    1 -> last v1 + v2
-
+  present x(v1, v2) -> 1 -> last v1 + v2
     
 let node gg(x) = o where
   init o = 0
   and
-    present x(v1, v2) ->
-    do o = 1 -> last v1 + v2 done
+    present x(v1, v2) -> do o = 1 -> last v1 + v2 done
 
 let node one (o1, o2) = o where
   o = present o1(x) | o2(x) -> x + x init 42
@@ -48,4 +45,29 @@ let hybrid gh(z) =
   and present z -> do x = 1 done
   and present (disc(last x)) -> do () = print_int x done in
   x
+
+let node f1(x) returns (y)
+  forward (xi in x) returns (yi out y)
+    do yi = xi + 1 done
+
+let node f2(x, z) returns (y)
+  forward (xi in x) returns (yi out y)
+    local k in
+    do yi = xi + 1 until z = 0 done
+
+let node f3(x, z) returns (y)
+  forward (xi in x) returns (yi out y)
+    local k in
+    do yi = xi + 1 unless z = 0 done
+
+let node f3(x, z) returns (y)
+  forward (xi in x) returns (yi out y)
+    local k in
+    do yi = xi + 1 while z = 0 done
+
+let node f3(x, z) returns (y)
+  local m in
+  forward (xi in x) returns (m, yi out y)
+    local k in
+    do m = 1 and yi = xi + 1 while z = 0 done
 

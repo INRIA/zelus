@@ -267,7 +267,8 @@ let foreach_loop resume (size_opt, index_opt, input_list, body) =
 %left EVERY
 %nonassoc PRESENT
 %nonassoc THEN
-%nonassoc ELSE
+%left ELSE
+%right UNTIL UNLESS
 %nonassoc WITH
 %left  AS
 %left  BAR
@@ -570,7 +571,7 @@ equation_desc:
     { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq}
 	    $startpos $endpos(let_eq), eq) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
-    { EQautomaton(List.rev a, None) }
+    { EQautomaton(List.rev a, None) } 
   | AUTOMATON opt_bar
       a = automaton_handlers(equation_empty_and_list)
       INIT e = state_expression
@@ -578,8 +579,7 @@ equation_desc:
   | MATCH e = seq_expression WITH opt_bar
     m = match_handlers(equation) opt_end
     { EQmatch(e, List.rev m) }
-  | IF e = seq_expression THEN eq1 = equation
-    ELSE eq2 = equation opt_end
+  | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation opt_end
     { EQif(e, eq1, eq2) }
   | IF e = seq_expression THEN eq1 = equation opt_end
       { EQif(e, eq1, no_eq $startpos $endpos) }
@@ -716,7 +716,7 @@ scondpat_desc :
 
 /* Block */
 block(X):
-  | lo = local_list DO x = X
+  | lo = local_list opt_in DO x = X
       { make { b_vars = lo; b_body = x } $startpos $endpos }
 ;
 
@@ -766,14 +766,6 @@ param_list_list:
   | lp = list_no_sep_of(vkind_param_list) l = list_no_sep_of(param)
     { lp @ [Kany, l] }
 ;
-
-/* %inline vkind_param_list_opt:
-  | v = vkind_param_list
-    { v }
-  | l = list_no_sep_of(param)
-    { Kany, l }
-;
-*/
 
 vkind_param_list:
   | LPAREN v = vkind l = param_list RPAREN
@@ -1149,6 +1141,12 @@ expression_desc:
   | END {}
 ;
 
+%inline opt_in:
+/* empty */
+    {}
+  | IN {}
+;
+
 
 /* Loops for equations */
 foreach_loop_exp:
@@ -1211,7 +1209,7 @@ forward_loop_eq:
     DONE
     { (s_opt, i_opt, li, o_opt, { for_out = lo; for_block = f }) }
 ;
-
+ 
 %inline optional_size_expression:
   | { None }
   | LPAREN e = expression RPAREN { Some(e) }

@@ -112,7 +112,7 @@ let rec print prio ff { t_desc; t_level; t_index } =
        print_arg ty_arg (arrow_tostring ty_kind)
        (print prio_current) ty_res
   | Tvec(ty, si) ->
-     fprintf ff "@[%a[%a]@]" (print prio_current) ty print_size si
+     fprintf ff "@[[%a]%a@]" print_size si (print prio_current) ty 
   | Tlink(link) -> print prio ff link
   end;
   if prio_current < prio then fprintf ff ")"  
