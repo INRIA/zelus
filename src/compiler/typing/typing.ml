@@ -1350,9 +1350,6 @@ and for_out_t expected_k h (acc_h, acc_k)
       { desc = { for_name; for_out_name; for_init; for_default }; loc } =
   let ty = Types.new_var () in
   let ty_e = Types.vec ty (Sint 0) in
-  (* check that [for_name] is an array *)
-  let actual_ty_e = Types.instance (typ_of_var loc h for_name) in
-  unify loc ty_e actual_ty_e;
   let actual_k_default =
     Util.optional_with_default
       (fun e -> expect expected_k h e ty)
@@ -1367,7 +1364,13 @@ and for_out_t expected_k h (acc_h, acc_k)
     let t_sort = intro expected_k for_init for_default in
     let entry =
       Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
-    let acc_h = Env.add for_name entry acc_h in
+    let acc_h =
+      match for_out_name with
+      | None -> Env.add for_name entry acc_h
+      | Some(x) -> (* xi out x *)
+         (* find the type of [x] in [h] *)
+         let ty_x = Types.instance (typ_of_var loc h x) in
+         unify loc ty_e ty_x; acc_h in
     let acc_k = Kind.sup acc_k actual_k in
     acc_h, acc_k
 
