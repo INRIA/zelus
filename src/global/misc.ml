@@ -40,6 +40,10 @@ let set_stdlib p =
 let locate_stdlib () =
   Printf.printf "%s\n" standard_lib
 
+(* the list of include paths *)
+let locate_load_path () =
+  List.iter (fun p -> Printf.printf "%s\n" p) !load_path
+
 let show_version () =
   let open Config in
   Printf.printf "The ZRun Interpreter, version %s-%s (%s)\n"

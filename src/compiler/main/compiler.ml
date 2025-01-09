@@ -119,6 +119,8 @@ let write_implementation mlc p_obc =
 
 (* The main function for compiling a program *)
 let compile modname filename =
+  Misc.locate_load_path ();
+
   let source_name = filename ^ ".zls"
   and obj_interf_name = filename ^ ".zci"
   and ml_name = filename ^ ".ml" in

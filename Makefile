@@ -14,7 +14,7 @@ debug:
 	(cd src; dune build --debug-backtraces --debug-dependency-path -- zeluc.bc)
 
 # Local install to test the compiler
-install:
+install: zeluc.exe
 	mkdir -p _build/install/default/share/zelus
 	cp -f -r _build/default/lib/std/ _build/install/default/share/zelus
 
