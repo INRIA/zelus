@@ -1360,7 +1360,7 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
 and for_out_t expected_k h (acc_h, acc_k)
       { desc = { for_name; for_out_name; for_init; for_default }; loc } =
   let ty = Types.new_var () in
-  let ty_out = Types.vec ty (Sint 0) in
+  let ty_out = Types.typ_vec ty in
   let actual_k_default =
     Util.optional_with_default
       (fun e -> expect expected_k h e ty)
