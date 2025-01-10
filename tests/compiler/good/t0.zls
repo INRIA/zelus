@@ -74,9 +74,15 @@ let node f5(x, z) returns (y)
     local k in
     do m = 1 and yi = xi + 1 and k = yi while z = 0 done
 
-let node f4(x, z) returns (y)
+let node f6(x, z) returns (y)
   local m in
   forward (xi in x.R) returns (m, yi out y)
     local k in
-    do m = 1 and yi = xi + 1 while z = 0 done
+    do m = 1 and yi = xi + 1 and k = 0 while z = 0 done
+
+let node f7(f)(x) returns (y)
+  local m in
+  foreach (xi in x.R) returns (m, yi out y)
+    local k in
+    do m = xi and yi = f(xi) and k = 0 done
 

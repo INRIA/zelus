@@ -34,6 +34,8 @@ let make ty =
   { t_desc = ty; t_level = generic; t_index = symbol#name }
 let product ty_list =
   make (Tproduct(ty_list))
+(* vectors are of size zero at this stage *)
+let typ_vec ty = make (Tvec(ty, Sint 0))
 let vec ty e = make (Tvec(ty, e))
 let vec_opt ty size_opt =
   match size_opt with

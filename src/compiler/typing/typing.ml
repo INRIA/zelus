@@ -910,34 +910,34 @@ and operator expected_k h loc op e_list =
          match op with
          | Earray_list ->
             let ty = new_var () in
-            Tfun(Tconst), List.map (fun _ -> ty) e_list, Initial.typ_array ty
+            Tfun(Tconst), List.map (fun _ -> ty) e_list, Types.typ_vec ty
          | Econcat ->
-            let ty = Initial.typ_array (new_var ()) in
+            let ty = Types.typ_vec (new_var ()) in
             Tfun(Tconst), [ty; ty], ty
          | Eget ->
             let ty = new_var () in
-            Tfun(Tconst), [Initial.typ_array ty; Initial.typ_int], ty
+            Tfun(Tconst), [Types.typ_vec ty; Initial.typ_int], ty
          | Eget_with_default ->
             let ty = new_var () in
-            Tfun(Tconst), [Initial.typ_array ty; Initial.typ_int; ty], ty
+            Tfun(Tconst), [Types.typ_vec ty; Initial.typ_int; ty], ty
          | Eslice ->
-            let ty = Initial.typ_array (new_var ()) in
+            let ty = Types.typ_vec (new_var ()) in
             Tfun(Tconst), [ty; ty], ty
          | Eupdate ->
             let ty = new_var () in
-            Tfun(Tconst), [Initial.typ_array ty; Initial.typ_int; ty],
-            Initial.typ_array ty
+            Tfun(Tconst), [Types.typ_vec ty; Initial.typ_int; ty],
+            Types.typ_vec ty
          | Etranspose ->
             let ty = new_var () in
-            Tfun(Tconst), [Initial.typ_array (Initial.typ_array ty)],
-            Initial.typ_array (Initial.typ_array ty)
+            Tfun(Tconst), [Types.typ_vec (Types.typ_vec ty)],
+            Types.typ_vec (Types.typ_vec ty)
          | Ereverse ->
             let ty = new_var () in
-            Tfun(Tconst), [Initial.typ_array ty], Initial.typ_array ty
+            Tfun(Tconst), [Types.typ_vec ty], Types.typ_vec ty
          | Eflatten ->
             let ty = new_var () in
-            Tfun(Tconst), [Initial.typ_array (Initial.typ_array ty)],
-            Initial.typ_array ty in
+            Tfun(Tconst), [Types.typ_vec (Types.typ_vec ty)],
+            Types.typ_vec ty in
        actual_k, ty_args, ty_res in
   less_than loc actual_k expected_k;
   let actual_k_list =
