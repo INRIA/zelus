@@ -1344,13 +1344,23 @@ and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
   f.for_out_env <- h_out;
+  let d_names =
+    List.fold_left
+      (defnames_for_out d_names) Defnames.empty for_out in
   d_names, Kind.sup actual_k_out actual_k
+
+and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
+  (* verify that [for_name] is defined *)
+  let names = Defnames.names S.empty d_names in
+  (* check that every name in [n_list] has a definition *)
+  if not (S.mem for_name names) then error loc (Eequation_is_missing(for_name));
+  let name = match for_out_name with | None -> for_name | Some(x) -> x in
+  Defnames.union (Defnames.singleton name) acc
 
 and for_out_t expected_k h (acc_h, acc_k)
       { desc = { for_name; for_out_name; for_init; for_default }; loc } =
-  let h_ = Env.to_list h in
   let ty = Types.new_var () in
-  let ty_e = Types.vec ty (Sint 0) in
+  let ty_out = Types.vec ty (Sint 0) in
   let actual_k_default =
     Util.optional_with_default
       (fun e -> expect expected_k h e ty)
@@ -1365,13 +1375,12 @@ and for_out_t expected_k h (acc_h, acc_k)
     let t_sort = intro expected_k for_init for_default in
     let entry =
       Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
-    let acc_h =
-      match for_out_name with
-      | None -> Env.add for_name entry acc_h
-      | Some(x) -> (* xi out x *)
-         (* find the type of [x] in [h] *)
-         let ty_x = Types.instance (typ_of_var loc h x) in
-         unify loc ty_e ty_x; acc_h in
+    let acc_h = Env.add for_name entry acc_h in
+    Util.optional_unit
+      (fun _ x -> (* xi out x *)
+        (* find the type of [x] in [h] *)
+        let ty_x = Types.instance (typ_of_var loc h x) in
+        unify loc ty_out ty_x) () for_out_name;
     let acc_k = Kind.sup acc_k actual_k in
     acc_h, acc_k
 
@@ -1421,8 +1430,9 @@ and forloop_eq expected_k h
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
+  let h = Env.append h_env h in
   let h_out, actual_k_for_body =
-    for_eq_t expected_k_for_body size_opt h_env for_body in
+    for_eq_t expected_k_for_body size_opt h for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
