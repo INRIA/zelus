@@ -82,7 +82,13 @@ let node f6(x, z) returns (y)
 
 let node f7(f)(x) returns (y)
   local m in
-  foreach (xi in x.R) returns (m, yi out y)
+  foreach [i] (xi in x.R) returns (m, yi out y)
     local k in
-    do m = xi and yi = f(xi) and k = 0 done
+    do m = xi and yi = f(xi) + i and k = 0 done
 
+let node f8(x) returns (y)
+  forward [i] (xi in x.T) returns (yi out y)
+    do forward [j] (xij in xi) returns (yij out yi)
+       do yij = xij + 1 + x.(j).(i) done
+    done
+      
