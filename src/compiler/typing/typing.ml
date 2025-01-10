@@ -1348,6 +1348,7 @@ and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
 
 and for_out_t expected_k h (acc_h, acc_k)
       { desc = { for_name; for_out_name; for_init; for_default }; loc } =
+  let h_ = Env.to_list h in
   let ty = Types.new_var () in
   let ty_e = Types.vec ty (Sint 0) in
   let actual_k_default =

@@ -46,6 +46,9 @@ let hybrid gh(z) =
   and present (disc(last x)) -> do () = print_int x done in
   x
 
+let node f0(x) returns (y)
+  y = last y + x
+  
 let node f1(x) returns (y)
   forward (xi in x) returns (yi out y)
     do yi = xi + 1 done
@@ -68,6 +71,12 @@ let node f3(x, z) returns (y)
 let node f3(x, z) returns (y)
   local m in
   forward (xi in x) returns (m, yi out y)
+    local k in
+    do m = 1 and yi = xi + 1 while z = 0 done
+
+let node f4(x, z) returns (y)
+  local m in
+  forward (xi in x.R) returns (m, yi out y)
     local k in
     do m = 1 and yi = xi + 1 while z = 0 done
 
