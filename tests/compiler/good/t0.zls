@@ -89,6 +89,6 @@ let node f7(f)(x) returns (y)
 let node f8(x) returns (y)
   forward [i] (xi in x.T) returns (yi out y)
     do forward [j] (xij in xi) returns (yij out yi)
-       do yij = xij + 1 + x.(j).(i) done
+       do yij = xij + 1 + x.[j].[i] done
     done
       
