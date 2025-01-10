@@ -56,23 +56,23 @@ let node f1(x) returns (y)
 let node f2(x, z) returns (y)
   forward (xi in x) returns (yi out y)
     local k in
-    do yi = xi + 1 until z = 0 done
+    do yi = xi + 1 and k = 42 until z = 0 done
 
 let node f3(x, z) returns (y)
   forward (xi in x) returns (yi out y)
     local k in
-    do yi = xi + 1 unless z = 0 done
+    do yi = xi + 1 and k = last k + 1 unless z = 0 done
 
-let node f3(x, z) returns (y)
+let node f4(x, z) returns (y)
   forward (xi in x) returns (yi out y)
     local k in
-    do yi = xi + 1 while z = 0 done
+    do yi = xi + 1 and k = yi while z = 0 done
 
-let node f3(x, z) returns (y)
+let node f5(x, z) returns (y)
   local m in
   forward (xi in x) returns (m, yi out y)
     local k in
-    do m = 1 and yi = xi + 1 while z = 0 done
+    do m = 1 and yi = xi + 1 and k = yi while z = 0 done
 
 let node f4(x, z) returns (y)
   local m in
