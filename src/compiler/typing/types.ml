@@ -42,14 +42,14 @@ let vec_opt ty size_opt =
   | None -> ty | Some(size) -> vec ty size
 let rec vec_n n ty size_opt =
   if n <= 0 then ty else vec_n (n-1) (vec_opt ty size_opt) size_opt
-let arrowtype ty_kind ty_name_opt ty_arg ty_res =
+let arrow_type ty_kind ty_name_opt ty_arg ty_res =
   make (Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res })
-let rec arrowtype_list k ty_arg_list ty_res =
+let rec arrow_type_list k ty_arg_list ty_res =
   match ty_arg_list with
   | [] -> ty_res
-  | [n_opt, ty] -> arrowtype k n_opt ty ty_res
+  | [n_opt, ty] -> arrow_type k n_opt ty ty_res
   | (n_opt, ty) :: ty_arg_list ->
-     arrowtype (Tfun(Tany)) n_opt ty (arrowtype_list k ty_arg_list ty_res)
+     arrow_type (Tfun(Tany)) n_opt ty (arrow_type_list k ty_arg_list ty_res)
 
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
@@ -106,7 +106,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
        | Some(n) ->
 	  let m = Ident.fresh (Ident.source n) in
 	  Some(m), subst_in_type (Env.add n (Svar m) senv) ty_res in
-     arrowtype ty_kind ty_name_opt ty_arg ty_res
+     arrow_type ty_kind ty_name_opt ty_arg ty_res
 
 and subst_in_size senv si =
   match si with
@@ -144,7 +144,7 @@ let rec remove_dependences ({ t_desc } as ty) =
      let ty_arg = remove_dependences ty_arg in
      let ty_res = remove_dependences ty_res in
      match ty_kind with
-     | Tfun _ -> arrowtype (Tfun(Tany)) None ty_arg ty_res
+     | Tfun _ -> arrow_type (Tfun(Tany)) None ty_arg ty_res
      | Tnode(Tdiscrete) -> typ_node ty_arg ty_res
      | Tnode(Tcont) -> typ_hybrid ty_arg ty_res
 			    
@@ -154,7 +154,7 @@ exception Unify
 let run_type expected_k =
   let ty_arg = new_var () in
   let ty_res = new_var () in
-  arrowtype expected_k None ty_arg ty_res
+  arrow_type expected_k None ty_arg ty_res
 
 (* The type of zero-crossing condition. *)
 (* [zero] when [expected_k = Tnode(Tcont)] *)
@@ -279,7 +279,7 @@ let rec copy ty =
         else ty
     | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
        if level = generic
-       then arrowtype ty_kind ty_name_opt (copy ty_arg) (copy ty_res)
+       then arrow_type ty_kind ty_name_opt (copy ty_arg) (copy ty_res)
        else ty
     | Tvec(ty, si) ->
        if level = generic then vec (copy ty) si
@@ -451,7 +451,7 @@ let filter_arrow expected_k ty =
   | _ ->
      let ty_arg = new_var () in
      let ty_res = new_var () in
-     unify ty (arrowtype expected_k None ty_arg ty_res);
+     unify ty (arrow_type expected_k None ty_arg ty_res);
      expected_k, None, ty_arg, ty_res
 
 let filter_vec ty =

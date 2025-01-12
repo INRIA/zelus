@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -154,7 +154,7 @@ let typ_of_type_expression typ_vars typ =
        let name = constr_name typ.loc s (List.length ty_list) in
        Types.nconstr name (List.map typrec ty_list)
     | Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res } ->
-       Types.arrowtype
+       Types.arrow_type
          (kindtype ty_kind) ty_name_opt (typrec ty_arg) (typrec ty_res)
     | Etypevec(ty, si) ->
        Types.vec (typrec ty) (size si)

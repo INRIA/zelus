@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -49,7 +49,7 @@ let check_type_of_main_node name
         raise Error in
   let expected_k = actual_k in
   let expected_ty =
-    Types.arrowtype expected_k opt_name actual_ty_arg actual_ty_res in
+    Types.arrow_type expected_k opt_name actual_ty_arg actual_ty_res in
   try
     Types.unify expected_ty actual_ty; qualid, expected_k
   with
