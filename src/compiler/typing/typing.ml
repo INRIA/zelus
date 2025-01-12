@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -62,7 +62,7 @@ let find_label loc l =
   with Not_found -> error loc (Eglobal_undefined(Label, l))
 
 
-(** The main unification functions **)
+(* The main unification functions *)
 let unify loc expected_ty actual_ty =
   try
     Types.unify expected_ty actual_ty
@@ -171,7 +171,7 @@ let check_target_state loc expected_reset actual_reset =
        warning loc (Wreset_target_state(actual_reset, expected_reset));
      Some(expected_reset)
 
-(** Typing immediate values *)
+(* Typing immediate values *)
 let immediate = function
   | Ebool _ -> Initial.typ_bool
   | Eint(i) -> Initial.typ_int
@@ -236,7 +236,7 @@ let def loc h n =
   let { t_tys } as entry = var loc h n in
   Types.instance t_tys
 
-(** Types for global identifiers *)
+(* Types for global identifiers *)
 let global loc lname =
   let { qualid; info = { value_typ = tys } } = find_value loc lname in
   qualid, Types.instance tys
@@ -267,7 +267,7 @@ let rec get_all_labels loc ty =
   | Tlink(link) -> get_all_labels loc link
   | _ -> assert false
 
-(** Check that every declared name is associated to a defining equation *)
+(* Check that every declared name is associated to a defining equation *)
 (* Returns a new [defined_names] where names from [n_list] *)
 (* have been removed *)
 let check_definitions_for_every_name defined_names n_list =
@@ -302,7 +302,7 @@ let type_of_vardec_list n_list = type_of_n_list type_of_vardec n_list
 (* make a function type from a function definition. *)
 (* remove useless dependences:
  * - (n:ty_arg) -k-> ty_res => ty_arg -k-> ty_res if n not in fv_size(ty_res) *)
-let arrowtype loc expected_k name_ty_list ty_res =
+let arrow_type loc expected_k name_ty_list ty_res =
   let rec arg name_ty_list fv =
     match name_ty_list with
     | [] -> [], fv
@@ -316,7 +316,7 @@ let arrowtype loc expected_k name_ty_list ty_res =
           let fv = Types.fv fv ty in
           (n_opt, ty) :: p_ty_list, fv in
   let name_ty_list, fv = arg name_ty_list (Types.fv S.empty ty_res) in
-  Types.arrowtype_list expected_k name_ty_list ty_res
+  Types.arrow_type_list expected_k name_ty_list ty_res
 
 let entry k sort = Deftypes.entry k sort (Deftypes.scheme (Types.new_var ()))
  
@@ -369,7 +369,7 @@ let env_of_equation expected_k { eq_write } =
     (fun n acc -> Env.add n (entry expected_k (intro_sort expected_k)) acc)
     n_set Env.empty
 
-(** Typing a pateq **)
+(* Typing a pateq *)
 let pateq h { desc; loc } ty_e =
   let n = List.length desc in
   let ty_e_list =
@@ -426,7 +426,7 @@ let rec size_of_exp { e_desc; e_loc } =
      else error e_loc Enot_a_size_expression
   | _ -> error e_loc Enot_a_size_expression
 
-(** Typing patterns **)
+(* Typing patterns *)
 (* the kind of variables in [p] must be equal to [expected_k] *)
 let rec pattern h ({ pat_desc; pat_loc; pat_info } as pat) ty =
   (* type annotation *)
@@ -492,7 +492,7 @@ let check_total_pattern p =
 
 let check_total_pattern_list p_list = List.iter check_total_pattern p_list
 
-(** Typing a pattern matching. Returns defined names **)
+(* Typing a pattern matching. Returns defined names *)
 let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   let handler ({ m_pat = pat; m_body = b } as mh) =
     let h0 = env_of_pattern expected_k pat in
@@ -518,7 +518,7 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(** Typing a present handler. *)
+(* Typing a present handler. *)
 (*- Returns defined names and the kind is the supremum *)
 let present_handlers scondpat body loc expected_k h h_list opt ty_res =
   let handler ({ p_cond; p_body } as ph) =
@@ -568,7 +568,7 @@ let vars_with_last h { dv = dv } =
   let first_h = S.fold add dv Env.empty in
   first_h, Env.append first_h h
 
-(** Typing an automaton. Returns defined names **)
+(* Typing an automaton. Returns defined names *)
 let rec automaton_handlers
           scondpat leqs body body_escape state_expression
           is_weak loc (expected_k: Deftypes.kind) h handlers se_opt =
@@ -871,7 +871,7 @@ and size_apply loc expected_k h f si_list =
          with Unify -> error loc (Eapplication_of_non_function) in
        (* [ty_arg] must be an integer *)
        unify loc 
-         (Types.arrowtype arg_k n_opt Initial.typ_int ty_res) ty_fct;
+         (Types.arrow_type arg_k n_opt Initial.typ_int ty_res) ty_fct;
        let si = size arg_k h si in
        let ty_res =
          match n_opt with
@@ -888,7 +888,7 @@ and type_label_arg expected_k expected_ty h loc ({ label; arg } as r) =
   r.label <- Lident.Modname(qualid);
   actual_k
 
-(** The type of primitives and imported functions **)
+(* The type of primitives and imported functions *)
 and operator expected_k h loc op e_list =
   let actual_k, ty_args, ty_res =
     match op with
@@ -904,7 +904,7 @@ and operator expected_k h loc op e_list =
     | Erun _ ->
        let ty_arg = new_var () in
        let ty_res = new_var () in
-       let ty_f = Types.arrowtype expected_k None ty_arg ty_res in
+       let ty_f = Types.arrow_type expected_k None ty_arg ty_res in
        expected_k, [ty_f; ty_arg], ty_res
     | Eseq ->
        let ty_1 = new_var () in
@@ -988,7 +988,7 @@ and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc } as body) =
   (* type the body *)
   let ty_res, _ = result expected_body_k h f_body in
   (* returns a type *)
-  arrowtype f_loc expected_body_k name_ty_arg_list ty_res,
+  arrow_type f_loc expected_body_k name_ty_arg_list ty_res,
   actual_k
 
 (* typing the result of a function *)
@@ -1012,7 +1012,7 @@ and expect expected_k h e expected_ty =
   actual_k
 
 
-(** Typing an application **)
+(* Typing an application *)
 and apply loc expected_k h f arg_list =
   (* first type the function body *)
   let ty_fct, actual_k_fct = expression expected_k h f in
@@ -1044,7 +1044,7 @@ and apply loc expected_k h f arg_list =
        args actual_k_fct ty2 arg_list in
   args actual_k_fct ty_fct arg_list
 
-(** Typing an equation. Returns the set of defined names **)
+(* Typing an equation. Returns the set of defined names *)
 and equation expected_k h { eq_desc; eq_loc } =
   match eq_desc with
   | EQeq(p, e) ->
@@ -1137,7 +1137,7 @@ and equation_list expected_k h eq_list =
     Kind.sup actual_k_eq actual_k)
     (Defnames.empty, Tfun(Tconst)) eq_list
 
-(** Type a present handler when the body is an expression or equation **)
+(* Type a present handler when the body is an expression or equation *)
 and present_handler_exp_list loc expected_k h p_h_list default_opt expected_ty =
   let _, actual_k =
     present_handlers scondpat
@@ -1152,7 +1152,7 @@ and present_handler_eq_list loc expected_k h eq_h_list eq_opt =
     (fun expected_k h eq _ -> equation expected_k h eq)
     loc expected_k h eq_h_list eq_opt Initial.typ_unit
 
-(** Type a match handler when the body is an expression or equation **)
+(* Type a match handler when the body is an expression or equation *)
 and match_handler_eq_list loc expected_k h is_total eq_h_list pat_ty =
   match_handlers
     (fun expected_k h eq _ -> equation expected_k h eq)
@@ -1167,7 +1167,7 @@ and match_handler_exp_list loc expected_k h total m_h_list pat_ty ty =
       loc expected_k h total m_h_list pat_ty ty in
   is_total, actual_k
 
-(** Type an automaton handler when the body is an equation **)
+(* Type an automaton handler when the body is an equation *)
 and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
   let block_eq expected_k h ({ b_vars; b_body } as b) =
     let _, h, defined_names, actual_k = block_eq expected_k h b in
@@ -1212,7 +1212,7 @@ and leqs expected_k h l =
       let h, actual_k = leq expected_k h l_eq in
       h, Kind.sup acc_k actual_k) (h, Tfun(Tconst)) l
   
-(** Typing a signal condition **)
+(* Typing a signal condition *)
 and scondpat expected_k type_of_condition h scpat =
   let rec typrec expected_k scpat =
     match scpat.desc with
@@ -1465,10 +1465,14 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
     Env.add id (Deftypes.entry (Tfun(Tany)) Sort_val 
                   (Deftypes.scheme Initial.typ_int)) acc in
   let h_env = List.fold_left entry Env.empty sf_id_list in
-  let expected_ty = def sf_loc h sf_id in
   let h = Env.append h_env h in
-  let actual_ty, actual_k = expression (Tfun(Tany)) h sf_e in
+  let ty_res, actual_k = expression (Tfun(Tany)) h sf_e in
   f.sf_env <- h_env;
+  let actual_ty = 
+    arrow_type sf_loc expected_k 
+      (List.map (fun n -> (Some(n), Initial.typ_int)) sf_id_list) ty_res in
+  let expected_ty = def sf_loc h sf_id in
+  (* warning: this part should be without using [unify] *)
   unify_expr sf_e expected_ty actual_ty;
   Defnames.singleton sf_id, actual_k
 
