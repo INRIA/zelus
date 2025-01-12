@@ -175,5 +175,5 @@ let internal_error message printer input =
 
 (* Not yet implemented *)
 let not_yet_implemented message =
-  Format.eprintf "@[Not yet implemented (%s)@.@]" message;
+  Format.eprintf "@[Error: not yet implemented (%s)@.@]" message;
   raise Error
