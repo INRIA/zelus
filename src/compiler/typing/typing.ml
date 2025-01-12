@@ -384,7 +384,7 @@ let pateq h { desc; loc } ty_e =
   | _ -> error loc (Earity_clash(n, List.length ty_e_list))
        
 (* Typing a size expression *)
-let rec size h expected_k { desc; loc } =
+let rec size expected_k h { desc; loc } =
   match desc with
   | Size_int(i) -> Types.size_int i
   | Size_var(x) ->
@@ -397,11 +397,11 @@ let rec size h expected_k { desc; loc } =
   | Size_op(op, s1, s2) ->
      let op = match op with
        | Size_plus -> Splus | Size_minus -> Sminus | Size_mult -> Smult in
-     let s1 = size h expected_k s1 in
-     let s2 = size h expected_k s2 in
+     let s1 = size expected_k h s1 in
+     let s2 = size expected_k h s2 in
      Types.size_op op s1 s2
   | Size_frac { num; denom } ->
-      let num = size h expected_k num in
+      let num = size expected_k h num in
       Types.size_frac num denom
 
 (* Convert an expression into a size expression *)
@@ -852,12 +852,33 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        let _, new_h, _, actual_k = block_eq expected_k h b in
        let ty, actual_k_e = expression expected_k new_h e_body in
        ty, Kind.sup actual_k actual_k_e
-    | Esizeapp _ ->
-       Misc.not_yet_implemented "typing for size functions"
+    | Esizeapp { f; size_list } ->
+       size_apply e_loc expected_k h f size_list
     | Eforloop(fe) -> 
        forloop_exp expected_k h fe in
   e.e_info <- Typinfo.set_type e.e_info ty;
   ty, actual_k
+
+and size_apply loc expected_k h f si_list =
+  (* first type the function body *)
+  let ty_fct, actual_k_fct = expression expected_k h f in
+  (* typing the sequence of arguments *)
+  let rec args actual_k_fct ty_fct si_list = match si_list with
+    | [] -> ty_fct, actual_k_fct
+    | si :: si_list ->
+       let arg_k, n_opt, ty_arg, ty_res =
+         try Types.filter_arrow (Tfun(Tstatic)) ty_fct
+         with Unify -> error loc (Eapplication_of_non_function) in
+       (* [ty_arg] must be an integer *)
+       unify loc 
+         (Types.arrowtype arg_k n_opt Initial.typ_int ty_res) ty_fct;
+       let si = size arg_k h si in
+       let ty_res =
+         match n_opt with
+         | None -> ty_res
+         | Some(n) -> Types.subst_in_type (Env.singleton n si) ty_res in
+       args arg_k ty_res si_list in
+  args actual_k_fct ty_fct si_list
 
 and type_label_arg expected_k expected_ty h loc ({ label; arg } as r) =
   let qualid, { label_arg = ty_arg; label_res = ty_res } =
@@ -1105,8 +1126,8 @@ and equation expected_k h { eq_desc; eq_loc } =
      Defnames.empty, actual_k
   | EQforloop(f_eq) -> 
      forloop_eq expected_k h f_eq
-  | EQsizefun _ ->
-     Misc.not_yet_implemented "typing for size functions"
+  | EQsizefun(f_size) ->
+     sizefun_t expected_k h f_size
 
 and equation_list expected_k h eq_list =
   List.fold_left
@@ -1438,6 +1459,18 @@ and forloop_eq expected_k h
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   h_out, actual_k
+
+and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
+  let entry acc id = 
+    Env.add id (Deftypes.entry (Tfun(Tany)) Sort_val 
+                  (Deftypes.scheme Initial.typ_int)) acc in
+  let h_env = List.fold_left entry Env.empty sf_id_list in
+  let expected_ty = def sf_loc h sf_id in
+  let h = Env.append h_env h in
+  let actual_ty, actual_k = expression (Tfun(Tany)) h sf_e in
+  f.sf_env <- h_env;
+  unify_expr sf_e expected_ty actual_ty;
+  Defnames.singleton sf_id, actual_k
 
 let implementation ff is_first impl =
   (* first set the read/write information. The write information is *)
