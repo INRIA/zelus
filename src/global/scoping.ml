@@ -415,7 +415,9 @@ module Make (Info: INFO) =
            let x_list, env = 
              Util.mapfold 
                (fun acc n ->
-                 let m = fresh n in m, Env.add n m acc) env x_list in
+                 if Env.mem n acc 
+                 then Error.error loc (Error.Enon_linear_pat(n))
+                 else let m = fresh n in m, Env.add n m acc) env x_list in
            Zelus.EQsizefun
              { sf_id = x; sf_id_list = x_list; sf_e = expression env e;
                sf_loc = loc; sf_env = Ident.Env.empty }
