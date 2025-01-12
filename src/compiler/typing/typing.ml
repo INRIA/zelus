@@ -1461,20 +1461,21 @@ and forloop_eq expected_k h
   h_out, actual_k
 
 and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
+  (* a size function must be known a compile time *)
   let entry acc id = 
-    Env.add id (Deftypes.entry (Tfun(Tany)) Sort_val 
+    Env.add id (Deftypes.entry (Tfun(Tconst)) Sort_val 
                   (Deftypes.scheme Initial.typ_int)) acc in
   let h_env = List.fold_left entry Env.empty sf_id_list in
   let h = Env.append h_env h in
-  let ty_res, actual_k = expression (Tfun(Tany)) h sf_e in
+  let ty_res, _ = expression (Tfun(Tconst)) h sf_e in
   f.sf_env <- h_env;
   let actual_ty = 
-    arrow_type sf_loc expected_k 
+    arrow_type sf_loc (Tfun(Tconst)) 
       (List.map (fun n -> (Some(n), Initial.typ_int)) sf_id_list) ty_res in
   let expected_ty = def sf_loc h sf_id in
   (* warning: this part should be without using [unify] *)
   unify_expr sf_e expected_ty actual_ty;
-  Defnames.singleton sf_id, actual_k
+  Defnames.singleton sf_id, Tfun(Tconst)
 
 let implementation ff is_first impl =
   (* first set the read/write information. The write information is *)
