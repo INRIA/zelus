@@ -53,6 +53,10 @@ let node f1(x) returns (y)
   forward (xi in x) returns (yi out y)
     do yi = xi + 1 done
 
+let node f11(x) returns (y)
+  y = forward (xi in x) returns ([|yi|])
+        do yi = xi + 1 done
+
 let node f2(x, z) returns (y)
   forward (xi in x) returns (yi out y)
     local k in
@@ -86,9 +90,11 @@ let node f7(f)(x) returns (y)
     local k in
     do m = xi and yi = f(xi) + i and k = 0 done
 
-let node f8(x) returns (y)
-  forward [i] (xi in x.T) returns (yi out y)
-    do forward [j] (xij in xi) returns (yij out yi)
-       do yij = xij + 1 + x.[j].[i] done
+let node f8<<a,b,c>>(x, y) returns (z)
+  forward [i] (xi in x.T, yi in y) returns (zi out z)
+    do forward [j] (xij in xi, yij in yi) returns (zij out zi)
+       do zij = xij + yij + x.(i).(j) done
     done
       
+let node f9<<a>>(x, y) returns (z)
+  z = f8<<a+1,a, a>>(x, y)
