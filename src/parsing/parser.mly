@@ -262,6 +262,7 @@ let foreach_loop resume (size_opt, index_opt, input_list, body) =
 %right SEMI
 %nonassoc prec_der_with_reset
 %nonassoc prec_present
+%left prec_automaton
 %nonassoc prec_ident
 %right prec_list
 %left EVERY
@@ -571,6 +572,7 @@ equation_desc:
     { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq}
 	    $startpos $endpos(let_eq), eq) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
+    %prec prec_automaton
     { EQautomaton(List.rev a, None) } 
   | AUTOMATON opt_bar
       a = automaton_handlers(equation_empty_and_list)
@@ -585,10 +587,10 @@ equation_desc:
       { EQif(e, eq1, no_eq $startpos $endpos) }
   | IF e = seq_expression ELSE eq2 = equation opt_end
       { EQif(e, no_eq $startpos $endpos, eq2) }
-  | PRESENT opt_bar p = present_handlers(equation) opt_end
+  | PRESENT opt_bar p = present_handlers(equation) opt_end %prec prec_present
     { EQpresent(List.rev p, NoDefault) }
-  | PRESENT opt_bar p = present_handlers(equation)
-    ELSE eq = equation opt_end
+  | PRESENT opt_bar p = present_handlers(equation) 
+    ELSE eq = equation opt_end %prec prec_present
     { EQpresent(List.rev p, Else(eq)) }
   | ASSERT e = expression
     { EQassert(e) }
