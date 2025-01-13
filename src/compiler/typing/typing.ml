@@ -69,6 +69,12 @@ let unify loc expected_ty actual_ty =
   with
     | Types.Unify -> error loc (Etype_clash(actual_ty, expected_ty))
 
+let equal_sizes loc expected_size actual_size =
+  try
+    Types.equal_sizes expected_size actual_size
+  with
+    | Types.Unify -> error loc (Esize_clash(actual_size, expected_size))
+
 let unify_expr expr expected_ty actual_ty =
   try
     Types.unify expected_ty actual_ty
@@ -973,7 +979,8 @@ and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc } as body) =
       let h_arg, actual_k = vardec_list expected_k h v_list in
       let ty = type_of_vardec_list v_list in
       let n_opt =
-        (* a dependence is allowed only when the input is a name *)
+        (* a dependence is allowed only when the input is a list made *)
+        (* of a single argument. This may change in the future *)
         match v_list with | [ { var_name } ] -> Some(var_name) | _ -> None in
       (n_opt, ty), (Env.append h_arg h, Env.append h_arg acc_h) in
     Util.mapfold arg (h, Env.empty) f_args in
@@ -1406,15 +1413,17 @@ and for_out_t expected_k h (acc_h, acc_k)
     acc_h, acc_k
 
 and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
+  let size_of loc size_opt =
+    match size_opt with
+    | None -> error loc Esize_of_vec_is_undetermined
+    | Some(actual_size) -> actual_size in
   match desc with
   | Einput { id; e; by } ->
      (* check that [id] is not already in [h_inputs] *)
      if Env.mem id acc_h then error loc (Ealready(Current, id));
-     (* [e] must be an array of type [...]t *)
+     let si = size_of loc size_opt in
      let ty = Types.new_var () in
-     (* sizes are not taken into account; TODO *)
-     let ty_e = Types.vec ty (Sint 0) in
-     let actual_k = expect expected_k h e ty_e in
+     let actual_k = expect expected_k h e (Types.vec ty si) in
      let actual_k =
        match by with 
        | None -> actual_k 
@@ -1425,16 +1434,24 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
        Env.add id 
          (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty)) 
          acc_h in
-     acc_h, Kind.sup acc_k actual_k, size_opt
+     acc_h, Kind.sup acc_k actual_k, Some(si)
   | Eindex { id; e_left; e_right; dir } ->
      (* [i in e0 to e1] or [i in e1 downto e0] *)
      let actual_k_left = expect expected_k h e_left Initial.typ_int in
      let actual_k_right = expect expected_k h e_right Initial.typ_int in
-     let acc_h =
-       Env.add id
-         (Deftypes.entry expected_k Deftypes.Sort_val 
-            (Deftypes.scheme Initial.typ_int))
-         acc_h in
+     let si_left = size_of_exp e_left in
+     let si_right = size_of_exp e_right in
+     let actual_size =
+       Types.size_op Splus si_right
+         (Types.size_op Splus (Types.size_frac si_left (-1)) (Types.size_int 1)) in
+     let size_opt =
+       match size_opt with
+       | None -> Some(actual_size)
+       | Some(expected_size) ->
+          equal_sizes loc expected_size actual_size; size_opt in
+     let acc_h = Env.add id
+                   (Deftypes.entry expected_k Deftypes.Sort_val 
+                      (Deftypes.scheme Initial.typ_int)) acc_h in
      acc_h, Kind.sup acc_k (Kind.sup actual_k_left actual_k_right), size_opt
 
 (* Typing of a for loop *)

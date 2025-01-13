@@ -49,32 +49,32 @@ let hybrid gh(z) =
 let node f0(x) returns (y)
   y = last y + x
   
-let node f1(x) returns (y)
-  forward (xi in x) returns (yi out y)
+let const node f1<<n>>(x) returns (y)
+  forward(n) (xi in x) returns (yi out y)
     do yi = xi + 1 done
 
 let node f1'(x) returns (y)
-  y = forward (xi in x) returns ([|yi|])
+  y = forward (42) (xi in x) returns ([|yi|])
         do yi = xi + 1 done
 
-let node f2(x, z) returns (y)
-  forward (xi in x) returns (yi out y)
+let const node f2<<n>>(x, z) returns (y)
+  forward(n) (xi in x) returns (yi out y)
     local k in
     do yi = xi + 1 and k = 42 until z = 0 done
 
 let node f3(x, z) returns (y)
-  forward (xi in x) returns (yi out y)
+  forward(43) (xi in x) returns (yi out y)
     local k in
     do yi = xi + 1 and k = last k + 1 unless z = 0 done
 
 let node f4(x, z) returns (y)
-  forward (xi in x) returns (yi out y)
+  forward(42) (xi in x) returns (yi out y)
     local k in
     do yi = xi + 1 and k = yi while z = 0 done
 
 let node f5 y (x, z) returns (y)
   local m in
-  forward (xi in x) returns (m, yi out y)
+  forward(42) (xi in x) returns (m, yi out y)
     local k in
     do m = 1 and yi = xi + 1 and k = yi while z = 0 done
 
@@ -82,13 +82,13 @@ let const node f5' (const y) (const m) (x, z) = y + x + z
 
 let node f6(x, z) returns (y)
   local m in
-  forward (xi in x.R) returns (m, yi out y)
+  forward(42) (xi in x.R) returns (m, yi out y)
     local k in
     do m = 1 and yi = xi + 1 and k = 0 while z = 0 done
 
 let node f7(f)(x) returns (y)
   local m in
-  foreach [i] (xi in x.R) returns (m, yi out y)
+  foreach(42) [i] (xi in x.R) returns (m, yi out y)
     local k in
     do m = xi and yi = f(xi) + i and k = 0 done
 
