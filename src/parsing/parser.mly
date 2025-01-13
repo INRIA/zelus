@@ -94,7 +94,10 @@ let scond_true start_pos end_pos =
 (* building a function *)
 (* [let node (const x1 ... xn) (static y1 ... ym) m1 mk = e in ... ] *)
 (* is represented as *)
-(* [let f = fun (const x1...xn) -> fun (static y1...ym) -> fun m1...mk -> e in ...]*)
+(* [let f = fun (const x1...xn) -> fun (static y1...ym) ->
+                   node m1... mk -> e ...] *)
+(* [fun (const x_...) (static y_...) a1 ... am -> e] is represented *)
+(* [fun (const x_...) -> fun (static y_...) -> node a1 ... am -> e] *)
 let fun_one_desc is_atomic kind vkind p_list result startpos endpos =
   Efun(make { f_atomic = is_atomic; f_vkind = vkind;
               f_kind = kind; f_args = p_list;

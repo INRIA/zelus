@@ -49,7 +49,8 @@ let rec arrow_type_list k ty_arg_list ty_res =
   | [] -> ty_res
   | [n_opt, ty] -> arrow_type k n_opt ty ty_res
   | (n_opt, ty) :: ty_arg_list ->
-     arrow_type (Tfun(Tany)) n_opt ty (arrow_type_list k ty_arg_list ty_res)
+     let k_left = match k with | Tnode _ -> Tfun(Tany) | _ -> k in
+     arrow_type k_left n_opt ty (arrow_type_list k ty_arg_list ty_res)
 
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
