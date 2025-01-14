@@ -414,21 +414,8 @@ let rec unify expected_ty actual_ty =
 		unify ty_res1 ty_res2
 	    else raise Unify
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
-	   unify ty1 ty2; equal_sizes si1 si2
+	   unify ty1 ty2; Sizes.equal_sizes si1 si2
 	| _ -> raise Unify
-
-(* this part is very limited and fragile. add standard equality on *)
-(* multi-variable polynomials *)
-and equal_sizes si1 si2 =
-  match si1, si2 with
-  | Sint i1, Sint i2 when i1 = i2 -> ()
-  | Svar(n1), Svar(n2) when Ident.compare n1 n2 = 0 -> ()
-  | Sop(op1, si11, si12), Sop(op2, si21, si22) when op1 = op2 ->
-     equal_sizes si11 si21; equal_sizes si12 si22
-  | Sfrac { num = s1; denom = d1 },
-    Sfrac { num = s2; denom = d2 } when d1 = d2 ->
-     equal_sizes s1 s2
-  | _ -> raise Unify
 
 let filter_product arity ty =
   let ty = typ_repr ty in

@@ -63,7 +63,7 @@ let const node f2<<n>>(x, z) returns (y)
     do yi = xi + 1 and k = 42 until z = 0 done
 
 let node f3(x, z) returns (y)
-  forward(43) (xi in x) returns (yi out y)
+  forward(43) (i in 0 to 42, xi in x) returns (yi out y)
     local k in
     do yi = xi + 1 and k = last k + 1 unless z = 0 done
 
@@ -72,13 +72,15 @@ let node f4(x, z) returns (y)
     local k in
     do yi = xi + 1 and k = yi while z = 0 done
 
-let node f5 y (x, z) returns (y)
+let node f5 y (x, z) returns (t)
   local m in
-  forward(42) (xi in x) returns (m, yi out y)
+  forward(42) (xi in x) returns (m, ti out t)
     local k in
-    do m = 1 and yi = xi + 1 and k = yi while z = 0 done
+    do m = 1 and ti = xi + 1 and k = ti while z = 0 done
 
-let const node f5' (const y) (const m) (x, z) = y + x + z
+let node f5' (x, y) = f5 42 (x, y)
+
+let const node f5'' (const y) (const m) (x, z) = y + x + z
 
 let node f6(x, z) returns (y)
   local m in

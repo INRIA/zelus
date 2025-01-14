@@ -109,6 +109,7 @@
   (public_name zelus.typing_lib)
   (wrapped false)
   (modules
+    sizes ; decision algorithm for equality between sizes
     types ; type manipulation and unification between types
     interface ; interface
     kind ; kinds
