@@ -57,6 +57,23 @@ let node f1'(x) returns (y)
   y = forward (42) (xi in x) returns ([|yi|])
         do yi = xi + 1 done
 
+(* let rec node buffer : <'n> -> 'a => 'a =
+  fun n x ->
+    match n with
+    | 0 -> x | _ -> x fby (run (buffer<n>)(x))
+
+let rec xor_ : <n> -> [n]bool -> bool =
+  fun n x ->
+    match n with
+    | 0 -> true
+    | _ -> let x1++x2 = x in (xor_ <n/2> (x1)) xor (xor_ <n/2> (x2))
+
+           (xor_ <n/2> x.[0..n/2-1])) xor (xor_ <n/2> (x.(n/2..n-1))) *)
+
+(* let map f : (_ -> _) -> ([_]_ -> [_]_) =
+  node f x -> forward (xi in x) returns (yi out y)
+               do yi = run f xi done *)
+	       
 let const node f2<<n>>(x, z) returns (y)
   forward(n) (xi in x) returns (yi out y)
     local k in
