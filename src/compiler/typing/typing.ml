@@ -70,10 +70,8 @@ let unify loc expected_ty actual_ty =
     | Types.Unify -> error loc (Etype_clash(actual_ty, expected_ty))
 
 let equal_sizes loc expected_size actual_size =
-  try
-    Types.equal_sizes expected_size actual_size
-  with
-    | Types.Unify -> error loc (Esize_clash(actual_size, expected_size))
+  if not (Sizes.syntactic_equality expected_size actual_size)
+  then error loc (Esize_clash(actual_size, expected_size))
 
 let unify_expr expr expected_ty actual_ty =
   try

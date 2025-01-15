@@ -414,7 +414,8 @@ let rec unify expected_ty actual_ty =
 		unify ty_res1 ty_res2
 	    else raise Unify
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
-	   unify ty1 ty2; Sizes.equal_sizes si1 si2
+	   unify ty1 ty2;
+           if not (Sizes.syntactic_equality si1 si2) then raise Unify
 	| _ -> raise Unify
 
 let filter_product arity ty =
