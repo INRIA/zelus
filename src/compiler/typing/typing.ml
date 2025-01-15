@@ -70,7 +70,7 @@ let unify loc expected_ty actual_ty =
     | Types.Unify -> error loc (Etype_clash(actual_ty, expected_ty))
 
 let equal_sizes loc expected_size actual_size =
-  if not (Sizes.syntactic_equality expected_size actual_size)
+  if not (Sizes.equal expected_size actual_size)
   then error loc (Esize_clash(actual_size, expected_size))
 
 let unify_expr expr expected_ty actual_ty =
@@ -1440,8 +1440,11 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
      let si_left = size_of_exp e_left in
      let si_right = size_of_exp e_right in
      let actual_size =
+       (* [e1 + (-1 * e0) + 1] *)
        Types.size_op Splus si_right
-         (Types.size_op Splus (Types.size_frac si_left (-1)) (Types.size_int 1)) in
+         (Types.size_op Splus
+            (Types.size_op Smult (Types.size_int (-1)) si_left)
+            (Types.size_int 1)) in
      let size_opt =
        match size_opt with
        | None -> Some(actual_size)
