@@ -70,6 +70,7 @@ let rec xor_ : <n> -> [n]bool -> bool =
 
            (xor_ <n/2> x.[0..n/2-1])) xor (xor_ <n/2> (x.(n/2..n-1))) *)
 
+(* map : (a1 -> a2) -> [n1]a1 -> [n2]a2 *)
 (* let map f : (_ -> _) -> ([_]_ -> [_]_) =
   node f x -> forward (xi in x) returns (yi out y)
                do yi = run f xi done *)
