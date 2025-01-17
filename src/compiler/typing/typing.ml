@@ -898,80 +898,51 @@ and type_label_arg expected_k expected_ty h loc ({ label; arg } as r) =
 
 (* The type of primitives and imported functions *)
 and operator expected_k h loc op e_list =
-  let actual_k, ty_args, ty_res =
-    match op with
-    | Eifthenelse ->
-        let ty = new_var () in
-        Tfun(Tconst), [Initial.typ_bool; ty; ty], ty
-    | Eunarypre ->
-        let ty = new_var () in
-        Tnode(Tdiscrete), [ty], ty
-    | (Eminusgreater | Efby) ->
-        let ty = new_var () in
-        Tnode(Tdiscrete), [ty; ty], ty
-    | Erun _ ->
-       let ty_arg = new_var () in
-       let ty_res = new_var () in
-       let ty_f = Types.arrow_type expected_k None ty_arg ty_res in
-       expected_k, [ty_f; ty_arg], ty_res
-    | Eseq ->
-       let ty_1 = new_var () in
-       let ty_2 = new_var () in
-       Tfun(Tconst), [ty_1; ty_2], ty_2
-    | Eatomic ->
-       let ty = new_var () in
-       Tfun(Tconst), [ty], ty
-    | Etest ->
-       let ty = new_var () in
-       Tfun(Tconst), [Initial.typ_signal ty], Initial.typ_bool
-    | Edisc ->
-       let ty = new_var () in
-       Tnode(Tcont), [ty], Initial.typ_zero
-    | Eup ->
-       Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
-    | Eperiod ->
-       Tfun(Tconst), [Initial.typ_float; Initial.typ_float],
-       Types.zero_type expected_k
-    | Ehorizon ->
-       Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
-    | Earray(op) ->
-       let actual_k, ty_args, ty_res =
-         match op with
-         | Earray_list ->
-            let ty = new_var () in
-            Tfun(Tconst), List.map (fun _ -> ty) e_list, Types.typ_vec ty
-         | Econcat ->
-            let ty = Types.typ_vec (new_var ()) in
-            Tfun(Tconst), [ty; ty], ty
-         | Eget ->
-            let ty = new_var () in
-            Tfun(Tconst), [Types.typ_vec ty; Initial.typ_int], ty
-         | Eget_with_default ->
-            let ty = new_var () in
-            Tfun(Tconst), [Types.typ_vec ty; Initial.typ_int; ty], ty
-         | Eslice ->
-            let ty = Types.typ_vec (new_var ()) in
-            Tfun(Tconst), [ty; ty], ty
-         | Eupdate ->
-            let ty = new_var () in
-            Tfun(Tconst), [Types.typ_vec ty; Initial.typ_int; ty],
-            Types.typ_vec ty
-         | Etranspose ->
-            let ty = new_var () in
-            Tfun(Tconst), [Types.typ_vec (Types.typ_vec ty)],
-            Types.typ_vec (Types.typ_vec ty)
-         | Ereverse ->
-            let ty = new_var () in
-            Tfun(Tconst), [Types.typ_vec ty], Types.typ_vec ty
-         | Eflatten ->
-            let ty = new_var () in
-            Tfun(Tconst), [Types.typ_vec (Types.typ_vec ty)],
-            Types.typ_vec ty in
-       actual_k, ty_args, ty_res in
-  less_than loc actual_k expected_k;
-  let actual_k_list =
-    List.map2 (expect expected_k h) e_list ty_args in
-  ty_res, Kind.sup actual_k (Kind.sup_list actual_k_list)
+  match op with
+  | Earray(op) ->
+     array_operator expected_k h loc op e_list 
+  | _ ->
+     let actual_k, ty_args, ty_res =
+       match op with
+       | Eifthenelse ->
+          let ty = new_var () in
+          Tfun(Tconst), [Initial.typ_bool; ty; ty], ty
+       | Eunarypre ->
+          let ty = new_var () in
+          Tnode(Tdiscrete), [ty], ty
+       | (Eminusgreater | Efby) ->
+          let ty = new_var () in
+          Tnode(Tdiscrete), [ty; ty], ty
+       | Erun _ ->
+          let ty_arg = new_var () in
+          let ty_res = new_var () in
+          let ty_f = Types.arrow_type expected_k None ty_arg ty_res in
+          expected_k, [ty_f; ty_arg], ty_res
+       | Eseq ->
+          let ty_1 = new_var () in
+          let ty_2 = new_var () in
+          Tfun(Tconst), [ty_1; ty_2], ty_2
+       | Eatomic ->
+          let ty = new_var () in
+          Tfun(Tconst), [ty], ty
+       | Etest ->
+          let ty = new_var () in
+          Tfun(Tconst), [Initial.typ_signal ty], Initial.typ_bool
+       | Edisc ->
+          let ty = new_var () in
+          Tnode(Tcont), [ty], Initial.typ_zero
+       | Eup ->
+          Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
+       | Eperiod ->
+          Tfun(Tconst), [Initial.typ_float; Initial.typ_float],
+          Types.zero_type expected_k
+       | Ehorizon ->
+          Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
+       | Earray _ -> assert false in
+     less_than loc actual_k expected_k;
+     let actual_k_list =
+       List.map2 (expect expected_k h) e_list ty_args in
+     ty_res, Kind.sup actual_k (Kind.sup_list actual_k_list)
 
 and expect_list expected_k h e_list ty =
   List.fold_left
