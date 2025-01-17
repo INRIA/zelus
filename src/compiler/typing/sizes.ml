@@ -93,6 +93,9 @@ module SumOfMonomials =
         let compare sp1 sp2 = M.compare Stdlib.compare sp1 sp2
 
         let equal sp1 sp2 = compare sp1 sp2 = 0
+
+        (* positive - not complete *)
+        let positive : _ -> bool = fun sp -> M.for_all (fun _ p -> p >= 0) sp
         
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
         let explicit m =
@@ -116,12 +119,22 @@ module SumOfMonomials =
       end
   end
 
-let equal si1 si2 =
-  let open SumOfMonomials.SumProduct in
-  equal (make si1) (make si2)
+(* main entries *)
+open SumOfMonomials.SumProduct
+
+let one = Sint 1
+let plus si1 si2 = Sop(Splus, si1, si2)
+let minus si1 si2 = Sop(Splus, si1, Sop(Smult, Sint(-1), si2))
+let mult si1 si2 = Sop(Smult, si1, si2)
+
+(* decisions *)
+let equal si1 si2 = equal (make si1) (make si2)
+(* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
+let less si1 si2 = positive (make (minus si2 (plus si1 one)))
+let less_eq si1 si2 = positive (make (minus si2 si1))
 
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)
 (* represent the polynomial as a value of the inductive type *)
-(* pi = xi.Pk + pj where j => k /\ i > k, with Pk a polynomial. It is the *)
+(* pi = xi.pk + pj where j => k /\ i > k, with Pk a polynomial. It is the *)
 (* result of the Euclidian division of pi by variable xi. *)

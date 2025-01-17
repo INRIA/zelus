@@ -73,6 +73,10 @@ let equal_sizes loc expected_size actual_size =
   if not (Sizes.equal expected_size actual_size)
   then error loc (Esize_clash(actual_size, expected_size))
 
+let less_sizes loc left_size right_size =
+  if not (Sizes.less left_size right_size)
+  then error loc (Esize_clash(left_size, right_size))
+
 let unify_expr expr expected_ty actual_ty =
   try
     Types.unify expected_ty actual_ty
@@ -968,6 +972,76 @@ and operator expected_k h loc op e_list =
   let actual_k_list =
     List.map2 (expect expected_k h) e_list ty_args in
   ty_res, Kind.sup actual_k (Kind.sup_list actual_k_list)
+
+and expect_list expected_k h e_list ty =
+  List.fold_left
+    (fun acc e -> let actual_k = expect expected_k h e ty in
+                  Kind.sup acc actual_k)
+    (Tfun(Tconst)) e_list
+     
+and array_operator expected_k h loc op e_list =
+  let filter_vec loc actual_ty =
+    try Types.filter_vec actual_ty
+    with
+    | Unify ->
+       error loc (Etype_clash(Types.typ_vec (Types.new_var ()), actual_ty)) in
+  match op, e_list with
+  | Earray_list, _ ->
+     let ty = Types.new_var () in
+     let actual_k = expect_list expected_k h e_list ty in
+      let l = List.length e_list in
+      Types.vec ty (Sint(l)), actual_k
+  | Econcat, [a1; a2] ->
+     let ty1, actual_k1 = expression expected_k h a1 in
+     let ty2, actual_k2 = expression expected_k h a2 in
+     let ty1, si1 = filter_vec a1.e_loc ty1 in
+     let ty2, si2 = filter_vec a2.e_loc ty2 in
+     unify loc ty1 ty2;
+     Types.vec ty1 (Sizes.plus si1 si2), Kind.sup actual_k1 actual_k2
+  | Eget, [a; i] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let ty, si = filter_vec a.e_loc ty_a in
+     let actual_ki = expect expected_k h i Initial.typ_int in
+     let si_i = size_of_exp i in
+     less_sizes i.e_loc si_i si;
+     ty, Kind.sup actual_k actual_ki
+  | Eget_with_default, [a; i; default] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let ty, si = filter_vec a.e_loc ty_a in
+     let actual_ki = expect expected_k h i Initial.typ_int in
+     let actual_kd = expect expected_k h default ty in
+     ty, Kind.sup actual_k (Kind.sup actual_ki actual_kd)
+  | Eslice, [a; i1; i2] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let ty, si = filter_vec a.e_loc ty_a in
+     let actual_ki1 = expect expected_k h i1 Initial.typ_int in
+     let actual_ki2 = expect expected_k h i2 Initial.typ_int in
+     let si1 = size_of_exp i1 in
+     let si2 = size_of_exp i2 in
+     let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
+     less_sizes a.e_loc si_i si;
+     Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
+  | Eupdate, [a; i; v] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let ty, si = filter_vec a.e_loc ty_a in
+     let actual_ki = expect expected_k h i Initial.typ_int in
+     let actual_kv = expect expected_k h v ty in
+     ty_a, Kind.sup actual_k (Kind.sup actual_ki actual_kv)
+  | Etranspose, [a] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let ty, si1 = filter_vec a.e_loc ty_a in
+     let ty, si2 = filter_vec a.e_loc ty in
+     Types.vec (Types.vec ty si1) si2, actual_k
+  | Ereverse, [a] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let _ = filter_vec a.e_loc ty_a in
+     ty_a, actual_k
+  | Eflatten, [a] ->
+     let ty_a, actual_k = expression expected_k h a in
+     let ty, si1 = filter_vec a.e_loc ty_a in
+     let ty, si2 = filter_vec a.e_loc ty in
+     Types.vec ty (Sizes.mult si1 si2), actual_k
+  | _ -> assert false
 
 and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc } as body) =
   (* typing the argument of a function *)
