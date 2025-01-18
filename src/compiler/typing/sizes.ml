@@ -51,6 +51,7 @@ module SumOfMonomials =
 
         let one = M.empty
         let is_one m = M.is_empty m
+        let var x = M.singleton x 1
         let mult_x x i m = M.update x (update i) m
         let mult m1 m2 = M.fold mult_x m1 m2
         let compare = M.compare Stdlib.compare
@@ -83,6 +84,8 @@ module SumOfMonomials =
         
         let const v = M.singleton Product.one v
 
+        let var x = M.singleton (Product.var x) 1
+        
         let sum_m m p sp = M.update m (update p) sp
         let sum sp1 sp2 = M.fold sum_m sp1 sp2
         
@@ -113,6 +116,7 @@ module SumOfMonomials =
         let rec make si =
           match si with
           | Sint(i) -> const i
+          | Svar(x) -> var x
           | Sop(Splus, si1, si2) -> sum (make si1) (make si2)
           | Sop(Smult, si1, si2) -> mult (make si1) (make si2)
           | _ -> assert false

@@ -868,7 +868,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
   ty, actual_k
 
 and size_apply loc expected_k h f si_list =
-  (* first type the function body *)
+  (* first type the function [f] *)
   let ty_fct, actual_k_fct = expression expected_k h f in
   (* typing the sequence of arguments *)
   let rec args actual_k_fct ty_fct si_list = match si_list with
@@ -951,7 +951,7 @@ and expect_list expected_k h e_list ty =
     (Tfun(Tconst)) e_list
      
 and array_operator expected_k h loc op e_list =
-  let filter_vec loc actual_ty =
+  let check_is_vec loc actual_ty =
     try Types.filter_vec actual_ty
     with
     | Unify ->
@@ -965,26 +965,26 @@ and array_operator expected_k h loc op e_list =
   | Econcat, [a1; a2] ->
      let ty1, actual_k1 = expression expected_k h a1 in
      let ty2, actual_k2 = expression expected_k h a2 in
-     let ty1, si1 = filter_vec a1.e_loc ty1 in
-     let ty2, si2 = filter_vec a2.e_loc ty2 in
+     let ty1, si1 = check_is_vec a1.e_loc ty1 in
+     let ty2, si2 = check_is_vec a2.e_loc ty2 in
      unify loc ty1 ty2;
      Types.vec ty1 (Sizes.plus si1 si2), Kind.sup actual_k1 actual_k2
   | Eget, [a; i] ->
      let ty_a, actual_k = expression expected_k h a in
-     let ty, si = filter_vec a.e_loc ty_a in
+     let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki = expect expected_k h i Initial.typ_int in
      let si_i = size_of_exp i in
      less_sizes i.e_loc si_i si;
      ty, Kind.sup actual_k actual_ki
   | Eget_with_default, [a; i; default] ->
      let ty_a, actual_k = expression expected_k h a in
-     let ty, si = filter_vec a.e_loc ty_a in
+     let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki = expect expected_k h i Initial.typ_int in
      let actual_kd = expect expected_k h default ty in
      ty, Kind.sup actual_k (Kind.sup actual_ki actual_kd)
   | Eslice, [a; i1; i2] ->
      let ty_a, actual_k = expression expected_k h a in
-     let ty, si = filter_vec a.e_loc ty_a in
+     let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki1 = expect expected_k h i1 Initial.typ_int in
      let actual_ki2 = expect expected_k h i2 Initial.typ_int in
      let si1 = size_of_exp i1 in
@@ -994,23 +994,23 @@ and array_operator expected_k h loc op e_list =
      Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
   | Eupdate, [a; i; v] ->
      let ty_a, actual_k = expression expected_k h a in
-     let ty, si = filter_vec a.e_loc ty_a in
+     let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki = expect expected_k h i Initial.typ_int in
      let actual_kv = expect expected_k h v ty in
      ty_a, Kind.sup actual_k (Kind.sup actual_ki actual_kv)
   | Etranspose, [a] ->
      let ty_a, actual_k = expression expected_k h a in
-     let ty, si1 = filter_vec a.e_loc ty_a in
-     let ty, si2 = filter_vec a.e_loc ty in
+     let ty, si1 = check_is_vec a.e_loc ty_a in
+     let ty, si2 = check_is_vec a.e_loc ty in
      Types.vec (Types.vec ty si1) si2, actual_k
   | Ereverse, [a] ->
      let ty_a, actual_k = expression expected_k h a in
-     let _ = filter_vec a.e_loc ty_a in
+     let _ = check_is_vec a.e_loc ty_a in
      ty_a, actual_k
   | Eflatten, [a] ->
      let ty_a, actual_k = expression expected_k h a in
-     let ty, si1 = filter_vec a.e_loc ty_a in
-     let ty, si2 = filter_vec a.e_loc ty in
+     let ty, si1 = check_is_vec a.e_loc ty_a in
+     let ty, si2 = check_is_vec a.e_loc ty in
      Types.vec ty (Sizes.mult si1 si2), actual_k
   | _ -> assert false
 
@@ -1345,11 +1345,13 @@ and forloop_exp expected_k h
   let h_input, actual_k_input, size_opt = 
     List.fold_left (for_input_t expected_k h)
       (Env.empty, Tfun(Tconst), size_opt) for_input in
+  let h = Env.append h_input h in
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
+  let h = Env.append h_env h in
   let actual_ty, actual_k_for_body =
-    for_exp_t expected_k_for_body h_env size_opt for_body in
+    for_exp_t expected_k_for_body h size_opt for_body in
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1429,29 +1431,32 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   Defnames.union (Defnames.singleton name) acc
 
 and for_out_t expected_k h (acc_h, acc_k)
-      { desc = { for_name; for_out_name; for_init; for_default }; loc } =
+      { desc = ({ for_name; for_out_name; for_init; for_default } as v); loc } =
   let ty = Types.new_var () in
-  let ty_out = Types.typ_vec ty in
   let actual_k_default =
     Util.optional_with_default
       (fun e -> expect expected_k h e ty)
       (Tfun(Tconst)) for_default in
     (* the initialization must appear in a statefull function *)
-    let actual_k_init =
-      Util.optional_with_default
-        (fun e -> stateful e.e_loc expected_k;
-                  expect (Tnode(Tdiscrete)) h e ty)
-        (Tfun(Tconst)) for_init in
-    let actual_k = Kind.sup actual_k_default actual_k_init in
-    let t_sort = intro expected_k for_init for_default in
-    let entry =
-      Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
-    let acc_h = Env.add for_name entry acc_h in
-    Util.optional_unit
-      (fun _ x -> (* xi out x *)
+  let actual_k_init =
+    Util.optional_with_default
+      (fun e -> stateful e.e_loc expected_k;
+                expect (Tnode(Tdiscrete)) h e ty)
+      (Tfun(Tconst)) for_init in
+  let actual_k = Kind.sup actual_k_default actual_k_init in
+  let t_sort = intro expected_k for_init for_default in
+  let entry =
+    Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
+  let acc_h = Env.add for_name entry acc_h in
+  let ty_out =
+    Util.optional_with_default
+      (fun x -> (* xi out x *)
         (* find the type of [x] in [h] *)
         let ty_x = Types.instance (typ_of_var loc h x) in
-        unify loc ty_out ty_x) () for_out_name;
+        let ty_out = Types.typ_vec ty in
+        unify loc ty_out ty_x; ty_out) ty for_out_name in
+    (* annotation *)
+    v.for_info <- Typinfo.set_type v.for_info ty_out;
     let acc_k = Kind.sup acc_k actual_k in
     acc_h, acc_k
 

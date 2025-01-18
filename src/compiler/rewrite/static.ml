@@ -479,14 +479,16 @@ and equation acc ({ eq_desc; eq_write; eq_loc } as eq) =
        let for_index_t acc id = rename_t acc id in
        let for_eq_t acc { for_out; for_block; for_out_env } =
          let for_out_t acc
-               ({ desc = { for_name; for_out_name; for_init; for_default } } as f) =
+               ({ desc = { for_name; for_out_name; for_init; for_default } as v }
+                as f) =
            let for_name, acc = rename_t acc for_name in
            let for_out_name, acc = 
              Util.optional_with_map rename_t acc for_out_name in
            let for_init, acc = Util.optional_with_map expression acc for_init in
            let for_default, acc =
              Util.optional_with_map expression acc for_default in
-           { f with desc = { for_name; for_out_name; for_init; for_default } },
+           { f with desc = 
+                      { v with for_name; for_out_name; for_init; for_default } },
            acc in
          let for_out_env, acc = build acc for_out_env in
          let for_out, acc =

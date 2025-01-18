@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -174,7 +174,15 @@ let initialized loc env shared =
     less_for_var loc n typ_body (Tinit.fresh_on_i izero typ_body) in
   Ident.S.iter check shared
 
-(** Patterns *)
+(* Computes the type from a vardec list *)
+let type_of_n_list type_of n_list =
+  let ti_list = List.map type_of n_list in
+  match ti_list with
+  | [] -> Tinit.atom Tinit.izero
+  | [ti] -> ti
+  | _ -> Tinit.product ti_list
+
+(* Patterns *)
 (* [pattern env p expected_ty] means that the type of [p] must be less *)
 (* than [expected_ty] *)
 let rec pattern env ({ pat_desc; pat_loc; pat_info } as p) expected_ti =
@@ -293,8 +301,19 @@ let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
      (* finaly check the initialisation *)
      ignore (Util.optional_map (state env) se_opt)
 
-(** Initialization of an expression *)
-let rec exp env ({ e_desc; e_info; e_loc } as e) =
+(* Typing the declaration of variables. *)
+let rec vardec_list env v_list =
+  List.iter (vardec env) v_list
+
+and vardec env ({ var_name; var_default; var_init }) =
+  (* every initialization and default value must be well initialized *)
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_i env e Tinit.izero) env var_init;
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_i env e Tinit.izero) env var_default;
+   
+(* analysis of an expression *)
+and exp env ({ e_desc; e_info; e_loc } as e) =
   let e_typ = Typinfo.get_type e_info in
   let ti =
     match e_desc with
@@ -362,15 +381,18 @@ let rec exp env ({ e_desc; e_info; e_loc } as e) =
     | Elocal(b_eq, e_body) ->
        let env = block_eq Ident.S.empty env b_eq in
        exp env e_body
-    | Eforloop _ ->
-       Misc.not_yet_implemented "initialisation analysis for for-loops"
-    | Esizeapp _ ->
-       Misc.not_yet_implemented "initialisation analysis for size functions" in
+    | Eforloop(fe) -> forloop_exp e_loc env fe
+    | Esizeapp { f } ->
+       (* size arguments are surely well initialized *)
+       (* because they are not stream values *)
+       exp_less_than_on_i env f Tinit.izero;
+       let e_typ = Typinfo.get_type e.e_info in
+       Tinit.skeleton_on_i Tinit.izero e_typ in
   (* annotate the expression with the initialization type *)
   e.e_info <- Typinfo.set_init e.e_info ti;
   ti
   
-(** Typing an operator *)
+(* Typing an operator *)
 and operator env op ty e_list =
   match op, e_list with
   | Eunarypre, [e] -> 
@@ -446,7 +468,7 @@ and funexp env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
     expected_ti
   else actual_ti
 
-and arg h n_list = type_of_vardec_list h n_list
+and arg env n_list = type_of_vardec_list env n_list
 
 and exp_less_than_on_i env e expected_i =
   let actual_ti = exp env e in
@@ -461,8 +483,7 @@ and exp_less_than env ({ e_loc } as e) expected_ti =
 and equation_list env eq_list =
   List.iter (equation env) eq_list
 
-and equation env
-{ eq_desc = eq_desc; eq_loc = loc; eq_write = defnames } =
+and equation env { eq_desc; eq_loc; eq_write } =
   match eq_desc with
   | EQeq(p, e) -> 
      let ti = exp env e in
@@ -476,10 +497,10 @@ and equation env
         with | Not_found -> assert false in
       exp_less_than env e ti_n;
       let e_typ = Typinfo.get_type e.e_info in
-      less_than loc ti_n (Tinit.skeleton_on_i Tinit.izero e_typ);
+      less_than eq_loc ti_n (Tinit.skeleton_on_i Tinit.izero e_typ);
       (match e_opt with
        | Some(e0) -> exp_less_than_on_i env e0 izero
-       | None -> less_for_last loc id last izero);
+       | None -> less_for_last eq_loc id last izero);
       present_handler_exp_list env handlers NoDefault ti_n 
   | EQinit(n, e) ->
       exp_less_than_on_i env e izero
@@ -487,30 +508,30 @@ and equation env
       let ti_n = 
         try let { t_tys = { typ_body } } = Env.find n env in typ_body
         with | Not_found -> assert false in
-      less_than loc ti_n (Tinit.atom izero);
+      less_than eq_loc ti_n (Tinit.atom izero);
       Util.optional_unit
         (fun i e -> exp_less_than_on_i env e i) izero e_opt
   | EQautomaton {is_weak; handlers; state_opt } ->
      automaton_handler_eq_list
-       loc is_weak defnames env handlers state_opt
+       eq_loc is_weak eq_write env handlers state_opt
   | EQif { e; eq_true; eq_false } ->
      exp_less_than_on_i env e izero;
-     let shared = Defnames.cur_names Ident.S.empty defnames in
+     let shared = Defnames.cur_names Ident.S.empty eq_write in
      let env1 = last_env shared eq_true.eq_write env in
      equation env1 eq_true;
      let env2 = last_env shared eq_false.eq_write env in
      equation env2 eq_false
   | EQmatch { e; handlers } ->
      exp_less_than_on_i env e izero;
-     let shared = Defnames.cur_names Ident.S.empty defnames in
+     let shared = Defnames.cur_names Ident.S.empty eq_write in
      match_handler_eq_list shared env handlers;
      (* every defined variable must be initialized *)
-     initialized loc env shared
+     initialized eq_loc env shared
   | EQpresent { handlers; default_opt } ->
-     let shared = Defnames.cur_names Ident.S.empty defnames in
+     let shared = Defnames.cur_names Ident.S.empty eq_write in
      present_handler_eq_list shared env handlers default_opt;
      (* every defined variable must be initialized *)
-     initialized loc env shared
+     initialized eq_loc env shared
   | EQreset(eq, e) -> 
      exp_less_than_on_i env e izero;
      equation env eq
@@ -521,10 +542,8 @@ and equation env
      let env = leq env l_eq in equation env eq
   | EQassert(e) -> exp_less_than_on_i env e izero 
   | EQempty -> ()
-  | EQforloop _ ->
-     Misc.not_yet_implemented "initialisation analysis for for-loops"
-  | EQsizefun _ ->
-     Misc.not_yet_implemented "initialisation analysis for size functions"
+  | EQforloop(f_eq) -> forloop_eq eq_loc env f_eq
+  | EQsizefun(f_size) -> sizefun_t env f_size
        
 (* typing rule for a present statement *)
 and present_handler_eq_list shared env p_h_list default_opt =
@@ -581,18 +600,15 @@ and scondpat env { desc } =
      exp_less_than_on_i env e izero
 
 (* Computes the result type for [returns (...) eq] *)
-and type_of_vardec_list env n_list =
-  let type_of_vardec ({ var_name; var_info } as v) =
-    let { t_tys = { typ_body = ti } } =
-      try Env.find var_name env with Not_found -> print var_name in
-    (* annotate with the initialization type *)
-    v.var_info <- Typinfo.set_init var_info ti;
-    ti in
-  let ti_list = List.map type_of_vardec n_list in
-  match ti_list with
-  | [] -> Tinit.atom(Tinit.new_var ())
-  | [ti] -> ti  
-  | _ -> Tinit.product ti_list
+and type_of_vardec env ({ var_name; var_info } as v) =
+  let { t_tys = { typ_body = ti } } =
+    try Env.find var_name env with Not_found -> print var_name in
+  (* annotate with the initialization type *)
+  v.var_info <- Typinfo.set_init var_info ti;
+  ti
+
+and type_of_vardec_list env n_list = 
+  type_of_n_list (type_of_vardec env) n_list
 
 and result env ({ r_desc; r_info } as r) =
   let ti =
@@ -605,6 +621,118 @@ and result env ({ r_desc; r_info } as r) =
   r.r_info <- Typinfo.set_init r_info ti;
   ti
  
+(* Typing of a for loop *)
+and forloop_exp loc env { for_env; for_size; for_kind; for_input; for_body } =
+  (* inputs, index and outputs must be initialized *)
+  for_size_t env for_size;
+  List.iter (for_input_t env) for_input;
+  let env = build_env loc for_env env in
+  for_kind_t env for_kind;
+  for_exp_t loc env for_body
+
+and for_exp_t loc env for_exp =
+  match for_exp with
+  | Forexp { exp = e; default } ->
+     let ty = Typinfo.get_type e.e_info in
+     let ti_e = Tinit.skeleton_on_i Tinit.izero ty in
+     exp_less_than env e ti_e;
+     Util.optional_with_default
+       (fun e -> exp_less_than_on_i env e Tinit.izero) () default;
+     ti_e
+  | Forreturns { r_returns; r_block; r_env } ->
+     List.iter (for_vardec env) r_returns;
+     let env = build_env loc r_env env in
+     let _ = block_eq Ident.S.empty env r_block in
+     type_of_for_vardec_list env r_returns
+
+and for_vardec env { desc = { for_vardec } } = vardec env for_vardec
+
+and type_of_for_vardec_list env n_list =
+  let type_of { desc = { for_vardec } } =
+    type_of_vardec env for_vardec in
+  type_of_n_list type_of n_list
+
+(* sizes must be initialized *)
+and for_size_t env for_size_opt =
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_i env e Tinit.izero) env for_size_opt
+
+and for_kind_t env for_kind =
+  match for_kind with
+  | Kforeach -> ()
+  | Kforward(for_exit_opt) ->
+     Util.optional_unit for_exit_t env for_exit_opt
+
+and for_exit_t env { for_exit } = exp_less_than_on_i env for_exit Tinit.izero
+
+and for_index_t for_index_opt =
+  Util.optional_with_default
+    (fun id ->
+      Env.singleton id { t_last = ione; t_tys = Definit.scheme (atom izero) })
+    Env.empty for_index_opt
+
+and for_eq_t loc env { for_out; for_block; for_out_env } =
+  (* outputs must be initialized *)
+  List.iter (for_out_t env) for_out;
+  let env = build_env loc for_out_env env in
+  let _ = block_eq Ident.S.empty env for_block in
+  ()
+
+and for_out_t env
+  { desc = { for_name; for_out_name; for_init; for_default; for_info }; loc } =
+  (* every initialization and default value must be well initialized *)
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_i env e Tinit.izero) env for_init;
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_i env e Tinit.izero) env for_default;
+  Util.optional_unit
+    (fun _ x -> (* xi out x *)
+      (* find the type of [x] in [env] *)
+      let t_tys = try let { t_tys } = Env.find x env in t_tys 
+                  with | Not_found -> print x in
+      let typ = Typinfo.get_type for_info in
+      let ti_x = Tinit.instance t_tys typ in
+      less_than loc ti_x (Tinit.skeleton_on_i Tinit.izero typ))
+    env for_out_name
+
+(* all inputs must be well-initialized *)
+and for_input_t env { desc; loc } =
+  match desc with
+  | Einput { e; by } ->
+     exp_less_than_on_i env e Tinit.izero;
+     Util.optional_unit 
+       (fun env e -> exp_less_than_on_i env e Tinit.izero) env by
+  | Eindex { e_left; e_right } ->
+     exp_less_than_on_i env e_left Tinit.izero;
+     exp_less_than_on_i env e_right Tinit.izero
+
+(* Typing of a for loop *)
+and forloop_eq loc env { for_env; for_size; for_kind; for_input; for_body } =
+  (* inputs, index and outputs must be initialized *)
+  for_size_t env for_size;
+  List.iter (for_input_t env) for_input;
+  let env = build_env loc for_env env in
+  for_kind_t env for_kind;
+  for_eq_t loc env for_body
+
+and sizefun_t env { sf_id; sf_id_list; sf_e; sf_loc } =
+  let env_sizes =
+    List.fold_left 
+      (fun acc id -> 
+        Env.add id 
+          { t_last = ione; t_tys = Definit.scheme (Tinit.atom izero) } acc) 
+      Env.empty sf_id_list in
+  let ti_arg_list =
+    List.map (fun _ -> Tinit.atom izero) sf_id_list in
+  let env = Env.append env_sizes env in
+  let ti_res = exp env sf_e in
+  let actual_ti = Tinit.funtype_list ti_arg_list ti_res in
+  (* check that [sf_id] can get type [ty] *)
+  let ti_expected =
+    try let { t_tys = { typ_body = ti } } = Env.find sf_id env in ti
+    with | Not_found -> assert false in
+  less_than sf_loc ti_expected actual_ti
+
 let implementation ff impl =
   try
     match impl.desc with
