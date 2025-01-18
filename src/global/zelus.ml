@@ -225,7 +225,7 @@ type is_weak = bool
 type ('info, 'ienv) exp =
   { e_desc: ('info, 'ienv) exp_desc; (* descriptor *)
     e_loc: Location.t; (* location *)
-    mutable e_info: 'info; (* information *)
+    mutable e_info: 'info; (* type information *)
   }
 
 and ('info, 'ienv) exp_desc =
@@ -394,6 +394,7 @@ and ('info, 'ienv) for_out_desc =
     for_out_name : Ident.t option; (* [xi out x] *)
     for_init : ('info, 'ienv) exp option;
     for_default : ('info, 'ienv) exp option;
+    mutable for_info: 'info; (* type information *)
   }
 
 (* signal patterns *)

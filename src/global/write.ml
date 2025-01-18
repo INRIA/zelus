@@ -199,7 +199,8 @@ module Make (Info: INFO) =
            (* From outside, when the output is [xi out x] *)
            (* the defined variable in the loop body is [x], not [xi] *)
            let for_out_one (acc, h_out)
-                 ({ desc = { for_name; for_init; for_default; for_out_name } }
+                 ({ desc = 
+                      ({ for_name; for_init; for_default; for_out_name } as v)}
                   as fo) =
              let acc, h_out =
                match for_out_name with
@@ -208,7 +209,9 @@ module Make (Info: INFO) =
                   S.add for_name acc, Env.add for_name x h_out in
              let for_init = Util.optional_map expression for_init in
              let for_default = Util.optional_map expression for_default in
-             { fo with desc = { for_name; for_init; for_default; for_out_name } },
+             { fo with desc = 
+                         { v with for_name; for_init; for_default; 
+                                  for_out_name } },
              (acc, h_out) in
            let for_out, (dv_out, h_out) =
              Util.mapfold for_out_one (S.empty, Env.empty) for_out in

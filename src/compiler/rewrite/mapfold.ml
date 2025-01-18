@@ -528,7 +528,7 @@ and for_vardec funs acc ({ desc = { for_array; for_vardec } } as f) =
 and for_out_it funs acc v = funs.for_out_t funs acc v
 
 and for_out_t funs acc
-  ({ desc = { for_name; for_out_name; for_init; for_default } } as f) =
+  ({ desc = ({ for_name; for_out_name; for_init; for_default } as v)} as f) =
   let for_name, acc = var_ident_it funs.global_funs acc for_name in
   let for_out_name, acc = 
     Util.optional_with_map
@@ -537,7 +537,7 @@ and for_out_t funs acc
     Util.optional_with_map (expression_it funs) acc for_init in
   let for_default, acc =
     Util.optional_with_map (expression_it funs) acc for_default in
-  { f with desc = { for_name; for_out_name; for_init; for_default } },
+  { f with desc = { v with for_name; for_out_name; for_init; for_default } },
   acc         
      
 and for_returns_it funs acc f = funs.for_returns funs acc f

@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -549,7 +549,8 @@ module Make (Info: INFO) =
         { Zelus.desc =
             { Zelus.for_name = for_name; Zelus.for_init = for_init;
               Zelus.for_default = for_default;
-              Zelus.for_out_name = for_out_name };
+              Zelus.for_out_name = for_out_name;
+              Zelus.for_info = Info.no_info  };
           Zelus.loc = loc },
         local_out_env in
       Util.mapfold for_out_one Env.empty for_out
