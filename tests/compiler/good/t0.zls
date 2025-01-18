@@ -100,15 +100,16 @@ let node f5' (x, y) = f5 42 (x, y)
 
 let const node f5'' (const y) (const m) (x, z) = y + x + z
 
-let node f6(x, z) returns (y)
+(* let node f6(x, z) returns (y)
   local m in
   forward(42) (xi in x.R) returns (m, yi out y)
     local k in
     do m = 1 and yi = xi + 1 and k = 0 while z = 0 done
+*)
 
 let node f7(f)(x) returns (y)
   local m in
-  foreach(42) [i] (xi in x.R) returns (m, yi out y)
+  foreach(42) [i] (xi in x) returns (m, yi out y)
     local k in
     do m = xi and yi = f(xi) + i and k = 0 done
 
@@ -121,10 +122,12 @@ let const node f10<<a>>(x) = x + 1
 let const f10'<<a,b>> = node x -> x + 1
 
 let const f11<<a,b,c>> = node (x, y) returns (z)
-  forward [i] (xi in x.T, yi in y) returns (zi out z)
-    do forward [j] (xij in xi, yij in yi) returns (zij out zi)
+  forward(42) [i] (xi in x, yi in y) returns (zi out z)
+    do forward(32) [j] (xij in xi, yij in yi) returns (zij out zi)
        do zij = xij + yij + x.(i).(j) done
     done
       
 let const node f12<<a>>(x, y) returns (z)
   z = f11<<a+1,a, a>>(x, y)
+
+let f<<a,b>>(x, y) = x ++ y
