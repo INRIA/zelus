@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -109,6 +109,14 @@ let less_than_c loc env actual_c expected_c =
 	   { kind = Cless_than(atom actual_c, atom expected_c);
 	     env = env; cycle = cycle }
 
+(* Computes the type from a vardec list *)
+let type_of_n_list type_of n_list =
+  let tc_list = List.map type_of n_list in
+  match tc_list with
+  | [] -> Tcausal.atom (Tcausal.new_var ())
+  | [tc] -> tc
+  | _ -> Tcausal.product tc_list
+
 (** Typing a pattern. [pattern env p = tc] where [tc] is the type *)
 (* of pattern [p] in [env] *)
 let pattern env pat =
@@ -166,7 +174,7 @@ let pattern env pat =
   tc in
   pattern pat
 
-(** Build an environment from a typing environment. *)
+(* Build an environment from a typing environment. *)
 let build_env l_env env =
   let entry n { t_sort; t_tys = { typ_body } } acc =
     let t_tys =
@@ -179,7 +187,7 @@ let build_env l_env env =
     Env.add n { t_tys; t_last_typ = last_tc_opt } acc in
   Env.append (Env.fold entry l_env Env.empty) env
     
-(** Build an environment with all entries synchronised on [c] *)
+(* Build an environment with all entries synchronised on [c] *)
 let build_env_on_c c l_env env =
   let entry n { t_tys = { typ_body }; t_sort } acc =
     let t_tys =
@@ -193,7 +201,7 @@ let build_env_on_c c l_env env =
     Env.add n { t_tys; t_last_typ = last_tc_opt } acc in
   Env.append (Env.fold entry l_env Env.empty) env
 
-(** Build an environment for a set of written variables *)
+(* Build an environment for a set of written variables *)
 (* [x1:ct1;...; xn:tcn] with [cti < ct'i] where [env(xi) = ct'i] *)
 let def_env loc defnames env =
     let add x acc =
@@ -205,21 +213,21 @@ let def_env loc defnames env =
       Ident.S.fold add (Defnames.cur_names Ident.S.empty defnames) Env.empty in
     Env.append env_defnames env
   
-(** Build an environment for a set of written variables *)
+(* Build an environment for a set of written variables *)
 (* such that their causality types are *)
 (* [x1:ct1[c];...; xn:tcn[c]] where [cti[c] < ct'i] *)
 (* for all xi such that [env(xi) = ct'i] *)
 let def_env_on_c loc defnames env c =
   let add x acc =
-      let { t_tys = { typ_body } as t_tys } as tentry = Env.find x env in
-      let tc_copy = Tcausal.fresh_on_c c typ_body in
-      less_than_name loc env x tc_copy typ_body;
-      Env.add x { tentry with t_tys = { t_tys with typ_body = tc_copy }  } acc in
+    let { t_tys = { typ_body } as t_tys } as tentry = Env.find x env in
+    let tc_copy = Tcausal.fresh_on_c c typ_body in
+    less_than_name loc env x tc_copy typ_body;
+    Env.add x { tentry with t_tys = { t_tys with typ_body = tc_copy }  } acc in
   let shared = Defnames.cur_names Ident.S.empty defnames in
   let env_defnames = Ident.S.fold add shared Env.empty in
   shared, Env.append env_defnames env
 
-(** Build an environment from [env] by replacing the causality *)
+(* Build an environment from [env] by replacing the causality *)
 (* of [x] by its last causality for all [x in [shared\defnames]] *)
 (* E.g., [match e with P1 -> x = ... | P2 -> y = ...] *)
 (* with [x:a|b; y:c|d]; then [x:a|b; y:d|d] for the left branch *)
@@ -337,8 +345,21 @@ let automaton_handlers
     let c_scpat = Tcausal.intro_less_c c_trans in
     List.iter (strong shared env c_body c_body c_scpat) s_h_list
     
+(* Typing the declaration of variables. *)
+let rec vardec_list env c_free v_list =
+  List.iter (vardec env c_free) v_list
+
+and vardec env c_free ({ var_name; var_default; var_init }) =
+  (* TODO: building the environment should be done by the [vardec] function *)
+  Util.optional_unit
+    (fun env e -> 
+      exp_less_than_on_c env c_free e (Tcausal.new_var ())) env var_init;
+  Util.optional_unit
+    (fun env e -> 
+      exp_less_than_on_c env c_free e (Tcausal.new_var ())) env var_default;
+
 (** causality of an expression. [C | H |-cfree e: ct] *)
-let rec exp env c_free ({ e_desc; e_info; e_loc } as e) =
+and exp env c_free ({ e_desc; e_info; e_loc } as e) =
   let e_typ = Typinfo.get_type e_info in
   let tc = match e_desc with
     | Econst _ | Econstr0 _ -> Tcausal.skeleton e_typ
@@ -420,10 +441,15 @@ let rec exp env c_free ({ e_desc; e_info; e_loc } as e) =
     | Elocal(b_eq, e_body) ->
        let env = block_eq Ident.S.empty env c_free b_eq in
        exp env c_free e_body
-    | Eforloop _ ->
-       Misc.not_yet_implemented "causality analysis for for-loops"
-    | Esizeapp _ ->
-       Misc.not_yet_implemented "causality analysis for size functions" in
+    | Eforloop(fe) ->
+       forloop_exp env c_free fe
+    | Esizeapp { f; size_list } ->
+       let c_res = Tcausal.intro_less_c c_free in
+       (* no feedback loop is possible with size arguments *)
+       (* because they are not stream values *)
+       exp_less_than_on_c env c_free f c_res;
+       let e_typ = Typinfo.get_type e.e_info in
+       Tcausal.skeleton_on_c c_res e_typ in
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info tc;
   tc
@@ -503,7 +529,8 @@ and operator env op c_free ty e_list =
   | _ -> assert false
     
 
-(** Typing an expression with an expected causality *)
+(* Typing an expression with an expected causality *)
+(* [H |- e : t with t < t[expected_c]] *)
 (* The causality tag of [e] must be less than [expected_c] *)
 (* free variables in [e] must have a tag less than [c_free] *)
 and exp_less_than_on_c env c_free e expected_c =
@@ -514,6 +541,7 @@ and exp_less_than_on_c env c_free e expected_c =
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info expected_tc
 
+(* [H |- e : t with t < expected_tc] *)
 and exp_less_than env c_free e expected_tc =
   let actual_tc = exp env c_free e in
   less_than e.e_loc env actual_tc expected_tc;
@@ -615,10 +643,8 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
      let c_e = Tcausal.intro_less_c c_free in
      exp_less_than_on_c env c_free e c_e
   | EQempty -> ()
-  | EQforloop _ ->
-     Misc.not_yet_implemented "causality analysis for for-loops"
-  | EQsizefun _ ->
-     Misc.not_yet_implemented "causality analysis for size functions"
+  | EQforloop(f_eq) -> forloop_eq env c_free f_eq
+  | EQsizefun(f_size) -> sizefun_t env c_free f_size
   
 (* Typing a present handler for expressions *)
 (* The handler list must be non empty or [e_opt] not none *)
@@ -708,18 +734,15 @@ and scondpat env c_free sc =
   expected_c
 
 (* Computes the result type for [returns (...) eq] *)
-and type_of_vardec_list env n_list =
-  let type_of_vardec ({ var_name; var_info } as v) =
-    let { t_tys = { typ_body = tc } } =
-      try Env.find var_name env with Not_found -> print var_name in
-    (* annotate with the causality type *)
-    v.var_info <- Typinfo.set_caus var_info tc;
-    tc in
-  let tc_list = List.map type_of_vardec n_list in
-  match tc_list with
-  | [] -> Tcausal.atom(Tcausal.new_var ())
-  | [tc] -> tc
-  | _ -> Tcausal.product tc_list
+and type_of_vardec env ({ var_name; var_info } as v) =
+  let { t_tys = { typ_body = tc } } =
+    try Env.find var_name env with Not_found -> print var_name in
+  (* annotate with the initialization type *)
+  v.var_info <- Typinfo.set_caus var_info tc;
+  tc
+
+and type_of_vardec_list env n_list = 
+  type_of_n_list (type_of_vardec env) n_list
 
 and result env ({ r_desc } as r) =
   let tc =
@@ -732,6 +755,110 @@ and result env ({ r_desc } as r) =
   r.r_info <- Typinfo.set_caus r.r_info tc;
   tc
        
+(* Typing of a for loop *)
+and forloop_exp env c_free
+  { for_size; for_kind; for_index; for_input; for_body; for_resume; for_env } =
+  (* the for loop is executed atomically *)
+  (* introduce an input time tag [c_in] such that all inputs [ei] are *)
+  (* before on a tag [c] with [c < c_in] *)
+  (* all internal computations of the for loop must be done before a *)
+  (* tag [c_out] *)
+  let c_out = Tcausal.new_var () in
+  let c_in = Tcausal.intro_less_c c_out in
+  for_size_t env for_size c_free c_in;
+  List.iter (for_input_t env c_in) for_input;
+  let env = build_env_on_c c_in for_env env in
+  for_kind_t env c_free for_kind c_out;
+  for_exp_t env c_free for_body c_out
+
+and for_exp_t env c_free for_exp c_out =
+  (* all computations in the body must be done before time tag [c_out] *)
+  match for_exp with
+  | Forexp { exp = e; default } ->
+     let ty = Typinfo.get_type e.e_info in
+     let tc_e = Tcausal.skeleton_on_c c_out ty in
+     exp_less_than env c_free e tc_e;
+     Util.optional_with_default
+       (fun e -> exp_less_than_on_c env c_free e c_out) () default;
+     tc_e
+  | Forreturns { r_returns; r_block; r_env } ->
+     List.iter (for_vardec env c_free) r_returns;
+     let env = build_env r_env env in
+     let _ = block_eq Ident.S.empty env c_free r_block in
+     type_of_for_vardec_list env r_returns
+
+and for_vardec env c_free { desc = { for_vardec } } = vardec env c_free for_vardec
+
+and type_of_for_vardec_list env n_list =
+  let type_of { desc = { for_vardec } } =
+    type_of_vardec env for_vardec in
+  type_of_n_list type_of n_list
+
+(* size expression are executed atomically *)
+and for_size_t env for_size_opt c_free c_in =
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_c env c_free e c_in) env for_size_opt
+
+and for_kind_t env c_free for_kind c_out =
+  match for_kind with
+  | Kforeach -> ()
+  | Kforward(for_exit_opt) ->
+     Util.optional_unit (for_exit_t env c_free) c_out for_exit_opt
+
+and for_exit_t env c_free c_out { for_exit } = 
+  exp_less_than_on_c env c_free for_exit c_out
+
+and for_index_t for_index_opt =
+  Util.optional_with_default
+    (fun id ->
+      Env.singleton id { t_last = ione; t_tys = Definit.scheme (atom izero) })
+    Env.empty for_index_opt
+
+and for_eq_t loc env { for_out; for_block; for_out_env } =
+  (* outputs must be initialized *)
+  List.iter (for_out_t env) for_out;
+  let env = build_env loc for_out_env env in
+  let _ = block_eq Ident.S.empty env for_block in
+  ()
+
+(* all inputs must be well-initialized *)
+and for_input_t env { desc; loc } c =
+  match desc with
+  | Einput { e; by } ->
+     exp_less_than_on_i env e Tinit.izero;
+     Util.optional_unit 
+       (fun env e -> exp_less_than_on_i env e Tinit.izero) env by
+  | Eindex { e_left; e_right } ->
+     exp_less_than_on_i env e_left Tinit.izero;
+     exp_less_than_on_i env e_right Tinit.izero
+
+(* Typing of a for loop *)
+and forloop_eq loc env { for_env; for_size; for_kind; for_input; for_body } =
+  (* inputs, index and outputs must be initialized *)
+  for_size_t env for_size;
+  List.iter (for_input_t env) for_input;
+  let env = build_env loc for_env env in
+  for_kind_t env for_kind;
+  for_eq_t loc env for_body
+
+and sizefun_t env { sf_id; sf_id_list; sf_e; sf_loc } =
+  let env_sizes =
+    List.fold_left 
+      (fun acc id -> 
+        Env.add id 
+          { t_last = ione; t_tys = Definit.scheme (Tinit.atom izero) } acc) 
+      Env.empty sf_id_list in
+  let ti_arg_list =
+    List.map (fun _ -> Tinit.atom izero) sf_id_list in
+  let env = Env.append env_sizes env in
+  let ti_res = exp env sf_e in
+  let actual_ti = Tinit.funtype_list ti_arg_list ti_res in
+  (* check that [sf_id] can get type [ty] *)
+  let ti_expected =
+    try let { t_tys = { typ_body = ti } } = Env.find sf_id env in ti
+    with | Not_found -> assert false in
+  less_than sf_loc ti_expected actual_ti
+
 (* The main function *)
 let implementation ff { desc = desc; loc = loc } =
   try
