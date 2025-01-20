@@ -504,7 +504,7 @@ and operator env op c_free ty e_list =
   | Eup, [e] ->
      exp_less_than_on_c env c_free e (Tcausal.new_var ());
      Tcausal.skeleton_on_c c_res ty
-  | Ehorizon, [e] ->
+  | (Edisc | Ehorizon), [e] ->
      exp_less_than_on_c env c_free e c_res;
      Tcausal.skeleton_on_c c_res ty
   | Eperiod, [e1; e2] ->
@@ -526,8 +526,29 @@ and operator env op c_free ty e_list =
      let tc1, tc2 = Tcausal.filter_arrow tc1 in
      exp_less_than env c_free e2 tc1;
      tc2
+  | Earray(op), e_list -> array_operator env op c_free ty e_list
   | _ -> assert false
-    
+
+and array_operator env op c_free ty e_list =
+  (* the type of the result *)
+  let c_res = Tcausal.intro_less_c c_free in
+  match op, e_list with
+  | Earray_list, e_list ->
+     List.iter (fun e -> exp_less_than_on_c env c_free e c_res) e_list;
+     Tcausal.skeleton_on_c c_res ty
+  | (Econcat | Eget), [e1; e2] ->
+     exp_less_than_on_c env c_free e1 c_res;
+     exp_less_than_on_c env c_free e2 c_res;
+     Tcausal.skeleton_on_c c_res ty
+  | (Eget_with_default | Eslice | Eupdate), [e1; e2; e3] ->
+     exp_less_than_on_c env c_free e1 c_res;
+     exp_less_than_on_c env c_free e2 c_res;
+     exp_less_than_on_c env c_free e3 c_res;
+     Tcausal.skeleton_on_c c_res ty
+  | (Etranspose | Ereverse | Eflatten), [e1] ->
+     exp_less_than_on_c env c_free e1 c_res;
+     Tcausal.skeleton_on_c c_res ty
+  | _ -> assert false
 
 (* Typing an expression with an expected causality *)
 (* [H |- e : t with t < t[expected_c]] *)

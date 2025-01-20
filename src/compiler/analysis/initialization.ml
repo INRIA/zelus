@@ -394,6 +394,7 @@ and exp env ({ e_desc; e_info; e_loc } as e) =
   
 (* Typing an operator *)
 and operator env op ty e_list =
+  let i = Tinit.new_var () in
   match op, e_list with
   | Eunarypre, [e] -> 
      (* input of a unit delay must be of type 0 *)
@@ -409,40 +410,58 @@ and operator env op ty e_list =
      t1
   | Eifthenelse, [e1; e2; e3] ->
      (* a conditional does not force all element to be initialized *)
-     let i = Tinit.new_var () in
      exp_less_than_on_i env e1 i;
      exp_less_than_on_i env e2 i;
      exp_less_than_on_i env e3 i;
      Tinit.skeleton_on_i i ty
-  | Eatomic, [e] ->
-     let i = Tinit.new_var () in
-     exp_less_than_on_i env e i;
-     Tinit.skeleton_on_i i ty
-  | Etest, [e] ->
-     let i = Tinit.new_var () in
-     exp_less_than_on_i env e i;
-     Tinit.skeleton_on_i i ty
   | Eup, [e] ->
+     exp_less_than_on_i env e izero;
+     Tinit.skeleton_on_i izero ty
+  | (Edisc | Ehorizon), [e] ->
      exp_less_than_on_i env e izero;
      Tinit.skeleton_on_i izero ty
   | Eperiod, [e1; e2] ->
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
      Tinit.skeleton_on_i izero ty
-  | Ehorizon, [e] ->
-     exp_less_than_on_i env e izero;
-     Tinit.skeleton_on_i izero ty
   | Eseq, [e1; e2] ->
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
      Tinit.skeleton_on_i izero ty
+  | Eatomic, [e] ->
+     exp_less_than_on_i env e i;
+     Tinit.skeleton_on_i i ty
+  | Etest, [e] ->
+     let i = Tinit.new_var () in
+     exp_less_than_on_i env e i;
+     Tinit.skeleton_on_i i ty
   | Erun _, [e1; e2] ->
      let t1 = exp env e1 in
      let ti1, ti2 = Tinit.filter_arrow t1 in
      exp_less_than env e2 ti1;
      ti2
+  | Earray(op), e_list -> array_operator env op ty e_list
   | _ -> assert false
 
+and array_operator env op ty e_list =
+  (* the type of the result *)
+  match op, e_list with
+  | Earray_list, e_list ->
+     List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
+     Tinit.skeleton_on_i izero ty
+  | (Econcat | Eget), [e1; e2] ->
+     exp_less_than_on_i env e1 izero;
+     exp_less_than_on_i env e2 izero;
+     Tinit.skeleton_on_i izero ty
+  | (Eget_with_default | Eslice | Eupdate), [e1; e2; e3] ->
+     exp_less_than_on_i env e1 izero;
+     exp_less_than_on_i env e2 izero;
+     exp_less_than_on_i env e3 izero;
+     Tinit.skeleton_on_i izero ty
+  | (Etranspose | Ereverse | Eflatten), [e1] ->
+     exp_less_than_on_i env e1 izero;
+     Tinit.skeleton_on_i izero ty
+  | _ -> assert false
 
 (** Typing an application *)
 and app env ti_fct arg_list =
