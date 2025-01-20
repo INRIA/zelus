@@ -163,6 +163,7 @@ let rec expansive { eq_desc } =
        exp e || List.exists (fun { arg } -> exp arg) l_e_list
     | _ -> true in
   match eq_desc with
+  | EQsizefun _ -> false
   | EQeq(_, e) -> exp e
   | EQand { eq_list } -> List.exists expansive eq_list
   | _ -> true
@@ -735,7 +736,10 @@ let rec vardec_list expected_k h v_list =
 and vardec expected_k h (acc_h, acc_k)
  ({ var_name; var_default; var_init; var_clock;
     var_typeconstraint; var_loc } as v) =
-  let expected_ty = Types.new_var () in
+  let expected_ty =
+    match var_typeconstraint with
+    | None -> Types.new_var ()
+    | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
   let h = Env.append acc_h h in
   let actual_k_default =
     Util.optional_with_default

@@ -130,4 +130,4 @@ let const f11<<a,b,c>> = node (x, y) returns (z)
 let const node f12<<a>>(x, y) returns (z)
   z = f11<<a+1,a, a>>(x, y)
 
-let f<<a,b>>(x, y) = x ++ y
+let const fff<<a,b>>(x:[a]int, y:[b]int) = x ++ y

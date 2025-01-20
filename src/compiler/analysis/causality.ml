@@ -808,17 +808,10 @@ and for_kind_t env c_free c_out for_kind =
 and for_exit_t env c_free c_out { for_exit } = 
   exp_less_than_on_c env c_free for_exit c_out
 
-and for_index_t for_index_opt =
-  Util.optional_with_default
-    (fun id ->
-      Env.singleton id { t_last_typ = None;
-                         t_tys = Defcaus.scheme (atom (Tcausal.new_var ())) })
-    Env.empty for_index_opt
-
 and for_eq_t env c_free c_out { for_out; for_block; for_out_env } =
   (* outputs must be initialized *)
   List.iter (for_out_t env c_free c_out) for_out;
-  let env = build_env for_out_env env in
+  let env = build_env_on_c c_out for_out_env env in
   let _ = block_eq Ident.S.empty env c_free for_block in
   ()
 
