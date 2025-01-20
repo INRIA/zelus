@@ -765,13 +765,13 @@ and forloop_exp env c_free
   (* tag [c_out] *)
   let c_out = Tcausal.new_var () in
   let c_in = Tcausal.intro_less_c c_out in
-  for_size_t env for_size c_free c_in;
-  List.iter (for_input_t env c_in) for_input;
+  for_size_t env c_free c_in for_size;
+  List.iter (for_input_t env c_free c_in) for_input;
   let env = build_env_on_c c_in for_env env in
-  for_kind_t env c_free for_kind c_out;
-  for_exp_t env c_free for_body c_out
+  for_kind_t env c_free  c_out for_kind;
+  for_exp_t env c_free c_out for_body
 
-and for_exp_t env c_free for_exp c_out =
+and for_exp_t env c_free c_out for_exp =
   (* all computations in the body must be done before time tag [c_out] *)
   match for_exp with
   | Forexp { exp = e; default } ->
@@ -795,11 +795,11 @@ and type_of_for_vardec_list env n_list =
   type_of_n_list type_of n_list
 
 (* size expression are executed atomically *)
-and for_size_t env for_size_opt c_free c_in =
+and for_size_t env c_free c_in for_size_opt =
   Util.optional_unit
     (fun env e -> exp_less_than_on_c env c_free e c_in) env for_size_opt
 
-and for_kind_t env c_free for_kind c_out =
+and for_kind_t env c_free c_out for_kind =
   match for_kind with
   | Kforeach -> ()
   | Kforward(for_exit_opt) ->
@@ -811,53 +811,78 @@ and for_exit_t env c_free c_out { for_exit } =
 and for_index_t for_index_opt =
   Util.optional_with_default
     (fun id ->
-      Env.singleton id { t_last = ione; t_tys = Definit.scheme (atom izero) })
+      Env.singleton id { t_last_typ = None;
+                         t_tys = Defcaus.scheme (atom (Tcausal.new_var ())) })
     Env.empty for_index_opt
 
-and for_eq_t loc env { for_out; for_block; for_out_env } =
+and for_eq_t env c_free c_out { for_out; for_block; for_out_env } =
   (* outputs must be initialized *)
-  List.iter (for_out_t env) for_out;
-  let env = build_env loc for_out_env env in
-  let _ = block_eq Ident.S.empty env for_block in
+  List.iter (for_out_t env c_free c_out) for_out;
+  let env = build_env for_out_env env in
+  let _ = block_eq Ident.S.empty env c_free for_block in
   ()
 
+and for_out_t env c_free c_out
+  { desc = { for_name; for_out_name; for_init; for_default; for_info }; loc } =
+  (* every initialization and default value must be well initialized *)
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_c env c_free e c_out) env for_init;
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_c env c_free e c_out) env for_default;
+  Util.optional_unit
+    (fun _ x -> (* xi out x *)
+      (* find the type of [x] in [env] *)
+      let t_tys = try let { t_tys } = Env.find x env in t_tys 
+                  with | Not_found -> print x in
+      let typ = Typinfo.get_type for_info in
+      let tc_x = Tcausal.instance t_tys typ in
+      less_than loc env tc_x (Tcausal.skeleton_on_c c_out typ))
+    env for_out_name
+
 (* all inputs must be well-initialized *)
-and for_input_t env { desc; loc } c =
+and for_input_t env c_free c_in { desc; loc } =
   match desc with
   | Einput { e; by } ->
-     exp_less_than_on_i env e Tinit.izero;
+     exp_less_than_on_c env c_free e c_in;
      Util.optional_unit 
-       (fun env e -> exp_less_than_on_i env e Tinit.izero) env by
+       (fun env e -> exp_less_than_on_c env c_free e c_in) env by
   | Eindex { e_left; e_right } ->
-     exp_less_than_on_i env e_left Tinit.izero;
-     exp_less_than_on_i env e_right Tinit.izero
+     exp_less_than_on_c env c_free e_left c_in;
+     exp_less_than_on_c env c_free e_right c_in
 
 (* Typing of a for loop *)
-and forloop_eq loc env { for_env; for_size; for_kind; for_input; for_body } =
-  (* inputs, index and outputs must be initialized *)
-  for_size_t env for_size;
-  List.iter (for_input_t env) for_input;
-  let env = build_env loc for_env env in
-  for_kind_t env for_kind;
-  for_eq_t loc env for_body
+and forloop_eq env c_free { for_env; for_size; for_kind; for_input; for_body } =
+  (* the for loop is executed atomically *)
+  (* introduce an input time tag [c_in] such that all inputs [ei] are *)
+  (* before on a tag [c] with [c < c_in] *)
+  (* all internal computations of the for loop must be done before a *)
+  (* tag [c_out] *)
+  let c_out = Tcausal.new_var () in
+  let c_in = Tcausal.intro_less_c c_out in
+  for_size_t env c_free c_in for_size;
+  List.iter (for_input_t env c_free c_in) for_input;
+  let env = build_env for_env env in
+  for_kind_t env c_free c_out for_kind;
+  for_eq_t env c_free c_out for_body
 
-and sizefun_t env { sf_id; sf_id_list; sf_e; sf_loc } =
+and sizefun_t env c_free { sf_id; sf_id_list; sf_e; sf_loc } =
+  let c_in = Tcausal.new_var () in
   let env_sizes =
     List.fold_left 
       (fun acc id -> 
         Env.add id 
-          { t_last = ione; t_tys = Definit.scheme (Tinit.atom izero) } acc) 
+          { t_last_typ = None; t_tys = Defcaus.scheme (Tcausal.atom c_in) } acc) 
       Env.empty sf_id_list in
   let ti_arg_list =
-    List.map (fun _ -> Tinit.atom izero) sf_id_list in
+    List.map (fun _ -> Tcausal.atom c_in) sf_id_list in
   let env = Env.append env_sizes env in
-  let ti_res = exp env sf_e in
-  let actual_ti = Tinit.funtype_list ti_arg_list ti_res in
+  let ti_res = exp env c_free sf_e in
+  let actual_ti = Tcausal.funtype_list ti_arg_list ti_res in
   (* check that [sf_id] can get type [ty] *)
   let ti_expected =
     try let { t_tys = { typ_body = ti } } = Env.find sf_id env in ti
     with | Not_found -> assert false in
-  less_than sf_loc ti_expected actual_ti
+  less_than sf_loc env ti_expected actual_ti
 
 (* The main function *)
 let implementation ff { desc = desc; loc = loc } =
