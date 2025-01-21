@@ -216,7 +216,10 @@ let short =
   | Name _ as name -> name
   
 let set_no_stdlib () = 
-  default_used_modules := [];
+  (* Empty the symbol table *)
+  Modules.clear ();
+  (* Empty the list of default modules *)
+  Misc.default_used_modules := [];
   (* build the initial environment *)
   List.iter (fun x -> add_type x.qualid.id x.info) tglobal;
   List.iter (fun x -> add_constr x.qualid.id x.info) cglobal;

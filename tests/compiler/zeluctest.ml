@@ -25,7 +25,6 @@ let files dir ext =
 
 (* Compile and load Stdlib. *)
 let _ =
-  Initial.set_no_stdlib ();
   (* interface "Stdlib" "stdlib" ; *)
    default_used_modules := ["Stdlib"]
 
@@ -34,7 +33,7 @@ let is_all = true
 
 (* Run one file. *)
 let good_one filename =
-  (* Modules.clear (); *)
+  Modules.clear ();
   let modname = String.capitalize_ascii (Filename.basename filename) in
   (* compile *)
   Misc.typeonly := true;

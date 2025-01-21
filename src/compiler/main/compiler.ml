@@ -129,7 +129,8 @@ let compile modname filename =
   let info_ff = Format.formatter_of_out_channel stdout in
   Format.pp_set_max_boxes info_ff max_int;
 
-  (* set the current opened module *)
+  (* set the current opened module and load modules *)
+  (* from [Misc.default_used_modules] *)
   Modules.initialize modname;
   Location.initialize source_name;
 

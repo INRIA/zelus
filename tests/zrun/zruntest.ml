@@ -23,12 +23,9 @@ let files dir ext =
   |> List.map (fun file -> Filename.concat dir (Filename.chop_suffix file ext))
 
 (* Compile and load Stdlib. *)
-(*
 let _ =
-  Initial.set_no_stdlib ();
   (* interface "Stdlib" "stdlib" ; *)
    default_used_modules := ["Stdlib"]
- *)
 
 let n_steps = 10
 let is_all = true

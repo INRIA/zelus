@@ -17,6 +17,7 @@ open Misc
 open Compiler
 
 let compile file =
+  (* empty the symbol table *)
   Modules.clear();
   if !Misc.no_stdlib then Initial.set_no_stdlib();
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
