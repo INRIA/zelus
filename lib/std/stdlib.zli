@@ -3,48 +3,48 @@
 
 type 'a option = | None | Some of 'a
 
-const ( on ) : zero -> bool -> zero
-const orz : zero -> zero -> zero
-const ( = ) : 'a -> 'a -> bool
-const ( <> ) : 'a -> 'a -> bool
-const ( < ) : 'a -> 'a -> bool
-const ( > ) : 'a -> 'a -> bool
-const ( <= ) : 'a -> 'a -> bool
-const ( >= ) : 'a -> 'a -> bool
-const compare : 'a -> 'a -> int
-const min : 'a -> 'a -> 'a
-const max : 'a -> 'a -> 'a
-const ( == ) : 'a -> 'a -> bool
-const ( != ) : 'a -> 'a -> bool
-const not : bool -> bool
-const ( && ) : bool -> bool -> bool
-const ( & ) : bool -> bool -> bool
-const ( || ) : bool -> bool -> bool
-const ( or ) : bool -> bool -> bool
-const ( ~- ) : int -> int
-const succ : int -> int
-const pred : int -> int
-const ( + ) : int -> int -> int
-const ( - ) : int -> int -> int
-const ( * ) : int -> int -> int
-const ( / ) : int -> int -> int
-const ( mod ) : int -> int -> int
-const abs : int -> int
-const max_int : int
-const min_int : int
-const ( land ) : int -> int -> int
-const ( lor ) : int -> int -> int
-const ( lxor ) : int -> int -> int
-const lnot : int -> int
-const ( lsl ) : int -> int -> int
-const ( lsr ) : int -> int -> int
-const ( asr ) : int -> int -> int
-const ( ~-. ) : float -> float
-const ( +. ) : float -> float -> float
-const ( -. ) : float -> float -> float
-const ( *. ) : float -> float -> float
-const ( /. ) : float -> float -> float
-const ( ** ) : float -> float -> float
+val const ( on ) : zero -> bool -> zero
+val const orz : zero -> zero -> zero
+val const ( = ) : 'a -> 'a -> bool
+val const ( <> ) : 'a -> 'a -> bool
+val const ( < ) : 'a -> 'a -> bool
+val const ( > ) : 'a -> 'a -> bool
+val const ( <= ) : 'a -> 'a -> bool
+val const ( >= ) : 'a -> 'a -> bool
+val const compare : 'a -> 'a -> int
+val const min : 'a -> 'a -> 'a
+val const max : 'a -> 'a -> 'a
+val const ( == ) : 'a -> 'a -> bool
+val const ( != ) : 'a -> 'a -> bool
+val const not : bool -> bool
+val const ( && ) : bool -> bool -> bool
+val const ( & ) : bool -> bool -> bool
+val const ( || ) : bool -> bool -> bool
+val const ( or ) : bool -> bool -> bool
+val const ( ~- ) : int -> int
+val const succ : int -> int
+val const pred : int -> int
+val const ( + ) : int -> int -> int
+val const ( - ) : int -> int -> int
+val const ( * ) : int -> int -> int
+val const ( / ) : int -> int -> int
+val const ( mod ) : int -> int -> int
+val const abs : int -> int
+val const max_int : int
+val const min_int : int
+val const ( land ) : int -> int -> int
+val const ( lor ) : int -> int -> int
+val const ( lxor ) : int -> int -> int
+val const lnot : int -> int
+val const ( lsl ) : int -> int -> int
+val const ( lsr ) : int -> int -> int
+val const ( asr ) : int -> int -> int
+val const ( ~-. ) : float -> float
+val const ( +. ) : float -> float -> float
+val const ( -. ) : float -> float -> float
+val const ( *. ) : float -> float -> float
+val const ( /. ) : float -> float -> float
+val const ( ** ) : float -> float -> float
 val sqrt : float -> float
 val exp : float -> float
 val log : float -> float

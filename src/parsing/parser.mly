@@ -111,12 +111,14 @@ let rec funexp_desc is_atomic kind v_p_list_list result startpos endpos =
        fun_one_desc is_atomic kind vkind p_list result startpos endpos
   | (vkind, p_list) :: v_p_list_list ->
        fun_one_desc is_atomic (Kfun(Kany)) vkind p_list
-               (make (Exp (funexp is_atomic kind v_p_list_list result startpos endpos))
+		    (make (Exp (funexp is_atomic kind v_p_list_list result
+				       startpos endpos))
 		     startpos endpos)
                startpos endpos
 and funexp is_atomic kind v_p_list_list result startpos endpos =
   make (funexp_desc is_atomic kind v_p_list_list result startpos endpos)
        startpos endpos
+
 
 (* building a for loop *)
 let forward_loop resume (size_opt, index_opt, input_list, opt_cond, body) =
@@ -135,6 +137,11 @@ let foreach_loop resume (size_opt, index_opt, input_list, body) =
     for_body = body;
     for_resume = resume }
 
+let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
+  match t_opt with
+  | None -> e
+  | Some({ desc; loc = Loc(_, end_pos) } as ty) ->
+     { desc = Etypeconstraint(e, ty); loc = Loc(start_pos, end_pos) }
 %}
 
 %token <string> CONSTRUCTOR
@@ -265,14 +272,12 @@ let foreach_loop resume (size_opt, index_opt, input_list, body) =
 %right SEMI
 %nonassoc prec_der_with_reset
 %nonassoc prec_present
-%left prec_automaton
+%left prec_automaton prec_automaton_handler_list
 %nonassoc prec_ident
 %right prec_list
 %left EVERY
 %nonassoc PRESENT
-%nonassoc THEN
 %left ELSE
-%right UNTIL UNLESS
 %nonassoc WITH
 %left  AS
 %left  BAR
@@ -418,7 +423,7 @@ type_declaration_desc:
 
 val_or_const :
   | VAL { false }
-  | CONST { true }
+  | VAL CONST { true }
 ;
 
 type_params :
@@ -507,12 +512,15 @@ fun_kind:
 result:
   | RETURNS p = param eq = equation
     { make (Returns(p, eq)) $startpos $endpos }
-  | EQUAL seq = seq_expression %prec prec_result
-    { make (Exp(seq)) $startpos(seq) $endpos(seq) }
-  | EQUAL seq = seq_expression WHERE 
+  | t_opt = optional(colon_type_expression)
+    EQUAL seq = seq_expression %prec prec_result
+    { make (Exp(annotate_with_type t_opt seq)) $startpos(seq) $endpos(seq) }
+  | t_opt = optional(colon_type_expression)
+    EQUAL seq = seq_expression WHERE 
       v = vkind_opt i = is_rec eq = where_equation_and_list %prec prec_result
     { make (Exp(make (Elet(make { l_rec = i; l_kind = v; l_eq = eq }
-			  $startpos(eq) $endpos(eq), seq))
+			   $startpos(eq) $endpos(eq),
+			   annotate_with_type t_opt seq))
 		$startpos(seq) $endpos(eq)))
       $startpos $endpos }
 ;
@@ -574,9 +582,9 @@ equation_desc:
   | LET v = vkind_opt i = is_rec let_eq = equation_and_list IN eq = equation
     { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq}
 	    $startpos $endpos(let_eq), eq) }
-  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
-    %prec prec_automaton
+  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) opt_end
     { EQautomaton(List.rev a, None) } 
+    %prec prec_automaton
   | AUTOMATON opt_bar
       a = automaton_handlers(equation_empty_and_list)
       INIT e = state_expression
@@ -586,10 +594,6 @@ equation_desc:
     { EQmatch(e, List.rev m) }
   | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation opt_end
     { EQif(e, eq1, eq2) }
-  | IF e = seq_expression THEN eq1 = equation opt_end
-      { EQif(e, eq1, no_eq $startpos $endpos) }
-  | IF e = seq_expression ELSE eq2 = equation opt_end
-      { EQif(e, no_eq $startpos $endpos, eq2) }
   | PRESENT opt_bar p = present_handlers(equation) opt_end %prec prec_present
     { EQpresent(List.rev p, NoDefault) }
   | PRESENT opt_bar p = present_handlers(equation) 
@@ -603,7 +607,7 @@ equation_desc:
       { EQemit(i, Some(e)) }
   | INIT i = ide EQUAL e = seq_expression
       { EQinit(i, e) }
-  | p = pattern_with_type_annotation EQUAL e = seq_expression
+  | p = pattern_with_type_expression EQUAL e = seq_expression
       { EQeq(p, e) }
   | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
         e = seq_expression
@@ -612,7 +616,7 @@ equation_desc:
        LLESSER ide_list = list_of(COMMA, ide) GGREATER 
        v_p_list_list = param_list_list r = result
     { EQsizefun(ide, ide_list, funexp a k v_p_list_list r 
-                                   $startpos(v_p_list_list) $endpos) }
+			       $startpos(v_p_list_list) $endpos) }
   | a = is_atomic k = fun_kind_opt ide = ide v_p_list_list = param_list_list 
     r = result
     { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
@@ -661,11 +665,11 @@ automaton_handler(X):
 		       e_next_state = st_e } $endpos(b) $endpos(e)];
 	   s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER l = let_list b = block(X)
-    UNTIL el = list_of(ELSE, escape(X))
+    UNTIL el = list_of(ELSE, escape(X)) %prec prec_automaton_handler_list
     { make { s_state = sp; s_let = l; s_body = b;
 	     s_until = el; s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER l = let_list b = block(X)
-    UNLESS el = list_of(ELSE, escape(X))
+    UNLESS el = list_of(ELSE, escape(X)) %prec prec_automaton_handler_list
     { make { s_state = sp; s_let = l; s_body = b;
 	     s_until = []; s_unless = el } $startpos $endpos }
 ;
@@ -896,11 +900,12 @@ pattern_comma_list:
       { p :: pc }
 ;
 
-/* Patterns with a type annotation */
-pattern_with_type_annotation:
+/* Patterns with a type expression */
+pattern_with_type_expression:
   | p = pattern { p }
-  | p = pattern COLON t = type_expression 
+  | p = pattern t = colon_type_expression 
       { make (Etypeconstraintpat(p, t)) $startpos $endpos }
+
 
 pattern_label_list :
   | p = pattern_label SEMI pl = pattern_label_list
@@ -914,8 +919,8 @@ pattern_label_list :
 ;
 
 pattern_label :
-  | ei = ext_ident EQUAL p = pattern_with_type_annotation
-      { (ei, p) }
+  | ei = ext_ident EQUAL p = pattern_with_type_expression
+    { (ei, p) }
 ;
 
 /* Expressions */
@@ -1111,13 +1116,13 @@ expression_desc:
   | MATCH e = seq_expression WITH
       opt_bar m = match_handlers(expression) opt_end
       { Ematch(e, List.rev m) }
-  | PRESENT opt_bar pe = present_handlers(expression) opt_end %prec prec_present
+  | PRESENT opt_bar pe = present_handlers(expression) opt_end
     { Epresent(List.rev pe, NoDefault) }
   | PRESENT opt_bar pe = present_handlers(expression)
-    INIT e = expression opt_end %prec prec_present
+    INIT e = expression
     { Epresent(List.rev pe, Init(e)) }
   | PRESENT opt_bar pe = present_handlers(expression)
-    ELSE e = seq_expression opt_end %prec prec_present
+    ELSE e = seq_expression opt_end
       { Epresent(List.rev pe, Else(e)) }
   | RESET e = seq_expression EVERY r = expression
     { Ereset(e, r) }

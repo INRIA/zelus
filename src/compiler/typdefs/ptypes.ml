@@ -169,7 +169,7 @@ let print_type_declaration ff { qualid; info = typ_desc } =
 
 let print_value_type_declaration ff { qualid; info = (is_const, ty_scheme) } =
   type_name#reset;
-  let v = if is_const then "const" else "val" in
+  let v = if is_const then "val const" else "val" in
   fprintf ff "%s %a :@ %a" v print_qualid qualid print_scheme ty_scheme
 
 

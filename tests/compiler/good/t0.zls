@@ -1,4 +1,4 @@
-let f : int = 1
+let f_0 x : int = 1
 
 type t1 =
  | Zero | Constant of float | Linear of float

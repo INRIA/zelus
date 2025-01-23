@@ -10,6 +10,7 @@ type t =
          * int     (* Position of the next character following the last one *)
 
 
+let start_end (Loc(s, e)) = s, e
 
 let input_name = ref ""                 (* Input file name. *)
 

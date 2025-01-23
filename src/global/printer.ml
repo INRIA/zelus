@@ -656,7 +656,7 @@ module Make (Info: INFO) =
       | Einter_constdecl { name; const; ty; info } ->
          let print_n ff n = fprintf ff "%s" n in
          fprintf ff "@[<v 2>%s %s : %a%a@]@."
-           (if const then "const" else "val") name
+           (if const then "val const" else "val") name
            ptype ty (print_list_r print_n "=[" " " "]") info
     
     let interface_list ff int_list =
