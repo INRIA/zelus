@@ -1,4 +1,13 @@
-let f_0 x : int = 1
+let fix f x = let rec y = f x y in y
+
+let const map__ <<n>> f x y = forward(n) (xi in x, yi in y) returns ([|zi|])
+                                 do zi = f xi yi done
+
+
+let const f_00<<n>>(x:[n]int, y:[n]int) =
+  let x = x ++ [|1;2|] in
+  let y = y ++ [|2;3|] in
+  map__ <<n+2>> (fun x y -> x + y) x y 
 
 type t1 =
  | Zero | Constant of float | Linear of float
@@ -9,9 +18,9 @@ let node simpl_chunk (dur, typ) =
    | Constant v -> let new_c = (dur, Zero) in Some new_c
    | Linear v -> let new_c = (dur, Constant v) in Some new_c
 
-let fix f x = let rec y = f x y in y
 
 let fix2 f g x = let rec y = f x z and z = g x y in y, z
+
 
 type t2 = P of int * int
 
@@ -130,4 +139,5 @@ let const f11<<a,b,c>> = node (x, y) returns (z)
 let const node f12<<a>>(x, y) returns (z)
   z = f11<<a+1,a, a>>(x, y)
 
+ 
 let const fff<<a,b>>(x:[a]int, y:[b]int) = x ++ y

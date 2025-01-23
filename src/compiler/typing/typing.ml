@@ -1549,7 +1549,10 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   unify_expr sf_e expected_ty actual_ty;
   Defnames.singleton sf_id, Tfun(Tconst)
 
+(* the main entry functions *)
 let implementation ff is_first impl =
+  (* turn off warning when not the first typing step *)
+  Misc.no_warning := not is_first;
   (* first set the read/write information. The write information is *)
   (* used to type declarations [let eq in ...] *)
   let { desc; loc } as impl =
@@ -1592,11 +1595,8 @@ let implementation ff is_first impl =
          Typerrors.message loc err
        end
 
-(* the main entry function *)
+(* the main entry functions *)
 let program ff is_first ({ p_impl_list } as p) =
-  (* turn off warning when not the first typing step *)
-  Misc.no_warning := not is_first;
   let p_impl_list = Util.iter (implementation ff is_first) p_impl_list in
-  Misc.no_warning := not is_first;
   { p with p_impl_list }
 

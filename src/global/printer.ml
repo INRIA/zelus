@@ -446,7 +446,7 @@ module Make (Info: INFO) =
       | Earray_list, l ->
          Pp_tools.print_list_l expression "[|" ";" "|]" ff l
       | Econcat, [e1; e2] ->
-         fprintf ff "[@<hov0>%a ++ @,%a@]" expression e1 expression e2
+         fprintf ff "@[<hov0>%a ++ @,%a@]" expression e1 expression e2
       | Eget, [e1; e2] ->
          fprintf ff "@[%a.(%a)@]" expression e1 expression e2
       | Eget_with_default, [e1; e2; e3] ->

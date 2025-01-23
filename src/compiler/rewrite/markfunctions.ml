@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -48,15 +48,17 @@ type io_table =
  *- all outputs of the function call already depend 
  *- on all of its inputs *)
 
+(* Given a function definition [fun f_args -> body] *)
 (* compute the set of causality tags that appear as input/outputs *)
-(* of function applications inside the body of the function *)
+(* of function applications inside the body *)
 let funexp_build_io_table { f_args; f_body = ({ r_info } as r) } =
   (* traverses the body *)
   let result c_set r =
     let expression funs c_set ({ e_desc; e_info } as e) =
       match e_desc with
       | Eapp { f; arg_list } ->
-         let _, c_set = Util.mapfold (Mapfold.expression_it funs) c_set arg_list in
+         let _, c_set =
+           Util.mapfold (Mapfold.expression_it funs) c_set arg_list in
          (* compute the set of causality tags *)
          let tc_list =
            List.map (fun { e_info } -> Typinfo.get_caus e_info) (arg_list) in
@@ -70,7 +72,7 @@ let funexp_build_io_table { f_args; f_body = ({ r_info } as r) } =
     let _, c_set = Mapfold.result_it funs c_set r in
     c_set in
 
-  (* Compute the inputs/outputs of the main function *)
+  (* Compute the inputs/outputs causality types of the function *)
   let tc_list =
     let arg acc a =
       List.fold_left
@@ -116,29 +118,29 @@ let to_inline { io_table; o_table } tc_arg_list tc_res =
   let inline =
     not (Tcausal.S.for_all
            (fun i ->
-            let io_of_i =
-	      try Tcausal.M.find i io_table with Not_found -> Tcausal.S.empty in
-            Tcausal.S.for_all
-              (fun o ->
-               try
-		 let io_of_o = Tcausal.M.find o io_table in
-                 not (Tcausal.strict_path o i) &&
-                   (Tcausal.S.subset io_of_i io_of_o)
-	       with Not_found -> true)
-              out_of_result)
+             let io_of_i =
+	       try Tcausal.M.find i io_table with Not_found -> Tcausal.S.empty in
+             Tcausal.S.for_all
+               (fun o ->
+                 try
+		   let io_of_o = Tcausal.M.find o io_table in
+                   not (Tcausal.strict_path o i) &&
+                     (Tcausal.S.subset io_of_i io_of_o)
+	         with Not_found -> true)
+               out_of_result)
            out_of_inputs) in
-   try
+  try
     if not inline then
       Tcausal.S.iter
         (fun i ->
-           Tcausal.S.iter
-             (fun o -> if not (Tcausal.equal i o) then Tcausal.less_c i o)
-             out_of_result)
+          Tcausal.S.iter
+            (fun o -> if not (Tcausal.equal i o) then Tcausal.less_c i o)
+            out_of_result)
         out_of_inputs;
     inline
   with
   | Tcausal.Clash _ -> assert false
- 
+
 (* Mark function calls to be inlined *)
 let funexp_apply_io_table io_table ({ f_body } as f) =
   (* expressions *)
