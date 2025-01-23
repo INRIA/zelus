@@ -603,7 +603,7 @@ equation_desc:
       { EQemit(i, Some(e)) }
   | INIT i = ide EQUAL e = seq_expression
       { EQinit(i, e) }
-  | p = pattern EQUAL e = seq_expression
+  | p = pattern_with_type_annotation EQUAL e = seq_expression
       { EQeq(p, e) }
   | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
         e = seq_expression
@@ -896,6 +896,12 @@ pattern_comma_list:
       { p :: pc }
 ;
 
+/* Patterns with a type annotation */
+pattern_with_type_annotation:
+  | p = pattern { p }
+  | p = pattern COLON t = type_expression 
+      { make (Etypeconstraintpat(p, t)) $startpos $endpos }
+
 pattern_label_list :
   | p = pattern_label SEMI pl = pattern_label_list
       { p :: pl }
@@ -908,7 +914,7 @@ pattern_label_list :
 ;
 
 pattern_label :
-  | ei = ext_ident EQUAL p = pattern
+  | ei = ext_ident EQUAL p = pattern_with_type_annotation
       { (ei, p) }
 ;
 
