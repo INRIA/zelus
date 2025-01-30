@@ -60,7 +60,7 @@ type table =
   
 (* [to_inline] The function which decides that a function call *)
 (* [f arg1 ... argn] must be inlined or not *)
-let to_inline ({ inputs; outputs; io_table; o_table } as table) (tc_arg_list, tc_res) =
+let to_inline ({ inputs; io_table; o_table } as table) (tc_arg_list, tc_res) =
   let _, out_of_inputs =
     List.fold_left
       (Tcausal.ins_and_outs_of_a_type true) (Tcausal.S.empty, Tcausal.S.empty)
