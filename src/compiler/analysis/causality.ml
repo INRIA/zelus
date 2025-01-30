@@ -772,7 +772,7 @@ and result env ({ r_desc } as r) =
     | Returns({ b_vars } as b) ->
        let env = block_eq Ident.S.empty env (Tcausal.new_var ()) b in
        type_of_vardec_list env b_vars in
-  (* type annotation *)
+  (* annotate the result with the causality type *)
   r.r_info <- Typinfo.set_caus r.r_info tc;
   tc
        
