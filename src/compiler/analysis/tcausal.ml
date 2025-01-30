@@ -390,6 +390,13 @@ let build_o_table c_set o_table =
 let build_io_table inputs o_table c_set io_table =
   S.fold (fun i acc -> M.add i (io inputs o_table i) acc) c_set io_table
 
+(* update a table [c -> IO(c)] *)
+let update_io_table inputs o_table c io_table =
+  if M.mem c io_table then io_table
+  else
+    let io_entry = io inputs o_table c in
+    M.add c io_entry io_table
+
 (* build a ki table [io -> c] with a unique variable per io set *)
 (* and for every [c] the set of greater elements *)
 let build_ki_table io_table =

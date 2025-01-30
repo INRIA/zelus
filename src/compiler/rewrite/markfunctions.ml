@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* Mark functions to be inlined. The analysis is based on the *)
-(* causality type system and use the causality tags to decide whether *)
+(* causality type system and use causality tags to decide whether *)
 (* a function needs to be inlined or not *)
 
 (* Example: *)
@@ -58,61 +58,9 @@ type table =
                                      (* accessible causality tags in the body *)
    }
   
-(* Given a function definition [fun f_args -> body] *)
-(* compute the set of causality tags that appear as input/outputs *)
-(* of function applications inside the body *)
-let funexp_build_table { f_args; f_body = ({ r_info } as r) } =
-  (* traverses the body *)
-  let result c_set r =
-    let expression funs c_set ({ e_desc; e_info } as e) =
-      match e_desc with
-      | Eapp { f; arg_list } ->
-         let _, c_set =
-           Util.mapfold (Mapfold.expression_it funs) c_set arg_list in
-         (* compute the set of causality tags *)
-         let tc_list =
-           List.map (fun { e_info } -> Typinfo.get_caus e_info) (arg_list) in
-         let tc = Typinfo.get_caus f.e_info in
-         let c_set =
-           List.fold_left Tcausal.vars (Tcausal.vars c_set tc) tc_list in
-         e, c_set
-      | _ -> Mapfold.expression funs c_set e in
-    let global_funs = Mapfold.default_global_funs in
-    let funs =  { Mapfold.defaults with expression; global_funs } in
-    let _, c_set = Mapfold.result_it funs c_set r in
-    c_set in
-
-  (* Compute the inputs/outputs causality types of the function *)
-  let tc_list =
-    let arg acc a =
-      List.fold_left
-        (fun acc { var_info } -> Typinfo.get_caus var_info :: acc) acc a in
-    List.fold_left arg [] f_args in
-  
-  let tc = Typinfo.get_caus r_info in
-  
-  (* mark inputs/outputs *)
-  List.iter (Tcausal.mark_and_polarity false) tc_list;
-  Tcausal.mark_and_polarity true tc;
-  let c_set =
-    Tcausal.vars (List.fold_left Tcausal.vars Tcausal.S.empty tc_list) tc in
-  let inputs, outputs = Tcausal.ins_and_outs c_set in
-  (* computes the set of causality tags that appear in [f_body] *)
-  let c_set = result c_set r in
-
-  (* compute the table of outputs for all the variables *)
-  let o_table = Tcausal.build_o_table c_set Tcausal.M.empty in
-
-  (* then the table of io for every causality tag *)
-  let io_table = Tcausal.build_io_table inputs o_table c_set Tcausal.M.empty in
-  { inputs = inputs;
-    outputs = outputs;
-    io_table = io_table;
-    o_table = o_table }
-  
 (* [to_inline] The function which decides that a function call *)
 (* [f arg1 ... argn] must be inlined or not *)
-let to_inline { io_table; o_table } tc_arg_list tc_res =
+let to_inline ({ inputs; outputs; io_table; o_table } as table) (tc_arg_list, tc_res) =
   let _, out_of_inputs =
     List.fold_left
       (Tcausal.ins_and_outs_of_a_type true) (Tcausal.S.empty, Tcausal.S.empty)
@@ -120,6 +68,12 @@ let to_inline { io_table; o_table } tc_arg_list tc_res =
   let _, out_of_result =
     Tcausal.ins_and_outs_of_a_type true (Tcausal.S.empty, Tcausal.S.empty)
       tc_res in
+  (* computes the [io] *)
+  let io_table =
+    Tcausal.S.fold (Tcausal.update_io_table inputs o_table) out_of_inputs io_table in
+  let io_table =
+    Tcausal.S.fold (Tcausal.update_io_table inputs o_table) out_of_result io_table in
+
   (* [f arg1 ... argn] is inlined if:
    *- not [forall{i in out_of_inputs}
              forall{j in out_of_result}
@@ -136,24 +90,44 @@ let to_inline { io_table; o_table } tc_arg_list tc_res =
                    (Tcausal.S.subset io_of_i io_of_o)
 	       with Not_found -> true)
              out_of_result)
-         out_of_inputs)
+         out_of_inputs),
+  { table with io_table }
 
-(* Mark function calls to be inlined *)
+(* Given a function definition [fun f_args -> body] *)
+(* compute the set of causality tags that appear as input/outputs *)
+let funexp_build_table { f_args; f_body = { r_info } } =
+  let tc = Typinfo.get_caus r_info in
+  
+  (* mark inputs/outputs *)
+  Tcausal.mark_and_polarity true tc;
+  let c_set = Tcausal.vars Tcausal.S.empty tc in
+  let inputs, outputs = Tcausal.ins_and_outs c_set in
+  
+  (* compute the table of outputs for all the variables *)
+  let o_table = Tcausal.build_o_table c_set Tcausal.M.empty in
+
+  (* then the table of io for every causality tag *)
+  { inputs = inputs;
+    outputs = outputs;
+    io_table = Tcausal.M.empty;
+    o_table = o_table }
+  
+(* Mark function calls in the body of [fun f_args -> body] to be inlined *)
 let funexp_apply_table table ({ f_body } as f) =
-  (* expressions *)
-  let expression funs acc ({ e_desc; e_info } as e) =
+  (* traverse expressions *)
+  let expression funs table ({ e_desc; e_info } as e) =
     match e_desc with
     | Eapp { is_inline = false; f; arg_list } ->
        let tc_res = Typinfo.get_caus e_info in
        let tc_arg_list =
          List.map
            (fun { e_info } -> Typinfo.get_caus e_info) (f :: arg_list) in
-       let is_inline = to_inline table tc_arg_list tc_res in
-       { e with e_desc = Eapp({ is_inline; f; arg_list }) }, acc
+       let is_inline, table = to_inline table (tc_arg_list, tc_res) in
+       { e with e_desc = Eapp({ is_inline; f; arg_list }) }, table
     | _ -> raise Mapfold.Fallback in
   let global_funs = Mapfold.default_global_funs in
   let funs = { Mapfold.defaults with expression; global_funs } in
-  let f_body, _ = Mapfold.result_it funs () f_body in
+  let f_body, table = Mapfold.result_it funs table f_body in
   { f with f_body }, table
 
 let funexp funs _ f =
