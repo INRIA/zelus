@@ -386,16 +386,22 @@ let io inputs o_table c =
 let build_o_table c_set o_table =
   S.fold (fun i acc -> M.add i (out i) acc) c_set o_table    
 
+(* update a table [c -> O(c)] *)
+let update_o_table c o_table =
+  if M.mem c o_table then o_table
+  else M.add c (out c) o_table    
+
 (* build a table [c -> IO(c)] *)
 let build_io_table inputs o_table c_set io_table =
   S.fold (fun i acc -> M.add i (io inputs o_table i) acc) c_set io_table
 
 (* update a table [c -> IO(c)] *)
-let update_io_table inputs o_table c io_table =
-  if M.mem c io_table then io_table
+let update_io_table inputs c (o_table, io_table) =
+  if M.mem c io_table then (o_table, io_table)
   else
-    let io_entry = io inputs o_table c in
-    M.add c io_entry io_table
+    let o_table = update_o_table c o_table in
+    let io_table = M.add c (io inputs o_table c) io_table in
+    o_table, io_table
 
 (* build a ki table [io -> c] with a unique variable per io set *)
 (* and for every [c] the set of greater elements *)

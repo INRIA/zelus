@@ -69,10 +69,12 @@ let to_inline ({ inputs; io_table; o_table } as table) (tc_arg_list, tc_res) =
     Tcausal.ins_and_outs_of_a_type true (Tcausal.S.empty, Tcausal.S.empty)
       tc_res in
   (* computes the [io] *)
-  let io_table =
-    Tcausal.S.fold (Tcausal.update_io_table inputs o_table) out_of_inputs io_table in
-  let io_table =
-    Tcausal.S.fold (Tcausal.update_io_table inputs o_table) out_of_result io_table in
+  let o_table, io_table =
+    Tcausal.S.fold 
+      (Tcausal.update_io_table inputs) out_of_inputs (o_table, io_table) in
+  let o_table, io_table =
+    Tcausal.S.fold 
+      (Tcausal.update_io_table inputs) out_of_result (o_table, io_table) in
 
   (* [f arg1 ... argn] is inlined if:
    *- not [forall{i in out_of_inputs}
@@ -91,7 +93,7 @@ let to_inline ({ inputs; io_table; o_table } as table) (tc_arg_list, tc_res) =
 	       with Not_found -> true)
              out_of_result)
          out_of_inputs),
-  { table with io_table }
+  { table with o_table; io_table }
 
 (* Given a function definition [fun f_args -> body] *)
 (* compute the set of causality tags that appear as input/outputs *)
