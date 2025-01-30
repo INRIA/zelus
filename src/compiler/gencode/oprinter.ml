@@ -168,7 +168,7 @@ and exp prio ff e =
   | Evar { id } -> var ff id
   | Estate(l) -> left_state_value ff l
   | Etuple(e_list) ->
-     fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
+     Pp_tools.print_tuple (exp prio_e) ff e_list
   | Eapp { f; arg_list } ->
      fprintf ff "@[<hov2>%a %a@]"
        (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""")
@@ -333,11 +333,12 @@ let type_decl ff ty_decl =
 
 (* The main entry functions for expressions and instructions *)
 let implementation ff impl = match impl with
-  | Eletdef(n_e_list) ->
-     let print ff (n, e) =
-       fprintf ff "@[%a = %a@]" Printer.shortname n (exp 0) e in
+  let print_n_list ff n_list =
+  match n_list with | [] -> | Eletdef(n_list_e_list) ->
+     let print ff (n_list, e) =
+       fprintf ff "@[%a = %a@]" print_n_list n_list n (exp 0) e in
      fprintf ff "@[<v 2>let %a@.@]"
-       (Pp_tools.print_list_l print "" "and " "") n_e_list
+       (Pp_tools.print_list_l print "" "and " "") n_list_e_list
   | Eopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->

@@ -62,6 +62,9 @@ let print_couple2 print1 print2 po sep1 sep2 pf ff (c1, c2) =
   fprintf ff
 	  "@[<hov>%s@[%a@]%s@ %s@[%a@]%s@]" po print1 c1 sep1 sep2 print2 c2 pf
 
+let print_tuple print ff e_list =
+  fprintf ff "@[<hov2>%a@]" (print_list_r print "("","")") e_list
+
 let print_record print ff r =
   fprintf ff "@[<hv2>%a@]" (print_list_r print "{ "";"" }") r
 

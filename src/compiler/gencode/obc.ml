@@ -198,7 +198,8 @@ and constr_decl =
   | Econstr1decl of name * Zelus.type_expression list
 
 type implementation = 
-  | Eletdef of (name * exp) list
+  (* [let x1,...xn = e]; when n = 0, it means [let () = e]  *)
+  | Eletdef of (name list * exp) list 
   | Eopen of name
   | Etypedecl of (name * name list * type_decl) list
 

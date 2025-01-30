@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -679,19 +679,27 @@ and constr_decl { Zelus.desc } =
   | Zelus.Econstr0decl(n) -> Econstr0decl(n)
   | Zelus.Econstr1decl(n, ty_list) -> Econstr1decl(n, ty_list)
 
+let tuple_of_dnames d_names =
+  let l = List.map (fun (_, id) -> Aux.var id) d_names in
+  match l with
+  | [] -> Aux.evoid | [v] -> v | l -> Aux.tuple l
+
 (* Translation of a declaration *)
 let implementation { Zelus.desc } =
   match desc with
   | Zelus.Eopen(n) -> Eopen(n)
   | Zelus.Etypedecl { name; ty_params; ty_decl } ->
      Etypedecl [name, ty_params, type_decl ty_decl]
-  | Zelus.Eletdecl { d_leq = { Zelus.l_eq = { eq_desc } } } ->
-     match eq_desc with
-       | Zelus.EQeq({ pat_desc = Evarpat(name) }, e) ->
-          (* There should be no memory allocated by [e] *)
-          let e, _ = expression Env.empty empty_path empty_context e in
-          Eletdef [Ident.source name, e]
-       | _ -> Misc.not_yet_implemented "letdef"
+  | Zelus.Eletdecl { d_names; d_leq } ->
+     (* [let eq] with [id1,...,idn] the set of defined names *)
+     (* and [f1 = id1;...;fn = id] the set of visible global names *)
+     (* compile [let eq in (id1,...,idn)] into an expression [e] *)
+     (* returns [let f1,...,fn = e] *)
+     let n_list = List.map (fun (name, _) -> name) d_names in
+     let ret = tuple_of_dnames d_names in
+     (* There should be no memory allocated by [eq] *)
+     let e, _ = leq_in_e Env.empty empty_path d_leq empty_context ret in
+     Eletdef [n_list, e]
 	     
 let program { Zelus.p_impl_list } =
   { p_impl_list = Util.iter implementation p_impl_list }

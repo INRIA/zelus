@@ -1,4 +1,4 @@
 let node f x = 0 fby x
 
 let node g x =
-  let rec o = f o in o + x
+  let rec o = f (0 fby o) in o + x
