@@ -340,8 +340,8 @@ let implementation ff impl =
   match impl with
   | Eletdef(n_list_e_list) ->
      let print ff (n_list, e) =
-       fprintf ff "@[%a = %a@]" print_n_list n_list (exp 0) e in
-     fprintf ff "@[<v 2>let %a@.@]"
+       fprintf ff "@[<hov2>%a =@ %a@]" print_n_list n_list (exp 0) e in
+     fprintf ff "@[<v 0>let %a@.@]"
        (Pp_tools.print_list_l print "" "and " "") n_list_e_list
   | Eopen(s) ->
      fprintf ff "@[open %s@.@]" s
