@@ -272,6 +272,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %right SEMI
 %nonassoc prec_der_with_reset
 %nonassoc prec_present
+%left THEN
 %left prec_automaton prec_automaton_handler_list
 %nonassoc prec_ident
 %right prec_list
@@ -592,6 +593,8 @@ equation_desc:
   | MATCH e = seq_expression WITH opt_bar
     m = match_handlers(equation) opt_end
     { EQmatch(e, List.rev m) }
+  | IF e = seq_expression THEN eq1 = equation opt_end
+    { EQif(e, eq1, no_eq $endpos $endpos) }
   | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation opt_end
     { EQif(e, eq1, eq2) }
   | PRESENT opt_bar p = present_handlers(equation) opt_end %prec prec_present
