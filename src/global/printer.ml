@@ -102,14 +102,14 @@ module Make (Info: INFO) =
       | Etypevar(s) -> fprintf ff "'%s" s
       | Etypeconstr(ln, ty_list) ->
          fprintf ff "@[<hov2>%a@,%a@]"
-           (print_list_r_empty ptype "("","")") ty_list
-           longname ln
+           (print_list_r_empty ptype "("","")") ty_list longname ln
       | Etypetuple(ty_list) ->
          fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(" " * " ")") ty_list
       | Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res } ->
          let pas ff (n_opt, ty_arg) =
            match n_opt with
-           | None -> () | Some(n) -> fprintf ff "(%a : %a)" name n ptype ty_arg in
+           | None -> ptype ff ty_arg 
+           | Some(n) -> fprintf ff "(%a : %a)" name n ptype ty_arg in
          let s = match ty_kind with
            | Kfun(k) ->
               (match k with
@@ -343,7 +343,7 @@ module Make (Info: INFO) =
 	      (print_record longname expression """ =""") "" ";" "")
            ln_e_list
       | Elet(l, e) ->
-         fprintf ff "@[<v0>(%ain @,%a)@]" leq l expression e
+         fprintf ff "@[<v0>(%a in@ %a)@]" leq l expression e
       | Elocal(b_eq, e) ->
          fprintf ff "@[<v0>(%a in @,%a)@]"
            block_of_equation b_eq expression e
@@ -522,7 +522,7 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov>reset@   @[%a@]@ @[<hov 2>every@ %a@]@]"
            equation eq expression e
       | EQlet(l_eq, eq) ->
-         fprintf ff "@[<hov1>(%a@,in@ %a)@]" leq l_eq equation eq
+         fprintf ff "@[<hov1>(%a in@ %a)@]" leq l_eq equation eq
       | EQlocal(b_eq) -> block_of_equation ff b_eq
       | EQand { ordered; eq_list } ->
          and_equation ordered "do " " done" ff eq_list
@@ -620,10 +620,10 @@ module Make (Info: INFO) =
     
     and leq ff { l_rec; l_kind; l_eq; l_env } =
       let s = if l_rec then " rec " else "" in
-      fprintf ff "@[<v0>@[<hov2>let%a%s@ %a@ %a@]@ @]" 
+      fprintf ff "@[<v0>@[<hov2>let%a%s@ %a@ %a@]@]" 
         vkind l_kind s equation l_eq print_env l_env 
     
-    and leqs ff l =  print_if_not_empty (print_list_l leq "" "in" "in") ff l
+    and leqs ff l =  print_if_not_empty (print_list_l leq "" " in" "in") ff l
     
     let constr_decl ff { desc = desc } =
       match desc with

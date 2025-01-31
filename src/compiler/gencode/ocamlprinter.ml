@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -20,6 +20,50 @@ open Format
 open Pp_tools
 module Printer = Printer.Make(Typinfo)
                  
+(* Printing types. *)
+(* [t1 -D-> t2] is [(t1, t2) node] *)
+(* [t1 -C-> t2] is [(t1, t2) hnode] *)
+(* [t1 -A-> t2], [t1 -S-> t2] are [t1 -> t2] *)
+(* dependences are discarded *)
+let ptype ff typ_exp =
+  let open Zelus in
+  let priority desc =
+    match desc with
+    | Etypevar _ | Etypeconstr _ | Etypevec _ -> 2 
+    | Etypetuple _ -> 2 | Etypefun _ -> 1 in
+  let rec ptype prio ff { desc } =
+    let prio_ty = priority desc in
+    if prio_ty < prio then fprintf ff "(";
+    begin match desc with
+    | Etypevar(s) -> fprintf ff "%s" s
+    | Etypefun { ty_kind; ty_arg; ty_res } ->
+        begin match ty_kind with
+          | Kfun _ ->
+              fprintf ff "@[<hov2>%a ->@ %a@]"
+                (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty_res
+          | Knode _ ->
+              fprintf ff "@[<hov2>(%a, %a) Ztypes.node@]"
+                (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty_res
+        end
+    | Etypetuple(ty_list) ->
+       fprintf ff
+	       "@[<hov2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list
+    | Etypeconstr(ln, ty_list) ->
+       fprintf ff "@[<hov2>%a@]%a"
+               (print_list_r_empty (ptype 2) "("","")") ty_list 
+               Printer.longname ln
+    | Etypevec(ty_arg, _) ->
+       fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
+               Printer.longname (Lident.Modname Initial.array_ident)
+    end;
+    if prio_ty < prio then fprintf ff ")" in
+  ptype 0 ff typ_exp
+
+(* print a internal type *)
+let p_internal_type ff typ =
+  let typ_exp = Interface.type_expression_of_typ typ in
+  ptype ff typ_exp
+
 let immediate ff = function
   | Eint i ->
       if i < 0 then fprintf ff "(%a)" pp_print_int i else pp_print_int ff i
@@ -129,10 +173,10 @@ and letvar ff n is_mutable ty e_opt e =
   match e_opt with
   | None ->
      fprintf ff "@[<v 0>let %a = %s(Obj.magic (): %a) in@ %a@]"
-	     Printer.name n s Oprinter.ptype ty (exp 0) e
+	     Printer.name n s p_internal_type ty (exp 0) e
   | Some(e0) ->
      fprintf ff "@[<v 0>let %a = %s(%a:%a) in@ %a@]"
-	     Printer.name n s (exp 0) e0 Oprinter.ptype ty (exp 0) e
+	     Printer.name n s (exp 0) e0 p_internal_type ty (exp 0) e
 
 and exp prio ff e =
   let prio_e = Oprinter.priority_exp e in
@@ -145,10 +189,10 @@ and exp prio ff e =
         Printer.longname lname (print_list_r (exp prio_e) "("","")") arg_list
   | Eglobal { lname } -> Printer.longname ff lname
   | Evar { is_mutable; id } ->
-     fprintf ff "@[%s%a@]" (if is_mutable then "" else "!") Printer.name id
+     fprintf ff "@[%s%a@]" (if is_mutable then "!" else "") Printer.name id
   | Estate(l) -> left_state_value ff l
   | Etuple(e_list) ->
-      fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
+      Pp_tools.print_tuple (exp prio_e) ff e_list
   | Eapp { f; arg_list } ->
       fprintf ff "@[<hov2>%a %a@]"
         (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""") arg_list
@@ -166,7 +210,7 @@ and exp prio ff e =
           (Oprinter.print_record Printer.longname (exp 0)
              "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
-      fprintf ff "@[(%a : %a)@]" (exp prio_e) e Printer.ptype ty_e
+      fprintf ff "@[(%a : %a)@]" (exp prio_e) e ptype ty_e
   | Eifthenelse(e, e1, e2) ->
       fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
         (exp 0) e (exp prio_e) e1 (exp prio_e) e2
@@ -245,15 +289,16 @@ and exp prio ff e =
   | Emachine(ma) -> machine ff ma
   | Efun { pat_list; e } ->
      fprintf ff
-       "@[<hov2>(fun@ %a ->@ %a)@]" Oprinter.pattern_list pat_list (exp 0) e
+       "@[<hov2>(fun@ %a ->@ %a)@]" 
+       (Oprinter.pattern_list ptype) pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
 
 and pat_exp ff (p, e) =
-  fprintf ff "@[@[%a@] =@ @[%a@]@]" Oprinter.pattern p (exp 0) e
+  fprintf ff "@[@[%a@] =@ @[%a@]@]" (Oprinter.pattern ptype) p (exp 0) e
 
 and match_handler ff { m_pat; m_body } =
-  fprintf ff "@[<hov 4>| %a ->@ %a@]" Oprinter.pattern m_pat (exp 0) m_body
+  fprintf ff "@[<hov 4>| %a ->@ %a@]" (Oprinter.pattern ptype) m_pat (exp 0) m_body
 
 (* create an array of type t[n_1]...[n_k] *)
 and array_make : 'a. (_ -> 'a -> _) -> 'a -> _ -> _ -> _ =
@@ -269,7 +314,7 @@ and array_of e_opt ty ff ie_size =
   let exp_of ff (e_opt, ty) =
     match e_opt, ty with
     | Some(e), _ -> exp 2 ff e
-    | _ -> fprintf ff "(Obj.magic (): %a)" Oprinter.ptype ty in
+    | _ -> fprintf ff "(Obj.magic (): %a)" p_internal_type ty in
   match ie_size with
   | [] -> exp_of ff (e_opt, ty)
   | [ie] -> fprintf ff "Array.make %a %a" (exp 3) ie exp_of (e_opt, ty)
@@ -288,7 +333,7 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
        | None ->
 	  fprintf ff "@[%a = %a@]" Printer.name m_name
 	    (array_make (fun ff _ -> fprintf ff "(Obj.magic (): %a)"
-				       Oprinter.ptype m_typ) ())
+				       p_internal_type m_typ) ())
 	    m_size
        | Some(e) ->
 	  fprintf ff "@[%a = %a@]" Printer.name m_name
@@ -315,13 +360,13 @@ and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
       (array_make (fun ff n -> fprintf ff "%a_alloc ()" Printer.name n) i_name)
       i_size (Oprinter.kind i_kind)
 
-and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e Oprinter.ptype ty
+and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e p_internal_type ty
 
 (* Print the method as a function *)
 and pmethod f ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
-    f (Oprinter.method_name me_name) Oprinter.pattern_list me_params (exp 2) me_body
-    Oprinter.ptype me_typ
+    f (Oprinter.method_name me_name) (Oprinter.pattern_list ptype) me_params (exp 2) me_body
+    p_internal_type me_typ
 
 and constructor_for_kind = function
   | Deftypes.Tnode _ -> "Node"
@@ -404,9 +449,9 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
 	       k f (print_list_r method_name "" ";" "") m_name_list in
 
   (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a in@ %s@]@.@]"
+  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a in@ %s@]@]"
     f
-    Oprinter.pattern_list ma_params
+    (Oprinter.pattern_list ptype) ma_params
     (print_list_r def_instance_function "" "" "") ma_instances
     (palloc f ma_initialize ma_memories) ma_instances
     (print_list_r (pmethod f) """""") ma_methods
@@ -458,12 +503,14 @@ let def_types acc impl =
   | Eopen _ | Etypedecl _ -> acc     
 
 let implementation ff impl =
+  let print_n_list ff n_list =
+    Pp_tools.print_list_r Printer.shortname "(" "," ")" ff n_list in
   match impl with
-  | Eletdef(n_e_list) ->
-     let print ff (n, e) =
-       fprintf ff "@[%a = %a@]" Printer.shortname n (exp 0) e in
+  | Eletdef(n_list_e_list) ->
+     let print ff (n_list, e) =
+       fprintf ff "@[%a = %a@]" print_n_list n_list (exp 0) e in
      fprintf ff "@[<v 2>let %a@.@]"
-       (Pp_tools.print_list_l print "" "and " "") n_e_list
+       (Pp_tools.print_list_l print "" "and " "") n_list_e_list
   | Eopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->
