@@ -51,7 +51,7 @@ let ptype ff typ_exp =
     | Etypeconstr(ln, ty_list) ->
        fprintf ff "@[<hov2>%a@]%a"
                (print_list_r_empty (ptype 2) "("","")") ty_list 
-               Printer.longname ln
+               Printer.type_longname ln
     | Etypevec(ty_arg, _) ->
        fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
                Printer.longname (Lident.Modname Initial.array_ident)

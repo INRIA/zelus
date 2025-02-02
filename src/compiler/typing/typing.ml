@@ -48,18 +48,18 @@ module Env =
   end
 
 (* accesses in symbol tables for global identifiers *)
-let find_value loc f =
-  try find_value f
-  with Not_found -> error loc (Eglobal_undefined(Value, f))
-let find_type loc f =
-  try find_type f
-  with Not_found -> error loc (Eglobal_undefined(Type, f))
-let find_constr loc c =
-  try find_constr c
-  with Not_found -> error loc (Eglobal_undefined(Constr, c))
-let find_label loc l =
-  try find_label l
-  with Not_found -> error loc (Eglobal_undefined(Label, l))
+let find_value loc lname =
+  try Modules.find_value lname 
+  with Not_found -> error loc (Eglobal_undefined(Value, lname ))
+let find_type loc lname =
+  try Modules.find_type lname 
+  with Not_found -> error loc (Eglobal_undefined(Type, lname))
+let find_constr loc lname =
+  try Modules.find_constr lname
+  with Not_found -> error loc (Eglobal_undefined(Constr, lname))
+let find_label loc lname =
+  try Modules.find_label lname
+  with Not_found -> error loc (Eglobal_undefined(Label, lname))
 
 
 (* The main unification functions *)
@@ -776,7 +776,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
     | Eglobal ({ lname = lname } as g) ->
        let qualid, is_const, typ_instance, ty =
          global_with_instance e_loc lname in
-       g.lname <- Lident.Modname(qualid);
+       g.lname <- Modules.currentname (Lident.Modname(qualid));
        (**** g.typ_instance <- typ_instance; *)
        let actual_k = Tfun(if is_const then Tconst else Tstatic) in
        less_than e_loc actual_k expected_k;

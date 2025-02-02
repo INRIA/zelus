@@ -65,47 +65,47 @@ let findfile filename =
     
 let load_module modname =
   let name = String.uncapitalize_ascii modname in
+  try
+    let filename = findfile (name ^ ".zci") in
+    let ic = open_in_bin filename in
     try
-      let filename = findfile (name ^ ".zci") in
-      let ic = open_in_bin filename in
-        try
-          let m = input_value ic in
-            close_in ic;
-            m
-        with
-          | End_of_file | Failure _ ->
-              close_in ic;
-              Printf.eprintf "Corrupted compiled interface file %s.\n\
-                        Please recompile module %s first.\n" filename modname;
-              raise Error
+      let m = input_value ic in
+      close_in ic;
+      m
     with
-      | Cannot_find_file(filename) ->
-          Printf.eprintf "Cannot find the compiled interface file %s.\n"
-            filename;
-          raise Error
+    | End_of_file | Failure _ ->
+       close_in ic;
+       Printf.eprintf "Corrupted compiled interface file %s.\n\
+                       Please recompile module %s first.\n" filename modname;
+       raise Error
+  with
+  | Cannot_find_file(filename) ->
+     Printf.eprintf "Cannot find the compiled interface file %s.\n"
+       filename;
+     raise Error
             
 let find_module modname =
   try
     E.find modname modules.modules
   with
-      Not_found ->
-        let m = load_module modname in
-          modules.modules <- E.add modname m modules.modules;
-          m
+    Not_found ->
+    let m = load_module modname in
+    modules.modules <- E.add modname m modules.modules;
+    m
             
 let find where qualname =
-    let rec findrec ident = function
-      | [] -> raise Not_found
-      | m :: l ->
-          try { qualid = { qual = m.name; id = ident };
-                info = where ident m }
-          with Not_found -> findrec ident l in
+  let rec findrec ident = function
+    | [] -> raise Not_found
+    | m :: l ->
+       try { qualid = { qual = m.name; id = ident };
+             info = where ident m }
+       with Not_found -> findrec ident l in
       
-      match qualname with
-        | Modname({ qual = m; id = ident } as q) -> 
-            let current = if current.name = m then current else find_module m in
-            { qualid = q; info = where ident current }
-        | Name(ident) -> findrec ident (current :: modules.opened)
+  match qualname with
+  | Modname({ qual = m; id = ident } as q) -> 
+     let current = if current.name = m then current else find_module m in
+     { qualid = q; info = where ident current }
+  | Name(ident) -> findrec ident (current :: modules.opened)
             
 (* exported functions *)
 let open_module modname =

@@ -60,6 +60,14 @@ module Make (Info: INFO) =
       | Lident.Name(m) -> shortname ff m
       | Lident.Modname(qual) -> qualident ff qual
     
+    let type_longname ff ln =
+      (* type names from the standard lib are printed without the prefix *)
+      match ln with
+      | Lident.Name(m) -> shortname ff m
+      | Lident.Modname({ Lident.qual = m; Lident.id = s } as qual) ->
+         if m = Misc.name_of_stdlib_module then shortname ff s
+         else qualident ff qual
+
     let name ff n = shortname ff (Ident.name n)
     
     let source_name ff n = shortname ff (Ident.source n)
@@ -102,7 +110,7 @@ module Make (Info: INFO) =
       | Etypevar(s) -> fprintf ff "'%s" s
       | Etypeconstr(ln, ty_list) ->
          fprintf ff "@[<hov2>%a@,%a@]"
-           (print_list_r_empty ptype "("","")") ty_list longname ln
+           (print_list_r_empty ptype "("","")") ty_list type_longname ln
       | Etypetuple(ty_list) ->
          fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(" " * " ")") ty_list
       | Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res } ->
