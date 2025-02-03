@@ -34,7 +34,7 @@ let syntactic_equal si1 si2 =
   equal si1 si2
 
 (* normal form: some of products *)
-module SumOfMonomials =
+module SumOfProducts =
   struct
     (* a monomial [m] is an ordered product [x0^i0 x1^i1 ... xn^in] *)
     (* it is represented as a map : variable -> power *)
@@ -124,7 +124,7 @@ module SumOfMonomials =
   end
 
 (* main entries *)
-open SumOfMonomials.SumProduct
+open SumOfProducts.SumProduct
 
 let one = Sint 1
 let plus si1 si2 = Sop(Splus, si1, si2)

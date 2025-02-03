@@ -3,7 +3,7 @@
 (rule
  (target stdlib.zci)
  (deps stdlib.zli)
- (action (run ../../zeluc.exe -nostdlib %{deps})))
+ (action (run zeluc -nostdlib %{deps})))
 
 (rule
  (targets char.zci complex.zci int32.zci nativeint.zci
@@ -12,8 +12,8 @@
  (deps (:zli char.zli complex.zli int32.zli nativeint.zli
         int64.zli random.zli string.zli graphics.zli basics.zli
 	node.zli run.zli list.zli) stdlib.zci)
- (action (run ../../zeluc.exe %{zli})))
-
+ (action (run zeluc %{zli})))
+ 
 ;(rule
 ; (targets dump.zci dump.ml)
 ; (deps (:zls dump.zls) basics.zci list.zci)
@@ -34,6 +34,13 @@
 ; (public_name zelus)
 ; (wrapped false)
 ; (modules ztypes zls basics zlsolve lift dump solvers illinois odexx solvers defaultsolver zlsrun run node_base node))
+
+(library
+ (name zlstdlib)
+ (libraries unix)
+ (public_name zelus)
+ (wrapped false)
+ (modules ztypes))
 
 (install
  (package zelus)

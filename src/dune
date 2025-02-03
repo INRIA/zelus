@@ -228,16 +228,16 @@
 (executable
  (name zeluc)
   (modes (byte exe))
-  (modules
-	zeluc; the main function
-  )
   (libraries unix zelus.parser_lib zelus.global_lib zelus.zrun_lib
-  zelus.typing_lib zelus.causality_lib zelus.initialization_lib
-  zelus.rewrite_lib zelus.seqcode_lib zelus.compiler_lib)
+   zelus.typing_lib zelus.causality_lib zelus.initialization_lib
+   zelus.rewrite_lib zelus.seqcode_lib zelus.compiler_lib)
   (preprocess (pps ppx_deriving.show))
-  (promote (until-clean) (into ..)))
+  (modules
+    zeluc; the main function
+  )
+  (promote (until-clean) (into ../bin)))
 
 (install
  (package zelus)
  (section bin)
- (files (zelus.exe as zelus)))
+ (files (zeluc.exe as zeluc)))

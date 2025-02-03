@@ -1,17 +1,23 @@
-all: zeluc.exe
+all: ## Build the compiler and libraries
+	dune build src lib
 
-## Build the compiler and libraries
-## dune build src lib
+test: ## Launch the tests via dune
+	dune runtest --force
 
-zeluc.exe:
-	(cd src; dune build -- zeluc.exe);
-	dune build lib
+examples: ## Build all the examples
+	dune build examples
 
-tests:
-	dune test
+tools: ## Build the tools
+	dune build tools
 
-debug:
-	(cd src; dune build --debug-backtraces --debug-dependency-path -- zeluc.bc)
+#all: zeluc.exe
+
+#zeluc.exe:
+#	(cd src; dune build -- zeluc.exe);
+#	dune build lib
+#
+#tests:
+#	dune test
 
 # Local install to test the compiler
 install: zeluc.exe
@@ -24,7 +30,7 @@ opam-install: ## Install as an opam development package pinned to this directory
 opam-uninstall: ## Remove opam pin
 	opam pin remove zelus zelus-gtk
 
-clean:
+clean: ## Clean the entire project
 	dune clean;
 
 wc:
