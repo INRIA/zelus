@@ -44,8 +44,8 @@ let default_list =
        Aform.program;
    "typing", "New typing step: See below:", nothing,
    (fun _ p -> Typing.program Format.std_formatter false p); *)
-   "static", "Static reduction done. See below:", nothing,
-   Static.program;
+   "const", "Compile-time evaluation of constants done. See below:", nothing,
+   Const.program;
    "inline", "Inlining done. See below:", nothing,
    Inline.program;
    "typing", "New typing step: See below:", nothing,

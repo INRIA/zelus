@@ -158,7 +158,7 @@
     unsafe ; is an expression/equation unsafe
     mapfold ; generic mapfold
     markfunctions ; mark function calls to be inlined
-    static ; static reduction
+    const ; compile time evaluation of constants
     inline ; inlining of function calls
     automata ; rewrite automata into match/reset
     present ; rewrite present into match
