@@ -64,22 +64,34 @@ let node scopen (yl, yu, l) =
   Gtkplot.update_l (ls, Gtkplot.getValues l);
   sc
 
-let node scope (yl, yu, (n1, t1, v1)) =
+let node scope (yl, yu, n_1) =
+  let (n1, t1, v1) = n_1 in
   scopen (yl, yu, [ (n1, t1, v1) ])
 
-let node scope2 (yl, yu, (n1, t1, v1), (n2, t2, v2)) =
+let node scope2 (yl, yu, n_1, n_2) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
   scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2) ])
 
-let node scope3 (yl, yu, (n1, t1, v1), (n2, t2, v2), (n3, t3, v3)) =
+let node scope3 (yl, yu, n_1, n_2, n_3) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
+  let (n3, t3, v3) = n_3 in
   scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3) ])
 
-let node scope4 (yl, yu,
-                 (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4)) =
+let node scope4 (yl, yu, n_1, n_2, n_3, n_4) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
+  let (n3, t3, v3) = n_3 in
+  let (n4, t4, v4) = n_4 in
   scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3); (n4, t4, v4) ])
 
-let node scope5 (yl, yu,
-                 (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4),
-                 (n5, t5, v5)) =
+let node scope5 (yl, yu, n_1, n_2, n_3, n_4, n_5) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
+  let (n3, t3, v3) = n_3 in
+  let (n4, t4, v4) = n_4 in
+  let (n5, t5, v5) = n_5 in
   scopen (yl, yu,
     [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3); (n4, t4, v4); (n5, t5, v5) ])
 
