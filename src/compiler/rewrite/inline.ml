@@ -149,7 +149,7 @@ let implementation funs acc impl =
   impl, acc
 
 and open_t funs ({ genv } as acc) modname =
-  let genv = Genv.open_module genv modname in modname, { acc with genv }
+  let genv = Genv.try_to_open_module genv modname in modname, { acc with genv }
 
 (* all local names can restart from 0 *)
 (* to be done later; for the moment, starts from the current value *)

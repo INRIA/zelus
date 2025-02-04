@@ -53,13 +53,6 @@ let parse parsing_fun lexing_fun source_name =
 let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
                
-           
-let apply_with_close_out f o =
-  try
-    f o;
-    close_out o
-  with x -> close_out o; raise x
-
 let do_step comment output step input = 
   let o = step input in
   Debug.print_message comment;

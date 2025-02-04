@@ -44,8 +44,6 @@ let default_list =
        Aform.program;
    "typing", "New typing step: See below:", nothing,
    (fun _ p -> Typing.program Format.std_formatter false p); *)
-   "const", "Compile-time evaluation of constants done. See below:", nothing,
-   Const.program;
    "inline", "Inlining done. See below:", nothing,
    Inline.program;
    "typing", "New typing step: See below:", nothing,
@@ -111,7 +109,7 @@ let set_steps w =
   let set p s =
     match s with
     | "a" -> s_set := if p then s_all else S.empty
-    | "static" | "inline" | "der" | "period" | "disc"
+    | "inline" | "der" | "period" | "disc"
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 

@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -177,3 +177,9 @@ let internal_error message printer input =
 let not_yet_implemented message =
   Format.eprintf "@[Error: not yet implemented (%s)@.@]" message;
   raise Error
+
+let apply_with_close_out f o =
+  try
+    f o;
+    close_out o
+  with x -> close_out o; raise x

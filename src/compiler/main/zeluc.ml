@@ -76,7 +76,6 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t +<s> turn on step s\n\
     \t\t -<s> turn off step s\n\
     \t\t s can be: +a: takes all; -a: takes none\n\
-    \t\t static: static reduction \n\
     \t\t inline: inlining \n\
     \t\t der: normalize derivative \n\
     \t\t period: remove periods \n\

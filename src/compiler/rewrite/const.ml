@@ -12,7 +12,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(** reduce static expressions *)
+(** reduce constant expressions *)
 
 open Misc
 open Location
@@ -30,19 +30,20 @@ open Error
 (* must be pairwise distinct *)
 type ('info, 'ienv, 'value) env =
   { e_renaming: Ident.t Ident.Env.t; (* environment for renaming *)
-    e_values: 'value Ident.Env.t;  (* environment of static values *)
+    e_values: 'value Ident.Env.t;  (* environment of constant values *)
     e_gvalues: 'value Genv.genv;
-    (* global environment of static values *)
+    (* global environment of constant values *)
     e_defs: ('info, 'ienv) Zelus.implementation list;
-    (* global definitions of static values introduced during the reduction *)
+    (* global definitions of constant values introduced during the reduction *)
     (* the head of the list is the last added value *)
     e_exp: ('info, 'ienv) Zelus.exp Ident.Env.t;
     (* the expression associated to [x] *)
-    (* when [x] is a static value *)
+    (* when [x] is a constant value *)
   }
 
-(* All static expressions are reduced. Static expressions bound to variables *)
-(* that are later used in a non static expression are introduced as global *)
+(* All constant expressions are reduced. Constant expressions *)
+(* bound to variables *)
+(* that are later used in a non constant expression are introduced as global *)
 (* declarations *)
 
 (* add global definitions in the list of global declarations of the module *)
@@ -76,7 +77,7 @@ let build ({ e_renaming } as acc) env =
   env, { acc with e_renaming }
 
 let error { kind; loc } =
-  Format.eprintf "Error during static reduction\n";
+  Format.eprintf "Error during compile-time evaluation of constants\n";
   Error.message loc kind;
   raise Error
 
@@ -101,7 +102,8 @@ let no_leq loc =
 let rename_t ({ e_renaming } as acc) x = 
   try Env.find x e_renaming, acc
   with Not_found ->
-    Format.eprintf "Error during static reduction; unbound identifier %s"
+    Format.eprintf 
+      "Error during compile-time evaluation of constants; unbound identifier %s"
       (Ident.name x);
     raise Error
 
@@ -114,7 +116,7 @@ let write_t acc { dv; di; der } =
 
 let type_expression acc ty = ty, acc
 
-(* static evaluation of size expressions *)
+(* constant evaluation of size expressions *)
 let size_e { e_values } si =
   catch (Coiteration.size (Match.liftv e_values) si)
 
@@ -193,7 +195,7 @@ let rec expression acc ({ e_desc; e_loc } as e) =
   match e_desc with
   | Econst _ | Econstr0 _ | Eglobal _ -> e, acc
   | Evar(x) ->
-     (* If [x] has a static value, [x] is replaced by this value *)
+     (* If [x] has a constant value, [x] is replaced by this value *)
      (* either there exist a global definition for x *)
      if Env.mem x acc.e_exp then Env.find x acc.e_exp, acc
      else
@@ -203,7 +205,7 @@ let rec expression acc ({ e_desc; e_loc } as e) =
          let e, acc = value_t e_loc acc v in
          e, { acc with e_exp = Env.add x e acc.e_exp }
        else
-         (* otherwise, [x] is not static; it is renamed *)
+         (* otherwise, [x] is not constant; it is renamed *)
          let x, acc = rename_t acc x in
          { e with e_desc = Evar(x) }, acc
   | Elast({ id } as l) ->
@@ -234,7 +236,7 @@ let rec expression acc ({ e_desc; e_loc } as e) =
       { e with e_desc = Erecord_with(e_record, l_e_list) }, acc
   | Eapp ({ is_inline; f; arg_list } as a) ->
      (* if an application need to be inlined *)
-     (* it must be a static expression *)
+     (* it must be a compile-time constant expression *)
      let arg_list, acc = Util.mapfold expression acc arg_list in
      let f, acc = 
        if is_inline then let v = expression_e acc f in gvalue_t f.e_loc acc f v
@@ -529,12 +531,12 @@ and leq_e acc leq =
 
 and leq_t acc ({ l_kind; l_eq; l_env; l_loc } as leq) =
   match l_kind with
-  | Kconst | Kstatic ->
-     (* static evaluation *)
+  | Kconst ->
+     (* evaluation of compile-time expressions *)
      let l_env = leq_e acc leq in
      (* let l = Env.to_list l_env in *)
      no_leq l_loc, { acc with e_values = Env.append l_env acc.e_values }
-  | Kany -> 
+  | Kstatic | Kany -> 
      let l_env, acc = build acc l_env in
      let l_eq, acc = equation acc l_eq in
      { leq with l_eq; l_env }, acc
@@ -677,8 +679,7 @@ let letdecl_list loc acc d_names =
     if Env.mem id acc.e_exp then
       { acc with e_defs = impl name id (Env.find id acc.e_exp) :: acc.e_defs }
     else
-      (* values that are parameterized by static ones like functions *)
-      (* sizes are not emitted *)
+      (* no code is generated for constants *)
       if is_a_sizefun v then acc
       else
         let e, acc = value_t loc acc v in
@@ -690,11 +691,15 @@ let letdecl_list loc acc d_names =
 let implementation acc ({ desc; loc } as impl) =
   match desc with
   | Eopen(name) ->
-    (* add [name] in the list of known modules *)
-    { acc with e_gvalues = Genv.open_module acc.e_gvalues name;
+     (* add [name] in the list of known modules *)
+     (* temporary solution that uses two distinct table - one for the compiler *)
+     (* and one for the evaluation (zrun). A better solution is to store *)
+     (* values in the symbol table which already contain types *)
+     (* as done in Zelus version 2 *)
+     { acc with e_gvalues = Genv.try_to_open_module acc.e_gvalues name;
                e_defs = impl :: acc.e_defs }
   | Eletdecl { d_names; d_leq } ->
-    (* [d_leq] must be static *)
+    (* [d_leq] must be either constant or static *)
     let env = leq_e acc d_leq in
     (* for every entry [m, id] in [d_names] *)
     (* add the global declaration [m, e] if [id] is associated to [e] *)
@@ -704,12 +709,13 @@ let implementation acc ({ desc; loc } as impl) =
 let set_index_t n = Ident.set n
 let get_index_t () = Ident.get ()
 
-let program genv { p_impl_list; p_index } =
+let program otc genv { p_impl_list; p_index } =
   set_index_t p_index;
-  let { e_defs } =
+  let { e_gvalues; e_defs } =
     List.fold_left implementation { empty with e_gvalues = genv } p_impl_list in
+  apply_with_close_out (Genv.write e_gvalues) otc;
   (* definitions in [acc.e_defs] are in reverse order *)
   let p_impl_list = List.rev e_defs in
   let p_index = get_index_t () in
   { p_impl_list; p_index }
-  
+

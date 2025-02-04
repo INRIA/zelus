@@ -2423,8 +2423,8 @@ let catch e =
 
 (* The main functions *)
 
-let program genv { p_impl_list } = catch (fold implementation genv p_impl_list)
-
+let program genv { p_impl_list } = 
+  catch (fold implementation genv p_impl_list)
 
 (* run a unit process for [n_steps] steps *)
 let eval_n n_steps init step v_list =

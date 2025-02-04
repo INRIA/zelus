@@ -85,12 +85,6 @@ let scalar_interface modname filename =
 let interface modname filename =
   compile_interface parse_interface_file modname filename ".zli"
            
-let apply_with_close_out f o =
-  try
-    f o;
-    close_out o
-  with x -> close_out o; raise x
-
 let print_message comment =
   if !verbose then
     Format.fprintf Format.std_formatter
@@ -114,13 +108,15 @@ let write_implementation mlc p_obc =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     Format.pp_set_max_boxes mlc_ff max_int;
     Ocamlprinter.program mlc_ff p_obc in
-  apply_with_close_out write mlc;
+  Misc.apply_with_close_out write mlc;
   p_obc
 
 (* The main function for compiling a program *)
 let compile modname filename =
   let source_name = filename ^ ".zls"
   and obj_interf_name = filename ^ ".zci"
+  (* output file in which values are stored *)
+  and obj_name = filename ^ ".zlo" 
   and ml_name = filename ^ ".ml" in
   
   (* standard output for printing types *)
@@ -156,7 +152,7 @@ let compile modname filename =
               Printer.program (Initialization.program info_ff) p in
     (* Write the symbol table into the interface file *)
     let itc = open_out_bin obj_interf_name in
-    apply_with_close_out Modules.write itc;
+    Misc.apply_with_close_out Modules.write itc;
     if !Misc.typeonly then raise Stop;
 
     (* Mark functions calls to be inlined. This step uses type informations *)
@@ -171,6 +167,11 @@ let compile modname filename =
     (* Add Stdlib *)
     let genv0 = Genv.add_module genv0 (Primitives.stdlib_env ()) in
 
+    (* compile-time evaluation of definitions *)
+    let otc = open_out_bin obj_name in
+    let p = do_step "Compile-time evaluation done. See below:"
+              Printer.program (Const.program otc genv0) p in
+    
     let p = Rewrite.main print_message genv0 p !Misc.n_steps in
 
     if !Misc.rewriteonly then raise Stop;

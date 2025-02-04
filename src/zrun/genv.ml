@@ -78,8 +78,8 @@ let find_module modname genv =
     E.find modname genv.modules, genv
   with
     Not_found ->
-    let m = load_module modname in
-    m, { genv with modules = E.add modname m genv.modules }
+     let m = load_module modname in
+     m, { genv with modules = E.add modname m genv.modules }
             
 (* Find the associated value of [qualname] in the list of currently *)
 (* opened modules *)
@@ -94,7 +94,8 @@ let find where qualname ({ current; opened } as genv) =
   match qualname with
   | Modname({ qual; id } as q) -> 
      let current, genv =
-       if current.name = qual then current, genv else find_module qual genv in
+       if current.name = qual then current, genv 
+       else find_module qual genv in
      let info = where id current in
      { qualid = q; info = info }, genv
   | Name(ident) -> findrec ident (current :: opened)
@@ -106,6 +107,18 @@ let add_module genv m =
 let open_module genv modname =
   let m, genv = find_module modname genv in
   { genv with opened = m :: genv.opened }
+
+let try_to_open_module genv modname =
+  let exists modname =
+  try
+    let name = String.uncapitalize_ascii modname in
+    let _ = findfile (name ^ ".zlo") in true
+  with
+  | Cannot_find_file _ -> false in
+  if exists modname then 
+     let m, genv = find_module modname genv in
+     { genv with opened = m :: genv.opened }
+  else genv
       
 let initialize modname default_used_modules =
   let genv =
