@@ -10,7 +10,7 @@
   (menhir (modules parser) (infer true) (flags --explain --table)
   ))
 
-; all the modules necessary to parse
+; Parsing: all the modules necessary to parse
 (library
   (name parser_lib)
   (public_name zelus.parser_lib)
@@ -21,7 +21,7 @@
   )
   (libraries menhirLib))
 
-; all the modules necessary for building the ast after parsing
+; Global declarations: all the modules necessary for building the ast
 (library
   (name global_lib)
   (public_name zelus.global_lib)
@@ -193,7 +193,7 @@
    zelus.causality_lib zelus.zrun_lib)
 )
 
-;sequential code generation
+; generation of sequential code
  (library
   (name seqcode_lib)
   (public_name zelus.seqcode_lib)
@@ -225,6 +225,7 @@
   zelus.rewrite_lib zelus.seqcode_lib)
 )
 
+; The main entry
 (executable
  (name zeluc)
   (modes (byte exe))
@@ -237,6 +238,7 @@
   )
   (promote (until-clean) (into ../bin)))
 
+; Installation
 (install
  (package zelus)
  (section bin)

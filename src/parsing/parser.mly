@@ -164,6 +164,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token BY             /* "by" */
 %token CLOCK          /* "clock" */
 %token COLON          /* ":" */
+%token COLONCOLON     /* "::" */
 %token COMMA          /* "," */
 %token CONST          /* "const" */
 %token CONTINUE       /* "continue" */
@@ -295,6 +296,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %left INFIX0 LESSER GREATER EQUAL
 %nonassoc RESET
 %right INFIX1
+%right COLONCOLON
 %left INFIX2 PLUS SUBTRACTIVE MINUS PLUSPLUS
 %left DIV
 %left STAR INFIX3
@@ -1043,6 +1045,8 @@ expression_desc:
       { e }
   | e = expression_comma_list %prec prec_list
       { Etuple(List.rev e) }
+  | e1 = simple_expression COLONCOLON e2 = expression
+      { cons_desc e1 e2 ($startpos(e1)) ($endpos(e2)) }
   | e1 = simple_expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
   | i = is_inline RUN f = simple_expression e = simple_expression

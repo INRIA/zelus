@@ -10,17 +10,11 @@ examples: ## Build all the examples
 tools: ## Build the tools
 	dune build tools
 
-#all: zeluc.exe
-
-#zeluc.exe:
-#	(cd src; dune build -- zeluc.exe);
-#	dune build lib
-#
 #tests:
 #	dune test
 
-# Local install to test the compiler
-install: zeluc.exe
+# Local installation
+install:
 	mkdir -p _build/install/default/share/zelus
 	cp -f -r _build/default/lib/std/ _build/install/default/share/zelus
 

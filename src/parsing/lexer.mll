@@ -163,6 +163,7 @@ rule main = parse
   | "}"  { RBRACE }
   | "*"  { STAR }
   | ":"  { COLON }
+  | "::"  { COLONCOLON }
   | "="  { EQUAL }
   | "==" { EQUALEQUAL }
   | "&"  { AMPERSAND }

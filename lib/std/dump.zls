@@ -10,28 +10,36 @@ let square    = ()
 let linear    = ()
 let points x  = ()
 
-let fun getName (n, _, _) = n
-let fun getValue (_, _, v) = v
+let fun getName n = let (n, _, _) = n in n
+let fun getValue n = let (_, _, v) = n in v
 
 let node scopen (yl, yu, l) =
   let init names = List.map getName l in
   (names, List.map getValue l)
 
-let node scope (yl, yu, (n1, t1, v1)) =
+let node scope (yl, yu, n) =
+  let (n1, t1, v1) = n in
   let init names = [n1] in
   (names, [v1])
 
-let node scope2 (yl, yu, (n1, t1, v1), (n2, t2, v2)) =
+let node scope2 (yl, yu, n_1, n_2) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
   let init names = [n1; n2] in
   (names, [v1; v2])
 
-let node scope3 (yl, yu,
-                 (n1, t1, v1), (n2, t2, v2), (n3, t3, v3)) =
+let node scope3 (yl, yu, n_1, n_2, n_3) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
+  let (n3, t3, v3) = n_3 in
   let init names = [n1; n2; n3] in
   (names, [v1; v2; v3])
 
-let node scope4 (yl, yu,
-                 (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4)) =
+let node scope4 (yl, yu, n_1, n_2, n_3, n_4) =
+  let (n1, t1, v1) = n_1 in
+  let (n2, t2, v2) = n_2 in
+  let (n3, t3, v3) = n_3 in
+  let (n4, t4, v4) = n_4 in
   let init names = [n1; n2; n3; n4] in
   (names, [v1; v2; v3; v4])
 
@@ -42,37 +50,51 @@ let node windown (title, imaxt, t, l) =
   and init n = List.fold_left List.append [] (fst (List.split l))
   and init v = List.fold_left List.append [] (snd (List.split l))
 
-let node window (title, imaxt, t, (n1, v1)) = output_floats f (t :: v1)
+let node window (title, imaxt, t, n_1) = output_floats f (t :: v1)
   where
-  rec init f = open_out (title ^ ".out")
+  rec (n1, v1) = n_1 
+  and init f = open_out (title ^ ".out")
   and init x = output_quoted_strings f ("t" :: n1)
 
-let node window2 (title, imaxt, t, (n1, v1), (n2, v2)) =
+let node window2 (title, imaxt, t, n_1, n_2) =
     output_floats f (t :: List.append v1 v2) where
-  rec init f = open_out (title ^ ".out")
+  rec (n1, v1) = n_1
+  and (n2, v2) = n_2
+  and init f = open_out (title ^ ".out")
   and init x = output_quoted_strings f ("t" :: List.append n1 n2)
 
-let node window3 (title, imaxt, t, (n1, v1), (n2, v2), (n3, v3)) =
+let node window3 (title, imaxt, t, n_1, n_2, n_3) =
     output_floats f (t :: List.append v1 (List.append v2 v3))
   where
-  rec init f = open_out (title ^ ".out")
+  rec (n1, v1) = n_1
+  and (n2, v2) = n_2
+  and (n3, v3) = n_3
+  and init f = open_out (title ^ ".out")
   and init x = output_quoted_strings
                  f ("t" :: List.append n1 (List.append n2 n3))
 
-let node window4 (title, imaxt, t, (n1, v1), (n2, v2), (n3, v3), (n4, v4)) =
+let node window4 (title, imaxt, t, n_1, n_2, n_3, n_4) =
     output_floats f (t :: List.append v1 (List.append v2 (List.append v3 v4)))
   where
-  rec init f = open_out (title ^ ".out")
+  rec (n1, v1) = n_1
+  and (n2, v2) = n_2
+  and (n3, v3) = n_3
+  and (n4, v4) = n_4
+  and init f = open_out (title ^ ".out")
   and init x = output_quoted_strings
                  f ("t" :: List.append n1 (List.append n2 (List.append n3 n4)))
 
-let node window5 (title, imaxt, t,
-                  (n1, v1), (n2, v2), (n3, v3), (n4, v4), (n5, v5)) =
+let node window5 (title, imaxt, t, n_1, n_2, n_3, n_4, n_5) =
   output_floats f
     (t :: List.append v1 (List.append v2
 			    (List.append v3 (List.append v4 v5))))
   where
-  rec f = open_out (title ^ ".out")
+  rec (n1, v1) = n_1
+  and (n2, v2) = n_2
+  and (n3, v3) = n_3
+  and (n4, v4) = n_4
+  and (n5, v5) = n_5
+  and f = open_out (title ^ ".out")
   and x = output_quoted_strings f
       ("t" :: List.append n1
 	       (List.append n2 (List.append n3 (List.append n4 n5))))

@@ -30,6 +30,11 @@ let get_check_root rdir =
   | Either -> check_either
   | Ignore -> no_check
 
+let up = Up
+let down = Down
+let either = Either
+let ign = Ignore
+
 (* returns true if a signal has moved from zero to a stritly positive value *)
 let takeoff f0 f1 =
   let n = Zls.length f0 in
@@ -312,6 +317,8 @@ let find ({ g = g; bothf_valid = bothf_valid;
       end
     end
 
+let find s (dky, c) roots = find s (dky, c) roots
+ 
 let takeoff { bothf_valid = bothf_valid; f0; f1 } =
   bothf_valid && (takeoff f0 f1)
 								

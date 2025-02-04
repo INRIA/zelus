@@ -241,7 +241,7 @@ struct (* {{{1 *)
     done
 
   (* TODO: add stats: nfevals, nfailed, nsteps *)
-  let rec step s t_limit user_y =
+  let step s t_limit user_y =
     let { stop_time; min_step; abs_tol; rel_tol;
           sysf = f; time = t; h = h; hmax = hmax;
           k = k; y = y; yold = ynew; } = s in
