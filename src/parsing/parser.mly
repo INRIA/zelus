@@ -265,6 +265,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token <string> INFIX4
 %token EOF
 
+%right MINUSGREATER VFUN SFUN DFUN CFUN AFUN
 %nonassoc prec_result
 %left WHERE AND
 %nonassoc EMIT
@@ -290,7 +291,6 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %left RPAREN
 %nonassoc prec_minus_greater
 %nonassoc FBY
-%right MINUSGREATER VFUN SFUN DFUN CFUN AFUN 
 %left OR BARBAR
 %left AMPERSAND AMPERAMPER
 %left INFIX0 LESSER GREATER EQUAL
@@ -1065,7 +1065,7 @@ expression_desc:
     { Eop(Eatomic, [e]) }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
-  | e1 = expression MINUSGREATER e2 = expression %prec prec_minus_greater
+  | e1 = simple_expression MINUSGREATER e2 = expression %prec prec_minus_greater
       { Eop(Eminusgreater, [e1; e2]) }
   | UP e = expression
       { Eop(Eup, [e]) }
