@@ -677,12 +677,13 @@ module Make (Info: INFO) =
          fprintf ff "@[<v 2>type %a%s %a@]@."
            print_type_params ty_params name type_decl ty_decl
       | Eletdecl { d_names; d_leq } ->
+         let print_d_names ff d_names =
+           List.iter
+             (fun (n, id) ->
+               fprintf ff "@[<v0>(* globally defined name *)@ \
+                           let %s = %a@]" n name id) d_names in
          (* print the set of equations and the list of globally defined names *)
-         leq ff d_leq;
-         List.iter
-           (fun (n, id) ->
-             fprintf ff "@[<v 0>(* globally defined names *)@,\
-                         let %s = %a@]@." n name id) d_names
+         fprintf ff "@[<v0>%a@ %a@.@]" leq d_leq print_d_names d_names         
     
     let program ff { p_impl_list; p_index } = 
       fprintf ff "Index number = %d@." p_index;
