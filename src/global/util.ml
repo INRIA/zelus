@@ -63,6 +63,15 @@ let mapfold f acc l =
        y :: l, acc in
   maprec acc l
 
+let mapfold_opt f acc l =
+  let rec maprec acc = function
+    | [] -> [], acc
+    | x :: l ->
+       let y_opt, acc = f acc x in
+       let l, acc = maprec acc l in
+       (match y_opt with None -> l | Some(y) -> y :: l), acc in
+  maprec acc l
+
 (* duplicate a value into a list *)
 let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
 
