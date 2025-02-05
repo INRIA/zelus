@@ -1,4 +1,19 @@
-let node f x = 0 fby x
+let const f = 1
 
-let node g x =
-  let rec o = f (0 fby o) in o + x
+let g = 2
+
+let const h = fun x -> x, x
+
+let h2 =
+  let const m = h 1 in
+  m, m
+
+let const node f1<<n>>(x) = n + 0 -> pre x
+
+let const node f2 x = 0 fby x
+
+let node g3 x =
+  let rec o = f2 (0 fby o) in o + x
+
+let node g4 x =
+  let rec o = f2 (0 fby o) in o + x
