@@ -174,6 +174,8 @@ let rec eq_let_list leq_list eq =
 
 and eq_let leq eq =
   eqmake eq.eq_write (EQlet(leq, eq))
+let opt_eq_letdesc l_opt eq =
+  match l_opt with | None -> eq.eq_desc | Some(l) -> EQlet(l, eq)
 
 let leq eq_list =
   { l_kind = Kany; l_rec = true; l_eq = par eq_list; l_loc = no_location;
@@ -181,6 +183,8 @@ let leq eq_list =
 
 let e_let leq e = emake (Elet(leq, e))
 let e_letrec eq_list e = emake (Elet(leq eq_list, e))
+let opt_letdesc l_opt e =
+  match l_opt with | None -> e.e_desc | Some(l) -> Elet(l, e)
 
 let pat_of_vardec_make { var_name } = pat_make var_name
 
