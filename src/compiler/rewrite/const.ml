@@ -46,13 +46,13 @@ type ('info, 'ienv, 'value) env =
 (* that are later used in a non constant expression are introduced as global *)
 (* declarations *)
 
-(* add global definitions in the list of global declarations of the module *)
-let leq id e = 
-  { l_rec = false; l_kind = Kstatic; l_eq = Aux.id_eq id e; 
-    l_loc = Location.no_location; l_env = Env.singleton id Typinfo.no_ienv }
+(* add a global definition [let id = e; [name, id]] *)
 let impl name id e = 
-    { desc = Eletdecl { d_names = [name, id]; d_leq = leq id e };
-      loc = e.e_loc }
+  let leq id e = 
+    { l_rec = false; l_kind = Kstatic; l_eq = Aux.id_eq id e; 
+      l_loc = Location.no_location; l_env = Env.singleton id Typinfo.no_ienv } in
+  { desc = Eletdecl { d_names = [name, id]; d_leq = leq id e };
+    loc = e.e_loc }
     
 let empty =
   { e_renaming = Ident.Env.empty;
@@ -249,9 +249,9 @@ let rec expression acc ({ e_desc; e_loc } as e) =
      let e_ty, acc = expression acc e_ty in
      { e with e_desc = Etypeconstraint(e_ty, ty) }, acc
   | Elet(l, e_let) ->
-     let l, acc = leq_t acc l in
+     let l_opt, acc = leq_t acc l in
      let e_let, acc = expression acc e_let in
-     { e with e_desc = Elet(l, e_let) }, acc
+     { e with e_desc = Aux.opt_letdesc l_opt e_let }, acc
   | Elocal(eq_b, e) ->
      let eq_b, acc = block acc eq_b in
      let e, acc = expression acc e in
@@ -514,14 +514,14 @@ and equation acc ({ eq_desc; eq_write; eq_loc } as eq) =
        let e_c, acc = expression acc e_c in
        { eq with eq_desc = EQreset(eq, e_c) }, acc
     | EQlet(leq, eq) ->
-       let leq, acc = leq_t acc leq in
+       let leq_opt, acc = leq_t acc leq in
        let eq, acc = equation acc eq in
-       { eq with eq_desc = EQlet(leq, eq) }, acc
+       { eq with eq_desc = Aux.opt_eq_letdesc leq_opt eq }, acc
     | EQsizefun _ ->
        error { Error.kind = Eshould_be_static; loc = eq_loc } in
   { eq with eq_write }, acc
 
-and slet acc leq_list = Util.mapfold leq_t acc leq_list
+and slet acc leq_list = Util.mapfold_opt leq_t acc leq_list
 
 (* eval a definition *)
 and leq_e acc leq =
@@ -535,11 +535,12 @@ and leq_t acc ({ l_kind; l_eq; l_env; l_loc } as leq) =
      (* evaluation of compile-time expressions *)
      let l_env = leq_e acc leq in
      (* let l = Env.to_list l_env in *)
-     no_leq l_loc, { acc with e_values = Env.append l_env acc.e_values }
+     None, { acc with e_values = Env.append l_env acc.e_values }
   | Kstatic | Kany -> 
+     (* equations are not evaluated *)
      let l_env, acc = build acc l_env in
      let l_eq, acc = equation acc l_eq in
-     { leq with l_eq; l_env }, acc
+     Some { leq with l_eq; l_env }, acc
 
 and scondpat acc ({ desc = desc } as scpat) =
   match desc with
@@ -670,40 +671,40 @@ and gvalue_t loc acc ({ e_desc } as e) v =
   if immediate e then e, acc
   else value_t loc acc v
 
-let letdecl_list loc acc d_names =
-  let is_a_sizefun v =
-    match v with | Value.Vsizefix _ | Value.Vsizefun _ -> true | _ -> false in
-  let letdecl acc (name, id) =
-    let v = Env.find id acc.e_values in
-    let acc = { acc with e_gvalues = Genv.add name v acc.e_gvalues } in
-    if Env.mem id acc.e_exp then
-      { acc with e_defs = impl name id (Env.find id acc.e_exp) :: acc.e_defs }
-    else
-      (* no code is generated for constants *)
-      if is_a_sizefun v then acc
-      else
-        let e, acc = value_t loc acc v in
-        { acc with e_exp = Env.add id e acc.e_exp;
-                   e_defs = impl name id e :: acc.e_defs } in
-  List.fold_left letdecl acc d_names
-    
+let letdecl_list loc acc d_leq_opt d_names =
+  let add_gvalue ({ e_values; e_gvalues } as acc) (name, id) =
+    try
+      let v = Env.find id e_values in
+      { acc with e_gvalues = Genv.add name v e_gvalues }
+    with
+    | Not_found -> acc in
+  match d_leq_opt with
+  | None ->
+     (* all names define compile-time constant values *)
+     (* no code is generated but the global environment is updated *)
+     List.fold_left add_gvalue acc d_names
+  | Some(d_leq) ->
+     let d_names =
+       List.map
+         (fun (name, id) -> let id, _ = rename_t acc id in name, id) d_names in
+     { acc with e_defs =
+                  { desc = Eletdecl { d_leq; d_names }; loc } :: acc.e_defs }
+
 (* The main function. Reduce every definition *)
 let implementation acc ({ desc; loc } as impl) =
   match desc with
   | Eopen(name) ->
      (* add [name] in the list of known modules *)
-     (* temporary solution that uses two distinct table - one for the compiler *)
-     (* and one for the evaluation (zrun). A better solution is to store *)
-     (* values in the symbol table which already contain types *)
-     (* as done in Zelus version 2 *)
+     (* load it if it exists *)
+     (* This is a temporary solution: it uses two distinct tables *)
+     (* one for storing type informations; one for storing values. I *)
+     (* should take the solution used version 2, with a unique table *)
      { acc with e_gvalues = Genv.try_to_open_module acc.e_gvalues name;
-               e_defs = impl :: acc.e_defs }
+                e_defs = impl :: acc.e_defs }
   | Eletdecl { d_names; d_leq } ->
-    (* [d_leq] must be either constant or static *)
-    let env = leq_e acc d_leq in
-    (* for every entry [m, id] in [d_names] *)
-    (* add the global declaration [m, e] if [id] is associated to [e] *)
-    letdecl_list loc { acc with e_values = Env.append env acc.e_values } d_names
+     (* [d_leq] must be either constant or static *)
+     let d_leq_opt, acc = leq_t acc d_leq in
+     letdecl_list loc acc d_leq_opt d_names
   | Etypedecl _ -> { acc with e_defs = impl :: acc.e_defs }
 
 let set_index_t n = Ident.set n
