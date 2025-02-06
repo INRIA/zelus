@@ -102,20 +102,21 @@ let expression funs ({ genv } as acc) e =
           "Inline error: unbound global %s at function call\n" 
           (Lident.modname lname);
         raise Error in
-      begin match info with
-     | Vclosure
-       { c_funexp = { f_args; f_body; f_env }; c_genv } ->
-        let e, acc =
-          local_in
-            funs f_env f_args arg_list { acc with genv = c_genv } f_body in
-        e, { acc with genv }
-     | _ -> e, acc
-     end
+    begin match info with
+    | Vclosure
+      { c_funexp = { f_args; f_body; f_env }; c_genv } ->
+       let e, acc =
+         local_in
+           funs f_env f_args arg_list { acc with genv = c_genv } f_body in
+       e, { acc with genv }
+    | _ -> e, acc
+    end
   | Eapp { f = { e_desc = Efun { f_args; f_body; f_env } }; arg_list } ->
      local_in funs f_env f_args arg_list acc f_body
   | _ -> e, acc
 
-(* check that an expression is either a lambda or a global name; the *)
+(*
+  (* check that an expression is either a lambda or a global name; the *)
 (* global environment only contains lambdas. Update [acc] *)
 (* this solution is fragile and may be changed later. It expect that *)
 (* all lambdas to be inlined are global and named ([letdef x = fun ...]) *)
@@ -147,8 +148,9 @@ let implementation funs acc impl =
        value_and_update_env acc name e
     | _ -> raise Fallback in
   impl, acc
+ *)
 
-and open_t funs ({ genv } as acc) modname =
+let open_t funs ({ genv } as acc) modname =
   let genv = Genv.try_to_open_module genv modname in modname, { acc with genv }
 
 (* all local names can restart from 0 *)
@@ -161,8 +163,7 @@ let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
     { Mapfold.defaults with
-      expression; global_funs; set_index; get_index; implementation; 
-      open_t } in
+      expression; global_funs; set_index; get_index; open_t } in
   let p, _ = Mapfold.program_it funs { empty with genv } p in
   p
 
