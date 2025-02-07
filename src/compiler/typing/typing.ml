@@ -167,7 +167,7 @@ let rec expansive { eq_desc } =
   | EQeq(_, e) -> exp e
   | EQand { eq_list } -> List.exists expansive eq_list
   | _ -> true
-       
+
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
 type state = { mutable s_reset: bool option; s_parameters: typ list }
@@ -918,6 +918,9 @@ and operator expected_k h loc op e_list =
           let ty = new_var () in
           Tnode(Tdiscrete), [ty; ty], ty
        | Erun _ ->
+          (* [run f e] forces [f] to be of type [t1 -k-> t2] *)
+          (* with [expected_k <= k] and [k = D or C] *)
+          stateful loc expected_k;
           let ty_arg = new_var () in
           let ty_res = new_var () in
           let ty_f = Types.arrow_type expected_k None ty_arg ty_res in
@@ -1416,7 +1419,8 @@ and for_index_t expected_k for_index_opt =
 
 and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
-    List.fold_left (for_out_t expected_k h) (Env.empty, Tfun(Tconst)) for_out in
+    List.fold_left
+      (for_out_t expected_k size_opt h) (Env.empty, Tfun(Tconst)) for_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
@@ -1434,7 +1438,7 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   let name = match for_out_name with | None -> for_name | Some(x) -> x in
   Defnames.union (Defnames.singleton name) acc
 
-and for_out_t expected_k h (acc_h, acc_k)
+and for_out_t expected_k size_opt h (acc_h, acc_k)
       { desc = ({ for_name; for_out_name; for_init; for_default } as v); loc } =
   let ty = Types.new_var () in
   let actual_k_default =
@@ -1457,7 +1461,7 @@ and for_out_t expected_k h (acc_h, acc_k)
       (fun x -> (* xi out x *)
         (* find the type of [x] in [h] *)
         let ty_x = Types.instance (typ_of_var loc h x) in
-        let ty_out = Types.typ_vec ty in
+        let ty_out = Types.vec_opt ty size_opt in
         unify loc ty_out ty_x; ty_out) ty for_out_name in
     (* annotation *)
     v.for_info <- Typinfo.set_type v.for_info ty_out;

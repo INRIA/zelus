@@ -45,7 +45,7 @@ type error =
   | Estate_arity_clash of Ident.t * int * int
   | Estate_unbound of Ident.t
   | Estate_initial
-  | Ekind_not_combinatorial
+  | Ekind_should_not_be_combinatorial
   | Ekind_clash of kind * kind
   | Esome_labels_are_missing
   | Eequation_is_missing of Ident.t
@@ -178,9 +178,9 @@ let message loc kind =
       eprintf
         "@[%aType error: the initial state cannot be parameterized.@.@]"
         output_location loc
-  | Ekind_not_combinatorial ->
+  | Ekind_should_not_be_combinatorial ->
       eprintf
-        "@[%aType error: this expression should be combinatorial.@.@]"
+        "@[%aType error: this expression should not be combinatorial.@.@]"
         output_location loc
  | Ekind_clash(actual_kind, expected_kind) ->
        eprintf
