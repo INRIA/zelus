@@ -1,7 +1,9 @@
+let const rec ff<<n>> = ff<<n-1>>
+    
 let const f<<n>>(f)(x) returns (y)
   forward(n) (xi in x) returns (yi out y)
     do yi = f xi done
-    
+
 (* let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward[i] (xi in x) returns (yi out y)
     do yi = f(xi) + i done *)

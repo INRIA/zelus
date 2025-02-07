@@ -879,7 +879,7 @@ and size_apply loc expected_k h f si_list =
     | [] -> ty_fct, actual_k_fct
     | si :: si_list ->
        let arg_k, n_opt, ty_arg, ty_res =
-         try Types.filter_arrow (Tfun(Tstatic)) ty_fct
+         try Types.filter_arrow (Tfun(Tconst)) ty_fct
          with Unify -> error loc (Eapplication_of_non_function) in
        (* [ty_arg] must be an integer *)
        unify loc 
