@@ -1,4 +1,6 @@
-let const rec ff<<n>> = ff<<n-1>>
+let rec ff<<n>> =
+  match n with
+  | 0 -> 0 | _ -> ff<<n-1>> + 1
     
 let const f<<n>>(f)(x) returns (y)
   forward(n) (xi in x) returns (yi out y)
