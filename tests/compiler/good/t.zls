@@ -1,3 +1,7 @@
+(*
+let const node gg<<n>>(x:[n]'a) returns (o:[n]'a)
+  local r do o = pre o and r = o ++ [|1|] done
+
 let rec ff<<n>> =
   match n with
   | 0 -> 0 | _ -> ff<<n-1>> + 1
@@ -5,6 +9,7 @@ let rec ff<<n>> =
 let const f<<n>>(f)(x) returns (y)
   forward(n) (xi in x) returns (yi out y)
     do yi = f xi done
+*)
 
 (* let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward[i] (xi in x) returns (yi out y)
@@ -13,23 +18,25 @@ let const f<<n>>(f)(x) returns (y)
 (* let node f0 g x = run g x
 
 let const fix (const f) x = let rec y = f x y in y
+*)
 
-let fix2 f x = let rec y = f x y in y
+let fix f x = let rec y = f x y in y
 
 let g x = fix (fun x y -> x) x
 
-let pid (p, i, d)(integr)(deriv) =
-  node (e) returns (u)
-    u = run integr (i *. e) +. run deriv(d *. e) +. p *. e
+let pid (integr)(deriv) =
+  node (h, p, i, d, e) returns (u)
+    u = run integr (h, 0.0, i *. e) +. run deriv (h, d *. e) +. p *. e
 
-let h = 0.1
+let node pid2 (integr)(deriv)(h, p, i, d, e) returns (u)
+    u = run integr (h, 0.0, i *. e) +. run deriv (h, d *. e) +. p *. e
 
-let mon_pid(p, i, d) (e) =
- pid(p,i,d)
-    (node x' -> let rec x = 0.0 fby (x *. h *. x') in x)
-     (node x -> (x -. pre(x)) /. h)
+let node mon_pid (e)=
+ pid
+    (node (h, x0, x') returns (x) do x = 0.0 fby (x *. h *. x') done)
+    (node (h, x) -> (x -. pre(x)) /. h) e
 
-let pid_ = mon_pid(0.1,0.1,0.1) *)
+let node pid_ e = mon_pid(0.1, 0.1, 0.1, 0.1, e)
 
     
 
