@@ -90,7 +90,7 @@ let kind_message = function
 let message loc kind =
   begin match kind with
   | Evar_undefined(name) ->
-     eprintf "@[%aTyping error: The value identifier %s is unbound.@.@]"
+     eprintf "@[%aType error: The value identifier %s is unbound.@.@]"
              output_location loc (Ident.source name)
   | Emissing(s) ->
      eprintf "@[%aType error: no equation is given for name %s.@.@]"
