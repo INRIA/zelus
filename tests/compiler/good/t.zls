@@ -1,3 +1,6 @@
+let const rec f<<n>>(x:[n]int) returns (y:[n]int)
+    if n = 0 then y = x else y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
+
 (*
 let const node gg<<n>>(x:[n]'a) returns (o:[n]'a)
   local r do o = pre o and r = o ++ [|1|] done
@@ -11,15 +14,18 @@ let const f<<n>>(f)(x) returns (y)
     do yi = f xi done
 *)
 
-(* let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
+(*
+let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward[i] (xi in x) returns (yi out y)
-    do yi = f(xi) + i done *)
+    do yi = f(xi) + i done
+    *)
 
 (* let node f0 g x = run g x
 
 let const fix (const f) x = let rec y = f x y in y
 *)
 
+(*
 let fix f x = let rec y = f x y in y
 
 let g x = fix (fun x y -> x) x
@@ -37,6 +43,6 @@ let node mon_pid (e)=
     (node (h, x) -> (x -. pre(x)) /. h) e
 
 let node pid_ e = mon_pid(0.1, 0.1, 0.1, 0.1, e)
-
+*)
     
 
