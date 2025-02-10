@@ -26,6 +26,14 @@ type 'a node =
     mutable t_level: int; (* level for generalisation *)
   }
 
+type size = 
+  | Sint of int
+  | Svar of Ident.t
+  | Sfrac of { num: size; denom: int }
+  | Sop of op * size * size
+
+and op = Splus | Sminus | Smult
+
 type typ = typ_desc node
 
 and typ_desc =
@@ -38,14 +46,6 @@ and typ_desc =
   | Tlink of typ
 
 and is_singleton = bool
-
-and size = 
-  | Sint of int
-  | Svar of Ident.t
-  | Sfrac of { num: size; denom: int }
-  | Sop of op * size * size
-
-and op = Splus | Sminus | Smult
 
 and abbrev =
   | Tnil
