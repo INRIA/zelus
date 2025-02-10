@@ -1,5 +1,60 @@
 let const rec f<<n>>(x:[n]int) returns (y:[n]int)
-    if n = 0 then y = x else y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
+    (* if n = 0 then y = x else *)
+    y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
+
+let const rec or_<<n>>(x:[n]bool) returns (y)
+    if n = 0 then y = false
+    else y = x.(0) default false || (or_<<n-1>>(x.(0 .. n-2)))
+
+let const rec or__1<<n>>(x:[n]bool) returns (y)
+    if n = 0 then y = false
+    else if n = 1 then y = x.(n-1)
+    else
+      y = (or__1<<n/2>>(x.(0 .. (n/2 - 1)))) or
+          (or__1<<n/2>>(x.((n/2) .. (n - 1))))
+
+n/2 -> n_2
+
+n/2 <= n
+
+n/2) * 2 = ...
+
+or_1 : (n:int) -> [n]bool -> [n]bool)
+
+n_2 - 1 - 0 + 1 = n_2
+
+(n_2:int) -> [n_2]bool -> [n_2]bool
+
+let const rec or__1<<n>>(x:[n]bool) returns (y)
+    sizeof n of
+    | 0 -> y = false
+    | 2k -> (or__1<<k>>(x.(0 .. k - 1)))) or
+            (or__1<<k>>(x.(k .. 2k-1)))
+    | 2k+1 -> x.(2k) or or_1<<2k>>(x.(0 .. 2k))
+
+null n f g 0 -> 
+pair n f g
+
+let const rec or__1<<n>>(x:[n]bool) returns (y)
+    sizeof n of
+    | 0 -> y = false
+    | 3k -> (or__1<<k>>(x.(0 .. k - 1)))) or
+            (or__1<<k>>(x.(k .. 2k-1)))
+    | 2k+1 -> x.(2k) or or_1<<2k>>(x.(0 .. 2k))
+
+
+    if n = 0 then y = false
+    else if n = 1 then y = x.(n-1)
+    else
+      y = (or__1<<n/2>>(x.(0 .. (n/2 - 1)))) or
+          (or__1<<n/2>>(x.((n/2) .. (n - 1))))
+
+
+let const rec or__<<2*n>>(x:[2*n]bool) returns (y)	        
+    if n = 0 then y = false
+    else if n = 2 then y = x.(0) or x.(1)
+    else y = (or__<<n>>(x.(0 .. n-1))) or
+             (or__)<<n>>(x.(n .. 2*n-1))
 
 (*
 let const node gg<<n>>(x:[n]'a) returns (o:[n]'a)

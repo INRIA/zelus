@@ -82,7 +82,7 @@ module SumOfProducts =
         let zero = M.empty
         let is_zero sp = M.is_empty sp
         
-        let const v = M.singleton Product.one v
+        let const v = if v = 0 then zero else M.singleton Product.one v
 
         let var x = M.singleton (Product.var x) 1
         
@@ -90,7 +90,7 @@ module SumOfProducts =
         let sum sp1 sp2 = M.fold sum_m sp1 sp2
         
         let mult_m m p sp =
-          M.fold (fun m0 p0 sp0 -> sum_m (Product.mult m m0) (p+p0) sp0) zero sp
+          M.fold (fun m0 p0 sp0 -> sum_m (Product.mult m m0) (p*p0) sp0) sp zero
         let mult sp1 sp2 = M.fold mult_m sp1 sp2
 
         let compare sp1 sp2 = M.compare Stdlib.compare sp1 sp2

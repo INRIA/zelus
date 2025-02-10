@@ -223,7 +223,7 @@ let message loc kind =
       output_location loc
  | Esize_clash(actual_size, expected_size) ->
       eprintf "@[%aType error: this expression is equal to@ %a,@ \
-               but is expected to have equal to@ %a.@.@]"
+               but is expected to be equal to@ %a.@.@]"
         output_location loc
         Ptypes.output_size actual_size
         Ptypes.output_size expected_size

@@ -73,6 +73,10 @@ let equal_sizes loc expected_size actual_size =
   if not (Sizes.equal expected_size actual_size)
   then error loc (Esize_clash(actual_size, expected_size))
 
+let less_eq_sizes loc left_size right_size =
+  if not (Sizes.less_eq left_size right_size)
+  then error loc (Esize_clash(left_size, right_size))
+
 let less_sizes loc left_size right_size =
   if not (Sizes.less left_size right_size)
   then error loc (Esize_clash(left_size, right_size))
@@ -1047,7 +1051,7 @@ and array_operator expected_k h loc op e_list =
      let si1 = size_of_exp i1 in
      let si2 = size_of_exp i2 in
      let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
-     less_sizes a.e_loc si_i si;
+     less_eq_sizes a.e_loc si_i si;
      Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
   | Eupdate, [a; i; v] ->
      let ty_a, actual_k = expression expected_k h a in
