@@ -327,10 +327,13 @@ let arrow_type loc expected_k name_ty_list ty_res =
   let name_ty_list, fv = arg name_ty_list (Types.fv S.empty ty_res) in
   Types.arrow_type_list expected_k name_ty_list ty_res
 
-let entry k sort = Deftypes.entry k sort (Deftypes.scheme (Types.new_var ()))
+(* add a new entry in the typing environment *)
+let typ_entry k sort ty = Deftypes.entry k sort (Deftypes.scheme ty)
+
+let fresh_typ_entry k sort = typ_entry k sort (Types.new_var ())
  
 let env_of_pattern expected_k acc pat =
-  let entry x acc = Env.add x (entry expected_k Sort_val) acc in
+  let entry x acc = Env.add x (fresh_typ_entry expected_k Sort_val) acc in
   let rec pattern acc { pat_desc } =
     match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
@@ -361,7 +364,9 @@ and env_of_statepat expected_k spat =
     | Estate0pat _ -> acc
     | Estate1pat(_, l) -> List.fold_left (fun acc n -> S.add n acc) acc l in
   let acc = env_of S.empty spat in
-  S.fold (fun n acc -> Env.add n (entry expected_k Sort_val) acc) acc Env.empty
+  S.fold
+    (fun n acc -> Env.add n (fresh_typ_entry expected_k Sort_val) acc)
+    acc Env.empty
 
 let env_of_pattern expected_k pat = env_of_pattern expected_k Env.empty pat  
 
@@ -371,12 +376,57 @@ let intro_sort expected_k =
   | Tfun _ -> Sort_val
   | Tnode _ -> Sort_mem Deftypes.empty_mem
     
+(* extract a type skeleton from an expression. Limited to functions *)
+let rec type_skeleton_of_expression expected_k { e_desc } =
+  let type_skeleton_of_vardec { var_typeconstraint } =
+    match var_typeconstraint with
+    | None -> Types.new_var ()
+    | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
+  let type_skeleton_of_result expected_k { r_desc } =
+    match r_desc with
+    | Exp(e) -> type_skeleton_of_expression expected_k e
+    | Returns { b_vars } ->
+       type_of_n_list type_skeleton_of_vardec b_vars in
+  let arg_list f_args =
+    let arg v_list =
+      let ty = type_of_n_list type_skeleton_of_vardec v_list in
+      let n_opt =
+        (* a dependence is allowed only when the input is a list made *)
+        (* of a single argument. This may change in the future *)
+        match v_list with | [ { var_name } ] -> Some(var_name) | _ -> None in
+      (n_opt, ty) in
+    List.map arg f_args in
+  match e_desc with
+  | Efun { f_vkind; f_kind; f_args; f_body; f_loc } ->
+     let expected_body_k = Interface.kindtype f_kind in
+     let expected_args_v = Interface.vkindtype f_vkind in
+     let actual_k, expected_body_k =
+       kind_of_funexp f_loc expected_k expected_args_v expected_body_k in
+     let name_ty_arg_list = arg_list f_args in
+     let ty_res = type_skeleton_of_result expected_k f_body in
+     arrow_type f_loc expected_body_k name_ty_arg_list ty_res
+  | _ -> Types.new_var ()
+
 (* introduce a typing environment according to [expected_k] for an equation *)
-let env_of_equation expected_k { eq_write } =
-  let n_set = Defnames.names S.empty eq_write in
-  S.fold
-    (fun n acc -> Env.add n (entry expected_k (intro_sort expected_k)) acc)
-    n_set Env.empty
+(* a pass extracts type annotations given for size functions defined in [eq] *)
+let env_of_equation expected_k ({ eq_write } as eq) =
+  let env_of_names h n_set =
+    S.fold
+      (fun n acc ->
+        Env.add n (fresh_typ_entry expected_k (intro_sort expected_k)) acc)
+      n_set h in
+  let rec env h { eq_desc; eq_write } =
+    match eq_desc with
+    | EQsizefun { sf_id; sf_id_list; sf_e; sf_loc } ->
+       let ty_res = type_skeleton_of_expression expected_k sf_e in
+       let ty = 
+         arrow_type sf_loc (Tfun(Tconst)) 
+           (List.map (fun n -> (Some(n), Initial.typ_int)) sf_id_list) ty_res in
+       Env.add sf_id (typ_entry expected_k (intro_sort expected_k) ty) h
+    | EQand { eq_list } ->
+       List.fold_left env h eq_list 
+    | _ -> env_of_names h (Defnames.names S.empty eq_write) in
+  env Env.empty eq
 
 (* Typing a pateq *)
 let pateq h { desc; loc } ty_e =
@@ -962,7 +1012,7 @@ and array_operator expected_k h loc op e_list =
     try Types.filter_vec actual_ty
     with
     | Unify ->
-       error loc (Etype_clash(Types.typ_vec (Types.new_var ()), actual_ty)) in
+       error loc Esize_of_vec_is_undetermined in
   match op, e_list with
   | Earray_list, _ ->
      let ty = Types.new_var () in
@@ -1034,7 +1084,7 @@ and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc } as body) =
         match v_list with | [ { var_name } ] -> Some(var_name) | _ -> None in
       (n_opt, ty), (Env.append h_arg h, Env.append h_arg acc_h) in
     Util.mapfold arg (h, Env.empty) f_args in
-  
+ 
   let expected_body_k = Interface.kindtype f_kind in
   let expected_args_v = Interface.vkindtype f_vkind in
   let actual_k, expected_body_k =
@@ -1247,12 +1297,14 @@ and block_eq expected_k h ({ b_vars; b_body = { eq_write } as b_body } as b) =
   b.b_write <- defined_names;
   h0, h, defined_names, Kind.sup actual_k_h0 actual_k_body
 
-and leq expected_k h ({ l_kind; l_eq; l_loc } as l) =
+and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
   (* in a static or constant context all introduced names inherits it *)
   let expected_k = Kind.inherits expected_k (Interface.vkindtype l_kind) in
   Misc.push_binding_level ();
   let h0 = env_of_equation expected_k l_eq in
   (* because names are unique, typing of [l_eq] is done with [h+h0] *)
+  (* otherwise, one would need two distinct type environments; one for *)
+  (* names defined on the left-hand side of equations; one for right-hand side *)
   let new_h = Env.append h0 h in
   let _, actual_k = equation expected_k new_h l_eq in
   Misc.pop_binding_level ();
@@ -1261,6 +1313,7 @@ and leq expected_k h ({ l_kind; l_eq; l_loc } as l) =
   (* check that the type for every entry has the right kind *)
   check_type_is_in_kind l_loc h0 (Kind.vkind l_kind);
   l.l_env <- h0;
+  let new_h = Env.append h0 h in
   new_h, actual_k
 
 and leqs expected_k h l =
