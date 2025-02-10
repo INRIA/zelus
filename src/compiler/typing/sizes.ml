@@ -118,6 +118,8 @@ module SumOfProducts =
           | Sint(i) -> const i
           | Svar(x) -> var x
           | Sop(Splus, si1, si2) -> sum (make si1) (make si2)
+          | Sop(Sminus, si1, si2) ->
+             sum (make si1) (mult (const (-1)) (make si2))
           | Sop(Smult, si1, si2) -> mult (make si1) (make si2)
           | _ -> assert false
       end
@@ -126,13 +128,19 @@ module SumOfProducts =
 (* main entries *)
 open SumOfProducts.SumProduct
 
+let zero = Sint 0
 let one = Sint 1
 let plus si1 si2 = Sop(Splus, si1, si2)
-let minus si1 si2 = Sop(Splus, si1, Sop(Smult, Sint(-1), si2))
+let minus si1 si2 = Sop(Sminus, si1, si2)
 let mult si1 si2 = Sop(Smult, si1, si2)
 
 (* decisions *)
-let equal si1 si2 = equal (make si1) (make si2)
+let equal si1 si2 =
+  let e1 = make si1 in
+  let e2 = make si2 in
+  let s1 = explicit e1 in
+  let s2 = explicit e2 in
+  equal (make si1) (make si2)
 (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
 let less si1 si2 = positive (make (minus si2 (plus si1 one)))
 let less_eq si1 si2 = positive (make (minus si2 si1))
@@ -142,3 +150,7 @@ let less_eq si1 si2 = positive (make (minus si2 si1))
 (* represent the polynomial as a value of the inductive type *)
 (* pi = xi.pk + pj where j => k /\ i > k, with Pk a polynomial. It is the *)
 (* result of the Euclidian division of pi by variable xi. *)
+
+let _ =
+  assert (equal one (plus zero one));
+  assert (equal zero (plus one (minus zero one)))
