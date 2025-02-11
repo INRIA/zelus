@@ -75,6 +75,7 @@
   (wrapped false)
   (modules
     genames ; generate fresh names
+    defsizes ; definition of sizes
     deftypes ; definition of types
     defcaus ; definition of causality types
     definit ; definition of initialisation types

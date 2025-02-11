@@ -20,6 +20,7 @@ open Misc
 open Lident
 open Global
 open Modules
+open Defsizes
 open Deftypes
 open Misc
    

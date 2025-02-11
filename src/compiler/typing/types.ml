@@ -17,6 +17,7 @@
 open Misc
 open Ident
 open Lident
+open Defsizes
 open Deftypes
 open Global
 open Modules
@@ -25,7 +26,11 @@ open Genames
    
 (* making sizes *)
 let size_int v = Sint(v)
+let size_one = size_int 1
 let size_op o si1 si2 = Sop(o, si1, si2)
+let size_plus si1 si2 = size_op Splus si1 si2
+let size_minus si1 si2 = size_op Sminus si1 si2
+let size_mult si1 si2 = size_op Smult si1 si2
 let size_frac num denom = Sfrac { num; denom }
 let size_var n = Svar(n)
 

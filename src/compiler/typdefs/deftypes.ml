@@ -26,21 +26,13 @@ type 'a node =
     mutable t_level: int; (* level for generalisation *)
   }
 
-type size = 
-  | Sint of int
-  | Svar of Ident.t
-  | Sfrac of { num: size; denom: int }
-  | Sop of op * size * size
-
-and op = Splus | Sminus | Smult
-
 type typ = typ_desc node
 
 and typ_desc =
   | Tvar
   | Tproduct of typ list
   | Tconstr of Lident.qualident * typ list * abbrev ref
-  | Tvec of typ * size
+  | Tvec of typ * Defsizes.t
   | Tarrow of { ty_kind: kind; ty_name_opt: Ident.t option;
                 ty_arg: typ; ty_res: typ } 
   | Tlink of typ

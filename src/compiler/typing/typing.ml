@@ -451,7 +451,9 @@ let rec size expected_k h { desc; loc } =
       Types.size_var x
   | Size_op(op, s1, s2) ->
      let op = match op with
-       | Size_plus -> Splus | Size_minus -> Sminus | Size_mult -> Smult in
+       | Size_plus -> Defsizes.Splus
+       | Size_minus -> Defsizes.Sminus
+       | Size_mult -> Defsizes.Smult in
      let s1 = size expected_k h s1 in
      let s2 = size expected_k h s2 in
      Types.size_op op s1 s2
@@ -1547,11 +1549,8 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
      let si_left = size_of_exp e_left in
      let si_right = size_of_exp e_right in
      let actual_size =
-       (* [e1 + (-1 * e0) + 1] *)
-       Types.size_op Splus si_right
-         (Types.size_op Splus
-            (Types.size_op Smult (Types.size_int (-1)) si_left)
-            (Types.size_int 1)) in
+       (* [e1 - e0 + 1] *)
+       Types.size_plus (Types.size_minus si_right si_left) Types.size_one in
      let size_opt =
        match size_opt with
        | None -> Some(actual_size)

@@ -12,11 +12,11 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* a decision algorithm for equality between sizes; very basic *)
-(* sizes are of the form:  s ::= s + s | s * s | xi | v *)
+(* a decision algorithm for equality between sizes; basic *)
+(* sizes are of the form:  s ::= s + s | s * s | xi | v | xi div v | xi mod v *)
 
 open Ident
-open Deftypes
+open Defsizes
 
 exception Equal
 

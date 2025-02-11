@@ -19,6 +19,7 @@ open Location
 open Lident
 open Zelus
 open Global
+open Defsizes
 open Deftypes
 open Modules
 open Format
@@ -160,16 +161,16 @@ let typ_of_type_expression typ_vars typ =
        Types.vec (typrec ty) (size si)
   and size { desc } =
     match desc with
-    | Size_var(n) -> Deftypes.Svar(n)
-    | Size_int(i) -> Deftypes.Sint(i)
+    | Size_var(n) -> Defsizes.Svar(n)
+    | Size_int(i) -> Defsizes.Sint(i)
     | Size_frac { num; denom } ->
-       Deftypes.Sfrac { num = size num; denom }
+       Defsizes.Sfrac { num = size num; denom }
     | Size_op(op, si1, si2) ->
        let op =
 	 match op with
-         | Size_plus -> Deftypes.Splus | Size_minus -> Deftypes.Sminus
-         | Size_mult -> Deftypes.Smult in
-       Deftypes.Sop(op, size si1, size si2) in
+         | Size_plus -> Defsizes.Splus | Size_minus -> Defsizes.Sminus
+         | Size_mult -> Defsizes.Smult in
+       Defsizes.Sop(op, size si1, size si2) in
   typrec typ
 	    
 let rec type_expression_of_typ typ =

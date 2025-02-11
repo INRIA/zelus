@@ -200,7 +200,7 @@ let out_of n env =
 
 (* Translate size expressions *)
 let rec exp_of_sizetype si =
-  let open Deftypes in
+  let open Defsizes in
   match si with
   | Sint(i) -> Oaux.int_const i
   | Svar(n) -> Evar { is_mutable = false; id = n }
