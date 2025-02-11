@@ -55,7 +55,7 @@ type error =
   | Esize_parameter_must_be_a_name
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
-  | Esize_clash of size * size
+  | Esize_clash of Sizes.cmp * size * size
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Econstr_arity of Lident.t * int * int							 
 exception Error of Location.t * error
@@ -221,11 +221,15 @@ let message loc kind =
     eprintf
       "@[%aType error: this is not a valid size expression.@.@]"
       output_location loc
- | Esize_clash(actual_size, expected_size) ->
-      eprintf "@[%aType error: this expression is equal to@ %a,@ \
-               but is expected to be equal to@ %a.@.@]"
+ | Esize_clash(cmp, actual_size, expected_size) ->
+    let s = match cmp with
+      | Sizes. Eq -> "equal to" | Sizes.Lt -> "strictly less than"
+      | Sizes.Lte -> "less of equal to" in
+    eprintf "@[%aType error: this expression is equal to@ %a,@ \
+               but is expected to be %s@ %a.@.@]"
         output_location loc
         Ptypes.output_size actual_size
+        s
         Ptypes.output_size expected_size
  | Esize_parameter_cannot_be_generalized(n, ty) ->
      eprintf

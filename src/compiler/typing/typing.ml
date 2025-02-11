@@ -69,17 +69,9 @@ let unify loc expected_ty actual_ty =
   with
     | Types.Unify -> error loc (Etype_clash(actual_ty, expected_ty))
 
-let equal_sizes loc expected_size actual_size =
-  if not (Sizes.equal expected_size actual_size)
-  then error loc (Esize_clash(actual_size, expected_size))
-
-let less_eq_sizes loc left_size right_size =
-  if not (Sizes.less_eq left_size right_size)
-  then error loc (Esize_clash(left_size, right_size))
-
-let less_sizes loc left_size right_size =
-  if not (Sizes.less left_size right_size)
-  then error loc (Esize_clash(left_size, right_size))
+let compare_sizes cmp loc left_size right_size =
+  if not (Sizes.compare cmp left_size right_size)
+  then error loc (Esize_clash(cmp, Sizes.norm left_size, Sizes.norm right_size))
 
 let unify_expr expr expected_ty actual_ty =
   try
@@ -1035,7 +1027,7 @@ and array_operator expected_k h loc op e_list =
      let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki = expect expected_k h i Initial.typ_int in
      let si_i = size_of_exp i in
-     less_sizes i.e_loc si_i si;
+     compare_sizes Sizes.Lt i.e_loc si_i si;
      ty, Kind.sup actual_k actual_ki
   | Eget_with_default, [a; i; default] ->
      let ty_a, actual_k = expression expected_k h a in
@@ -1051,7 +1043,7 @@ and array_operator expected_k h loc op e_list =
      let si1 = size_of_exp i1 in
      let si2 = size_of_exp i2 in
      let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
-     less_eq_sizes a.e_loc si_i si;
+     compare_sizes Sizes.Lte a.e_loc si_i si;
      Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
   | Eupdate, [a; i; v] ->
      let ty_a, actual_k = expression expected_k h a in
@@ -1564,7 +1556,7 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
        match size_opt with
        | None -> Some(actual_size)
        | Some(expected_size) ->
-          equal_sizes loc expected_size actual_size; size_opt in
+          compare_sizes Sizes.Eq loc expected_size actual_size; size_opt in
      let acc_h = Env.add id
                    (Deftypes.entry expected_k Deftypes.Sort_val 
                       (Deftypes.scheme Initial.typ_int)) acc_h in
