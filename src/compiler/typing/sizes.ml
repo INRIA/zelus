@@ -14,7 +14,6 @@
 
 (* a decision algorithm for equality between sizes; basic *)
 (* sizes are of the form:  s ::= s + s | s * s | xi | v | xi div v | xi mod v *)
-
 open Ident
 open Defsizes
 
@@ -42,7 +41,7 @@ module SumOfProducts =
       | None -> Some(p)
       | Some(p0) -> let p = p+p0 in if p = 0 then None else Some(p)
 
-    module Product =
+    module Product = (* (Ident: Map.OrderedType) = *)
       struct
         module M =
           Map.Make (struct type t = Ident.t let compare = Stdlib.compare end)
@@ -73,7 +72,7 @@ module SumOfProducts =
     (* a multi-variate polynomial [sp] is an ordered sum of products [p . mi] *)
     (* [p0 . m0 + ... + pn . mn] where [pi] is an integer and [mi] a monomial *)
     (* [sp] is represented as a map *)
-    module SumProduct =
+    module SumProduct = (* (Element: Map.OrderedType) = *)
       struct
         module M =
           Map.Make (struct type t = Product.t let compare = Product.compare end)
@@ -145,7 +144,17 @@ let compare cmp si1 si2 =
   (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
   | Lt -> positive (make (minus si2 (plus si1 one)))
   | Lte -> positive (make (minus si2 si1))
-  
+
+(* substitution *)
+let rec subst si env =
+  match si with
+  | Sint _ -> si
+  | Svar(id) ->
+     let si = try Env.find id env with | Not_found -> si in
+     si
+  | Sop(op, si1, si2) -> Sop(op, subst si1 env, subst si2 env)
+  | Sfrac { num; denom } -> Sfrac { num = subst num env; denom }
+
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)
 (* represent the polynomial as a value of the inductive type *)
