@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* a decision algorithm for equality between sizes; basic *)
-(* sizes are of the form:  s ::= s + s | s * s | xi | v | xi div v | xi mod v *)
+(* sizes are of the form:  s ::= s + s | s * s | xi | v | xi/v | x mod v *)
 open Ident
 open Defsizes
 
@@ -41,7 +41,7 @@ module SumOfProducts =
       | None -> Some(p)
       | Some(p0) -> let p = p+p0 in if p = 0 then None else Some(p)
 
-    module Product = (* (Ident: Map.OrderedType) = *)
+    module Product =
       struct
         module M =
           Map.Make (struct type t = Ident.t let compare = Stdlib.compare end)
@@ -72,7 +72,7 @@ module SumOfProducts =
     (* a multi-variate polynomial [sp] is an ordered sum of products [p . mi] *)
     (* [p0 . m0 + ... + pn . mn] where [pi] is an integer and [mi] a monomial *)
     (* [sp] is represented as a map *)
-    module SumProduct = (* (Element: Map.OrderedType) = *)
+    module SumProduct =
       struct
         module M =
           Map.Make (struct type t = Product.t let compare = Product.compare end)
@@ -92,6 +92,8 @@ module SumOfProducts =
           M.fold (fun m0 p0 sp0 -> sum_m (Product.mult m m0) (p*p0) sp0) sp zero
         let mult sp1 sp2 = M.fold mult_m sp1 sp2
 
+        let minus sp1 sp2 = sum sp1 (mult (const (-1)) sp2)
+
         let compare sp1 sp2 = M.compare Stdlib.compare sp1 sp2
 
         let equal sp1 sp2 = compare sp1 sp2 = 0
@@ -110,22 +112,82 @@ module SumOfProducts =
           List.fold_left
             (fun acc (m, p) -> sum acc (mult p (Product.explicit m)))
             (Sint(0)) v_list
+      end
 
+    (* a size expression is : s ::= s + s | s - s | s * s | xi | v 
+                                | s / v | s mod v *)
+    (* the result of / and mod are represented by fresh variables such that *)
+    (* s / k = p with k * p + r = s and s mod k = r *)
+    (* we do a strong over approximation, forgetting that *)
+    (* 0 <= p and 0 <= r < k *)
+    (* we maintain a table (s, k) -> p, r *)
+    module Sizes =
+      struct
+        module S =
+          Set.Make
+            (struct type t = SumProduct.t let compare = SumProduct.compare end)
+        module Table =
+          Map.Make
+            (struct type t = SumProduct.t * int
+                    let compare (sp1, k1) (sp2, k2) =
+                      let v = SumProduct.compare sp1 sp2 in
+                      if v = 0 then Stdlib.compare k1 k2 else v
+             end)
+        type t =
+          { sp: SumProduct.t; (* a polynomal = sum of products *)
+            eqs: S.t; (* a set of polynomial equal to zero *)
+          }
+                
         (* from explicit to implicit *)
-        let rec make si =
+        let rec make table si =
+          let open SumProduct in
           match si with
-          | Sint(i) -> const i
-          | Svar(x) -> var x
-          | Sop(Splus, si1, si2) -> sum (make si1) (make si2)
+          | Sint(i) -> const i, table
+          | Svar(x) -> var x, table
+          | Sop(Splus, si1, si2) ->
+             let e1, table = make table si1 in
+             let e2, table = make table si2 in
+             sum e1 e2, table
           | Sop(Sminus, si1, si2) ->
-             sum (make si1) (mult (const (-1)) (make si2))
-          | Sop(Smult, si1, si2) -> mult (make si1) (make si2)
-          | _ -> assert false
+             let e1, table = make table si1 in
+             let e2, table = make table si2 in
+             minus e1 e2, table
+          | Sop(Smult, si1, si2) ->
+             let e1, table = make table si1 in
+             let e2, table = make table si2 in
+             mult e1 e2, table
+          | Sfrac { num; denom } ->
+             let e, table = make table num in
+             (* add entry [(e, denom) -> p, r] with [p], [r] fresh variables] *)
+             (* if the entry does not exist already *)
+             try
+               let p, r = Table.find (e, denom) table in
+               var p, table
+             with
+             | Not_found ->
+                let p = Ident.fresh "n" in
+                let r = Ident.fresh "n" in
+                var p, Table.add (e, denom) (p, r) table
+
+        let make si =
+          let open SumProduct in
+          let sp, table = make Table.empty si in
+          let eqs =
+            Table.fold
+              (fun (sp, k) (p, r) acc ->
+                (* sp = k * p + r *)
+                S.add (minus sp (sum (var p) (var r))) acc) table S.empty in
+          { sp; eqs }
+
+        (* for the moment, we do not exploit equality constraints [eqs] *)
+        let zero { sp } = SumProduct.is_zero sp
+        let positive { sp } = SumProduct.positive sp
       end
   end
 
 (* main entries *)
 open SumOfProducts.SumProduct
+open SumOfProducts.Sizes
 
 let zero = Sint 0
 let one = Sint 1
@@ -135,15 +197,18 @@ let mult si1 si2 = Sop(Smult, si1, si2)
 
 type cmp = Eq | Lt | Lte
 
-let norm si = explicit (make si)
+let norm si =
+  let { sp } = SumOfProducts.Sizes.make si in
+  SumOfProducts.SumProduct.explicit sp
 
 (* decisions *)
 let compare cmp si1 si2 =
   match cmp with
-  | Eq -> equal (make si1) (make si2)
+  | Eq -> SumOfProducts.Sizes.zero (make (minus si1 si2))
   (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
-  | Lt -> positive (make (minus si2 (plus si1 one)))
-  | Lte -> positive (make (minus si2 si1))
+  | Lt -> SumOfProducts.Sizes.positive (make (minus si2 (plus si1 one)))
+  | Lte ->
+     SumOfProducts.Sizes.positive (make (minus si2 si1))
 
 (* substitution *)
 let rec subst si env =
