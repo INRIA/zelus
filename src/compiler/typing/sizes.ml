@@ -12,8 +12,8 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* a decision algorithm for equality between sizes; basic *)
-(* sizes are of the form:  s ::= s + s | s * s | xi | v | xi/v | x mod v *)
+(* a decision algorithm for equality/inequalities between sizes *)
+(* sizes are of the form:  s ::= s + s | s * s | xi | v | xi/v *)
 open Ident
 open Defsizes
 
@@ -114,18 +114,16 @@ module SumOfProducts =
             (Sint(0)) v_list
       end
 
-    (* a size expression is : s ::= s + s | s - s | s * s | xi | v 
-                                | s / v | s mod v *)
-    (* the result of / and mod are represented by fresh variables such that *)
-    (* s / k = p with k * p + r = s and s mod k = r *)
-    (* we do a strong over approximation, forgetting that *)
-    (* 0 <= p and 0 <= r < k *)
-    (* we maintain a table (s, k) -> p, r *)
+    (* a size expression is : s ::= s + s | s - s | s * s | xi | v | s / v *)
+    (* the result of / is represented by fresh variables such that *)
+    (* s / k = p with k * p + r = s with 0 <= r < k *)
     module Sizes =
       struct
+        (* sets of equalities and inequalities *)
         module S =
           Set.Make
             (struct type t = SumProduct.t let compare = SumProduct.compare end)
+        (* a map : [(s, k) -> p, r] *)
         module Table =
           Map.Make
             (struct type t = SumProduct.t * int
