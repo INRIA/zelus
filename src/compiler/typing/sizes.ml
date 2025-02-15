@@ -119,7 +119,7 @@ module SumOfProducts =
     (* s / k = p with k * p + r = s with 0 <= r < k *)
     module Sizes =
       struct
-        (* sets of equalities and inequalities *)
+        (* sets of equalities *)
         module S =
           Set.Make
             (struct type t = SumProduct.t let compare = SumProduct.compare end)
@@ -131,9 +131,10 @@ module SumOfProducts =
                       let v = SumProduct.compare sp1 sp2 in
                       if v = 0 then Stdlib.compare k1 k2 else v
              end)
+        (* s with P1(x1,...,) = 0 /\ ... /\ P(x1 >= 0 /\ ... *)
         type t =
           { sp: SumProduct.t; (* a polynomal = sum of products *)
-            eqs: S.t; (* a set of polynomial equal to zero *)
+            eqs: S.t; (* a set of polynomials that are equal to zero *)
           }
                 
         (* from explicit to implicit *)
