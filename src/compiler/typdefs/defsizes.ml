@@ -15,16 +15,17 @@
 (* definition of sizes and size constraints *)
 
 type t = 
-  | Sint of int
-  | Svar of Ident.t
-  | Sfrac of { num: t; denom: int }
-  | Sop of op * t * t
+  | Sint of int (* [42] *)
+  | Svar of Ident.t (* [n] *)
+  | Sfrac of { num: t; denom: int } (* [s / 42] *)
+  | Sop of op * t * t (* [s * s | s + s | s - s] *)
 
 and op = Splus | Sminus | Smult
 
 (* a size constraint *)
 type eq =
-  { rel: rel; lhs: t; rhs: t } (* t rel e *)
+  | Rel of { rel: rel; lhs: t; rhs: t } (* t rel e *)
+  | Let of (Ident.t * t) list * eq
 
 and rel = Eq | Lt | Lte
 
