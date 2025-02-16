@@ -118,9 +118,9 @@
     patternsig ; check totality of pattern matching
     matching ; check totality of pattern matching
     typerrors ; type errors;
-    typing ; the main typing functions
+    typing ; typing
     )
-  (libraries zelus.global_lib zelus.typdefs_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib)
 )
 
 ; causality analysis

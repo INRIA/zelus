@@ -354,7 +354,6 @@ let abbreviation q abbrev ty_list =
     List.iter2 subst new_arg_list ty_list;
     new_ty
 
-
 (* same constructed types *)
 let same_types n1 n2 = (n1 = n2)
 

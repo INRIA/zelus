@@ -12,7 +12,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* definition of sizes *)
+(* definition of sizes and size constraints *)
 
 type t = 
   | Sint of int
@@ -21,4 +21,27 @@ type t =
   | Sop of op * t * t
 
 and op = Splus | Sminus | Smult
+
+(* a size constraint *)
+type eq =
+  { rel: rel; lhs: t; rhs: t } (* t rel e *)
+
+and rel = Eq | Lt | Lte
+
+(* the stack of size constraints *)
+type c_stack = eq list Stack.t
+
+(* the stack of constraints *)
+let c_stack : c_stack = Stack.create ()
+
+(* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
+(* the body is typed with an empty constraint pushed on to of [c_stack] *)
+
+(* empty the stack of constraints *)
+let clear () = Stack.clear c_stack
+
+(* push an empty constraint *)
+let push () = Stack.push [] c_stack
+(* pop/restore the previous one *)
+let pop () = Stack.pop c_stack
 

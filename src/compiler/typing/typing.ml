@@ -1589,6 +1589,8 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   let entry acc id = 
     Env.add id (Deftypes.entry (Tfun(Tconst)) Sort_val 
                   (Deftypes.scheme Initial.typ_int)) acc in
+  (* push an empty size constraint *)
+  Defsizes.push ();
   let h_env = List.fold_left entry Env.empty sf_id_list in
   let h = Env.append h_env h in
   let ty_res, _ = expression (Tfun(Tconst)) h sf_e in
@@ -1599,6 +1601,8 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   let expected_ty = def sf_loc h sf_id in
   (* warning: this part should be without using [unify] *)
   unify_expr sf_e expected_ty actual_ty;
+  (* pop the current size constraint *)
+  let c = Defsizes.pop () in
   Defnames.singleton sf_id, Tfun(Tconst)
 
 (* the main entry functions *)
@@ -1649,6 +1653,8 @@ let implementation ff is_first impl =
 
 (* the main entry functions *)
 let program ff is_first ({ p_impl_list } as p) =
+  (* empty the stack of size constraints *)
+  Defsizes.clear ();
   let p_impl_list = Util.iter (implementation ff is_first) p_impl_list in
   { p with p_impl_list }
 
