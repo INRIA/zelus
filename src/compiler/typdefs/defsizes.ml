@@ -20,6 +20,8 @@ type t =
   | Sfrac of { num: t; denom: int } (* [s / 42] *)
   | Sop of op * t * t (* [s * s | s + s | s - s] *)
 
+(* add [div], [mod], [^] (2^n)] *)
+
 and op = Splus | Sminus | Smult
 
 (* a size constraint *)
