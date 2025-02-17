@@ -65,6 +65,25 @@ let rec trivial env sc =
          (fun acc (id, s) -> Env.add id (eval env s) acc) env id_e_list in
      trivial env sc
 
+(* free variables *)
+let rec fv bounded acc si =
+  match si with
+  | Sint _ -> acc
+  | Svar(n) -> if S.mem n bounded || S.mem n acc then acc else S.add n acc
+  | Sfrac { num } -> fv bounded acc num
+  | Sop(_, si1, si2) -> fv bounded (fv bounded acc si1) si2
+
+let rec fv_constraints bounded acc sc =
+  match sc with
+  | Empty -> acc
+  | And(sc_list) -> List.fold_left (fv_constraints bounded) acc sc_list
+  | Rel { lhs; rhs } -> fv bounded (fv bounded acc lhs) rhs
+  | Let(id_e_list, sc) ->
+     let acc = List.fold_left (fun acc (_, s) -> fv bounded acc s) acc id_e_list in
+     let bounded =
+       List.fold_left (fun acc (id, _) -> S.add id bounded) bounded id_e_list in
+     fv_constraints bounded acc sc
+
 (* normal form: some of products *)
 module SumOfProducts =
   struct

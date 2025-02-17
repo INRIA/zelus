@@ -76,21 +76,18 @@ let rec fv bounded acc { t_desc } =
   | Tvar -> acc
   | Tproduct(ty_list) | Tconstr(_, ty_list, _) ->
      List.fold_left (fv bounded) acc ty_list
-  | Tvec(ty_arg, size) -> fv bounded (fv_size bounded acc size) ty_arg
+  | Tvec(ty_arg, size) -> fv bounded (Sizes.fv bounded acc size) ty_arg
   | Tarrow { ty_name_opt; ty_arg; ty_res } ->
      let acc =
        match ty_name_opt with
        | None -> fv bounded acc ty_res
        | Some(n) -> fv (S.add n bounded) acc ty_res in
      fv bounded acc ty_arg
+  | Tsizefun { id_list; ty; constraints } ->
+     let bounded = List.fold_left (fun acc id -> S.add id acc) bounded id_list in
+     Sizes.fv_constraints bounded (fv bounded acc ty) constraints
   | Tlink(ty_link) -> fv bounded acc ty_link
 
-and fv_size bounded acc si =
-  match si with
-  | Sint _ -> acc
-  | Svar(n) -> if S.mem n bounded || S.mem n acc then acc else S.add n acc
-  | Sfrac { num } -> fv_size bounded acc num
-  | Sop(_, si1, si2) -> fv_size bounded (fv_size bounded acc si1) si2
 
 let fv acc ty = fv S.empty acc ty
 
@@ -113,7 +110,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
 	  let m = Ident.fresh (Ident.source n) in
 	  Some(m), subst_in_type (Env.add n (Svar m) senv) ty_res in
      arrow_type ty_kind ty_name_opt ty_arg ty_res
-
+  
 and subst_in_size senv si =
   match si with
   | Sint _ -> si
@@ -420,7 +417,27 @@ let rec unify expected_ty actual_ty =
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
            if not (Sizes.compare Sizes.Eq si1 si2) then raise Unify
-	| _ -> raise Unify
+	| Tsizefun { id_list = id_list1; ty = ty1; constraints = Empty },
+          Tsizefun { id_list = id_list2; ty = ty2; constraints = Empty } when
+               (List.length id_list1) = (List.length id_list2) ->
+           if List.for_all2
+                (fun id1 id2 -> Ident.compare id1 id2 = 0) id_list1 id_list2
+           then unify ty1 ty2
+           else
+             let id_fresh_list =
+               List.map (fun id -> Ident.fresh (Ident.source id)) id_list1 in
+             let env1 =
+               List.fold_left2
+                 (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
+                 Env.empty id_list1 id_fresh_list in
+             let env2 =
+               List.fold_left2
+                 (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
+                 Env.empty id_list2 id_fresh_list in
+             let ty1 = subst_in_type env1 ty1 in
+             let ty2 = subst_in_type env2 ty2 in
+             unify ty1 ty2              
+        | _ -> raise Unify
 
 let filter_product arity ty =
   let ty = typ_repr ty in
