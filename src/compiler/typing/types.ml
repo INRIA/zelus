@@ -45,6 +45,7 @@ let vec ty e = make (Tvec(ty, e))
 let vec_opt ty size_opt =
   match size_opt with
   | None -> ty | Some(size) -> vec ty size
+let sizefun id_list ty constraints =  make (Tsizefun { id_list; ty; constraints })
 let rec vec_n n ty size_opt =
   if n <= 0 then ty else vec_n (n-1) (vec_opt ty size_opt) size_opt
 let arrow_type ty_kind ty_name_opt ty_arg ty_res =
@@ -110,7 +111,18 @@ let rec subst_in_type senv ({ t_desc } as ty) =
 	  let m = Ident.fresh (Ident.source n) in
 	  Some(m), subst_in_type (Env.add n (Svar m) senv) ty_res in
      arrow_type ty_kind ty_name_opt ty_arg ty_res
-  
+  | Tsizefun { id_list; ty; constraints } ->
+     let id_fresh_list =
+       List.map (fun id -> Ident.fresh (Ident.source id)) id_list in
+     let senv =
+       List.fold_left2
+         (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
+         senv id_list id_fresh_list in
+     sizefun id_fresh_list (subst_in_type senv ty)
+       (subst_in_constraints senv constraints)
+
+and subst_in_constraints senv constraints = constraints
+
 and subst_in_size senv si =
   match si with
   | Sint _ -> si
