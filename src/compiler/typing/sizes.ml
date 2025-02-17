@@ -17,7 +17,7 @@
 open Ident
 open Defsizes
 
-exception Equal
+exception Fail
 
 (* syntactic equatity *)
 let syntactic_equal si1 si2 =
@@ -31,6 +31,39 @@ let syntactic_equal si1 si2 =
       Sfrac { num = s2; denom = d2 } -> (d1 = d2) && (equal s1 s2)
     | _ -> false in
   equal si1 si2
+
+(* evaluation of sizes *)
+let rec eval env s =
+  match s with
+  | Sint(i) -> i
+  | Sfrac { num; denom} ->
+      let v = eval env num in
+      v / denom
+  | Svar(x) ->
+      let v =
+        try Env.find x env with Not_found -> raise Fail in
+      v
+  | Sop(op, s1, s2) ->
+     let v1 = eval env s1 in
+     let v2 = eval env s2 in
+     let op = match op with | Splus -> (+) | Smult -> ( * ) | Sminus -> (-) in
+     op v1 v2
+
+(* evaluation of constraints *)
+let rec trivial env sc =
+  match sc with
+  | Empty -> true
+  | Rel { rel; lhs; rhs } ->
+     let v1 = eval env lhs in
+     let v2 = eval env rhs in
+     let op = match rel with | Eq -> (=) | Lt -> (<=) | Lte -> (<=) in
+     op v1 v2
+  | And(sc_list) -> List.for_all (trivial env) sc_list
+  | Let(id_e_list, sc) ->
+     let env =
+       List.fold_left
+         (fun acc (id, s) -> Env.add id (eval env s) acc) env id_e_list in
+     trivial env sc
 
 (* normal form: some of products *)
 module SumOfProducts =

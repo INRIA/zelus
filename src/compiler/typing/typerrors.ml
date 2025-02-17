@@ -55,7 +55,7 @@ type error =
   | Esize_parameter_must_be_a_name
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
-  | Esize_clash of Sizes.cmp * Defsizes.t * Defsizes.t
+  | Esize_clash of Sizes.cmp * Defsizes.exp * Defsizes.exp
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Econstr_arity of Lident.t * int * int							 
 exception Error of Location.t * error

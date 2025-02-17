@@ -81,9 +81,13 @@ let print_size ff si =
   printrec 0 ff si
 
 let rec print prio ff { t_desc; t_level; t_index } =
+  let print_constraints ff sc =
+    match sc with
+    | Empty -> ()
+    | _ -> fprintf ff "@[with ...@]" in
   let priority = function
     | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ | Tvec _ -> 3
-    | Tarrow _ -> 1 | Tlink _ -> prio in
+    | Tarrow _ | Tsizefun _ -> 1 | Tlink _ -> prio in
   let prio_current = priority t_desc in
   if prio_current < prio then fprintf ff "(";
   begin match t_desc with
@@ -114,6 +118,10 @@ let rec print prio ff { t_desc; t_level; t_index } =
        (print prio_current) ty_res
   | Tvec(ty, si) ->
      fprintf ff "@[[%a]%a@]" print_size si (print prio_current) ty 
+  | Tsizefun { id_list; ty; constraints } ->
+     fprintf ff "@[%a.%a%a]@"
+       (print_list_l Ident.fprint_t "<<" "," ">>") id_list
+           (print prio_current) ty print_constraints constraints
   | Tlink(link) -> print prio ff link
   end;
   if prio_current < prio then fprintf ff ")"  

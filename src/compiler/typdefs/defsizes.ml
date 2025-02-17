@@ -14,28 +14,30 @@
 
 (* definition of sizes and size constraints *)
 
-type t = 
+type exp = 
   | Sint of int (* [42] *)
   | Svar of Ident.t (* [n] *)
-  | Sfrac of { num: t; denom: int } (* [s / 42] *)
-  | Sop of op * t * t (* [s * s | s + s | s - s] *)
+  | Sfrac of { num: exp; denom: int } (* [s / 42] *)
+  | Sop of op * exp * exp (* [s * s | s + s | s - s] *)
 
 (* add [div], [mod], [^] (2^n)] *)
 
 and op = Splus | Sminus | Smult
 
 (* a size constraint *)
-type eq =
-  | Rel of { rel: rel; lhs: t; rhs: t } (* t rel e *)
-  | Let of (Ident.t * t) list * eq
+type 'e constraints =
+  | Rel of { rel: rel; lhs: 'e; rhs: 'e } (* e rel e *)
+  | And of 'e constraints list (* [sc and ... and sc] *)
+  | Let of (Ident.t * 'e) list * 'e constraints (* local binding *)
+  | Empty
 
 and rel = Eq | Lt | Lte
 
 (* the stack of size constraints *)
-type c_stack = eq list Stack.t
+type stack_of_size_constraint = exp constraints Stack.t
 
 (* the stack of constraints *)
-let c_stack : c_stack = Stack.create ()
+let c_stack : stack_of_size_constraint = Stack.create ()
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
@@ -44,7 +46,7 @@ let c_stack : c_stack = Stack.create ()
 let clear () = Stack.clear c_stack
 
 (* push an empty constraint *)
-let push () = Stack.push [] c_stack
+let push () = Stack.push Empty c_stack
 (* pop/restore the previous one *)
 let pop () = Stack.pop c_stack
 

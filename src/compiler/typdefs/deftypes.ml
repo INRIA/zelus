@@ -16,6 +16,7 @@
 
 open Misc
 open Lident
+open Defsizes
 
 type name = string
 
@@ -32,9 +33,13 @@ and typ_desc =
   | Tvar
   | Tproduct of typ list
   | Tconstr of Lident.qualident * typ list * abbrev ref
-  | Tvec of typ * Defsizes.t
   | Tarrow of { ty_kind: kind; ty_name_opt: Ident.t option;
                 ty_arg: typ; ty_res: typ } 
+  | Tvec of typ * Defsizes.exp (* [e]t - array of length [e] *)
+  | Tsizefun of (* size function <<n1,...,nk>>.t *)
+      { id_list: Ident.t list;
+        ty: typ;
+        constraints: Defsizes.exp Defsizes.constraints }
   | Tlink of typ
 
 and is_singleton = bool
