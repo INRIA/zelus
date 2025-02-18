@@ -100,7 +100,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
   | Tconstr(gl, ty_list, abbrev) ->
      constr gl (List.map (subst_in_type senv) ty_list) abbrev
   | Tvec(ty_arg, si) ->
-     vec (subst_in_type senv ty_arg) (subst_in_size senv si)
+     vec (subst_in_type senv ty_arg) (Sizes.subst senv si)
   | Tlink(ty_link) -> subst_in_type  senv ty_link
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
      let ty_arg = subst_in_type senv ty_arg in
@@ -119,19 +119,8 @@ let rec subst_in_type senv ({ t_desc } as ty) =
          (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
          senv id_list id_fresh_list in
      sizefun id_fresh_list (subst_in_type senv ty)
-       (subst_in_constraints senv constraints)
+       (Sizes.subst_in_constraints senv constraints)
 
-and subst_in_constraints senv constraints = constraints
-
-and subst_in_size senv si =
-  match si with
-  | Sint _ -> si
-  | Sop(op, si1, si2) ->
-     Sop(op, subst_in_size senv si1, subst_in_size senv si2)
-  | Sfrac { num; denom } -> Sfrac { num = subst_in_size senv num; denom }
-  | Svar(n) ->
-     try Env.find n senv with | Not_found -> Svar(n)
-  
 (** Remove dependences from a type *)
 (* [t1 -A-> t2] becomes [t1 -> t2];
  - [t1 -D-> t2] becomes [(t1, t2) node];
@@ -158,10 +147,14 @@ let rec remove_dependences ({ t_desc } as ty) =
   | Tarrow { ty_kind; ty_arg; ty_res } ->
      let ty_arg = remove_dependences ty_arg in
      let ty_res = remove_dependences ty_res in
-     match ty_kind with
-     | Tfun _ -> arrow_type (Tfun(Tany)) None ty_arg ty_res
-     | Tnode(Tdiscrete) -> typ_node ty_arg ty_res
-     | Tnode(Tcont) -> typ_hybrid ty_arg ty_res
+     let ty = match ty_kind with
+       | Tfun _ -> arrow_type (Tfun(Tany)) None ty_arg ty_res
+       | Tnode(Tdiscrete) -> typ_node ty_arg ty_res
+       | Tnode(Tcont) -> typ_hybrid ty_arg ty_res in
+     ty
+  | Tsizefun { id_list; ty } ->
+     arrow_type_list (Tfun(Tconst))
+       (List.map (fun _ -> (None, Initial.typ_int)) id_list) ty     
 			    
 (* typing errors *)
 exception Unify
@@ -210,6 +203,7 @@ let occur_check level index ty =
        List.iter check ty_list
     | Tarrow { ty_arg; ty_res } -> check ty_arg; check ty_res
     | Tvec(ty, _) -> check ty
+    | Tsizefun { ty } -> check ty
     | Tlink(link) -> check link in
   check ty
 
@@ -242,6 +236,8 @@ let rec gen_ty is_gen ty =
 	     ty.t_level <-
 	       min (gen_ty is_gen ty_arg) (gen_ty is_gen ty_res)
     | Tvec(ty, si) ->
+       ty.t_level <- gen_ty is_gen ty
+    | Tsizefun { ty } ->
        ty.t_level <- gen_ty is_gen ty
     | Tlink(link) ->
        ty.t_level <- gen_ty is_gen link
@@ -299,19 +295,19 @@ let rec copy ty =
     | Tvec(ty, si) ->
        if level = generic then vec (copy ty) si
        else ty
+    | Tsizefun { id_list; ty; constraints } ->
+       if level = generic
+       then sizefun id_list (copy ty) constraints
+       else ty
 
-(** Compute the size of an array type [t]. *)
-(* [t] is either a basic type float/int/bool or an nested *)
-(* array of that *)
-let size_of ty =
-  let rec size_of ty =
-    match ty.t_desc with
-    | Tvar | Tproduct _ | Tarrow _ -> assert false
-    | Tlink(link) -> size_of link
-    | Tconstr _ -> []
-    | Tvec(ty, s) ->
-       s :: (size_of ty) in
-  List.rev (size_of ty)
+(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
+let rec sizes_per_dimension array_ty =
+  match array_ty.t_desc with
+  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
+  | Tlink(link) -> sizes_per_dimension link
+  | Tconstr _ -> []
+  | Tvec(ty, s) ->
+     s :: (sizes_per_dimension ty)
 
 (* instanciation *)
 let instance { typ_body } =
@@ -475,6 +471,13 @@ let filter_arrow expected_k ty =
      let ty_res = new_var () in
      unify ty (arrow_type expected_k None ty_arg ty_res);
      expected_k, None, ty_arg, ty_res
+
+let filter_sizefun ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tsizefun { id_list; ty; constraints } ->
+     id_list, ty, constraints
+  | _ -> raise Unify
 
 let filter_vec ty =
   let ty = typ_repr ty in

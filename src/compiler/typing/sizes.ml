@@ -19,70 +19,6 @@ open Defsizes
 
 exception Fail
 
-(* syntactic equatity *)
-let syntactic_equal si1 si2 =
-  let rec equal si1 si2 =
-    match si1, si2 with
-    | Sint i1, Sint i2 -> i1 = i2
-    | Svar(n1), Svar(n2) -> n1 = n2
-    | Sop(op1, si11, si12), Sop(op2, si21, si22) ->
-       (op1 = op2) && (equal si11 si21) && (equal si12 si22)
-    | Sfrac { num = s1; denom = d1 },
-      Sfrac { num = s2; denom = d2 } -> (d1 = d2) && (equal s1 s2)
-    | _ -> false in
-  equal si1 si2
-
-(* evaluation of sizes *)
-let rec eval env s =
-  match s with
-  | Sint(i) -> i
-  | Sfrac { num; denom} ->
-      let v = eval env num in
-      v / denom
-  | Svar(x) ->
-      let v =
-        try Env.find x env with Not_found -> raise Fail in
-      v
-  | Sop(op, s1, s2) ->
-     let v1 = eval env s1 in
-     let v2 = eval env s2 in
-     let op = match op with | Splus -> (+) | Smult -> ( * ) | Sminus -> (-) in
-     op v1 v2
-
-(* evaluation of constraints *)
-let rec trivial env sc =
-  match sc with
-  | Empty -> true
-  | Rel { rel; lhs; rhs } ->
-     let v1 = eval env lhs in
-     let v2 = eval env rhs in
-     let op = match rel with | Eq -> (=) | Lt -> (<=) | Lte -> (<=) in
-     op v1 v2
-  | And(sc_list) -> List.for_all (trivial env) sc_list
-  | Let(id_e_list, sc) ->
-     let env =
-       List.fold_left
-         (fun acc (id, s) -> Env.add id (eval env s) acc) env id_e_list in
-     trivial env sc
-
-(* free variables *)
-let rec fv bounded acc si =
-  match si with
-  | Sint _ -> acc
-  | Svar(n) -> if S.mem n bounded || S.mem n acc then acc else S.add n acc
-  | Sfrac { num } -> fv bounded acc num
-  | Sop(_, si1, si2) -> fv bounded (fv bounded acc si1) si2
-
-let rec fv_constraints bounded acc sc =
-  match sc with
-  | Empty -> acc
-  | And(sc_list) -> List.fold_left (fv_constraints bounded) acc sc_list
-  | Rel { lhs; rhs } -> fv bounded (fv bounded acc lhs) rhs
-  | Let(id_e_list, sc) ->
-     let acc = List.fold_left (fun acc (_, s) -> fv bounded acc s) acc id_e_list in
-     let bounded =
-       List.fold_left (fun acc (id, _) -> S.add id bounded) bounded id_e_list in
-     fv_constraints bounded acc sc
 
 (* normal form: some of products *)
 module SumOfProducts =
@@ -237,9 +173,6 @@ module SumOfProducts =
   end
 
 (* main entries *)
-open SumOfProducts.SumProduct
-open SumOfProducts.Sizes
-
 let zero = Sint 0
 let one = Sint 1
 let plus si1 si2 = Sop(Splus, si1, si2)
@@ -249,28 +182,100 @@ let mult si1 si2 = Sop(Smult, si1, si2)
 type cmp = Eq | Lt | Lte
 
 let norm si =
-  let { sp } = SumOfProducts.Sizes.make si in
-  SumOfProducts.SumProduct.explicit sp
+  let open SumOfProducts in
+  let { Sizes.sp } = Sizes.make si in
+  SumProduct.explicit sp
 
 (* decisions *)
 let compare cmp si1 si2 =
+  let open SumOfProducts in
   match cmp with
-  | Eq -> SumOfProducts.Sizes.zero (make (minus si1 si2))
+  | Eq -> Sizes.zero (Sizes.make (minus si1 si2))
   (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
-  | Lt -> SumOfProducts.Sizes.positive (make (minus si2 (plus si1 one)))
+  | Lt -> SumOfProducts.Sizes.positive (Sizes.make (minus si2 (plus si1 one)))
   | Lte ->
-     SumOfProducts.Sizes.positive (make (minus si2 si1))
+     SumOfProducts.Sizes.positive (Sizes.make (minus si2 si1))
 
-(* substitution *)
-let rec subst si env =
+(* syntactic equatity *)
+let syntactic_equal si1 si2 =
+  let rec equal si1 si2 =
+    match si1, si2 with
+    | Sint i1, Sint i2 -> i1 = i2
+    | Svar(n1), Svar(n2) -> n1 = n2
+    | Sop(op1, si11, si12), Sop(op2, si21, si22) ->
+       (op1 = op2) && (equal si11 si21) && (equal si12 si22)
+    | Sfrac { num = s1; denom = d1 },
+      Sfrac { num = s2; denom = d2 } -> (d1 = d2) && (equal s1 s2)
+    | _ -> false in
+  equal si1 si2
+
+(* evaluation of sizes *)
+let rec eval env si =
+  match si with
+  | Sint(i) -> i
+  | Sfrac { num; denom} ->
+      let v = eval env num in
+      v / denom
+  | Svar(x) ->
+      let v =
+        try Env.find x env with Not_found -> raise Fail in v
+  | Sop(op, si1, si2) ->
+     let v1 = eval env si1 in
+     let v2 = eval env si2 in
+     let op = match op with | Splus -> (+) | Smult -> ( * ) | Sminus -> (-) in
+     op v1 v2
+
+(* evaluation of constraints *)
+let rec trivial env sc =
+  match sc with
+  | Empty -> true
+  | Rel { rel; lhs; rhs } ->
+     let v1 = eval env lhs in
+     let v2 = eval env rhs in
+     let op = match rel with | Eq -> (=) | Lt -> (<=) | Lte -> (<=) in
+     op v1 v2
+  | And(sc_list) -> List.for_all (trivial env) sc_list
+  | Let(id_e_list, sc) ->
+     let env =
+       List.fold_left
+         (fun acc (id, s) -> Env.add id (eval env s) acc) env id_e_list in
+     trivial env sc
+
+(* free variables *)
+let rec fv bounded acc si =
+  match si with
+  | Sint _ -> acc
+  | Svar(n) -> if S.mem n bounded || S.mem n acc then acc else S.add n acc
+  | Sfrac { num } -> fv bounded acc num
+  | Sop(_, si1, si2) -> fv bounded (fv bounded acc si1) si2
+
+let rec fv_constraints bounded acc sc =
+  match sc with
+  | Empty -> acc
+  | And(sc_list) -> List.fold_left (fv_constraints bounded) acc sc_list
+  | Rel { lhs; rhs } -> fv bounded (fv bounded acc lhs) rhs
+  | Let(id_e_list, sc) ->
+     let acc =
+       List.fold_left (fun acc (_, s) -> fv bounded acc s) acc id_e_list in
+     let bounded =
+       List.fold_left (fun acc (id, _) -> S.add id bounded) bounded id_e_list in
+     fv_constraints bounded acc sc
+
+let rec subst env si =
   match si with
   | Sint _ -> si
-  | Svar(id) ->
-     let si = try Env.find id env with | Not_found -> si in
-     si
-  | Sop(op, si1, si2) -> Sop(op, subst si1 env, subst si2 env)
-  | Sfrac { num; denom } -> Sfrac { num = subst num env; denom }
+  | Sop(op, si1, si2) ->
+     Sop(op, subst env si1, subst env si2)
+  | Sfrac { num; denom } -> Sfrac { num = subst env num; denom }
+  | Svar(n) ->
+     try Env.find n env with | Not_found -> raise Fail
 
+let subst_in_constraints env sc =
+  if Env.is_empty env then sc
+  else
+    let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
+    Let(id_e_list, sc)
+ 
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)
 (* represent the polynomial as a value of the inductive type *)

@@ -128,6 +128,11 @@ let constr_name loc s arity =
     then error loc (Etype_constr_arity(s, arity', arity));
   name
 
+let arrow ty_kind (ty_name_opt, ty_arg) ty_res =
+  make (Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res })
+let arrow_list ty_kind name_ty_list ty_res =
+  List.fold_right (fun n_ty acc -> arrow ty_kind n_ty acc) name_ty_list ty_res
+    
 let vkindtype = function | Kconst -> Tconst | Kstatic -> Tstatic | Kany -> Tany
 let tkindtype = function | Kdiscrete -> Tdiscrete | Kcont -> Tcont
 let kindtype = function
@@ -192,10 +197,14 @@ let rec type_expression_of_typ typ =
      make (Etypeconstr(Modules.currentname (Lident.Modname(s)),
                        List.map type_expression_of_typ ty_list))
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
-     make (Etypefun { ty_kind = kindoftype ty_kind;
-                      ty_name_opt;
-                      ty_arg = type_expression_of_typ ty_arg;
-                      ty_res = type_expression_of_typ ty_res })
+     arrow (kindoftype ty_kind)
+       (ty_name_opt, type_expression_of_typ ty_arg)
+       (type_expression_of_typ ty_res)
+  | Tsizefun { id_list; ty } ->
+     let ty_int = make (Etypeconstr(Lident.Modname(Initial.int_ident),[])) in
+     arrow_list (Kfun(Kconst))
+       (List.map (fun _ -> (None, ty_int)) id_list)
+       (type_expression_of_typ ty)
   | Tvec(ty, si) ->
      make (Etypevec(type_expression_of_typ ty, size si))
   | Tlink(typ) -> type_expression_of_typ typ

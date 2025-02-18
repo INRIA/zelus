@@ -117,6 +117,7 @@ let rec in_kind ka { t_desc } =
      let left_kfun, right_kfun = left_right ty_kind in
      in_kind left_kfun ty_arg && in_kind right_kfun ty_res
                                && vkind_is_less_than ka left_kfun
+  | Tsizefun { ty } -> in_kind Tconst ty && vkind_is_less_than ka Tconst
 
 (* Kind inheritance. If the context has kind [expected_k] *)
 (* and the local declaration is kind [vkind] *)

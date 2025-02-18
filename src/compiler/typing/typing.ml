@@ -923,22 +923,23 @@ and size_apply loc expected_k h f si_list =
   (* first type the function [f] *)
   let ty_fct, actual_k_fct = expression expected_k h f in
   (* typing the sequence of arguments *)
-  let rec args actual_k_fct ty_fct si_list = match si_list with
-    | [] -> ty_fct, actual_k_fct
-    | si :: si_list ->
-       let arg_k, n_opt, ty_arg, ty_res =
-         try Types.filter_arrow (Tfun(Tconst)) ty_fct
-         with Unify -> error loc (Eapplication_of_non_function) in
-       (* [ty_arg] must be an integer *)
-       unify loc 
-         (Types.arrow_type arg_k n_opt Initial.typ_int ty_res) ty_fct;
-       let si = size arg_k h si in
-       let ty_res =
-         match n_opt with
-         | None -> ty_res
-         | Some(n) -> Types.subst_in_type (Env.singleton n si) ty_res in
-       args arg_k ty_res si_list in
-  args actual_k_fct ty_fct si_list
+  let arg si = size (Tfun(Tconst)) h si in
+  let si_list = List.map arg si_list in
+  let id_list, ty, constraints =
+    try Types.filter_sizefun ty_fct
+    with Unify -> error loc (Eapplication_of_non_function) in
+  let expected_arit = List.length id_list in
+  let actual_arit = List.length si_list in
+  if expected_arit = actual_arit
+  then
+    let env = List.fold_left2
+                (fun acc id si -> Env.add id si acc) Env.empty id_list si_list in
+    let ty = Types.subst_in_type env ty in
+    let constraints = Sizes.subst_in_constraints env constraints in
+    Defsizes.add constraints;
+    ty, Tfun(Tconst)
+  else
+    error loc (Earity_clash(actual_arit, expected_arit))
 
 and type_label_arg expected_k expected_ty h loc ({ label; arg } as r) =
   let qualid, { label_arg = ty_arg; label_res = ty_res } =
@@ -1585,24 +1586,22 @@ and forloop_eq expected_k h
   h_out, actual_k
 
 and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
-  (* a size function must be known a compile time *)
   let entry acc id = 
     Env.add id (Deftypes.entry (Tfun(Tconst)) Sort_val 
                   (Deftypes.scheme Initial.typ_int)) acc in
+  (* a size function must be defined in a compile-time constant context *)
   (* push an empty size constraint *)
   Defsizes.push ();
   let h_env = List.fold_left entry Env.empty sf_id_list in
   let h = Env.append h_env h in
   let ty_res, _ = expression (Tfun(Tconst)) h sf_e in
   f.sf_env <- h_env;
-  let actual_ty = 
-    arrow_type sf_loc (Tfun(Tconst)) 
-      (List.map (fun n -> (Some(n), Initial.typ_int)) sf_id_list) ty_res in
-  let expected_ty = def sf_loc h sf_id in
-  (* warning: this part should be without using [unify] *)
-  unify_expr sf_e expected_ty actual_ty;
   (* pop the current size constraint *)
-  let c = Defsizes.pop () in
+  let constraints = Defsizes.pop () in
+  let actual_ty = 
+    Types.sizefun sf_id_list ty_res constraints in
+  let expected_ty = def sf_loc h sf_id in
+  unify_expr sf_e expected_ty actual_ty;
   Defnames.singleton sf_id, Tfun(Tconst)
 
 (* the main entry functions *)

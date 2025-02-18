@@ -34,19 +34,33 @@ type 'e constraints =
 and rel = Eq | Lt | Lte
 
 (* the stack of size constraints *)
-type stack_of_size_constraint = exp constraints Stack.t
+type stack_of_size_constraint =
+  { stack: exp constraints Stack.t;
+    mutable current: exp constraints }
 
 (* the stack of constraints *)
-let c_stack : stack_of_size_constraint = Stack.create ()
+let c_stack : stack_of_size_constraint =
+  { stack = Stack.create (); current = Empty }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
 
 (* empty the stack of constraints *)
-let clear () = Stack.clear c_stack
+let clear () =
+  Stack.clear c_stack.stack;
+  c_stack.current <- Empty
 
 (* push an empty constraint *)
-let push () = Stack.push Empty c_stack
+let push () =
+  Stack.push c_stack.current c_stack.stack;
+  c_stack.current <- Empty
+let add c =
+  c_stack.current <-
+    match c_stack.current with | Empty -> c | c_old -> And [c;c_old]
 (* pop/restore the previous one *)
-let pop () = Stack.pop c_stack
+let pop () =
+  let c = c_stack.current in
+  let c_old = Stack.pop c_stack.stack in
+  c_stack.current <- c_old;
+  c
 
