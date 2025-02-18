@@ -24,30 +24,12 @@ let const rec or__1<<n>>(x:[n]bool) returns (y)
       y = (or__1<<n/2>>(x.(0 .. (n/2 - 1)))) or
           (or__1<<n/2>>(x.((n/2) .. (n - 1))))
 
-val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 }
+(* val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 } *)
 
-let rec or__1<<n>>(x:[n]bool) returns (y])
-  sizeof n with
-  | 0 -> y = false
-  | 1 -> y = x.(0)
-  | k by 2 rem r -> 
-      y = (or__1<<k>>(x.(0 .. k - 1))) 
-                      or (or__1<<n-k>>(x.(k .. n-1)))
-
-let rec or__3<<n>>(x:[n]bool) returns (y)
-  match x with
-  | [||] -> y = false
-  | x0 . x -> y = x0 or or__3<<n-1>>(x)
-
-let rec or__2<<n>>(x:[n]bool) returns (y)
-  sizeof n with
-  | 0 -> y = false
-  | n + 1 -> y = x.(0) or or__2<<n>>(x.(0..n-2))
-
-let rec decoder<<n>>(adr:[n]bool) returns (i:[2^n]bool)
+(* let rec decoder<<n>>(adr:[n]bool) returns (i:[2^n]bool)
   sizeof n with
   | 0 ->
-  | n+1 ->  decoder<<n>>(adr.(1..n-1)) ++ decoder<<n>>(adr.(1..n-1))
+  | n+1 ->  decoder<<n>>(adr.(1..n-1)) ++ decoder<<n>>(adr.(1..n-1)) *)
 
 (*
 let const f<<n>>(f)(x) returns (y)

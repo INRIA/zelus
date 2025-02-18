@@ -373,19 +373,19 @@ let intro_sort expected_k =
   | Tnode _ -> Sort_mem Deftypes.empty_mem
     
 (* extract a type skeleton from an expression. Limited to functions *)
-let rec type_skeleton_of_expression expected_k { e_desc } =
-  let type_skeleton_of_vardec { var_typeconstraint } =
+let rec intro_skeleton_type_of_expression expected_k { e_desc } =
+  let skeleton_type_of_vardec { var_typeconstraint } =
     match var_typeconstraint with
     | None -> Types.new_var ()
     | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
-  let type_skeleton_of_result expected_k { r_desc } =
+  let skeleton_type_of_result expected_k { r_desc } =
     match r_desc with
-    | Exp(e) -> type_skeleton_of_expression expected_k e
+    | Exp(e) -> intro_skeleton_type_of_expression expected_k e
     | Returns { b_vars } ->
-       type_of_n_list type_skeleton_of_vardec b_vars in
+       type_of_n_list skeleton_type_of_vardec b_vars in
   let arg_list f_args =
     let arg v_list =
-      let ty = type_of_n_list type_skeleton_of_vardec v_list in
+      let ty = type_of_n_list skeleton_type_of_vardec v_list in
       let n_opt =
         (* a dependence is allowed only when the input is a list made *)
         (* of a single argument. This may change in the future *)
@@ -399,7 +399,7 @@ let rec type_skeleton_of_expression expected_k { e_desc } =
      let actual_k, expected_body_k =
        kind_of_funexp f_loc expected_k expected_args_v expected_body_k in
      let name_ty_arg_list = arg_list f_args in
-     let ty_res = type_skeleton_of_result expected_k f_body in
+     let ty_res = skeleton_type_of_result expected_k f_body in
      arrow_type f_loc expected_body_k name_ty_arg_list ty_res
   | _ -> Types.new_var ()
 
@@ -414,10 +414,9 @@ let env_of_equation expected_k ({ eq_write } as eq) =
   let rec env h { eq_desc; eq_write } =
     match eq_desc with
     | EQsizefun { sf_id; sf_id_list; sf_e; sf_loc } ->
-       let ty_res = type_skeleton_of_expression expected_k sf_e in
+       let ty_res = intro_skeleton_type_of_expression expected_k sf_e in
        let ty = 
-         arrow_type sf_loc (Tfun(Tconst)) 
-           (List.map (fun n -> (Some(n), Initial.typ_int)) sf_id_list) ty_res in
+         Types.sizefun sf_id_list ty_res Defsizes.Empty in
        Env.add sf_id (typ_entry expected_k (intro_sort expected_k) ty) h
     | EQand { eq_list } ->
        List.fold_left env h eq_list 
@@ -1601,6 +1600,7 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   let actual_ty = 
     Types.sizefun sf_id_list ty_res constraints in
   let expected_ty = def sf_loc h sf_id in
+  (* [expected_ty = <<n1,...>>.ty] and [actual_ty = <<n1,...,>>.ty with c] *)
   unify_expr sf_e expected_ty actual_ty;
   Defnames.singleton sf_id, Tfun(Tconst)
 
