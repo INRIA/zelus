@@ -261,12 +261,21 @@ let rec fv_constraints bounded acc sc =
        List.fold_left (fun acc (id, _) -> S.add id bounded) bounded id_e_list in
      fv_constraints bounded acc sc
 
+let apply op si1 si2 =
+  match si1, si2 with
+  | Sint(v1), Sint(v2) ->
+     let op = match op with | Splus -> (+) | Sminus -> (-) | Smult -> ( * ) in
+     Sint(op v1 v2)
+  | _ -> Sop(op, si1, si2)
+
+let frac num denom =
+  match num with | Sint(vi) -> Sint(vi / denom) | _ -> Sfrac { num; denom }
+
 let rec subst env si =
   match si with
   | Sint _ -> si
-  | Sop(op, si1, si2) ->
-     Sop(op, subst env si1, subst env si2)
-  | Sfrac { num; denom } -> Sfrac { num = subst env num; denom }
+  | Sop(op, si1, si2) -> apply op si1 si2
+  | Sfrac { num; denom } -> frac (subst env num) denom
   | Svar(n) ->
      try Env.find n env with | Not_found -> raise Fail
 
