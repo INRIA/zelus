@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -258,6 +258,8 @@ let rec skeleton ty =
   | Tproduct(ty_list) -> product (List.map skeleton ty_list)
   | Tarrow { ty_arg; ty_res } ->
      funtype (skeleton ty_arg) (skeleton ty_res)
+  | Tsizefun { id_list; ty } ->
+     funtype_list (List.map (fun _ -> atom (new_var ())) id_list) (skeleton ty)
   | Tconstr _ | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
@@ -274,6 +276,10 @@ let skeleton_on_c c ty =
         funtype
           (skeleton_on_c (not is_right) c_left ty_arg)
           (skeleton_on_c is_right c_right ty_res)
+    | Tsizefun { id_list; ty } ->
+       funtype_list
+         (List.map (fun _ -> atom (new_var ())) id_list)
+         (skeleton_on_c is_right c_right ty)
     | Tlink(ty) -> skeleton_on_c is_right c_right ty in
   skeleton_on_c true c ty
 
@@ -286,7 +292,7 @@ let skeleton_for_variables ty =
     match ty.t_desc with
     | Tvar | Tconstr _ | Tvec _ -> atom c
     | Tproduct(ty_list) -> product (List.map skeleton_rec ty_list)
-    | Tarrow _ -> skeleton ty
+    | Tarrow _ | Tsizefun _ -> skeleton ty
     | Tlink(ty) -> skeleton_rec ty in
   skeleton_rec ty
 

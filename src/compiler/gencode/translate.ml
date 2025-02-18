@@ -245,7 +245,7 @@ let choose env ty =
     match ty.t_desc with
     | Tvar -> eany
     | Tproduct(ty_l) -> tuple (List.map value ty_l)
-    | Tarrow _ -> eany
+    | Tarrow _ | Tsizefun _ -> eany
     | Tvec(ty, si) -> vec (value ty) (exp_of_sizetype si)
     | Tconstr(id, _, _) ->
        if id = Initial.int_ident then ezero

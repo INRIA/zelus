@@ -85,7 +85,7 @@ let rec check_simple_ty ty =
   | Tvar ->
       eprintf "Undefined type variables are not supported by Luciole.@.";
       raise Error
-  | Tarrow _ ->
+  | Tarrow _ | Tsizefun _ ->
       eprintf "Higher order functions are not supported by Luciole.@.";
       raise Error
   | Tvec _ ->
@@ -104,7 +104,7 @@ let rec flatten ty =
   | Tproduct ty -> List.concat (List.map flatten ty)
   | Tconstr (id, _, _) -> [id.id]
   | Tlink ty -> flatten ty
-  | Tvar | Tarrow _ | Tvec _ -> assert false
+  | Tvar | Tarrow _ | Tsizefun _ | Tvec _ -> assert false
 
 let rec flatten_patt patt =
   match patt.pat_desc with
@@ -130,7 +130,7 @@ let rec type_size ty =
       List.fold_left ( + ) 0 (List.map type_size ty)
   | Tconstr (_, _, _) -> 1
   | Tlink ty -> type_size ty
-  | Tvec _ | Tarrow _ | Tvar -> assert false
+  | Tvec _ | Tarrow _ | Tsizefun _ | Tvar -> assert false
 
 let format_names names ty =
   let rec aux i0 ty =
@@ -139,7 +139,7 @@ let format_names names ty =
     | Tconstr (id, _, _) ->
         if id.id = unit_id then "()" else names.(i0)
     | Tlink ty -> aux i0 ty
-    | Tvar | Tarrow _ | Tvec _ -> assert false
+    | Tvar | Tarrow _ | Tsizefun _ | Tvec _ -> assert false
   and aux_list i0 ty_list =
     match ty_list with
     | [] -> assert false

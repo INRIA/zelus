@@ -74,7 +74,7 @@ let build global_funs ({ subst } as acc) env =
     n ({ t_tys = { typ_vars } } as entry) env ({ t_desc } as typ_body) =
     (* produce a tree according to the structure of [t_desc] *)
     match t_desc with
-      | Tvar | Tarrow _ | Tvec _ | Tconstr _ ->
+      | Tvar | Tarrow _ | Tvec _ | Tconstr _ | Tsizefun _ ->
          let m = Ident.fresh (Ident.source n) in
          Leaf(m), Env.add m { entry with t_tys = { typ_vars; typ_body } } env
       | Tproduct(ty_list) ->

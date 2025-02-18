@@ -171,6 +171,8 @@ let rec skeleton { t_desc = desc } =
   match desc with
   | Tvar -> atom (new_var ())
   | Tarrow { ty_arg; ty_res } -> funtype (skeleton ty_arg) (skeleton ty_res)
+  | Tsizefun { id_list; ty } ->
+     funtype_list (List.map (fun _ -> atom izero) id_list) (skeleton ty)
   | Tproduct(ti_list) -> product (List.map skeleton ti_list)
   | Tconstr(_, _, _) -> atom (new_var ())
   | Tvec _ -> atom (new_var ())
@@ -181,6 +183,8 @@ let rec skeleton_on_i i { t_desc = desc } =
   | Tvar -> atom i
   | Tarrow { ty_arg; ty_res } ->
      funtype (skeleton_on_i i ty_arg) (skeleton_on_i i ty_res)
+  | Tsizefun { id_list; ty } ->
+     funtype_list (List.map (fun _ -> atom izero) id_list) (skeleton_on_i i ty)
   | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
   | Tconstr _ | Tvec _ -> atom i
   | Tlink(ti) -> skeleton_on_i i ti

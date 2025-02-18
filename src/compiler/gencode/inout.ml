@@ -241,11 +241,11 @@ let build_index m_list =
        | Horizon -> ctable, ztable, add_opt n h_opt, major_opt
        | Period | Encore -> ctable, ztable, h_opt, major_opt
        | Zero ->
-	  let s_list = Types.size_of typ in
+	  let s_list = Types.sizes_per_dimension typ in
           ctable, Env.add n (List.map size s_list, e_list) ztable,
 	  h_opt, major_opt
        | Cont ->
-	  let s_list = Types.size_of typ in
+	  let s_list = Types.sizes_per_dimension typ in
 	  Env.add n (List.map size s_list, e_list) ctable, ztable,
 	  h_opt, major_opt
        | Major -> ctable, ztable, h_opt, add_opt n major_opt in
