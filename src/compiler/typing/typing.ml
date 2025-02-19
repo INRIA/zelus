@@ -1600,7 +1600,7 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   let actual_ty = 
     Types.sizefun sf_id_list ty_res constraints in
   let expected_ty = def sf_loc h sf_id in
-  (* [expected_ty = <<n1,...>>.ty] and [actual_ty = <<n1,...,>>.ty with c] *)
+  (* [expected_ty = <<n1,...>>.ty] and [actual_ty = <<n1,...>>.ty with c] *)
   unify_expr sf_e expected_ty actual_ty;
   Defnames.singleton sf_id, Tfun(Tconst)
 

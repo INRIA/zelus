@@ -36,8 +36,8 @@ and typ_desc =
   | Tarrow of { ty_kind: kind; ty_name_opt: Ident.t option;
                 ty_arg: typ; ty_res: typ } 
   | Tvec of typ * Defsizes.exp (* [e]t - array of length [e] *)
-  | Tsizefun of (* size function <<n1,...,nk>>.t *)
-      { id_list: Ident.t list;
+  | Tsizefun of (* size function <<n1,...,nk>>.ty *)
+      { id_list: Ident.t list; (* [k > 0] *)
         ty: typ;
         constraints: Defsizes.exp Defsizes.constraints }
   | Tlink of typ
