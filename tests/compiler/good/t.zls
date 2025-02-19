@@ -9,9 +9,31 @@ let const my_concat2<<n>>(x:[n]'a, y:[n]'a)
 returns (z:[2 * n + 4]'a)
   z = x ++ y ++ [|1|] ++ [|2;3;4|]
 
+
+
 let const rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
+
+let const rec ff<<n>> =
+  fun (x:[n]int) returns (y:[n]int)
+    if n = 0 then y = x else
+    y = [|1|] ++ ff<<n-1>>(x.(0 .. n-2))
+
+(* let const rec dicho<<n>>(x) =
+  if n 
+match size n with
+| 0 -> y = x
+| _ -> y = [[|1|] ++ f<<n-1>>(x.(0 .. n-2))
+
+val f : <<n>>. [n]int -> [n]int with sat n
+
+let rec nat n = match n with | 0 -> true | _ -> (n-2) <= n & sat(n-1)
+
+f<<n1,....,nk>> = ... f<<s1,...,sk>>
+
+if (s1 = n1) then (...) else s1 < n1
+*)
 
 let const rec or_<<n>>(x:[n]bool) returns (y)
     if n = 0 then y = false
