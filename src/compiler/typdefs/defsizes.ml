@@ -26,11 +26,12 @@ and op = Splus | Sminus | Smult
 
 (* a size constraint *)
 type 'e constraints =
-  | Rel of { rel: rel; lhs: 'e; rhs: 'e } (* e rel e *)
+  | Rel of 'e eq (* e rel e *)
   | And of 'e constraints list (* [sc and ... and sc] *)
   | Let of (Ident.t * 'e) list * 'e constraints (* local binding *)
   | Empty
 
+and 'a eq = { rel: rel; lhs: 'a; rhs: 'a }
 and rel = Eq | Lt | Lte
 
 (* the stack of size constraints *)

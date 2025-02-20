@@ -87,7 +87,7 @@ module SumOfProducts =
         let equal sp1 sp2 = compare sp1 sp2 = 0
 
         (* positive - not complete *)
-        let positive : _ -> bool = fun sp -> M.for_all (fun _ p -> p >= 0) sp
+        let is_positive : _ -> bool = fun sp -> M.for_all (fun _ p -> p >= 0) sp
         
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
         let explicit m =
@@ -100,101 +100,93 @@ module SumOfProducts =
           List.fold_left
             (fun acc (m, p) -> sum acc (mult p (Product.explicit m)))
             (Sint(0)) v_list
-      end
 
-    (* a size expression is : s ::= s + s | s - s | s * s | xi | v | s / v *)
-    (* the result of / is represented by fresh variables such that *)
-    (* s / k = p with k * p + r = s with 0 <= r < k *)
-    module Sizes =
-      struct
-        (* sets of equalities *)
-        module S =
-          Set.Make
-            (struct type t = SumProduct.t let compare = SumProduct.compare end)
-        (* a map : [(s, k) -> p, r] *)
-        module Table =
-          Map.Make
-            (struct type t = SumProduct.t * int
-                    let compare (sp1, k1) (sp2, k2) =
-                      let v = SumProduct.compare sp1 sp2 in
-                      if v = 0 then Stdlib.compare k1 k2 else v
-             end)
-        (* s with P1(x1,...,) = 0 /\ ... /\ P(x1 >= 0 /\ ... *)
-        type t =
-          { sp: SumProduct.t; (* a polynomal = sum of products *)
-            eqs: S.t; (* a set of polynomials that are equal to zero *)
-          }
-                
-        (* from explicit to implicit *)
-        let rec make table si =
-          let open SumProduct in
+        (* implicit representation *)
+        let rec make si =
           match si with
-          | Sint(i) -> const i, table
-          | Svar(x) -> var x, table
-          | Sop(Splus, si1, si2) ->
-             let e1, table = make table si1 in
-             let e2, table = make table si2 in
-             sum e1 e2, table
-          | Sop(Sminus, si1, si2) ->
-             let e1, table = make table si1 in
-             let e2, table = make table si2 in
-             minus e1 e2, table
-          | Sop(Smult, si1, si2) ->
-             let e1, table = make table si1 in
-             let e2, table = make table si2 in
-             mult e1 e2, table
-          | Sfrac { num; denom } ->
-             let e, table = make table num in
-             (* add entry [(e, denom) -> p, r] with [p], [r] fresh variables] *)
-             (* if the entry does not exist already *)
-             try
-               let p, r = Table.find (e, denom) table in
-               var p, table
-             with
-             | Not_found ->
-                let p = Ident.fresh "n" in
-                let r = Ident.fresh "n" in
-                var p, Table.add (e, denom) (p, r) table
-
-        let make si =
-          let open SumProduct in
-          let sp, table = make Table.empty si in
-          let eqs =
-            Table.fold
-              (fun (sp, k) (p, r) acc ->
-                (* sp = k * p + r *)
-                S.add (minus sp (sum (var p) (var r))) acc) table S.empty in
-          { sp; eqs }
-
-        (* for the moment, we do not exploit equality constraints [eqs] *)
-        let zero { sp } = SumProduct.is_zero sp
-        let positive { sp } = SumProduct.positive sp
+          | Sint(i) -> const i
+          | Svar(x) -> var x
+          | Sop(op, si1, si2) ->
+             let e1 = make si1 in
+             let e2 = make si2 in
+             let op = match op with Splus -> sum | Sminus -> minus | Smult -> mult in
+             op e1 e2
+          | Sfrac _ ->
+             (* the term must have been normalized before *)
+             assert false
       end
   end
 
 (* main entries *)
-let zero = Sint 0
-let one = Sint 1
+let const v = Sint v
+let zero = const 0
+let one = const 1
+let var x = Svar(x)
 let plus si1 si2 = Sop(Splus, si1, si2)
 let minus si1 si2 = Sop(Sminus, si1, si2)
 let mult si1 si2 = Sop(Smult, si1, si2)
 
-type cmp = Eq | Lt | Lte
+(* elimination of div (and later [mod]) operations in size expressions *)
+let normalize si =
+  let module Table =
+    Map.Make
+      (struct type t = Defsizes.exp * int let compare = Stdlib.compare end) in
+  let rec simpl table si =
+    match si with
+    | Sint _ | Svar _ -> si, table
+    | Sop(op, si1, si2) ->
+       let si1, table = simpl table si1 in
+       let si2, table = simpl table si2 in
+       Sop(op, si1, si2), table
+    | Sfrac { num; denom } ->
+       let e, table = simpl table num in
+       (* add entry [(e, denom) -> p, r] with [p], [r] fresh variables] *)
+       (* if the entry does not exist already *)
+       try
+         let p, _ = Table.find (e, denom) table in
+         Svar(p), table
+       with
+       | Not_found ->
+          let p = Ident.fresh "n" in
+          let r = Ident.fresh "r" in
+          Svar(p), Table.add (e, denom) (p, r) table in
+  let si, table = simpl Table.empty si in
+  let eqs =
+    Table.fold
+      (fun (e, k) (p, r) acc ->
+        (* [e/k is replaced by p with constraints] *)
+        (* [e = k * p + r] /\ 0 <= e /\ 0 <= p /\ 0 <= r /\ r <= 1] *)
+        { rel = Eq; lhs = e; rhs = plus (mult (const k) (var p)) (var r) } ::
+           { rel = Lte; lhs = const 0; rhs = e } ::
+             { rel = Lte; lhs = const 0; rhs = var p } ::
+               { rel = Lte; lhs = const 0; rhs = var r } ::
+                 { rel = Lte; lhs = var r; rhs = const 1 } :: acc)
+      table [] in
+  si, eqs
 
+(* temporary solution *)
 let norm si =
   let open SumOfProducts in
-  let { Sizes.sp } = Sizes.make si in
-  SumProduct.explicit sp
+  let si, _ = normalize si in
+  let e = SumProduct.make si in
+  SumProduct.explicit e
 
 (* decisions *)
 let compare cmp si1 si2 =
-  let open SumOfProducts in
   match cmp with
-  | Eq -> Sizes.zero (Sizes.make (minus si1 si2))
-  (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
-  | Lt -> SumOfProducts.Sizes.positive (Sizes.make (minus si2 (plus si1 one)))
+  | Eq ->
+     let si, _ = normalize (minus si1 si2) in
+     let open SumOfProducts.SumProduct in
+     is_zero (make si)
+  | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
+    Lt ->
+     let si, _ = normalize (minus si2 (plus si1 one)) in
+     let open SumOfProducts.SumProduct in
+     is_positive (make si)
   | Lte ->
-     SumOfProducts.Sizes.positive (Sizes.make (minus si2 si1))
+     let si, _ = normalize (minus si2 si1) in
+     let open SumOfProducts.SumProduct in
+     is_positive (make si)
 
 (* syntactic equatity *)
 let syntactic_equal si1 si2 =

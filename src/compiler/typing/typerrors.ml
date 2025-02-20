@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -55,7 +55,7 @@ type error =
   | Esize_parameter_must_be_a_name
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
-  | Esize_clash of Sizes.cmp * Defsizes.exp * Defsizes.exp
+  | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Econstr_arity of Lident.t * int * int							 
 exception Error of Location.t * error
@@ -223,8 +223,8 @@ let message loc kind =
       output_location loc
  | Esize_clash(cmp, actual_size, expected_size) ->
     let s = match cmp with
-      | Sizes. Eq -> "equal to" | Sizes.Lt -> "strictly less than"
-      | Sizes.Lte -> "less of equal to" in
+      | Defsizes.Eq -> "equal to" | Defsizes.Lt -> "strictly less than"
+      | Defsizes.Lte -> "less of equal to" in
     eprintf "@[%aType error: this expression is equal to@ %a,@ \
                but is expected to be %s@ %a.@.@]"
         output_location loc

@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -424,7 +424,7 @@ let rec unify expected_ty actual_ty =
 	    else raise Unify
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
-           if not (Sizes.compare Sizes.Eq si1 si2) then raise Unify
+           if not (Sizes.compare Defsizes.Eq si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = Empty },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = Empty } when
                (List.length id_list1) = (List.length id_list2) ->

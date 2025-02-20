@@ -1029,7 +1029,7 @@ and array_operator expected_k h loc op e_list =
      let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki = expect expected_k h i Initial.typ_int in
      let si_i = size_of_exp i in
-     compare_sizes Sizes.Lt i.e_loc si_i si;
+     compare_sizes Defsizes.Lt i.e_loc si_i si;
      ty, Kind.sup actual_k actual_ki
   | Eget_with_default, [a; i; default] ->
      let ty_a, actual_k = expression expected_k h a in
@@ -1045,7 +1045,7 @@ and array_operator expected_k h loc op e_list =
      let si1 = size_of_exp i1 in
      let si2 = size_of_exp i2 in
      let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
-     compare_sizes Sizes.Lte a.e_loc si_i si;
+     compare_sizes Defsizes.Lte a.e_loc si_i si;
      Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
   | Eupdate, [a; i; v] ->
      let ty_a, actual_k = expression expected_k h a in
@@ -1555,7 +1555,7 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
        match size_opt with
        | None -> Some(actual_size)
        | Some(expected_size) ->
-          compare_sizes Sizes.Eq loc expected_size actual_size; size_opt in
+          compare_sizes Defsizes.Eq loc expected_size actual_size; size_opt in
      let acc_h = Env.add id
                    (Deftypes.entry expected_k Deftypes.Sort_val 
                       (Deftypes.scheme Initial.typ_int)) acc_h in
