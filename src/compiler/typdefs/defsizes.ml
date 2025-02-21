@@ -29,6 +29,11 @@ type 'e constraints =
   | Rel of 'e eq (* e rel e *)
   | And of 'e constraints list (* [sc and ... and sc] *)
   | Let of (Ident.t * 'e) list * 'e constraints (* local binding *)
+  | App of Ident.t * 'e list (* [f e1 ... en] *) 
+  | Fix of (Ident.t * Ident.t list * 'e constraints) list * 'e constraints
+  (* definition of mutually recursive functions on sizes *)
+  | If of 'e constraints * 'e constraints * 'e constraints
+  (* if c1 then c2 else c3 *)
   | Empty
 
 and 'a eq = { rel: rel; lhs: 'a; rhs: 'a }

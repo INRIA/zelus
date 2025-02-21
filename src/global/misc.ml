@@ -95,6 +95,7 @@ let set_debug () =
   set_verbose ()
 
 let print_types = ref false
+let print_types_with_size_constraints = ref false
 let no_stdlib = ref false
 let no_warning = ref false
 let print_causality_types = ref false
@@ -118,7 +119,11 @@ let set_main s = main_nodes := s :: !main_nodes
 let all = ref false
                 
 let print_values = ref false
-                 
+
+(* print types with size constraints *)
+let set_types_with_size_constraints () =
+  print_types := true; print_types_with_size_constraints := true
+
 (* number of synchronous steps for the evaluation *)
 let number_of_steps = ref 0
 let set_number_of_steps n = number_of_steps := n

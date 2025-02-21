@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -20,7 +20,6 @@ open Misc
 open Lident
 open Global
 open Modules
-open Defsizes
 open Deftypes
 open Misc
    
@@ -59,7 +58,9 @@ let arrow_tostring = function
   | Tnode(k) ->
      (match k with Tdiscrete -> "-D->" | Tcont -> "-C->")
     
-let print_size ff si =
+(* Print a size expression *)
+let size ff si =
+  let open Defsizes in
   let operator = function Splus -> "+" | Sminus -> "-" | Smult -> "*" in
   let priority = function Splus -> 0 | Sminus -> 1 | Smult -> 3 in
   let priority si =
@@ -80,11 +81,46 @@ let print_size ff si =
     if prio > prio_s then fprintf ff ")" in       
   printrec 0 ff si
 
+(* Print a size constraint *)
+let constraint_t ff c =
+  let open Defsizes in
+  let priority =
+    function
+    | App _ -> 3 | Fix _ -> 2 | Rel _ -> 2 | And _ -> 1 | Let _ -> 0
+    | If _ -> 0 | Empty -> 2 in
+  let eq_t ff { rel; lhs; rhs } =
+    let s = match rel with | Eq -> "=" | Lt -> "<" | Lte -> "<=" in
+    fprintf ff "@[%a %s %a@]" size lhs s size rhs in
+  let def_t ff (id, e) =
+    fprintf ff "@[<hov 2>%s =@ %a@]" (Ident.name id) size e in
+  let rec constraint_t prio ff c =
+    let prio_current = priority c in
+    if prio_current < prio then fprintf ff "(";
+    begin match c with
+    | Rel(eq) -> eq_t ff eq
+    | And(c_list) ->
+       Pp_tools.print_list_r (constraint_t prio_current) "" "&& " "" ff c_list
+    | Let(id_e_list, c) ->
+       fprintf ff
+         "@[<hov0>%a@ %a@]"
+         (Pp_tools.print_list_r def_t "let " "and " " in") id_e_list
+         (constraint_t 0) c
+    | App(f, e_list) -> assert false
+    | Fix(f_id_list_c_list, c) -> assert false
+    | If(c1, c2, c3) -> assert false
+    | Empty -> fprintf ff "true"
+    end;
+  if prio_current < prio then fprintf ff ")" in
+  constraint_t 0 ff c
+     
 let rec print prio ff { t_desc; t_level; t_index } =
   let print_constraints ff sc =
+    let open Defsizes in
     match sc with
     | Empty -> ()
-    | _ -> fprintf ff "@[ with ...@]" in
+    | _ -> if !Misc.print_types_with_size_constraints then
+             fprintf ff "@[<hov 2> with@ %a@]" constraint_t sc
+           else fprintf ff "@[ with ...@]" in
   let priority = function
     | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ | Tvec _ -> 3
     | Tarrow _ | Tsizefun _ -> 1 | Tlink _ -> prio in
@@ -117,7 +153,7 @@ let rec print prio ff { t_desc; t_level; t_index } =
        print_arg ty_arg (arrow_tostring ty_kind)
        (print prio_current) ty_res
   | Tvec(ty, si) ->
-     fprintf ff "@[[%a]%a@]" print_size si (print prio_current) ty 
+     fprintf ff "@[[%a]%a@]" size si (print prio_current) ty 
   | Tsizefun { id_list; ty; constraints } ->
      fprintf ff "@[%a.%a%a@]"
        (print_list_l Ident.fprint_t "<<" "," ">>") id_list
@@ -131,7 +167,7 @@ let print_scheme ff { typ_body } = print 0 ff typ_body
 let print_type_params ff pl =
   print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
 
-let print_size_params ff pl =
+let size_params ff pl =
   print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "["",""] " ff pl
 
 let print_one_type_variable ff i =
@@ -186,7 +222,7 @@ let print_value_type_declaration ff { qualid; info = (is_const, ty_scheme) } =
 let output_type ff ty =
   fprintf ff "@[%a@]" (print 0) ty
 
-let output_size ff si = print_size ff si
+let output_size ff si = size ff si
 
 let output_tentry ff { t_path; t_sort; t_tys } = 
   let vkind = function Tconst -> "c" | Tstatic -> "s" | Tany -> "a" in

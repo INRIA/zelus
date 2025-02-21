@@ -43,6 +43,8 @@ let doc_vverbose = "\t Set even more verbose mode"
 and doc_version = "\t The version of the compiler"
 and doc_outname = "<name> \t Simulation file name <name>"
 and doc_print_types = "\t Print types"
+and doc_print_types_with_size_constraints =
+  "\t Print types with size constraints"
 and doc_print_causality_types = "\t Print causality types"
 and doc_print_initialization_types = "\t  Print initialization types"
 and doc_include = "<dir> \t Add <dir> to the list of include directories"
@@ -124,6 +126,7 @@ let main () =
           "-version", Arg.Unit show_version, doc_version;
           "-I", Arg.String add_include, doc_include;
           "-i", Arg.Set print_types, doc_print_types;
+          "-isizes", Arg.Unit set_types_with_size_constraints, doc_print_types;
           "-ic", Arg.Set print_causality_types, doc_print_causality_types;
           "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
