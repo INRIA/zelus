@@ -232,6 +232,9 @@ let rec trivial env sc =
        List.fold_left
          (fun acc (id, s) -> Env.add id (eval env s) acc) env id_e_list in
      trivial env sc
+  | If(sc1, sc2, sc3) ->
+     if trivial env sc1 then trivial env sc2 else trivial env sc3
+  
 
 (* free variables *)
 let rec fv bounded acc si =
@@ -252,6 +255,9 @@ let rec fv_constraints bounded acc sc =
      let bounded =
        List.fold_left (fun acc (id, _) -> S.add id bounded) bounded id_e_list in
      fv_constraints bounded acc sc
+  | If(sc1, sc2, sc3) ->
+     fv_constraints bounded
+       (fv_constraints bounded (fv_constraints bounded acc sc1) sc2) sc3 
 
 let apply op si1 si2 =
   match si1, si2 with

@@ -93,7 +93,11 @@ let constraint_t ff c =
     fprintf ff "@[%a %s %a@]" size lhs s size rhs in
   let def_t ff (id, e) =
     fprintf ff "@[<hov 2>%s =@ %a@]" (Ident.name id) size e in
-  let rec constraint_t prio ff c =
+  let rec fix_def_t ff (id, id_list, c) =
+    fprintf ff "@[<hov 2>%s %a@ =@ %a@]" (Ident.name id)
+      (Pp_tools.print_list_r Ident.fprint_t "(" "," ")") id_list
+      (constraint_t 0) c
+  and constraint_t prio ff c =
     let prio_current = priority c in
     if prio_current < prio then fprintf ff "(";
     begin match c with
@@ -105,9 +109,17 @@ let constraint_t ff c =
          "@[<hov0>%a@ %a@]"
          (Pp_tools.print_list_r def_t "let " "and " " in") id_e_list
          (constraint_t 0) c
-    | App(f, e_list) -> assert false
-    | Fix(f_id_list_c_list, c) -> assert false
-    | If(c1, c2, c3) -> assert false
+    | App(f, e_list) ->
+       fprintf ff "@[<hov2>%a@ %a@]" Ident.fprint_t f
+         (Pp_tools.print_list_r size "(" "," ")") e_list
+    | Fix(f_id_list_c_list, c) ->
+       (* [let rec f1(n1,...) = c1 and ... fk(n1,...) = ck in c] *)
+       fprintf ff "@[<hov0>%a@ %a@]"
+         (Pp_tools.print_list_r fix_def_t "let rec " "and " " in") f_id_list_c_list
+         (constraint_t 0) c
+    | If(c1, c2, c3) ->
+       fprintf ff "@[<hov2>if %a@ then@ %a@ else@ %a@]"
+         (constraint_t 0) c1 (constraint_t 0) c2 (constraint_t 0) c3
     | Empty -> fprintf ff "true"
     end;
   if prio_current < prio then fprintf ff ")" in
