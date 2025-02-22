@@ -416,7 +416,7 @@ let env_of_equation expected_k ({ eq_write } as eq) =
     | EQsizefun { sf_id; sf_id_list; sf_e; sf_loc } ->
        let ty_res = intro_skeleton_type_of_expression expected_k sf_e in
        let ty = 
-         Types.sizefun sf_id_list ty_res Defsizes.Empty in
+         Types.intro_sizefun sf_id sf_id_list ty_res in
        Env.add sf_id (typ_entry expected_k (intro_sort expected_k) ty) h
     | EQand { eq_list } ->
        List.fold_left env h eq_list 
@@ -1600,7 +1600,9 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   let actual_ty = 
     Types.sizefun sf_id_list ty_res constraints in
   let expected_ty = def sf_loc h sf_id in
-  (* [expected_ty = <<n1,...>>.ty] and [actual_ty = <<n1,...>>.ty with c] *)
+  (* [expected_ty = <<n1,...>>.ty with f(n1,...)] *)
+  (* and [actual_ty = <<n1,...>>.ty with c] *)
+  (* the result is [<<n1,...>>.ty with (let rec f(n1,...) = c in f(n1,...))] *)
   unify_expr sf_e expected_ty actual_ty;
   Defnames.singleton sf_id, Tfun(Tconst)
 

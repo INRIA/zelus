@@ -18,6 +18,7 @@ open Ident
 open Defsizes
 
 exception Fail
+exception Maybe of Defsizes.exp eq list
 
 
 (* normal form: some of products *)
@@ -67,8 +68,10 @@ module SumOfProducts =
         type t = int M.t
         
         let zero = M.empty
-        let is_zero sp = M.is_empty sp
-        
+        let is_surely_zero sp = M.is_empty sp
+        let is_surely_not_zero sp = 
+          (* if [sp = p] with [p an integer] *)
+          if M.cardinal sp = 1 then M.mem Product.one sp else false
         let const v = if v = 0 then zero else M.singleton Product.one v
 
         let var x = M.singleton (Product.var x) 1
@@ -87,7 +90,10 @@ module SumOfProducts =
         let equal sp1 sp2 = compare sp1 sp2 = 0
 
         (* positive - not complete *)
-        let is_positive : _ -> bool = fun sp -> M.for_all (fun _ p -> p >= 0) sp
+        let is_surely_positive : _ -> bool = 
+          fun sp -> M.for_all (fun _ p -> p >= 0) sp
+        let is_surely_not_positive : _ -> bool = 
+          fun sp -> M.for_all (fun _ p -> p < 0) sp
         
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
         let explicit m =
@@ -172,22 +178,39 @@ let norm si =
   let e = SumProduct.make si in
   SumProduct.explicit e
 
-(* decisions *)
+(* decision *)
 let compare cmp si1 si2 =
-  match cmp with
-  | Eq ->
-     let si, _ = normalize (minus si1 si2) in
-     let open SumOfProducts.SumProduct in
-     is_zero (make si)
-  | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
-    Lt ->
-     let si, _ = normalize (minus si2 (plus si1 one)) in
-     let open SumOfProducts.SumProduct in
-     is_positive (make si)
-  | Lte ->
-     let si, _ = normalize (minus si2 si1) in
-     let open SumOfProducts.SumProduct in
-     is_positive (make si)
+  try
+    let result = match cmp with
+      | Eq ->
+         let si, eqs = normalize (minus si1 si2) in
+         let open SumOfProducts.SumProduct in
+         let sp = make si in
+         if is_surely_zero sp then true
+         else if is_surely_not_zero sp then false
+         else raise (Maybe(eqs))
+      | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
+        Lt ->
+         let si, eqs = normalize (minus si2 (plus si1 one)) in
+         let open SumOfProducts.SumProduct in
+         let sp = make si in
+         if is_surely_positive sp then true
+         else if is_surely_not_positive sp then false
+         else raise (Maybe(eqs))
+      | Lte ->
+         let si, eqs = normalize (minus si2 si1) in
+         let open SumOfProducts.SumProduct in
+         let sp = make si in
+         if is_surely_positive sp then true
+         else if is_surely_not_positive sp then false
+         else raise (Maybe(eqs)) in
+    result
+  with
+  | Maybe(eqs) ->
+     (* add it to the constraint environment *)
+       Defsizes.add
+          (And (Rel { rel = Lte; lhs = si1; rhs = si2 } ::  
+                  List.map (fun eq -> Rel eq) eqs)); true
 
 (* syntactic equatity *)
 let syntactic_equal si1 si2 =
@@ -244,19 +267,18 @@ let rec trivial f_env n_env sc =
      (* (f_env f) v_list *) v v_list
   | Fix(id_id_list_sc_list, sc) ->
      (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
-     let f_env =
-       List.fold_left 
-         (fun f_acc (id, id_list, sc) -> 
-           Env.add id 
-             (fun v_list -> 
-               let n_env = 
-                 List.fold_left2 (fun acc id v -> Env.add id v acc)
-                   n_env id_list v_list in
-               trivial f_env n_env sc) f_acc)
-         f_env id_id_list_sc_list in
-     trivial f_env n_env sc
+     let rec f_env =
+       lazy (List.fold_left 
+               (fun f_acc (id, id_list, sc) -> 
+                 Env.add id 
+                   (fun v_list -> 
+                     let n_env = 
+                       List.fold_left2 (fun acc id v -> Env.add id v acc)
+                         n_env id_list v_list in
+                     trivial (Lazy.force f_env) n_env sc) f_acc)
+               (Lazy.force f_env) id_id_list_sc_list) in
+     trivial (Lazy.force f_env) n_env sc
   
-
 (* free variables *)
 let rec fv bounded acc si =
   match si with

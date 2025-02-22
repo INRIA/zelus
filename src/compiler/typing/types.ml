@@ -45,7 +45,12 @@ let vec ty e = make (Tvec(ty, e))
 let vec_opt ty size_opt =
   match size_opt with
   | None -> ty | Some(size) -> vec ty size
-let sizefun id_list ty constraints =  make (Tsizefun { id_list; ty; constraints })
+(* <<id,...>>.t with f(id,...) *)
+let intro_sizefun sf_id id_list ty =
+  let sc = App(sf_id, List.map (fun id -> Svar(id)) id_list) in
+  make (Tsizefun { id_list; ty; constraints = sc })
+let sizefun id_list ty constraints =  
+  make (Tsizefun { id_list; ty; constraints })
 let rec vec_n n ty size_opt =
   if n <= 0 then ty else vec_n (n-1) (vec_opt ty size_opt) size_opt
 let arrow_type ty_kind ty_name_opt ty_arg ty_res =
