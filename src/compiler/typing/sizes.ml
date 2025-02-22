@@ -109,7 +109,8 @@ module SumOfProducts =
           | Sop(op, si1, si2) ->
              let e1 = make si1 in
              let e2 = make si2 in
-             let op = match op with Splus -> sum | Sminus -> minus | Smult -> mult in
+             let op = 
+               match op with Splus -> sum | Sminus -> minus | Smult -> mult in
              op e1 e2
           | Sfrac _ ->
              (* the term must have been normalized before *)
@@ -202,38 +203,58 @@ let syntactic_equal si1 si2 =
   equal si1 si2
 
 (* evaluation of sizes *)
-let rec eval env si =
+let rec eval n_env si =
   match si with
   | Sint(i) -> i
   | Sfrac { num; denom} ->
-      let v = eval env num in
+      let v = eval n_env num in
       v / denom
   | Svar(x) ->
       let v =
-        try Env.find x env with Not_found -> raise Fail in v
+        try Env.find x n_env with Not_found -> raise Fail in v
   | Sop(op, si1, si2) ->
-     let v1 = eval env si1 in
-     let v2 = eval env si2 in
+     let v1 = eval n_env si1 in
+     let v2 = eval n_env si2 in
      let op = match op with | Splus -> (+) | Smult -> ( * ) | Sminus -> (-) in
      op v1 v2
 
-(* evaluation of constraints *)
-let rec trivial env sc =
+(* evaluation of constraints. *)
+(* [f_env]: environment of functions; [n_env]: environment of sizes *)
+let rec trivial f_env n_env sc =
   match sc with
   | Empty -> true
   | Rel { rel; lhs; rhs } ->
-     let v1 = eval env lhs in
-     let v2 = eval env rhs in
+     let v1 = eval n_env lhs in
+     let v2 = eval n_env rhs in
      let op = match rel with | Eq -> (=) | Lt -> (<=) | Lte -> (<=) in
      op v1 v2
-  | And(sc_list) -> List.for_all (trivial env) sc_list
+  | And(sc_list) -> List.for_all (trivial f_env n_env) sc_list
   | Let(id_e_list, sc) ->
-     let env =
+     let n_env =
        List.fold_left
-         (fun acc (id, s) -> Env.add id (eval env s) acc) env id_e_list in
-     trivial env sc
+         (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
+         n_env id_e_list in
+     trivial f_env n_env sc
   | If(sc1, sc2, sc3) ->
-     if trivial env sc1 then trivial env sc2 else trivial env sc3
+     if trivial f_env n_env sc1 then trivial f_env n_env sc2 
+     else trivial f_env n_env sc3
+  | App(f, e_list) ->
+     let v_list = List.map (eval n_env) e_list in
+     let v = try Env.find f f_env with Not_found -> raise Fail in
+     (* (f_env f) v_list *) v v_list
+  | Fix(id_id_list_sc_list, sc) ->
+     (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
+     let f_env =
+       List.fold_left 
+         (fun f_acc (id, id_list, sc) -> 
+           Env.add id 
+             (fun v_list -> 
+               let n_env = 
+                 List.fold_left2 (fun acc id v -> Env.add id v acc)
+                   n_env id_list v_list in
+               trivial f_env n_env sc) f_acc)
+         f_env id_id_list_sc_list in
+     trivial f_env n_env sc
   
 
 (* free variables *)
@@ -258,6 +279,17 @@ let rec fv_constraints bounded acc sc =
   | If(sc1, sc2, sc3) ->
      fv_constraints bounded
        (fv_constraints bounded (fv_constraints bounded acc sc1) sc2) sc3 
+  | App(f, e_list) ->
+     S.add f (List.fold_left (fv bounded) acc e_list)
+  | Fix(id_id_list_sc_list, sc) ->
+     let bounded, acc =
+       List.fold_left 
+         (fun (bounded, acc) (id, id_list, sc) ->
+           S.add id 
+             (List.fold_left (fun acc id -> S.add id acc) bounded id_list),
+           fv_constraints bounded acc sc)
+         (bounded, acc) id_id_list_sc_list in
+     fv_constraints bounded acc sc       
 
 let apply op si1 si2 =
   match si1, si2 with
