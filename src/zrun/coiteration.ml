@@ -1323,8 +1323,8 @@ and vexp genv env e =
 (* computing the environment defined by a local definition *)
 (* the expression [l_eq] is expected to be combinational *)
 and vleq genv env ({ l_rec; l_eq } as leq) =
-  (* for the moment, only recursive definitions of *)
-  (* functions of sizes are allowed *)
+  (* for the moment, recursive functions are only allowed when they *)
+  (* are size functions *)
   if l_rec then
     let* defs = sizefun_defs genv env leq in
     return (Fix.sizefixpoint defs)
