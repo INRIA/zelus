@@ -466,23 +466,16 @@ let rec unify expected_ty actual_ty =
  *- if the definitions are not recursive:
  *- [id_1: <<n1,...>>.ty_1 with constraints_1;
  *- [id_k: <<n1,...>>.ty_k with constraints_k] *)
-let gen_sizefun_constraint_list is_rec id_expected_ty_list actual_ty_list =
+let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints =
   let rec positive id_list sc =
     match id_list with
     | [] -> sc
     | id :: id_list ->
        If(Rel { rel = Lt; lhs = Svar(id); rhs = Sint(0) }, False,
           positive id_list sc) in      
-    let collect f_list (id, _, expected_ty) actual_ty =
-    let expected_ty = typ_repr expected_ty in
-    let actual_ty = typ_repr actual_ty in
-    match expected_ty.t_desc, actual_ty.t_desc with
-    | Tsizefun { id_list; ty }, Tsizefun { constraints } ->
-       (id, id_list, ty, constraints),
-       (id, id_list, positive id_list constraints) :: f_list
-    | _ -> raise Unify in
-  let id_list_ty_constraints_list, f_list =
-    Util.mapfold2 collect [] id_expected_ty_list actual_ty_list in
+  let collect f_list (id, id_list, ty, constraints) =
+    (id, id_list, positive id_list constraints) :: f_list in
+  let f_list = List.fold_left collect [] id_id_list_ty_constraints in
   List.map
     (fun (id, id_list, ty, constraints) ->
       let constraints = if is_rec then Fix(f_list, size_app id id_list)
