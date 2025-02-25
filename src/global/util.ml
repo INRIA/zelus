@@ -63,6 +63,17 @@ let mapfold f acc l =
        y :: l, acc in
   maprec acc l
 
+let mapfold2 f acc l1 l2 =
+  let rec maprec acc l1 l2 =
+    match l1, l2 with
+    | [], [] -> [], acc
+    | x :: l1, y :: l2 ->
+       let z, acc = f acc x y in
+       let l, acc = maprec acc l1 l2 in
+       z :: l, acc
+    | _ -> failwith "mapfold2" in
+  maprec acc l1 l2
+
 let mapfold_opt f acc l =
   let rec maprec acc = function
     | [] -> [], acc

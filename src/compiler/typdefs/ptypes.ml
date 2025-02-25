@@ -59,27 +59,25 @@ let arrow_tostring = function
      (match k with Tdiscrete -> "-D->" | Tcont -> "-C->")
     
 (* Print a size expression *)
-let size ff si =
+let rec size prio ff si =
   let open Defsizes in
   let operator = function Splus -> "+" | Sminus -> "-" | Smult -> "*" in
-  let priority = function Splus -> 0 | Sminus -> 1 | Smult -> 3 in
+  let p_operator = function Splus -> 0 | Sminus -> 1 | Smult -> 3 in
   let priority si =
     match si with
-    | Svar _ | Sint _ -> 3 | Sfrac _ -> 2 | Sop(op, _, _) -> priority op in
-  let rec printrec prio ff si =
-    let prio_s = priority si in
-    if prio > prio_s then fprintf ff "(";
-    begin match si with
-    | Svar(x) -> fprintf ff "%s" (Ident.name x)
-    | Sint(i) -> fprintf ff "%d" i
-    | Sfrac { num; denom } ->
-       fprintf ff "@[%a/%d]@]" (printrec prio_s) num denom
-    | Sop(op, si1, si2) ->
-       fprintf ff "@[%a %s %a@]"
-	 (printrec prio_s) si1 (operator op) (printrec prio_s) si2;
-    end;
-    if prio > prio_s then fprintf ff ")" in       
-  printrec 0 ff si
+    | Svar _ | Sint _ -> 3 | Sfrac _ -> 2 | Sop(op, _, _) -> p_operator op in
+  let prio_s = priority si in
+  if prio > prio_s then fprintf ff "(";
+  begin match si with
+  | Svar(x) -> fprintf ff "%s" (Ident.name x)
+  | Sint(i) -> fprintf ff "%d" i
+  | Sfrac { num; denom } ->
+     fprintf ff "@[%a/%d@]" (size prio_s) num denom
+  | Sop(op, si1, si2) ->
+     fprintf ff "@[%a %s %a@]"
+       (size prio_s) si1 (operator op) (size prio_s) si2;
+  end;
+  if prio > prio_s then fprintf ff ")"
 
 (* Print a size constraint *)
 let constraint_t ff c =
@@ -87,12 +85,12 @@ let constraint_t ff c =
   let priority =
     function
     | App _ -> 3 | Fix _ -> 2 | Rel _ -> 2 | And _ -> 1 | Let _ -> 0
-    | If _ -> 0 | Empty -> 2 in
+    | If _ -> 0 | True | False -> 2 in
   let eq_t ff { rel; lhs; rhs } =
     let s = match rel with | Eq -> "=" | Lt -> "<" | Lte -> "<=" in
-    fprintf ff "@[%a %s %a@]" size lhs s size rhs in
+    fprintf ff "@[(%a %s %a)@]" (size 0) lhs s (size 0) rhs in
   let def_t ff (id, e) =
-    fprintf ff "@[<hov 2>%s =@ %a@]" (Ident.name id) size e in
+    fprintf ff "@[<hov 2>%s =@ %a@]" (Ident.name id) (size 0) e in
   let rec fix_def_t ff (id, id_list, c) =
     fprintf ff "@[<hov 2>%s %a@ =@ %a@]" (Ident.name id)
       (Pp_tools.print_list_r Ident.fprint_t "(" "," ")") id_list
@@ -103,7 +101,7 @@ let constraint_t ff c =
     begin match c with
     | Rel(eq) -> eq_t ff eq
     | And(c_list) ->
-       Pp_tools.print_list_r (constraint_t prio_current) "" "&& " "" ff c_list
+       Pp_tools.print_list_r (constraint_t prio_current) "" " &&" "" ff c_list
     | Let(id_e_list, c) ->
        fprintf ff
          "@[<hov0>%a@ %a@]"
@@ -111,7 +109,7 @@ let constraint_t ff c =
          (constraint_t 0) c
     | App(f, e_list) ->
        fprintf ff "@[<hov2>%a@ %a@]" Ident.fprint_t f
-         (Pp_tools.print_list_r size "(" "," ")") e_list
+         (Pp_tools.print_list_r (size 0) "(" "," ")") e_list
     | Fix(f_id_list_c_list, c) ->
        (* [let rec f1(n1,...) = c1 and ... fk(n1,...) = ck in c] *)
        fprintf ff "@[<hov0>%a@ %a@]"
@@ -120,7 +118,8 @@ let constraint_t ff c =
     | If(c1, c2, c3) ->
        fprintf ff "@[<hov2>if %a@ then@ %a@ else@ %a@]"
          (constraint_t 0) c1 (constraint_t 0) c2 (constraint_t 0) c3
-    | Empty -> fprintf ff "true"
+    | True -> fprintf ff "true"
+    | False -> fprintf ff "false"
     end;
   if prio_current < prio then fprintf ff ")" in
   constraint_t 0 ff c
@@ -129,10 +128,10 @@ let rec print prio ff { t_desc; t_level; t_index } =
   let print_constraints ff sc =
     let open Defsizes in
     match sc with
-    | Empty -> ()
+    | True -> ()
     | _ -> if !Misc.print_types_with_size_constraints then
-             fprintf ff "@[<hov 2> with@ %a@]" constraint_t sc
-           else fprintf ff "@[ with ...@]" in
+             fprintf ff " with@ %a" constraint_t sc
+           else fprintf ff " with ..." in
   let priority = function
     | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ | Tvec _ -> 3
     | Tarrow _ | Tsizefun _ -> 1 | Tlink _ -> prio in
@@ -165,9 +164,9 @@ let rec print prio ff { t_desc; t_level; t_index } =
        print_arg ty_arg (arrow_tostring ty_kind)
        (print prio_current) ty_res
   | Tvec(ty, si) ->
-     fprintf ff "@[[%a]%a@]" size si (print prio_current) ty 
+     fprintf ff "@[[%a]%a@]" (size 0) si (print prio_current) ty 
   | Tsizefun { id_list; ty; constraints } ->
-     fprintf ff "@[%a.%a%a@]"
+     fprintf ff "@[<v2>%a.%a%a@]"
        (print_list_l Ident.fprint_t "<<" "," ">>") id_list
            (print prio_current) ty print_constraints constraints
   | Tlink(link) -> print prio ff link
@@ -234,7 +233,7 @@ let print_value_type_declaration ff { qualid; info = (is_const, ty_scheme) } =
 let output_type ff ty =
   fprintf ff "@[%a@]" (print 0) ty
 
-let output_size ff si = size ff si
+let output_size ff si = size 0 ff si
 
 let output_tentry ff { t_path; t_sort; t_tys } = 
   let vkind = function Tconst -> "c" | Tstatic -> "s" | Tany -> "a" in

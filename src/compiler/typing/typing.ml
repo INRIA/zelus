@@ -106,8 +106,9 @@ let check_type_is_in_kind loc h vkind =
 let check_no_unbounded_size_name loc h =
   let check_no_unbounded_size_name loc fv ty =
     if not (S.is_empty fv)
-    then let n = S.choose fv in
-         error loc (Esize_parameter_cannot_be_generalized(n, ty)) in
+    then
+      let n = S.choose fv in
+      error loc (Esize_parameter_cannot_be_generalized(n, ty)) in
   Env.iter
     (fun _ { t_tys = { typ_body } } ->
       check_no_unbounded_size_name loc (Types.fv S.empty typ_body) typ_body) h
@@ -161,8 +162,9 @@ let rec expansive { eq_desc } =
   match eq_desc with
   | EQsizefun _ -> false
   | EQeq(_, e) -> exp e
-  | EQand { eq_list } -> List.exists expansive eq_list
+  | EQand { eq_list } -> expansive_list eq_list
   | _ -> true
+and expansive_list eq_list = List.exists expansive eq_list
 
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
@@ -404,24 +406,38 @@ let rec intro_skeleton_type_of_expression expected_k { e_desc } =
   | _ -> Types.new_var ()
 
 (* introduce a typing environment according to [expected_k] for an equation *)
-(* a pass extracts type annotations given for size functions defined in [eq] *)
-let env_of_equation expected_k ({ eq_write } as eq) =
-  let env_of_names h n_set =
+let env_of expected_k acc { eq_write } =
+  let env_of_names acc n_set =
     S.fold
       (fun n acc ->
         Env.add n (fresh_typ_entry expected_k (intro_sort expected_k)) acc)
-      n_set h in
-  let rec env h { eq_desc; eq_write } =
+      n_set acc in
+  env_of_names acc (Defnames.names S.empty eq_write)
+
+(* introduce a typing environment according to [expected_k] for size functions *)
+let intro_skeleton_type_of_sizefun { sf_id; sf_id_list; sf_e } =
+  let ty_res = intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e in
+  (sf_id, ty_res, Types.intro_sizefun sf_id sf_id_list ty_res)
+
+let intro_skeleton_type_of_sizefun { sf_id; sf_id_list; sf_e } =
+  let ty_res = intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e in
+  (sf_id, ty_res, Types.intro_sizefun sf_id sf_id_list ty_res)
+
+(* mutually recursive definitions must either define *)
+(* functions parameterized by a size or stream values *)
+let eq_or_sizefun loc l_eq =
+  let rec split (eq_list, sizefun_list) ({ eq_desc } as eq) =
     match eq_desc with
-    | EQsizefun { sf_id; sf_id_list; sf_e; sf_loc } ->
-       let ty_res = intro_skeleton_type_of_expression expected_k sf_e in
-       let ty = 
-         Types.intro_sizefun sf_id sf_id_list ty_res in
-       Env.add sf_id (typ_entry expected_k (intro_sort expected_k) ty) h
+    | EQsizefun sf -> eq_list, sf :: sizefun_list 
     | EQand { eq_list } ->
-       List.fold_left env h eq_list 
-    | _ -> env_of_names h (Defnames.names S.empty eq_write) in
-  env Env.empty eq
+       List.fold_left split (eq_list, sizefun_list) eq_list
+    | EQempty -> eq_list, sizefun_list 
+    | _ -> eq :: eq_list, sizefun_list in
+  let eq_list, sizefun_list = split ([], []) l_eq in
+  match eq_list, sizefun_list with
+  | _, [] -> Either.Left eq_list
+  | [], _ -> Either.Right sizefun_list
+  | _ -> error loc (Esizefun_and_equations_are_mixed)
 
 (* Typing a pateq *)
 let pateq h { desc; loc } ty_e =
@@ -1231,8 +1247,8 @@ and equation expected_k h { eq_desc; eq_loc } =
      Defnames.empty, actual_k
   | EQforloop(f_eq) -> 
      forloop_eq expected_k h f_eq
-  | EQsizefun(f_size) ->
-     sizefun_t expected_k h f_size
+  | EQsizefun _ ->
+     assert false
 
 and equation_list expected_k h eq_list =
   List.fold_left
@@ -1295,31 +1311,74 @@ and block_eq expected_k h ({ b_vars; b_body = { eq_write } as b_body } as b) =
   b.b_write <- defined_names;
   h0, h, defined_names, Kind.sup actual_k_h0 actual_k_body
 
-and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
-  (* in a static or constant context all introduced names inherits it *)
-  let expected_k = Kind.inherits expected_k (Interface.vkindtype l_kind) in
-  Misc.push_binding_level ();
-  let h0 = env_of_equation expected_k l_eq in
-  (* because names are unique, typing of [l_eq] is done with [h+h0] *)
-  (* otherwise, one would need two distinct type environments; one for *)
-  (* names defined on the left-hand side of equations; one for right-hand side *)
-  let new_h = Env.append h0 h in
-  let _, actual_k = equation expected_k new_h l_eq in
-  Misc.pop_binding_level ();
-  let is_gen = not (expansive l_eq) in
-  let h0 = Types.gen_decl is_gen h0 in
-  (* check that the type for every entry has the right kind *)
-  check_type_is_in_kind l_loc h0 (Kind.vkind l_kind);
-  l.l_env <- h0;
-  let new_h = Env.append h0 h in
-  new_h, actual_k
-
 and leqs expected_k h l =
   List.fold_left
     (fun (h, acc_k) l_eq ->
       let h, actual_k = leq expected_k h l_eq in
       h, Kind.sup acc_k actual_k) (h, Tfun(Tconst)) l
   
+and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
+  let eq_or_s_list = eq_or_sizefun l_loc l_eq in
+  (* in a static or constant context all introduced names inherits it *)
+  let expected_k = Kind.inherits expected_k (Interface.vkindtype l_kind) in
+  Misc.push_binding_level ();
+  let defined_names, h0, actual_k =
+    match eq_or_s_list with
+    | Either.Left(eq_list) ->
+       leq_eq_list expected_k h eq_list
+    | Either.Right(sizefun_list) ->
+       less_than l_loc expected_k (Tfun(Tconst));
+       sizefun_list_t l_rec h sizefun_list in
+  Misc.pop_binding_level ();
+  let is_gen = not (expansive l_eq) in
+  let h0 = Types.gen_decl is_gen h0 in
+  (* check that the type for every entry has the right kind *)
+  check_type_is_in_kind l_loc h0 (Kind.vkind l_kind);
+  let new_h = Env.append h0 h in
+  l.l_env <- h0;
+  l.l_eq.eq_write <- defined_names;
+  new_h, actual_k
+
+(* [typing let [rec] eq1 and ... eqn] *)
+and leq_eq_list expected_k h eq_list =
+  let h0 = List.fold_left (env_of expected_k) Env.empty eq_list in
+  (* because names are unique, typing of [l_eq] is done with [h+h0] *)
+  (* otherwise, one would need two distinct type environments; one for *)
+  (* names defined on the left-hand side of equations; one for right-hand side *)
+  let new_h = Env.append h0 h in
+  let defined_names, actual_k = equation_list expected_k new_h eq_list in
+  defined_names, h0, actual_k
+
+(* typing [let [rec] f1<<n1,...>> = e1 and ... fk<<n1,...>> = ek] *)
+and sizefun_list_t l_rec h sizefun_list =
+  let env_of id ty acc =
+    Env.add id (typ_entry (Tfun(Tconst)) Sort_val ty) acc in
+  (* types [ty_body_1;...;ty_body_k] for functions [f1;...;f_k] *)
+  let expected_ty_list =
+    List.map
+      (fun { sf_e } -> intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
+      sizefun_list in
+  (* initial typing environment *)
+  let h0 =
+    List.fold_left2
+      (fun acc { sf_id; sf_id_list } ty_body ->
+        env_of sf_id (Types.intro_sizefun sf_id sf_id_list ty_body) acc)
+      Env.empty sizefun_list expected_ty_list in
+  let new_h = Env.append h0 h in
+  let actual_ty_list, defined_names =
+    Util.mapfold2
+      (fun acc ({ sf_loc } as sizefun) ty_body ->
+        let defined_names, actual_ty = sizefun_t new_h sizefun ty_body in
+        actual_ty, Total.join sf_loc defined_names acc)
+      Defnames.empty sizefun_list expected_ty_list in
+  let actual_ty_list =
+    Types.gen_sizefun_constraint_list l_rec actual_ty_list in
+  let h0 =
+    List.fold_left2
+      (fun acc { sf_id } ty -> env_of sf_id ty acc) Env.empty
+      sizefun_list actual_ty_list in
+  defined_names, h0, Tfun(Tconst)
+
 (* Typing a signal condition *)
 and scondpat expected_k type_of_condition h scpat =
   let rec typrec expected_k scpat =
@@ -1584,7 +1643,7 @@ and forloop_eq expected_k h
   f.for_env <- h_env;
   h_out, actual_k
 
-and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
+and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
   let entry acc id = 
     Env.add id (Deftypes.entry (Tfun(Tconst)) Sort_val 
                   (Deftypes.scheme Initial.typ_int)) acc in
@@ -1595,17 +1654,14 @@ and sizefun_t expected_k h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) =
   let h = Env.append h_env h in
   let ty_res, _ = expression (Tfun(Tconst)) h sf_e in
   f.sf_env <- h_env;
+  (* checks that [ty_res] unifies with [ty_body] *)
+  unify_expr sf_e ty_res ty_body;
   (* pop the current size constraint *)
   let constraints = Defsizes.pop () in
   let actual_ty = 
     Types.sizefun sf_id_list ty_res constraints in
-  let expected_ty = def sf_loc h sf_id in
-  (* [expected_ty = <<n1,...>>.ty with f(n1,...)] *)
-  (* and [actual_ty = <<n1,...>>.ty with c] *)
-  (* the result is [<<n1,...>>.ty with (let rec f(n1,...) = c in f(n1,...))] *)
-  unify_expr sf_e expected_ty actual_ty;
-  Defnames.singleton sf_id, Tfun(Tconst)
-
+  Defnames.singleton sf_id, actual_ty
+  
 (* the main entry functions *)
 let implementation ff is_first impl =
   (* turn off warning when not the first typing step *)

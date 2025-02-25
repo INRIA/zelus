@@ -177,7 +177,7 @@ let rec check_type tc =
       List.iter (occur_check c) c.c_sup
   | Cfun(tc_arg, tc_res) -> check_type tc_arg; check_type tc_res
     
-(** order < between types *)
+(* order < between types *)
 let rec less left_tc right_tc =
   match left_tc, right_tc with
   | Cproduct(l1), Cproduct(l2) -> List.iter2 less l1 l2

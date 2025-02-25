@@ -34,7 +34,7 @@ type 'e constraints =
   (* definition of mutually recursive functions on sizes *)
   | If of 'e constraints * 'e constraints * 'e constraints
   (* if c1 then c2 else c3 *)
-  | Empty
+  | True | False
 
 and 'a eq = { rel: rel; lhs: 'a; rhs: 'a }
 and rel = Eq | Lt | Lte
@@ -46,7 +46,7 @@ type stack_of_size_constraint =
 
 (* the stack of constraints *)
 let c_stack : stack_of_size_constraint =
-  { stack = Stack.create (); current = Empty }
+  { stack = Stack.create (); current = True }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
@@ -54,15 +54,15 @@ let c_stack : stack_of_size_constraint =
 (* empty the stack of constraints *)
 let clear () =
   Stack.clear c_stack.stack;
-  c_stack.current <- Empty
+  c_stack.current <- True
 
 (* push an empty constraint *)
 let push () =
   Stack.push c_stack.current c_stack.stack;
-  c_stack.current <- Empty
+  c_stack.current <- True
 let add c =
   c_stack.current <-
-    match c_stack.current with | Empty -> c | c_old -> And [c;c_old]
+    match c_stack.current with | True -> c | c_old -> And [c;c_old]
 (* pop/restore the previous one *)
 let pop () =
   let c = c_stack.current in

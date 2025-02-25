@@ -46,9 +46,10 @@ let vec_opt ty size_opt =
   match size_opt with
   | None -> ty | Some(size) -> vec ty size
 (* <<id,...>>.t with f(id,...) *)
+let size_app sf_id id_list =
+  App(sf_id, List.map (fun id -> Svar(id)) id_list)
 let intro_sizefun sf_id id_list ty =
-  let sc = App(sf_id, List.map (fun id -> Svar(id)) id_list) in
-  make (Tsizefun { id_list; ty; constraints = sc })
+  make (Tsizefun { id_list; ty; constraints = size_app sf_id id_list })
 let sizefun id_list ty constraints =  
   make (Tsizefun { id_list; ty; constraints })
 let rec vec_n n ty size_opt =
@@ -430,8 +431,8 @@ let rec unify expected_ty actual_ty =
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
            if not (Sizes.compare Defsizes.Eq si1 si2) then raise Unify
-	| Tsizefun { id_list = id_list1; ty = ty1; constraints = Empty },
-          Tsizefun { id_list = id_list2; ty = ty2; constraints = Empty } when
+	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
+          Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when
                (List.length id_list1) = (List.length id_list2) ->
            if List.for_all2
                 (fun id1 id2 -> Ident.compare id1 id2 = 0) id_list1 id_list2
@@ -452,6 +453,43 @@ let rec unify expected_ty actual_ty =
              unify ty1 ty2              
         | _ -> raise Unify
 
+(* generate the size constraint for a list of size function definitions *)
+(*  [id_1: <<n1,...>>.ty_1 with id_1(n1,...); ...
+ *- id_k: <<n1,...>>.ty_k with id_k(n1,...)] and
+ *  [id_1: <<n1,...>>.ty_1 with constraints_1; ...
+ *- id_k: <<n1,...>>.ty_k with constraints_k]
+ *- if the definitions are recursive:
+ *- [id_1: <<n1,...>>.ty_1 with let rec f_list in id_1(n1,...); ...
+ *- [id_k: <<n1,...>>.ty_k with let rec f_list in id_k(n1,...)]
+ *- with f_list = id1(n1,...) = if (n1<0) then false else ...if (n_k<0) then false
+ *-                             else constraint_1 and ...
+ *- if the definitions are not recursive:
+ *- [id_1: <<n1,...>>.ty_1 with constraints_1;
+ *- [id_k: <<n1,...>>.ty_k with constraints_k] *)
+let gen_sizefun_constraint_list is_rec id_expected_ty_list actual_ty_list =
+  let rec positive id_list sc =
+    match id_list with
+    | [] -> sc
+    | id :: id_list ->
+       If(Rel { rel = Lt; lhs = Svar(id); rhs = Sint(0) }, False,
+          positive id_list sc) in      
+    let collect f_list (id, _, expected_ty) actual_ty =
+    let expected_ty = typ_repr expected_ty in
+    let actual_ty = typ_repr actual_ty in
+    match expected_ty.t_desc, actual_ty.t_desc with
+    | Tsizefun { id_list; ty }, Tsizefun { constraints } ->
+       (id, id_list, ty, constraints),
+       (id, id_list, positive id_list constraints) :: f_list
+    | _ -> raise Unify in
+  let id_list_ty_constraints_list, f_list =
+    Util.mapfold2 collect [] id_expected_ty_list actual_ty_list in
+  List.map
+    (fun (id, id_list, ty, constraints) ->
+      let constraints = if is_rec then Fix(f_list, size_app id id_list)
+                        else constraints in
+      (id, sizefun id_list ty constraints))
+    id_list_ty_constraints_list
+    
 let filter_product arity ty =
   let ty = typ_repr ty in
     match ty.t_desc with

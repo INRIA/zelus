@@ -57,7 +57,9 @@ type error =
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
-  | Econstr_arity of Lident.t * int * int							 
+  | Econstr_arity of Lident.t * int * int
+  | Esizefun_and_equations_are_mixed
+
 exception Error of Location.t * error
 				
 let error loc kind = raise (Error(loc, kind))
@@ -234,7 +236,7 @@ let message loc kind =
  | Esize_parameter_cannot_be_generalized(n, ty) ->
      eprintf
        "@[%aType error: this pattern has type@ %a,@ \
-        which contains the variable %s that is bounded later or never.@.@]"
+        which contains the variable %s that is unbounded.@.@]"
 	output_location loc
         Ptypes.output_type ty
 	(Ident.name n)
@@ -247,6 +249,11 @@ let message loc kind =
        Printer.longname ln
        expected_arity
        actual_arity
+ | Esizefun_and_equations_are_mixed ->
+    eprintf
+      "@[%aType error: definitions of (stream) equations and size functions \
+       are mixed.\n"
+       output_location loc
   end;
   raise Misc.Error
 

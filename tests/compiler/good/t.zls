@@ -1,3 +1,6 @@
+let const fff<<n>>(x:[n]'a) = x ++ x 
+
+
 let const map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward(n)[i] (xi in x) returns (yi out y)
     do yi = f(xi) + i done
@@ -9,6 +12,9 @@ let const my_concat2<<n>>(x:[n]'a, y:[n]'a)
 returns (z:[2 * n + 4]'a)
   z = x ++ y ++ [|1|] ++ [|2;3;4|]
 
+let const g(x:[4]int) = my_concat<<4>>(x,x)
+
+(*
 let const rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
@@ -17,6 +23,7 @@ let const rec ff<<n>> =
   fun (x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ ff<<n-1>>(x.(0 .. n-2))
+*)
 
 (* let const dicho<<n>>(v, x) =
      let const rec dicho<<n,i>>(v, x) =
@@ -41,6 +48,7 @@ f<<n1,....,nk>> = ... f<<s1,...,sk>>
 if (s1 = n1) then (...) else s1 < n1
 *)
 
+(*
 let const rec or_<<n>>(x:[n]bool) returns (y)
     if n = 0 then y = false
     else y = x.(0) default false || (or_<<n-1>>(x.(0 .. n-2)))
@@ -51,6 +59,7 @@ let const rec or__1<<n>>(x:[n]bool) returns (y)
     else
       y = (or__1<<n/2>>(x.(0 .. (n/2 - 1)))) or
           (or__1<<n/2>>(x.((n/2) .. (n - 1))))
+*)
 
 (* val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 } *)
 

@@ -245,7 +245,8 @@ let rec eval n_env si =
 (* [f_env]: environment of functions; [n_env]: environment of sizes *)
 let rec trivial f_env n_env sc =
   match sc with
-  | Empty -> true
+  | True -> true
+  | False -> false
   | Rel { rel; lhs; rhs } ->
      let v1 = eval n_env lhs in
      let v2 = eval n_env rhs in
@@ -289,7 +290,7 @@ let rec fv bounded acc si =
 
 let rec fv_constraints bounded acc sc =
   match sc with
-  | Empty -> acc
+  | True | False -> acc
   | And(sc_list) -> List.fold_left (fv_constraints bounded) acc sc_list
   | Rel { lhs; rhs } -> fv bounded (fv bounded acc lhs) rhs
   | Let(id_e_list, sc) ->
@@ -301,16 +302,20 @@ let rec fv_constraints bounded acc sc =
   | If(sc1, sc2, sc3) ->
      fv_constraints bounded
        (fv_constraints bounded (fv_constraints bounded acc sc1) sc2) sc3 
-  | App(f, e_list) ->
-     S.add f (List.fold_left (fv bounded) acc e_list)
+  | App(n, e_list) ->
+     let acc = if S.mem n bounded || S.mem n acc then acc else S.add n acc in
+     List.fold_left (fv bounded) acc e_list
   | Fix(id_id_list_sc_list, sc) ->
-     let bounded, acc =
+     let bounded =
+       List.fold_left
+         (fun acc (id, _, _) -> S.add id acc) bounded id_id_list_sc_list in
+     let acc =
        List.fold_left 
-         (fun (bounded, acc) (id, id_list, sc) ->
-           S.add id 
-             (List.fold_left (fun acc id -> S.add id acc) bounded id_list),
+         (fun acc (_, id_list, sc) ->
+           let bounded =
+             List.fold_left (fun acc id -> S.add id acc) bounded id_list in
            fv_constraints bounded acc sc)
-         (bounded, acc) id_id_list_sc_list in
+         acc id_id_list_sc_list in
      fv_constraints bounded acc sc       
 
 let apply op si1 si2 =
