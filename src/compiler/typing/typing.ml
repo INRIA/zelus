@@ -1365,18 +1365,21 @@ and sizefun_list_t l_rec h sizefun_list =
         env_of sf_id (Types.intro_sizefun sf_id sf_id_list ty_body) acc)
       Env.empty sizefun_list expected_ty_list in
   let new_h = Env.append h0 h in
-  let actual_ty_list, defined_names =
+  let info_list, defined_names =
     Util.mapfold2
-      (fun acc ({ sf_loc } as sizefun) ty_body ->
-        let defined_names, actual_ty = sizefun_t new_h sizefun ty_body in
-        actual_ty, Total.join sf_loc defined_names acc)
+      (fun acc ({ sf_id; sf_id_list; sf_loc } as sizefun) ty_body ->
+        let actual_ty_body, constraints = 
+          sizefun_t new_h sizefun ty_body in
+        (sf_id, sf_id_list, actual_ty_body, constraints),
+        Total.join sf_loc (Defnames.singleton sf_id) acc)
       Defnames.empty sizefun_list expected_ty_list in
-  let actual_ty_list =
-    Types.gen_sizefun_constraint_list l_rec actual_ty_list in
+  let ty_body_constraints_list =
+    Types.gen_sizefun_constraint_list l_rec info_list in
   let h0 =
     List.fold_left2
-      (fun acc { sf_id } ty -> env_of sf_id ty acc) Env.empty
-      sizefun_list actual_ty_list in
+      (fun acc { sf_id; sf_id_list } (ty_body, constraints) -> 
+        env_of sf_id (Types.sizefun sf_id_list ty_body constraints) acc)
+      Env.empty sizefun_list ty_body_constraints_list in
   defined_names, h0, Tfun(Tconst)
 
 (* Typing a signal condition *)
@@ -1643,6 +1646,8 @@ and forloop_eq expected_k h
   f.for_env <- h_env;
   h_out, actual_k
 
+(* A size function definition [f<<n,...>> = e] has type *)
+(* <<n,...>>.ty_body with c] where [c] constraints [n,...] *)
 and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
   let entry acc id = 
     Env.add id (Deftypes.entry (Tfun(Tconst)) Sort_val 
@@ -1658,9 +1663,7 @@ and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
   unify_expr sf_e ty_res ty_body;
   (* pop the current size constraint *)
   let constraints = Defsizes.pop () in
-  let actual_ty = 
-    Types.sizefun sf_id_list ty_res constraints in
-  Defnames.singleton sf_id, actual_ty
+  sf_id, sf_id_list, ty_res, constraints
   
 (* the main entry functions *)
 let implementation ff is_first impl =
