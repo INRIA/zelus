@@ -331,7 +331,7 @@ let frac num denom =
 let rec subst env si =
   match si with
   | Sint _ -> si
-  | Sop(op, si1, si2) -> apply op si1 si2
+  | Sop(op, si1, si2) -> apply op (subst env si1) (subst env si2)
   | Sfrac { num; denom } -> frac (subst env num) denom
   | Svar(n) ->
      try Env.find n env with | Not_found -> raise Fail

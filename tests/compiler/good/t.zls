@@ -1,3 +1,6 @@
+let node main(x) =
+  let rec o1 = x and o2 = x in o1, o2
+
 let const fff<<n>>(x:[n]'a) = x ++ x 
 
 

@@ -426,17 +426,17 @@ let intro_skeleton_type_of_sizefun { sf_id; sf_id_list; sf_e } =
 (* mutually recursive definitions must either define *)
 (* functions parameterized by a size or stream values *)
 let eq_or_sizefun loc l_eq =
-  let rec split (eq_list, sizefun_list) ({ eq_desc } as eq) =
+  let rec split (acc_eq_list, acc_sizefun_list) ({ eq_desc } as eq) =
     match eq_desc with
-    | EQsizefun sf -> eq_list, sf :: sizefun_list 
+    | EQsizefun sf -> acc_eq_list, sf :: acc_sizefun_list 
     | EQand { eq_list } ->
-       List.fold_left split (eq_list, sizefun_list) eq_list
-    | EQempty -> eq_list, sizefun_list 
-    | _ -> eq :: eq_list, sizefun_list in
-  let eq_list, sizefun_list = split ([], []) l_eq in
-  match eq_list, sizefun_list with
-  | _, [] -> Either.Left eq_list
-  | [], _ -> Either.Right sizefun_list
+       List.fold_left split (acc_eq_list, acc_sizefun_list) eq_list
+    | EQempty -> acc_eq_list, acc_sizefun_list 
+    | _ -> eq :: acc_eq_list, acc_sizefun_list in
+  let acc_eq_list, acc_sizefun_list = split ([], []) l_eq in
+  match acc_eq_list, acc_sizefun_list with
+  | _, [] -> Either.Left acc_eq_list
+  | [], _ -> Either.Right acc_sizefun_list
   | _ -> error loc (Esizefun_and_equations_are_mixed)
 
 (* Typing a pateq *)
