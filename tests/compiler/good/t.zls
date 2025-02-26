@@ -1,9 +1,3 @@
-let node main(x) =
-  let rec o1 = x and o2 = x in o1, o2
-
-let const fff<<n>>(x:[n]'a) = x ++ x 
-
-
 let const map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward(n)[i] (xi in x) returns (yi out y)
     do yi = f(xi) + i done
@@ -17,7 +11,6 @@ returns (z:[2 * n + 4]'a)
 
 let const g(x:[4]int) = my_concat<<4>>(x,x)
 
-(*
 let const rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
@@ -26,7 +19,6 @@ let const rec ff<<n>> =
   fun (x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ ff<<n-1>>(x.(0 .. n-2))
-*)
 
 (* let const dicho<<n>>(v, x) =
      let const rec dicho<<n,i>>(v, x) =
