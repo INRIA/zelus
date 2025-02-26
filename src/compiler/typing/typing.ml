@@ -1365,21 +1365,17 @@ and sizefun_list_t l_rec h sizefun_list =
         env_of sf_id (Types.intro_sizefun sf_id sf_id_list ty_body) acc)
       Env.empty sizefun_list expected_ty_list in
   let new_h = Env.append h0 h in
-  let info_list, defined_names =
+  let id_id_list_ty_constraints, defined_names =
     Util.mapfold2
       (fun acc ({ sf_id; sf_id_list; sf_loc } as sizefun) ty_body ->
-        let actual_ty_body, constraints = 
-          sizefun_t new_h sizefun ty_body in
-        (sf_id, sf_id_list, actual_ty_body, constraints),
+        sizefun_t new_h sizefun ty_body,
         Total.join sf_loc (Defnames.singleton sf_id) acc)
       Defnames.empty sizefun_list expected_ty_list in
-  let ty_body_constraints_list =
-    Types.gen_sizefun_constraint_list l_rec info_list in
+  let id_ty_list =
+    Types.gen_sizefun_constraint_list l_rec id_id_list_ty_constraints in
   let h0 =
-    List.fold_left2
-      (fun acc { sf_id; sf_id_list } (ty_body, constraints) -> 
-        env_of sf_id (Types.sizefun sf_id_list ty_body constraints) acc)
-      Env.empty sizefun_list ty_body_constraints_list in
+    List.fold_left
+      (fun acc (id, ty) -> env_of id ty acc) Env.empty id_ty_list in
   defined_names, h0, Tfun(Tconst)
 
 (* Typing a signal condition *)

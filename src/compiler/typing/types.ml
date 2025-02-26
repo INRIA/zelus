@@ -466,7 +466,7 @@ let rec unify expected_ty actual_ty =
  *- if the definitions are not recursive:
  *- [id_1: <<n1,...>>.ty_1 with constraints_1;
  *- [id_k: <<n1,...>>.ty_k with constraints_k] *)
-let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints =
+let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
   let rec positive id_list sc =
     match id_list with
     | [] -> sc
@@ -475,13 +475,13 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints =
           positive id_list sc) in      
   let collect f_list (id, id_list, ty, constraints) =
     (id, id_list, positive id_list constraints) :: f_list in
-  let f_list = List.fold_left collect [] id_id_list_ty_constraints in
+  let f_list = List.fold_left collect [] id_id_list_ty_constraints_list in
   List.map
     (fun (id, id_list, ty, constraints) ->
       let constraints = if is_rec then Fix(f_list, size_app id id_list)
                         else constraints in
       (id, sizefun id_list ty constraints))
-    id_list_ty_constraints_list
+    id_id_list_ty_constraints_list
     
 let filter_product arity ty =
   let ty = typ_repr ty in
