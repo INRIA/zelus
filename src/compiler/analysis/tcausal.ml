@@ -259,6 +259,8 @@ let rec skeleton ty =
   | Tarrow { ty_arg; ty_res } ->
      funtype (skeleton ty_arg) (skeleton ty_res)
   | Tsizefun { id_list; ty } ->
+     (* the causality type for [<<n1,...,nk>>.t with c] is *)
+     (* atom(a1) -> ... -> atom(an) -> skeleton(t) *)
      funtype_list (List.map (fun _ -> atom (new_var ())) id_list) (skeleton ty)
   | Tconstr _ | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
@@ -696,7 +698,7 @@ let links = ref []
 let save link = links := link :: !links
 let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 
-(* makes a copy of the type scheme *)
+(* makes a copy of the causality type scheme *)
 let rec copy tc ty = 
   let rec ccopy c =
     match c.c_desc with
