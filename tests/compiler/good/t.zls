@@ -15,7 +15,25 @@ let const rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
 
-(* let rec or_n<<n>> =
+(* 
+let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
+ forward(n)[i] (xi in x) returns (yi out y)
+    do yi = f(xi) + i done
+    
+let my_concat<<n>>(x:[n]'a, y:[n]'a) =
+  x ++ y ++ [|1|] ++ [|2;3;4|]
+
+let my_concat2<<n>>(x:[n]'a, y:[n]'a)
+returns (z:[2 * n + 4]'a)
+  z = x ++ y ++ [|1|] ++ [|2;3;4|]
+
+let g(x:[4]int) = my_concat<<4>>(x,x)
+
+let rec f<<n>>(x:[n]int) returns (y:[n]int)
+    if n = 0 then y = x else
+    y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
+
+let rec or_n<<n>> =
   fun (x:[n]int) returns (y:[n]int)
     match size n with
     | 0 -> y = [||]
