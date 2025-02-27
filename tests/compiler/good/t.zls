@@ -15,13 +15,16 @@ let const rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
 
-let const rec ff<<n>> =
+(* let rec or_n<<n>> =
   fun (x:[n]int) returns (y:[n]int)
-    if n = 0 then y = x else
-    y = [|1|] ++ ff<<n-1>>(x.(0 .. n-2))
+    match size n with
+    | 0 -> y = [||]
+    | 1 -> y = x.(0)
+    | _ -> or_n<<n/2>>(x.(0 .. n/2 - 1)) || or_n<<n-n/2>>(x.(n/2 .. n - 1)
+*)
 
-(* let const dicho<<n>>(v, x) =
-     let const rec dicho<<n,i>>(v, x) =
+(* let dicho<<n>>(v, x) =
+     let rec dicho<<n,i>>(v, x) =
        match size n with
        | 0 -> false
        | _ -> match compare v x.(i+n/2) with
