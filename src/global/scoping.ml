@@ -272,7 +272,7 @@ module Make (Info: INFO) =
       | EQif(_, eq1, eq2) ->
          let defnames = buildeq defnames eq1 in
          buildeq defnames eq2
-      | EQmatch(_, h_list) ->
+      | EQmatch(_, _, h_list) ->
          List.fold_left build_match_handler defnames h_list
       | EQpresent(p_h_list, b_opt) ->
          let defnames = 
@@ -453,11 +453,11 @@ module Make (Info: INFO) =
            let eq_true = equation env_pat env eq_true in
            let eq_false = equation env_pat env eq_false in
            Zelus.EQif { e; eq_true; eq_false }
-        | EQmatch(e, m_h_list) ->
+        | EQmatch(is_size, e, m_h_list) ->
            let e = expression env e in
            let m_h_list =
              List.map (match_handler (equation env_pat) env) m_h_list in
-           Zelus.EQmatch { is_total = false; e; handlers = m_h_list }
+           Zelus.EQmatch { is_size; is_total = false; e; handlers = m_h_list }
         | EQautomaton(a_h_list, st_opt) ->
            let is_weak, is_strong =
              List.fold_left
@@ -812,11 +812,11 @@ module Make (Info: INFO) =
         | Etypeconstraint(e, texp) ->
            Zelus.Etypeconstraint(expression env e, types env texp)
         | Efun(fd) -> Zelus.Efun(funexp env fd)
-        | Ematch(e, m_h_list) ->
+        | Ematch(is_size, e, m_h_list) ->
            let e = expression env e in
            let m_h_list =
              List.map (match_handler expression env) m_h_list in
-           Zelus.Ematch { is_total = false; e; handlers = m_h_list }
+           Zelus.Ematch { is_size; is_total = false; e; handlers = m_h_list }
         | Epresent(p_h_list, eq_opt) ->
            let handlers =
              List.map (present_handler scondpat expression env) p_h_list in

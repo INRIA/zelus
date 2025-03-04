@@ -48,11 +48,12 @@ let rec find pat = function
 
 let rec join eq1 eq_list =
   match eq1, eq_list with
-    | { eq_desc = EQmatch { is_total = i1; e = e1; handlers = m_h_list1 } },
+  | { eq_desc =
+        EQmatch { is_size; is_total = i1; e = e1; handlers = m_h_list1 } },
       { eq_desc = EQmatch { is_total = i2; e = e2; handlers = m_h_list2 } }
       :: eq_list
           when (candidate (e1, m_h_list1) (e2, m_h_list2)) ->
-       { eq1 with eq_desc = EQmatch {is_total = i1 && i2; e = e1;
+       { eq1 with eq_desc = EQmatch { is_size; is_total = i1 && i2; e = e1;
                   handlers = joinhandlers m_h_list1 m_h_list2 } } ::
 	    eq_list
     | eq1, _ -> eq1 :: eq_list

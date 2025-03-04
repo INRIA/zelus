@@ -251,7 +251,9 @@ and ('info, 'ienv) exp_desc =
   | Erecord_with of ('info, 'ienv) exp * ('info, 'ienv) exp record list
   | Etypeconstraint of ('info, 'ienv) exp * type_expression 
   | Efun of ('info, 'ienv) funexp 
-  | Ematch of { mutable is_total : bool; e : ('info, 'ienv) exp;
+  | Ematch of { is_size: bool; (* is-it a match of a size expression? *)
+                mutable is_total : bool; (* the pattern matching is total *)
+                e : ('info, 'ienv) exp; (* expression to be matched *)
                 handlers : ('ienv, 'info pattern, ('info, 'ienv) exp)
                              match_handler list } 
   | Epresent of
@@ -365,7 +367,7 @@ and ('info, 'ienv) eq_desc =
       { handlers : ('ienv, ('info, 'ienv) scondpat, ('info, 'ienv) eq)
                      present_handler list;
         default_opt : ('info, 'ienv) eq default } 
-  | EQmatch of { mutable is_total : bool; e : ('info, 'ienv) exp;
+  | EQmatch of { is_size: bool; mutable is_total : bool; e : ('info, 'ienv) exp;
                  handlers : ('ienv, 'info pattern, ('info, 'ienv) eq)
                               match_handler list }
   | EQempty

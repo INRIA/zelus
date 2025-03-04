@@ -12,7 +12,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* translate some expressions into equations *)
+(* translate some control expressions into equations *)
 (* the constructs that are concerned are:
  *- [match e with P1 -> e1 | ... | Pn -> en] =>
     [let match e with P1 -> r = e1 | ... | Pn -> r = en in r]
@@ -32,12 +32,13 @@ let fresh () = Ident.fresh "r"
 let expression funs acc e = 
   let ({ e_desc; e_loc } as e), acc = Mapfold.expression funs acc e in
   match e_desc with
-  | Ematch { is_total; e; handlers } ->
+  | Ematch { is_size; is_total; e; handlers } ->
      let result = fresh () in
      let handler { m_pat; m_body; m_env; m_loc; m_reset; m_zero } =
        { m_pat; m_body = Aux.id_eq result m_body; m_env; m_loc; m_reset; m_zero } in
      let eq =
-       { eq_desc = EQmatch { is_total; e; handlers = List.map handler handlers };
+       { eq_desc = EQmatch { is_size; is_total; e;
+                             handlers = List.map handler handlers };
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
      Aux.e_let (Aux.leq [eq]) (Aux.var result), acc

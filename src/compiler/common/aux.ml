@@ -145,7 +145,7 @@ let eq_match is_total e handlers =
   let w = List.fold_left
             (fun acc { m_body = { eq_write } } -> Defnames.union eq_write acc)
             Defnames.empty handlers in
-  eqmake w (EQmatch { is_total; e; handlers })
+  eqmake w (EQmatch { is_size = false; is_total; e; handlers })
 let eq_present handlers default_opt =
   let w = List.fold_left
             (fun acc { p_body = { eq_write } } -> Defnames.union eq_write acc)
@@ -216,7 +216,7 @@ let returns_of_vardec_list_make vardec_list =
 let e_present handlers default_opt =
    emake (Epresent { handlers; default_opt })
 let e_match is_total e handlers =
-  emake (Ematch { is_total; e; handlers })
+  emake (Ematch { is_size = false; is_total; e; handlers })
 
 let e_local b e = emake (Elocal(b, e))
 

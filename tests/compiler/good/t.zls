@@ -1,3 +1,8 @@
+let const ff<<n>>(x) =
+  match size n with
+  | 0 -> 1
+  | _ -> 2
+
 let const map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward(n)[i] (xi in x) returns (yi out y)
     do yi = f(xi) + i done

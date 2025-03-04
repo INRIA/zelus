@@ -239,6 +239,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token RUN            /* "run" */
 %token SEMI           /* ";" */
 %token STAR           /* "*" */
+%token SIZE           /* "size" */
 %token STATIC         /* "static" */
 %token TEST           /* "?" */
 %token THEN           /* "then" */
@@ -511,6 +512,10 @@ fun_kind:
   | { false }
 ;
 
+%inline opt_size:
+  | { false }
+  | SIZE { true }
+;
 
 result:
   | RETURNS p = param eq = where_equation_and_list %prec prec_result
@@ -592,9 +597,9 @@ equation_desc:
       a = automaton_handlers(equation_empty_and_list)
       INIT e = state_expression
     { EQautomaton(List.rev a, Some(e)) }
-  | MATCH e = seq_expression WITH opt_bar
+  | MATCH s = opt_size e = seq_expression WITH opt_bar
     m = match_handlers(equation) opt_end
-    { EQmatch(e, List.rev m) }
+    { EQmatch(s, e, List.rev m) }
   | IF e = seq_expression THEN eq1 = equation opt_end
     { EQif(e, eq1, no_eq $endpos $endpos) }
   | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation opt_end
@@ -1120,9 +1125,9 @@ expression_desc:
   | LOCAL v_list = vardec_comma_list
     DO eq = equation_and_list IN e = seq_expression
     { Elocal(v_list, eq, e) }  
-  | MATCH e = seq_expression WITH
+  | MATCH s = opt_size e = seq_expression WITH
       opt_bar m = match_handlers(expression) opt_end
-      { Ematch(e, List.rev m) }
+      { Ematch(s, e, List.rev m) }
   | PRESENT opt_bar pe = present_handlers(expression) opt_end
     { Epresent(List.rev pe, NoDefault) }
   | PRESENT opt_bar pe = present_handlers(expression)

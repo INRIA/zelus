@@ -84,6 +84,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "to", TO;
   "true", BOOL(true); 
   "type", TYPE;
+  "size", SIZE;
   "static", STATIC;
   "unless", UNLESS;
   "until", UNTIL;

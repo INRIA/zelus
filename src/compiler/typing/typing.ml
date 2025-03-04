@@ -590,6 +590,40 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
+(* Typing a pattern matching of a size. Returns defined names *)
+(* generates a size constraint [if si match p1 then c1 else ... else cn] *)
+(* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
+(* for body [b] *)
+let match_size_handlers
+      body loc expected_k h is_total si m_handlers ty_res =
+  let handler ({ m_pat = pat; m_body = b } as mh) =
+    (* push an empty size constraint *)
+    Defsizes.push ();
+    let h0 = env_of_pattern expected_k pat in
+    pattern h0 pat Initial.typ_int;
+    mh.m_env <- h0;
+    let h = Env.append h0 h in
+    let defined_names, actual_k = body expected_k h b ty_res in
+    (* pop the current size constraint *)
+    let constraints = Defsizes.pop () in
+    defined_names, actual_k, (Sizes.match_with pat si, constraints) in
+  let defined_names_k_c_list = List.map handler m_handlers in
+  let defined_names_list, k_list = List.split defined_names_k_list in
+
+  (* check partiality/redundancy of the pattern matching *)
+
+  let is_total =
+    is_total || (Patternsig.check_match_handlers loc m_handlers) in
+
+  let defined_names_list =
+    if is_total then defined_names_list
+    else Defnames.empty :: defined_names_list in
+  (* identify variables which are defined partially *)
+  is_total,
+  Total.merge loc h defined_names_list,
+  (* the kind is the sup of all kinds *)
+  Kind.sup_list k_list
+
 (* Typing a present handler. *)
 (*- Returns defined names and the kind is the supremum *)
 let present_handlers scondpat body loc expected_k h h_list opt ty_res =
@@ -902,7 +936,17 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
     | Efun(fe) ->
        let ty, actual_k = funexp expected_k h fe in
        ty, actual_k
-    | Ematch({ is_total; e; handlers } as mh) ->
+    | Ematch({ is_size = true; is_total; e; handlers } as mh) ->
+       (* [match size e with | P1 -> ... | ...] *)
+       let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
+       let si = size_of_exp e in
+       let expected_ty = new_var () in
+       let is_total, actual_k_h =
+          match_size_handler_exp_list
+            e_loc expected_k h is_total si handlers expected_ty in
+        mh.is_total <- is_total;
+        expected_ty, Kind.sup actual_pat_k actual_k_h
+    | Ematch({ is_size = false; is_total; e; handlers } as mh) ->
         let expected_pat_ty, actual_pat_k = expression expected_k h e in
         let expected_ty = new_var () in
         let is_total, actual_k_h =
@@ -1213,7 +1257,15 @@ and equation expected_k h { eq_desc; eq_loc } =
      (* automata are only valid in a statefull context *)
      stateful eq_loc expected_k;
      automaton_handlers_eq is_weak eq_loc expected_k h handlers state_opt
-  | EQmatch({ is_total; e; handlers } as mh) ->
+  | EQmatch({ is_size = true; is_total; e; handlers } as mh) ->
+     let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
+     let si = size_of_exp e in
+     let is_total, defnames, actual_k_h =
+       match_size_handler_eq_list
+         eq_loc expected_k h is_total si handlers in
+     mh.is_total <- is_total;
+     defnames, Kind.sup actual_pat_k actual_k_h
+  | EQmatch({ is_size = false; is_total; e; handlers } as mh) ->
      let expected_pat_ty, actual_k_e = expression expected_k h e in
      let is_total, defnames, actual_k_h =
        match_handler_eq_list
@@ -1286,6 +1338,21 @@ and match_handler_exp_list loc expected_k h total m_h_list pat_ty ty =
         let actual_k = expect expected_k h e expected_ty in
         Defnames.empty, actual_k)
       loc expected_k h total m_h_list pat_ty ty in
+  is_total, actual_k
+
+(* Type a match handler of a size when the body is an expression or equation *)
+and match_size_handler_eq_list loc expected_k h is_total si eq_h_list =
+  match_size_handlers
+    (fun expected_k h eq _ -> equation expected_k h eq)
+    loc expected_k h is_total si eq_h_list Initial.typ_unit
+
+and match_size_handler_exp_list loc expected_k h total si m_h_list ty =
+  let is_total, _, actual_k =
+    match_size_handlers
+      (fun expected_k h e expected_ty ->
+        let actual_k = expect expected_k h e expected_ty in
+        Defnames.empty, actual_k)
+      loc expected_k h total si m_h_list ty in
   is_total, actual_k
 
 (* Type an automaton handler when the body is an equation *)

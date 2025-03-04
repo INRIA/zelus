@@ -44,7 +44,7 @@ val pred : t -> t
 val abs : t -> t
 (** Return the absolute value of its argument. *)
 
-val size : int
+val size_int : int
 (** The size in bits of a native integer.  This is equal to [32]
    on a 32-bit platform and to [64] on a 64-bit platform. *)
 

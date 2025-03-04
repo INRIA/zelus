@@ -341,7 +341,26 @@ let subst_in_constraints env sc =
   else
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
- 
+
+(* matching. Given [si], [pat], [sc_true] and [sc_false] *)
+(* returns a condition [cond = si match_with pat] such that *)
+(* [cond] is true when [pat] matches [si] and a conditional *)
+(* [if cond then sc_true else sc_false] *)
+let match_with pat si =
+  let match_with { pat_desc } =
+    match pat_desc with
+    | Ewildpat ->
+    | Econstpat(Eint(i)) ->
+    | Evarpat(x) ->
+    | Etypeconstraintpat(p, _) ->
+    | Ealiaspat(p, x) ->
+    | _ -> raise Unify in
+  
+    
+  
+
+
+
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)
 (* represent the polynomial as a value of the inductive type *)
