@@ -20,7 +20,6 @@ open Defsizes
 exception Fail
 exception Maybe of Defsizes.exp eq list
 
-
 (* normal form: some of products *)
 module SumOfProducts =
   struct
@@ -212,6 +211,37 @@ let compare cmp si1 si2 =
           (And (Rel { rel = Lte; lhs = si1; rhs = si2 } ::  
                   List.map (fun eq -> Rel eq) eqs)); true
 
+(* decision *)
+let compare cmp si1 si2 =
+  try
+    let result = match cmp with
+      | Eq ->
+         let si, eqs = normalize (minus si1 si2) in
+         let open SumOfProducts.SumProduct in
+         let sp = make si in
+         if is_surely_zero sp then true
+         else if is_surely_not_zero sp then false
+         else raise (Maybe(eqs))
+      | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
+        Lt ->
+         let si, eqs = normalize (minus si2 (plus si1 one)) in
+         let open SumOfProducts.SumProduct in
+         let sp = make si in
+         if is_surely_positive sp then true
+         else if is_surely_not_positive sp then false
+         else raise (Maybe(eqs))
+      | Lte ->
+         let si, eqs = normalize (minus si2 si1) in
+         let open SumOfProducts.SumProduct in
+         let sp = make si in
+         if is_surely_positive sp then true
+         else if is_surely_not_positive sp then false
+         else raise (Maybe(eqs)) in
+    result
+  with
+  | Maybe _ ->
+     Defsizes.add (Rel { rel = cmp; lhs = si1; rhs = si2 }); true
+
 (* syntactic equatity *)
 let syntactic_equal si1 si2 =
   let rec equal si1 si2 =
@@ -342,24 +372,29 @@ let subst_in_constraints env sc =
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
 
-(* matching. Given [si], [pat], [sc_true] and [sc_false] *)
-(* returns a condition [cond = si match_with pat] such that *)
-(* [cond] is true when [pat] matches [si] and a conditional *)
-(* [if cond then sc_true else sc_false] *)
-let match_with pat si =
-  let match_with { pat_desc } =
-    match pat_desc with
-    | Ewildpat ->
-    | Econstpat(Eint(i)) ->
-    | Evarpat(x) ->
-    | Etypeconstraintpat(p, _) ->
-    | Ealiaspat(p, x) ->
-    | _ -> raise Unify in
-  
-    
-  
+(* matching. Given [si] and [pat] generate a boolean condition *)
+(* when [pat] matches [si]; produce definitions [xi = ei] if necessary *)
+let rec matches { Zelus.pat_desc } si =
+  match pat_desc with
+  | Ewildpat -> [], True
+  | Econstpat(Eint(i)) -> [], Rel { rel = Eq; lhs = si; rhs = Sint(i) }
+  | Evarpat(x) -> [(x, si)], True
+  | Etypeconstraintpat(pat, _) -> matches pat si
+  | Ealiaspat(pat, x) ->
+     let def_list, sc = matches pat si in
+     (x, si) :: def_list, sc
+  | _ -> raise Fail
 
-
+(* define a conditional constraint [if cond1 then c1 else ... else cn] *)
+let rec if_list def_cond_sc_list =
+  let let_in l sc = match l with | [] -> sc | _ -> Let(l, sc) in
+  let conditional sc sc_true sc_false =
+    match sc with | True -> sc_true | _ -> If(sc, sc_true, sc_false) in
+  match def_cond_sc_list with
+  | [] -> True
+  | [(def_list,_ ), sc] -> let_in def_list sc 
+  | ((def_list, cond), sc) :: def_cond_sc_list ->
+     conditional cond (let_in def_list sc) (if_list def_cond_sc_list)
 
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)

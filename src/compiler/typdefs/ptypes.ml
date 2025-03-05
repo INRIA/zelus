@@ -116,7 +116,7 @@ let constraint_t ff c =
          (Pp_tools.print_list_r fix_def_t "let rec " "and " " in") f_id_list_c_list
          (constraint_t 0) c
     | If(c1, c2, c3) ->
-       fprintf ff "@[<hov2>if %a@ then@ %a@ else@ %a@]"
+       fprintf ff "@[<hov0>if %a@ then@ %a@ else@ %a@]"
          (constraint_t 0) c1 (constraint_t 0) c2 (constraint_t 0) c3
     | True -> fprintf ff "true"
     | False -> fprintf ff "false"

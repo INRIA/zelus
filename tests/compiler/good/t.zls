@@ -20,6 +20,17 @@ let const rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
 
+let const rec fff<<n>>(x:[n]int) returns (y:[n]int)
+    match size n with
+    | 0 -> y = x
+    | _ -> y = [|1|] ++ fff<<n-1>>(x.(0 .. n-2))
+
+let const rec ffff<<n>>(x:[n]int) returns (y:[n]int)
+    match size n with
+    | 0 -> y = x
+    | 1 -> y = x
+    | _ -> y = ffff<<n/2>>(x.(0 .. n/2 - 1)) ++ ffff<<n - n/2>>(x.(n/2 .. n - 1))
+    
 (* 
 let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward(n)[i] (xi in x) returns (yi out y)

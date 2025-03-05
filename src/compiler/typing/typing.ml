@@ -591,7 +591,7 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   Kind.sup_list k_list
 
 (* Typing a pattern matching of a size. Returns defined names *)
-(* generates a size constraint [if si match p1 then c1 else ... else cn] *)
+(* generates a size constraint [if si matches p1 then c1 else ... else cn] *)
 (* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
 (* for body [b] *)
 let match_size_handlers
@@ -606,8 +606,9 @@ let match_size_handlers
     let defined_names, actual_k = body expected_k h b ty_res in
     (* pop the current size constraint *)
     let constraints = Defsizes.pop () in
-    defined_names, actual_k, (Sizes.match_with pat si, constraints) in
+    (defined_names, actual_k), (Sizes.matches pat si, constraints) in
   let defined_names_k_c_list = List.map handler m_handlers in
+  let defined_names_k_list, c_list = List.split defined_names_k_c_list in
   let defined_names_list, k_list = List.split defined_names_k_list in
 
   (* check partiality/redundancy of the pattern matching *)
@@ -615,6 +616,9 @@ let match_size_handlers
   let is_total =
     is_total || (Patternsig.check_match_handlers loc m_handlers) in
 
+  (* add a conditional constraints [if pi matches si then c1 else ...] *)
+  let constraints = Sizes.if_list c_list in
+  Defsizes.add constraints;
   let defined_names_list =
     if is_total then defined_names_list
     else Defnames.empty :: defined_names_list in
@@ -994,6 +998,7 @@ and size_apply loc expected_k h f si_list =
     let env = List.fold_left2
                 (fun acc id si -> Env.add id si acc) Env.empty id_list si_list in
     let ty = Types.subst_in_type env ty in
+    (* add the constraint to the stack of constraints *)
     let constraints = Sizes.subst_in_constraints env constraints in
     Defsizes.add constraints;
     ty, Tfun(Tconst)
