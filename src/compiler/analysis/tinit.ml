@@ -58,12 +58,17 @@ let ivalue v =
 let ione = ivalue Ione
 let izero = ivalue Izero
 let funtype ti1 ti2 = Ifun(ti1, ti2)
+let product l = Iproduct(l)
+let size_funtype ti_arg_list ti_res =
+  match ti_arg_list with
+  | [] -> ti_res
+  | [ti] -> funtype ti ti_res
+  | _ -> funtype (product ti_arg_list) ti_res
 let rec funtype_list ti_arg_list ti_res =
   match ti_arg_list with
   | [] -> ti_res
   | [ti] -> funtype ti ti_res
   | ti :: ti_arg_list -> funtype ti (funtype_list ti_arg_list ti_res)
-let product l = Iproduct(l)
 let atom i = Iatom(i)
     
 (* basic operation on initialization values *)
@@ -172,7 +177,7 @@ let rec skeleton { t_desc = desc } =
   | Tvar -> atom (new_var ())
   | Tarrow { ty_arg; ty_res } -> funtype (skeleton ty_arg) (skeleton ty_res)
   | Tsizefun { id_list; ty } ->
-     funtype_list (List.map (fun _ -> atom izero) id_list) (skeleton ty)
+     size_funtype (List.map (fun _ -> atom izero) id_list) (skeleton ty)
   | Tproduct(ti_list) -> product (List.map skeleton ti_list)
   | Tconstr(_, _, _) -> atom (new_var ())
   | Tvec _ -> atom (new_var ())
@@ -184,7 +189,7 @@ let rec skeleton_on_i i { t_desc = desc } =
   | Tarrow { ty_arg; ty_res } ->
      funtype (skeleton_on_i i ty_arg) (skeleton_on_i i ty_res)
   | Tsizefun { id_list; ty } ->
-     funtype_list (List.map (fun _ -> atom izero) id_list) (skeleton_on_i i ty)
+     size_funtype (List.map (fun _ -> atom izero) id_list) (skeleton_on_i i ty)
   | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
   | Tconstr _ | Tvec _ -> atom i
   | Tlink(ti) -> skeleton_on_i i ti

@@ -885,13 +885,13 @@ and sizefun_t env c_free { sf_id; sf_id_list; sf_e; sf_loc } =
     List.fold_left 
       (fun acc id -> 
         Env.add id 
-          { t_last_typ = None; t_tys = Defcaus.scheme (Tcausal.atom c_in) } acc) 
-      Env.empty sf_id_list in
+          { t_last_typ = None; t_tys = Defcaus.scheme (Tcausal.atom c_in) } 
+          acc) Env.empty sf_id_list in
   let ti_arg_list =
     List.map (fun _ -> Tcausal.atom c_in) sf_id_list in
   let env = Env.append env_sizes env in
   let ti_res = exp env c_free sf_e in
-  let actual_ti = Tcausal.funtype_list ti_arg_list ti_res in
+  let actual_ti = Tcausal.size_funtype ti_arg_list ti_res in
   (* check that [sf_id] can get type [ty] *)
   let ti_expected =
     try let { t_tys = { typ_body = ti } } = Env.find sf_id env in ti
