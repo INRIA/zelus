@@ -106,18 +106,18 @@ let vinf v1 v2 =
  *- t1 is in kind k1 and t2 is in kind k2;
  *- it can only be applied in a context [ka]
  *- such that [ka <= k1]. *)
-let rec in_kind ka { t_desc } =
+let rec in_vkind ka { t_desc } =
   match t_desc with
   | Tvar -> true
   | Tproduct(ty_list) | Tconstr(_, ty_list, _) ->
-     List.for_all (in_kind ka) ty_list
-  | Tlink(ty_link) -> in_kind ka ty_link
-  | Tvec(ty, _) -> in_kind ka ty
+     List.for_all (in_vkind ka) ty_list
+  | Tlink(ty_link) -> in_vkind ka ty_link
+  | Tvec(ty, _) -> in_vkind ka ty
   | Tarrow { ty_kind; ty_arg; ty_res } ->
      let left_kfun, right_kfun = left_right ty_kind in
-     in_kind left_kfun ty_arg && in_kind right_kfun ty_res
+     in_vkind left_kfun ty_arg && in_vkind right_kfun ty_res
                                && vkind_is_less_than ka left_kfun
-  | Tsizefun { ty } -> in_kind Tconst ty && vkind_is_less_than ka Tconst
+  | Tsizefun { ty } -> in_vkind Tconst ty && vkind_is_less_than ka Tconst
 
 (* Kind inheritance. If the context has kind [expected_k] *)
 (* and the local declaration is kind [vkind] *)

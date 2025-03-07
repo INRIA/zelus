@@ -95,12 +95,11 @@ let stateful loc expected_k =
          (Ekind_clash(Deftypes.Tnode(Deftypes.Tdiscrete), expected_k))
 
 (* check that a type belong to a kind *)
-let check_type_is_in_kind loc h vkind =
-  let type_in_kind loc ty actual_k =
-    if not (Kind.in_kind vkind ty)
-    then error loc (Etype_kind_clash(actual_k, ty)) in
-  Env.iter (fun _ { t_tys = { typ_body } } ->
-      type_in_kind loc typ_body vkind) h
+let check_type_is_in_kind loc h expected_kind vkind =
+  let type_in_kind loc ty =
+    if not (Kind.in_vkind vkind ty)
+    then error loc (Etype_vkind_clash(vkind, ty)) in
+  Env.iter (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body) h
 
 (* Check that no size variables are all bounded *)
 let check_no_unbounded_size_name loc h =
@@ -1391,21 +1390,22 @@ and leqs expected_k h l =
   
 and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
   let eq_or_s_list = eq_or_sizefun l_loc l_eq in
-  (* in a static or constant context all introduced names inherits it *)
-  let expected_k = Kind.inherits expected_k (Interface.vkindtype l_kind) in
+  (* in a context of kind [expected_k] that is static or constant *)
+  (* all introduced names inherit this kind *)
+  let expected_eq_k =
+    Kind.inherits expected_k (Interface.vkindtype l_kind) in
   Misc.push_binding_level ();
   let defined_names, h0, actual_k =
     match eq_or_s_list with
     | Either.Left(eq_list) ->
-       leq_eq_list expected_k h eq_list
+       leq_eq_list expected_eq_k h eq_list
     | Either.Right(sizefun_list) ->
-       less_than l_loc expected_k (Tfun(Tconst));
        sizefun_list_t l_rec h sizefun_list in
   Misc.pop_binding_level ();
   let is_gen = not (expansive l_eq) in
   let h0 = Types.gen_decl is_gen h0 in
   (* check that the type for every entry has the right kind *)
-  check_type_is_in_kind l_loc h0 (Kind.vkind l_kind);
+  check_type_is_in_kind l_loc h0 expected_k (Kind.vkind l_kind);
   let new_h = Env.append h0 h in
   l.l_env <- h0;
   l.l_eq.eq_write <- defined_names;
@@ -1747,7 +1747,7 @@ let implementation ff is_first impl =
        if is_first then Modules.open_module modname; impl
     | Eletdecl { d_names; d_leq } ->
        (* type the set of equations *)
-       let new_h, actual_k = leq (Tfun(Tany)) Env.empty d_leq in
+       let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
        (* check that there is no unbounded size variables *)
        check_no_unbounded_size_name loc new_h;
 

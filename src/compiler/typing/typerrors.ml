@@ -40,7 +40,7 @@ type error =
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
   | Etype_clash of typ * typ
-  | Etype_kind_clash of vkind * typ
+  | Etype_vkind_clash of vkind * typ
   | Earity_clash of int * int
   | Estate_arity_clash of Ident.t * int * int
   | Estate_unbound of Ident.t
@@ -154,12 +154,12 @@ let message loc kind =
         output_location loc
         Ptypes.output_type  actual_ty
         Ptypes.output_type  expected_ty
-  | Etype_kind_clash(k, actual_ty) ->
+  | Etype_vkind_clash(vkind, actual_ty) ->
       eprintf "@[%aType error: this expression has type@ %a,@ \
                which does not belong to the %s kind.@.@]"
         output_location loc
         Ptypes.output_type  actual_ty
-        (vkind_message k)
+        (vkind_message vkind)
   | Earity_clash(actual_arit, expected_arit) ->
       eprintf "@[%aType error: this expression expects %d arguments,@ \
                but is given %d arguments.@.@]"
