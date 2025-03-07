@@ -95,11 +95,15 @@ let stateful loc expected_k =
          (Ekind_clash(Deftypes.Tnode(Deftypes.Tdiscrete), expected_k))
 
 (* check that a type belong to a kind *)
-let check_type_is_in_kind loc h expected_kind vkind =
-  let type_in_kind loc ty =
+let check_type_is_in_kind loc h actual_k vkind =
+  let type_in_kind loc ty vkind =
     if not (Kind.in_vkind vkind ty)
     then error loc (Etype_vkind_clash(vkind, ty)) in
-  Env.iter (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body) h
+  let vkind =
+      match vkind with
+      | Tconst | Tstatic -> vkind
+      | Tany -> match actual_k with | Tnode _ -> Tany | Tfun vkind -> vkind in
+    Env.iter (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body vkind) h
 
 (* Check that no size variables are all bounded *)
 let check_no_unbounded_size_name loc h =
@@ -1405,7 +1409,7 @@ and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
   let is_gen = not (expansive l_eq) in
   let h0 = Types.gen_decl is_gen h0 in
   (* check that the type for every entry has the right kind *)
-  check_type_is_in_kind l_loc h0 expected_k (Kind.vkind l_kind);
+  check_type_is_in_kind l_loc h0 actual_k (Kind.vkind l_kind);
   let new_h = Env.append h0 h in
   l.l_env <- h0;
   l.l_eq.eq_write <- defined_names;
