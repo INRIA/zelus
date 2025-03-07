@@ -382,12 +382,7 @@ and exp env ({ e_desc; e_info; e_loc } as e) =
        let env = block_eq Ident.S.empty env b_eq in
        exp env e_body
     | Eforloop(fe) -> forloop_exp e_loc env fe
-    | Esizeapp { f } ->
-       (* size arguments are surely well initialized *)
-       (* because they are not stream values *)
-       exp_less_than_on_i env f Tinit.izero;
-       let e_typ = Typinfo.get_type e.e_info in
-       Tinit.skeleton_on_i Tinit.izero e_typ in
+    | Esizeapp { f } -> exp env f in
   (* annotate the expression with the initialization type *)
   e.e_info <- Typinfo.set_init e.e_info ti;
   ti
@@ -741,16 +736,13 @@ and sizefun_t env { sf_id; sf_id_list; sf_e; sf_loc } =
         Env.add id 
           { t_last = ione; t_tys = Definit.scheme (Tinit.atom izero) } acc) 
       Env.empty sf_id_list in
-  let ti_arg_list =
-    List.map (fun _ -> Tinit.atom izero) sf_id_list in
   let env = Env.append env_sizes env in
-  let ti_res = exp env sf_e in
-  let actual_ti = Tinit.funtype_list ti_arg_list ti_res in
-  (* check that [sf_id] can get type [ty] *)
-  let ti_expected =
+  let actual_ti = exp env sf_e in
+  (* check that [sf_id] can get type [actual_ti] *)
+  let expected_ti =
     try let { t_tys = { typ_body = ti } } = Env.find sf_id env in ti
     with | Not_found -> assert false in
-  less_than sf_loc ti_expected actual_ti
+  less_than sf_loc expected_ti actual_ti
 
 let implementation ff impl =
   try

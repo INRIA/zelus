@@ -59,11 +59,6 @@ let ione = ivalue Ione
 let izero = ivalue Izero
 let funtype ti1 ti2 = Ifun(ti1, ti2)
 let product l = Iproduct(l)
-let size_funtype ti_arg_list ti_res =
-  match ti_arg_list with
-  | [] -> ti_res
-  | [ti] -> funtype ti ti_res
-  | _ -> funtype (product ti_arg_list) ti_res
 let rec funtype_list ti_arg_list ti_res =
   match ti_arg_list with
   | [] -> ti_res
@@ -176,8 +171,7 @@ let rec skeleton { t_desc = desc } =
   match desc with
   | Tvar -> atom (new_var ())
   | Tarrow { ty_arg; ty_res } -> funtype (skeleton ty_arg) (skeleton ty_res)
-  | Tsizefun { id_list; ty } ->
-     size_funtype (List.map (fun _ -> atom izero) id_list) (skeleton ty)
+  | Tsizefun { id_list; ty } -> skeleton ty
   | Tproduct(ti_list) -> product (List.map skeleton ti_list)
   | Tconstr(_, _, _) -> atom (new_var ())
   | Tvec _ -> atom (new_var ())
@@ -188,8 +182,7 @@ let rec skeleton_on_i i { t_desc = desc } =
   | Tvar -> atom i
   | Tarrow { ty_arg; ty_res } ->
      funtype (skeleton_on_i i ty_arg) (skeleton_on_i i ty_res)
-  | Tsizefun { id_list; ty } ->
-     size_funtype (List.map (fun _ -> atom izero) id_list) (skeleton_on_i i ty)
+  | Tsizefun { id_list; ty } -> skeleton_on_i i ty
   | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
   | Tconstr _ | Tvec _ -> atom i
   | Tlink(ti) -> skeleton_on_i i ti
@@ -476,6 +469,7 @@ let rec instance ti ty =
   match ti, t_desc with
   | Ifun(ti1, ti2), Tarrow { ty_arg; ty_res } ->
      funtype (instance ti1 ty_arg) (instance ti2 ty_res)
+  | ti, Tsizefun { ty } -> instance ti ty
   | Iproduct(ti_list), Tproduct(ty_list) ->
     begin try product (List.map2 instance ti_list ty_list)
       with | Invalid_argument _ -> assert false end

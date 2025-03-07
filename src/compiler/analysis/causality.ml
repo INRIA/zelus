@@ -443,13 +443,7 @@ and exp env c_free ({ e_desc; e_info; e_loc } as e) =
        exp env c_free e_body
     | Eforloop(fe) ->
        forloop_exp env c_free fe
-    | Esizeapp { f; size_list } ->
-       let c_res = Tcausal.intro_less_c c_free in
-       (* no feedback loop is possible with size arguments *)
-       (* because they are not stream values *)
-       exp_less_than_on_c env c_free f c_res;
-       let e_typ = Typinfo.get_type e.e_info in
-       Tcausal.skeleton_on_c c_res e_typ in
+    | Esizeapp { f } -> exp env c_free f in
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info tc;
   tc
@@ -887,16 +881,13 @@ and sizefun_t env c_free { sf_id; sf_id_list; sf_e; sf_loc } =
         Env.add id 
           { t_last_typ = None; t_tys = Defcaus.scheme (Tcausal.atom c_in) } 
           acc) Env.empty sf_id_list in
-  let ti_arg_list =
-    List.map (fun _ -> Tcausal.atom c_in) sf_id_list in
   let env = Env.append env_sizes env in
-  let ti_res = exp env c_free sf_e in
-  let actual_ti = Tcausal.size_funtype ti_arg_list ti_res in
-  (* check that [sf_id] can get type [ty] *)
-  let ti_expected =
-    try let { t_tys = { typ_body = ti } } = Env.find sf_id env in ti
+  let actual_tc = exp env c_free sf_e in
+  (* check that [sf_id] can get type [ti_res] *)
+  let tc_expected =
+    try let { t_tys = { typ_body = tc } } = Env.find sf_id env in tc
     with | Not_found -> assert false in
-  less_than sf_loc env ti_expected actual_ti
+  less_than sf_loc env tc_expected actual_tc
 
 (* The main function *)
 let implementation ff { desc = desc; loc = loc } =

@@ -65,11 +65,6 @@ let new_gen_var () =
     c_polarity = Punknown; c_info = None; c_visited = -1 }
 let product l = Cproduct(l)
 let funtype tc1 tc2 = Cfun(tc1, tc2)
-let size_funtype tc_arg_list tc_res =
-  match tc_arg_list with
-  | [] -> tc_res
-  | [tc] -> funtype tc tc_res
-  | _ -> funtype (product tc_arg_list) tc_res
 let rec funtype_list tc_arg_list tc_res =
   match tc_arg_list with
   | [] -> tc_res
@@ -263,9 +258,8 @@ let rec skeleton ty =
   | Tarrow { ty_arg; ty_res } ->
      funtype (skeleton ty_arg) (skeleton ty_res)
   | Tsizefun { id_list; ty } ->
-     (* the causality type for [<<n1,...,nk>>.t with c] is *)
-     (* atom(a1) * ... * atom(an) -> skeleton(t) *)
-     size_funtype (List.map (fun _ -> atom (new_var ())) id_list) (skeleton ty)
+     (* the causality type for [<<n1,...,nk>>.ty with c] is skeleton(ty) *)
+     skeleton ty
   | Tconstr _ | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
@@ -283,14 +277,13 @@ let skeleton_on_c c ty =
           (skeleton_on_c (not is_right) c_left ty_arg)
           (skeleton_on_c is_right c_right ty_res)
     | Tsizefun { id_list; ty } ->
-       size_funtype (List.map (fun _ -> atom (new_var ())) id_list)
-         (skeleton_on_c is_right c_right ty)
+       skeleton_on_c is_right c_right ty
     | Tlink(ty) -> skeleton_on_c is_right c_right ty in
   skeleton_on_c true c ty
 
 
 (* the skeleton for the type of a variable. no constraint for function types *)
-(* only for other types *)
+(* atomic for other types *)
 let skeleton_for_variables ty =
   let c = new_var () in
   let rec skeleton_rec ty =
@@ -720,6 +713,7 @@ let rec copy tc ty =
   match tc, t_desc with
   | Cfun(tc1, tc2), Tarrow { ty_arg; ty_res } ->
      funtype (copy tc1 ty_arg) (copy tc2 ty_res)
+  | tc, Tsizefun { ty } -> copy tc ty
   | Cproduct(tc_list), Tproduct(ty_list) ->
      begin try product (List.map2 copy tc_list ty_list)
            with | Invalid_argument _ -> assert false end
@@ -752,6 +746,9 @@ let rec instance tc ty =
   match tc, t_desc with
   | Cfun(tc1, tc2), Tarrow { ty_arg; ty_res } ->
      funtype (instance tc1 ty_arg) (instance tc2 ty_res)
+  | tc, Tsizefun { ty } ->
+     (* the causality type for a size [function <<n,...>>.e] is that of [e] *)
+     instance tc ty
   | Cproduct(tc_list), Tproduct(ty_list) ->
      begin try product (List.map2 instance tc_list ty_list)
            with | Invalid_argument _ -> assert false end
