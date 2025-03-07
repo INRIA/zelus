@@ -56,6 +56,7 @@ type error =
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
+  | Esize_constraints_not_true of Defsizes.exp Defsizes.constraints
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Econstr_arity of Lident.t * int * int
   | Esizefun_and_equations_are_mixed
@@ -209,11 +210,6 @@ let message loc kind =
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
        output_location loc
- | Esize_parameter_must_be_a_name ->
-    eprintf
-      "@[%aType error: the type of the result depend on some variables \
-       from this pattern. This pattern must be a variable.@.@]"
-       output_location loc
  | Esize_of_vec_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \
@@ -240,6 +236,16 @@ let message loc kind =
 	output_location loc
         Ptypes.output_type ty
 	(Ident.name n)
+ | Esize_parameter_must_be_a_name ->
+    eprintf
+      "@[%aType error: the type of the result depend on some variables \
+       from this pattern. This pattern must be a variable.@.@]"
+       output_location loc
+ | Esize_constraints_not_true(sc) ->
+    eprintf
+      "@[%aType error: the size constraint \
+       at this application point is not true.@.@]"
+       output_location loc
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      let module Printer = Printer.Make(Typinfo) in
      eprintf

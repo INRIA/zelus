@@ -1,39 +1,41 @@
-let const rec f1<<n>>(x:[n]int) = f2<<n>>(x)
+let rec f1<<n>>(x:[n]int) = f2<<n>>(x)
 and f2<<n>>(x) = f1<<n>>(x)
 
-let const ff<<n>>(x) =
+let ff<<n>>(x) =
   match size n with
   | 0 -> 1
   | _ -> 2
 
-let const map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
+let map<<n>>(f)(x:[n]'a) returns (y:[n]'b)
  forward(n)[i] (xi in x) returns (yi out y)
     do yi = f(xi) + i done
     
-let const my_concat<<n>>(x:[n]'a, y:[n]'a) =
+let my_concat<<n>>(x:[n]'a, y:[n]'a) =
   x ++ y ++ [|1|] ++ [|2;3;4|]
 
-let const my_concat2<<n>>(x:[n]'a, y:[n]'a)
+let my_concat2<<n>>(x:[n]'a, y:[n]'a)
 returns (z:[2 * n + 4]'a)
   z = x ++ y ++ [|1|] ++ [|2;3;4|]
 
-let const g(x:[4]int) = my_concat<<4>>(x,x)
+let g(x:[4]int) = my_concat<<4>>(x,x)
 
-let const rec f<<n>>(x:[n]int) returns (y:[n]int)
+let rec f<<n>>(x:[n]int) returns (y:[n]int)
     if n = 0 then y = x else
     y = [|1|] ++ f<<n-1>>(x.(0 .. n-2))
 
-let const rec fff<<n>>(x:[n]int) returns (y:[n]int)
+let rec fff<<n>>(x:[n]int) returns (y:[n]int)
     match size n with
     | 0 -> y = x
     | _ -> y = [|1|] ++ fff<<n-1>>(x.(0 .. n-2))
 
-let const rec ffff<<n>>(x:[n]int) returns (y:[n]int)
+let rec ffff<<n>>(x:[n]int) returns (y:[n]int)
     match size n with
     | 0 -> y = x
     | 1 -> y = x
     | _ -> y = ffff<<n/2>>(x.(0 .. n/2 - 1)) ++ ffff<<n - n/2>>(x.(n/2 .. n - 1))
 
+let f42(x:[10]int) returns (o:[10]int) o = ffff<<10>>(x)
+  
 (* and fffg<<m>>(x:[m]int) returns (y:[m]int)
   y = ffff<<m>>(x) *)
 (* 

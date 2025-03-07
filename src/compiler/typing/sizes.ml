@@ -372,6 +372,11 @@ let subst_in_constraints env sc =
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
 
+let apply_constraints env sc =
+  (* if [env] associate values to names, evaluate [sc] in this *)
+  (* environment. *)
+  true
+
 (* matching. Given [si] and [pat] generate a boolean condition *)
 (* when [pat] matches [si]; produce definitions [xi = ei] if necessary *)
 let rec matches { Zelus.pat_desc } si =

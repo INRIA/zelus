@@ -1003,7 +1003,13 @@ and size_apply loc expected_k h f si_list =
     let ty = Types.subst_in_type env ty in
     (* add the constraint to the stack of constraints *)
     let constraints = Sizes.subst_in_constraints env constraints in
-    Defsizes.add constraints;
+    (* try to evaluate the size constraints *)
+    let _ =
+      try
+        if not (Sizes.trivial Env.empty Env.empty constraints)
+        then error loc (Esize_constraints_not_true(constraints))
+      with
+      | Sizes.Fail -> Defsizes.add constraints in
     ty, Tfun(Tconst)
   else
     error loc (Earity_clash(actual_arit, expected_arit))
@@ -1754,7 +1760,7 @@ let implementation ff is_first impl =
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
        (* check that there is no unbounded size variables *)
        check_no_unbounded_size_name loc new_h;
-
+       
        (* add entry [n : tys] for every [n in d_names] in the global env. *)
        let setenv (n, id) =
          let { t_tys; t_path } = var loc new_h id in
