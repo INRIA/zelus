@@ -298,7 +298,7 @@ let rec trivial f_env n_env sc =
      (* (f_env f) v_list *) v v_list
   | Fix(id_id_list_sc_list, sc) ->
      (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
-     let rec f_env =
+     let rec f_env_rec =
        lazy (List.fold_left 
                (fun f_acc (id, id_list, sc) -> 
                  Env.add id 
@@ -306,9 +306,10 @@ let rec trivial f_env n_env sc =
                      let n_env = 
                        List.fold_left2 (fun acc id v -> Env.add id v acc)
                          n_env id_list v_list in
-                     trivial (Lazy.force f_env) n_env sc) f_acc)
-               (Lazy.force f_env) id_id_list_sc_list) in
-     trivial (Lazy.force f_env) n_env sc
+                     trivial (Env.append (Lazy.force f_env_rec) f_env) n_env sc)
+                   f_acc)
+               f_env id_id_list_sc_list) in
+     trivial (Env.append (Lazy.force f_env_rec) f_env) n_env sc
   
 (* free variables *)
 let rec fv bounded acc si =
@@ -371,11 +372,6 @@ let subst_in_constraints env sc =
   else
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
-
-let apply_constraints env sc =
-  (* if [env] associate values to names, evaluate [sc] in this *)
-  (* environment. *)
-  true
 
 (* matching. Given [si] and [pat] generate a boolean condition *)
 (* when [pat] matches [si]; produce definitions [xi = ei] if necessary *)
