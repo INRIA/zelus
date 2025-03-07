@@ -35,7 +35,9 @@ let rec ffff<<n>>(x:[n]int) returns (y:[n]int)
     | _ -> y = ffff<<n/2>>(x.(0 .. n/2 - 1)) ++ ffff<<n - n/2>>(x.(n/2 .. n - 1))
 
 let f42(x:[10]int) returns (o:[10]int) o = ffff<<10>>(x)
-  
+
+let f43(x) = f<<1-2>>(x)
+
 (* and fffg<<m>>(x:[m]int) returns (y:[m]int)
   y = ffff<<m>>(x) *)
 (* 

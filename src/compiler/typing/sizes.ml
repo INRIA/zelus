@@ -306,10 +306,11 @@ let rec trivial f_env n_env sc =
                      let n_env = 
                        List.fold_left2 (fun acc id v -> Env.add id v acc)
                          n_env id_list v_list in
-                     trivial (Env.append (Lazy.force f_env_rec) f_env) n_env sc)
+                     trivial (Lazy.force f_env_final) n_env sc)
                    f_acc)
-               f_env id_id_list_sc_list) in
-     trivial (Env.append (Lazy.force f_env_rec) f_env) n_env sc
+               f_env id_id_list_sc_list)
+     and f_env_final = lazy (Env.append (Lazy.force f_env_rec) f_env) in
+    trivial (Lazy.force f_env_final) n_env sc
   
 (* free variables *)
 let rec fv bounded acc si =
