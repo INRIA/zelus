@@ -65,12 +65,16 @@ let new_gen_var () =
     c_polarity = Punknown; c_info = None; c_visited = -1 }
 let product l = Cproduct(l)
 let funtype tc1 tc2 = Cfun(tc1, tc2)
+let size_funtype tc_arg_list tc_res =
+  match tc_arg_list with
+  | [] -> tc_res
+  | [tc] -> funtype tc tc_res
+  | _ -> funtype (product tc_arg_list) tc_res
 let rec funtype_list tc_arg_list tc_res =
   match tc_arg_list with
   | [] -> tc_res
   | [tc] -> funtype tc tc_res
-  | tc :: tc_arg_list ->
-     funtype tc (funtype_list tc_arg_list tc_res)
+  | tc :: tc_arg_list -> funtype tc (funtype_list tc_arg_list tc_res)
 let atom c = Catom(c)
 
 (* path compression *)
@@ -260,8 +264,8 @@ let rec skeleton ty =
      funtype (skeleton ty_arg) (skeleton ty_res)
   | Tsizefun { id_list; ty } ->
      (* the causality type for [<<n1,...,nk>>.t with c] is *)
-     (* atom(a1) -> ... -> atom(an) -> skeleton(t) *)
-     funtype_list (List.map (fun _ -> atom (new_var ())) id_list) (skeleton ty)
+     (* atom(a1) * ... * atom(an) -> skeleton(t) *)
+     size_funtype (List.map (fun _ -> atom (new_var ())) id_list) (skeleton ty)
   | Tconstr _ | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
@@ -279,8 +283,7 @@ let skeleton_on_c c ty =
           (skeleton_on_c (not is_right) c_left ty_arg)
           (skeleton_on_c is_right c_right ty_res)
     | Tsizefun { id_list; ty } ->
-       funtype_list
-         (List.map (fun _ -> atom (new_var ())) id_list)
+       size_funtype (List.map (fun _ -> atom (new_var ())) id_list)
          (skeleton_on_c is_right c_right ty)
     | Tlink(ty) -> skeleton_on_c is_right c_right ty in
   skeleton_on_c true c ty

@@ -1,3 +1,6 @@
+let const rec f1<<n>>(x:[n]int) = f2<<n>>(x)
+and f2<<n>>(x) = f1<<n>>(x)
+
 let const ff<<n>>(x) =
   match size n with
   | 0 -> 1
