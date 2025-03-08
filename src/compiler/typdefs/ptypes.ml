@@ -113,7 +113,7 @@ let constraints_t ff sc =
     | Fix(f_id_list_c_list, c) ->
        (* [let rec f1(n1,...) = c1 and ... fk(n1,...) = ck in c] *)
        fprintf ff "@[<hov0>%a@ %a@]"
-         (Pp_tools.print_list_r fix_def_t "let rec " "and " " in") f_id_list_c_list
+         (Pp_tools.print_list_r fix_def_t "let rec " " and" " in") f_id_list_c_list
          (constraint_t 0) c
     | If(sc1, sc2, sc3) ->
        fprintf ff "@[<hov0>if %a@ then@ %a@ else@ %a@]"

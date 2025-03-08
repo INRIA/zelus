@@ -1445,7 +1445,8 @@ and sizefun_list_t l_rec h sizefun_list =
       let actual_l = number_of_parameters sf in
       if expected_l <> actual_l
       then error sf_loc 
-             (Esize_parameter_mutually_recursive_definitions(expected_l, actual_l)))
+             (Esize_parameter_mutually_recursive_definitions
+                (expected_l, actual_l)))
     (List.tl sizefun_list);
     
   (* types [ty_body_1;...;ty_body_k] for functions [f1;...;f_k] *)

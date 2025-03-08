@@ -239,9 +239,9 @@ let message loc kind =
  | Esize_parameter_mutually_recursive_definitions
     (expected_number, actual_number) ->
     eprintf
-      "@[%aType error: in mutually recursive definitions of size functions \n\
-       the number of size parameters must be the same.\n\
-       (this function has %d parameters while an other has %d parameters).@.@]"
+      "@[%aType error: the number of size parameters must be the same\n\
+       in mutually recursive definitions of size functions\n\
+       (this function has %d parameters while one has %d parameters).@.@]"
       output_location loc
       actual_number expected_number
  | Esize_constraints_not_true(sc) ->
