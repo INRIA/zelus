@@ -1012,7 +1012,7 @@ and size_apply loc expected_k h f si_list =
       | Sizes.Fail -> Defsizes.add constraints in
     ty, Tfun(Tconst)
   else
-    error loc (Earity_clash(actual_arit, expected_arit))
+    error f.e_loc (Earity_clash(actual_arit, expected_arit))
 
 and type_label_arg expected_k expected_ty h loc ({ label; arg } as r) =
   let qualid, { label_arg = ty_arg; label_res = ty_res } =

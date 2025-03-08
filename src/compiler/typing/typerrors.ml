@@ -244,8 +244,10 @@ let message loc kind =
  | Esize_constraints_not_true(sc) ->
     eprintf
       "@[%aType error: the size constraint \
-       at this application point is not true.@.@]"
+       at this application point is not true.@.
+       %a@.@]]"
        output_location loc
+       Ptypes.constraints_t sc 
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      let module Printer = Printer.Make(Typinfo) in
      eprintf

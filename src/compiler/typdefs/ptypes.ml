@@ -80,7 +80,7 @@ let rec size prio ff si =
   if prio > prio_s then fprintf ff ")"
 
 (* Print a size constraint *)
-let constraint_t ff c =
+let constraints_t ff sc =
   let open Defsizes in
   let priority =
     function
@@ -95,18 +95,18 @@ let constraint_t ff c =
     fprintf ff "@[<hov 2>%s %a@ =@ %a@]" (Ident.name id)
       (Pp_tools.print_list_r Ident.fprint_t "(" "," ")") id_list
       (constraint_t 0) c
-  and constraint_t prio ff c =
-    let prio_current = priority c in
+  and constraint_t prio ff sc =
+    let prio_current = priority sc in
     if prio_current < prio then fprintf ff "(";
-    begin match c with
+    begin match sc with
     | Rel(eq) -> eq_t ff eq
     | And(c_list) ->
        Pp_tools.print_list_r (constraint_t prio_current) "" " &&" "" ff c_list
-    | Let(id_e_list, c) ->
+    | Let(id_e_list, sc) ->
        fprintf ff
          "@[<hov0>%a@ %a@]"
-         (Pp_tools.print_list_r def_t "let " "and " " in") id_e_list
-         (constraint_t 0) c
+         (Pp_tools.print_list_r def_t "let " " and" " in") id_e_list
+         (constraint_t 0) sc
     | App(f, e_list) ->
        fprintf ff "@[<hov2>%a@ %a@]" Ident.fprint_t f
          (Pp_tools.print_list_r (size 0) "(" "," ")") e_list
@@ -115,14 +115,14 @@ let constraint_t ff c =
        fprintf ff "@[<hov0>%a@ %a@]"
          (Pp_tools.print_list_r fix_def_t "let rec " "and " " in") f_id_list_c_list
          (constraint_t 0) c
-    | If(c1, c2, c3) ->
+    | If(sc1, sc2, sc3) ->
        fprintf ff "@[<hov0>if %a@ then@ %a@ else@ %a@]"
-         (constraint_t 0) c1 (constraint_t 0) c2 (constraint_t 0) c3
+         (constraint_t 0) sc1 (constraint_t 0) sc2 (constraint_t 0) sc3
     | True -> fprintf ff "true"
     | False -> fprintf ff "false"
     end;
   if prio_current < prio then fprintf ff ")" in
-  constraint_t 0 ff c
+  constraint_t 0 ff sc
      
 let rec print prio ff { t_desc; t_level; t_index } =
   let print_constraints ff sc =
@@ -130,7 +130,7 @@ let rec print prio ff { t_desc; t_level; t_index } =
     match sc with
     | True -> ()
     | _ -> if !Misc.print_types_with_size_constraints then
-             fprintf ff " with@ %a" constraint_t sc
+             fprintf ff " with@ %a" constraints_t sc
            else fprintf ff " with ..." in
   let priority = function
     | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ | Tvec _ -> 3
