@@ -71,7 +71,7 @@ let unify loc expected_ty actual_ty =
 
 let compare_sizes cmp loc left_size right_size =
   if not (Sizes.compare cmp left_size right_size)
-  then error loc (Esize_clash(cmp, Sizes.norm left_size, Sizes.norm right_size))
+  then error loc (Esize_clash(cmp, left_size, right_size))
 
 let unify_expr expr expected_ty actual_ty =
   try

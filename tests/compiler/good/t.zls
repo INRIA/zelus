@@ -1,3 +1,15 @@
+let rec f_<<n>> =
+  match size n with
+  | 0 -> true | _ -> f_<<n-1>>
+
+
+let rec f__<<n>> =
+  match size n with
+  | 0 -> true | _ -> false
+
+let f___ = f_<<1>>
+
+
 let rec f1<<n>>(x:[n]int) = f2<<n>>(x)
 and f2<<n>>(x) = f1<<n>>(x)
 
@@ -37,6 +49,7 @@ let rec ffff<<n>>(x:[n]int) returns (y:[n]int)
 let f42(x:[10]int) returns (o:[10]int) o = ffff<<10>>(x)
 
 let f43(x:[1]int) returns (o:[1]int) o = fff<<1>>(x)
+
 
 (* and fffg<<m>>(x:[m]int) returns (y:[m]int)
   y = ffff<<m>>(x) *)

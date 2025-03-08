@@ -18,7 +18,7 @@ open Ident
 open Defsizes
 
 exception Fail
-exception Maybe of Defsizes.exp eq list
+exception Maybe
 
 (* normal form: some of products *)
 module SumOfProducts =
@@ -132,7 +132,7 @@ let plus si1 si2 = Sop(Splus, si1, si2)
 let minus si1 si2 = Sop(Sminus, si1, si2)
 let mult si1 si2 = Sop(Smult, si1, si2)
 
-(* elimination of div (and later [mod]) operations in size expressions *)
+(* elimination of div operations in size expressions *)
 let normalize si =
   let module Table =
     Map.Make
@@ -170,76 +170,36 @@ let normalize si =
       table [] in
   si, eqs
 
-(* temporary solution *)
-let norm si =
+(* decision algorithm. It is very basic since constraints *)
+(* are not taken into account. It does not matter for correctness *)
+(* and completeness since size constraints are ultimately evaluated *)
+let compare cmp si1 si2 =
   let open SumOfProducts in
-  let si, _ = normalize si in
-  let e = SumProduct.make si in
-  SumProduct.explicit e
-
-(* decision *)
-let compare cmp si1 si2 =
+  let normalize si =
+    let si, _ = normalize si in
+    SumProduct.make si in
   try
     let result = match cmp with
       | Eq ->
-         let si, eqs = normalize (minus si1 si2) in
-         let open SumOfProducts.SumProduct in
-         let sp = make si in
-         if is_surely_zero sp then true
-         else if is_surely_not_zero sp then false
-         else raise (Maybe(eqs))
+         let sp = normalize (minus si1 si2) in
+         if SumProduct.is_surely_zero sp then true
+         else if SumProduct.is_surely_not_zero sp then false
+         else raise Maybe
       | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
         Lt ->
-         let si, eqs = normalize (minus si2 (plus si1 one)) in
-         let open SumOfProducts.SumProduct in
-         let sp = make si in
-         if is_surely_positive sp then true
-         else if is_surely_not_positive sp then false
-         else raise (Maybe(eqs))
+         let sp = normalize (minus si2 (plus si1 one)) in
+         if SumProduct.is_surely_positive sp then true
+         else if SumProduct.is_surely_not_positive sp then false
+         else raise Maybe
       | Lte ->
-         let si, eqs = normalize (minus si2 si1) in
-         let open SumOfProducts.SumProduct in
-         let sp = make si in
-         if is_surely_positive sp then true
-         else if is_surely_not_positive sp then false
-         else raise (Maybe(eqs)) in
+         let sp = normalize (minus si2 si1) in
+         if SumProduct.is_surely_positive sp then true
+         else if SumProduct.is_surely_not_positive sp then false
+         else raise Maybe in
     result
   with
-  | Maybe(eqs) ->
+  | Maybe ->
      (* add it to the constraint environment *)
-       Defsizes.add
-          (And (Rel { rel = Lte; lhs = si1; rhs = si2 } ::  
-                  List.map (fun eq -> Rel eq) eqs)); true
-
-(* decision *)
-let compare cmp si1 si2 =
-  try
-    let result = match cmp with
-      | Eq ->
-         let si, eqs = normalize (minus si1 si2) in
-         let open SumOfProducts.SumProduct in
-         let sp = make si in
-         if is_surely_zero sp then true
-         else if is_surely_not_zero sp then false
-         else raise (Maybe(eqs))
-      | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
-        Lt ->
-         let si, eqs = normalize (minus si2 (plus si1 one)) in
-         let open SumOfProducts.SumProduct in
-         let sp = make si in
-         if is_surely_positive sp then true
-         else if is_surely_not_positive sp then false
-         else raise (Maybe(eqs))
-      | Lte ->
-         let si, eqs = normalize (minus si2 si1) in
-         let open SumOfProducts.SumProduct in
-         let sp = make si in
-         if is_surely_positive sp then true
-         else if is_surely_not_positive sp then false
-         else raise (Maybe(eqs)) in
-    result
-  with
-  | Maybe _ ->
      Defsizes.add (Rel { rel = cmp; lhs = si1; rhs = si2 }); true
 
 (* syntactic equatity *)
@@ -280,7 +240,7 @@ let rec trivial f_env n_env sc =
   | Rel { rel; lhs; rhs } ->
      let v1 = eval n_env lhs in
      let v2 = eval n_env rhs in
-     let op = match rel with | Eq -> (=) | Lt -> (<=) | Lte -> (<=) in
+     let op = match rel with | Eq -> (=) | Lt -> (<) | Lte -> (<=) in
      op v1 v2
   | And(sc_list) -> List.for_all (trivial f_env n_env) sc_list
   | Let(id_e_list, sc) ->
@@ -298,7 +258,7 @@ let rec trivial f_env n_env sc =
      (* (f_env f) v_list *) v v_list
   | Fix(id_id_list_sc_list, sc) ->
      (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
-     let rec f_env_rec =
+     let rec f_env_fix =
        lazy (List.fold_left 
                (fun f_acc (id, id_list, sc) -> 
                  Env.add id 
@@ -308,8 +268,8 @@ let rec trivial f_env n_env sc =
                          n_env id_list v_list in
                      trivial (Lazy.force f_env_final) n_env sc)
                    f_acc)
-               f_env id_id_list_sc_list)
-     and f_env_final = lazy (Env.append (Lazy.force f_env_rec) f_env) in
+               Env.empty id_id_list_sc_list)
+     and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
     trivial (Lazy.force f_env_final) n_env sc
   
 (* free variables *)
