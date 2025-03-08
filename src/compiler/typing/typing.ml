@@ -1431,10 +1431,23 @@ and leq_eq_list expected_k h eq_list =
   let defined_names, actual_k = equation_list expected_k new_h eq_list in
   defined_names, h0, actual_k
 
-(* typing [let [rec] f1<<n1,...>> = e1 and ... fk<<n1,...>> = ek] *)
+(* typing [let [rec] f1<<n_1,..., n_l>> = e1 and ... fk<<n1,...,>> = ek] *)
+(* the number of size parameters must be the same for all the mutually *)
+(* recursive definitions of size functions *)
 and sizefun_list_t l_rec h sizefun_list =
   let env_of id ty acc =
     Env.add id (typ_entry (Tfun(Tconst)) Sort_val ty) acc in
+  (* check that the number of size parameter is the same for all definitions *)
+  let number_of_parameters { sf_id_list } = List.length sf_id_list in
+  let expected_l = number_of_parameters (List.hd sizefun_list) in
+  List.iter 
+    (fun ({ sf_loc } as sf) -> 
+      let actual_l = number_of_parameters sf in
+      if expected_l <> actual_l
+      then error sf_loc 
+             (Esize_parameter_mutually_recursive_definitions(expected_l, actual_l)))
+    (List.tl sizefun_list);
+    
   (* types [ty_body_1;...;ty_body_k] for functions [f1;...;f_k] *)
   let expected_ty_list =
     List.map

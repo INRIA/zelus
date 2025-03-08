@@ -52,12 +52,12 @@ type error =
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
   | Epattern_not_total
-  | Esize_parameter_must_be_a_name
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of Defsizes.exp Defsizes.constraints
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
+  | Esize_parameter_mutually_recursive_definitions of int * int
   | Econstr_arity of Lident.t * int * int
   | Esizefun_and_equations_are_mixed
 
@@ -236,11 +236,14 @@ let message loc kind =
 	output_location loc
         Ptypes.output_type ty
 	(Ident.name n)
- | Esize_parameter_must_be_a_name ->
+ | Esize_parameter_mutually_recursive_definitions
+    (expected_number, actual_number) ->
     eprintf
-      "@[%aType error: the type of the result depend on some variables \
-       from this pattern. This pattern must be a variable.@.@]"
-       output_location loc
+      "@[%aType error: in mutually recursive definitions of size functions \n\
+       the number of size parameters must be the same.\n\
+       (this function has %d parameters while an other has %d parameters).@.@]"
+      output_location loc
+      actual_number expected_number
  | Esize_constraints_not_true(sc) ->
     eprintf
       "@[%aType error: the size constraint \
