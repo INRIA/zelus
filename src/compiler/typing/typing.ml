@@ -991,7 +991,7 @@ and size_apply loc expected_k h f si_list =
   (* typing the sequence of arguments *)
   let arg si = size (Tfun(Tconst)) h si in
   let si_list = List.map arg si_list in
-  let id_list, ty, constraints =
+  let id_list, ty, constraints, is_rec =
     try Types.filter_sizefun ty_fct
     with Unify -> error loc (Eapplication_of_non_function) in
   let expected_arit = List.length id_list in
@@ -1458,7 +1458,7 @@ and sizefun_list_t l_rec h sizefun_list =
   let h0 =
     List.fold_left2
       (fun acc { sf_id; sf_id_list } ty_body ->
-        env_of sf_id (Types.intro_sizefun sf_id sf_id_list ty_body) acc)
+        env_of sf_id (Types.intro_sizefun sf_id sf_id_list ty_body l_rec) acc)
       Env.empty sizefun_list expected_ty_list in
   let new_h = Env.append h0 h in
   let id_id_list_ty_constraints, defined_names =

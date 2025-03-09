@@ -39,7 +39,11 @@ and typ_desc =
   | Tsizefun of (* size function <<n1,...,nk>>.ty *)
       { id_list: Ident.t list; (* [k > 0] *)
         ty: typ;
-        constraints: Defsizes.exp Defsizes.constraints }
+        constraints: Defsizes.exp Defsizes.constraints;
+        is_rec: bool; 
+        (* the size function is recursive; this flag is *)
+        (* used when building the recursive constraints on [n1,...] *)
+      }
   | Tlink of typ
 
 and is_singleton = bool

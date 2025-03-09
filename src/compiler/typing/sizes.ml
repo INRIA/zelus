@@ -373,19 +373,16 @@ let rec if_list def_cond_sc_list =
 (* [(si_1,...,si_n) < (si_1',...,si_n')] iff
  *- if (si_1 < si_1') then true
  *- else if si_1 = si_1' then (si_2,...) < (si_2',...) *)
-let if_strictly_decreasing actual_si_list expected_si_list sc_true =
-  let rec decrease actual_si_list expected_si_list =
-    match actual_si_list, expected_si_list with
-    | [], [] -> True
-    | [actual_si], [expected_si] -> lt actual_si expected_si
-    | actual_si :: actual_si_list, expected_si :: expected_si_list ->
-       conditional (lt actual_si expected_si) True
-         (conditional 
-            (eq actual_si expected_si) 
-            (decrease actual_si_list expected_si_list) False)
-    | _ -> assert false in
-  let sc_true = decrease actual_si_list expected_si_list in
-  conditional sc_true False
+let rec decrease actual_si_list expected_si_list =
+  match actual_si_list, expected_si_list with
+  | [], [] -> True
+  | [actual_si], [expected_si] -> lt actual_si expected_si
+  | actual_si :: actual_si_list, expected_si :: expected_si_list ->
+     conditional (lt actual_si expected_si) True
+       (conditional 
+          (eq actual_si expected_si) 
+          (decrease actual_si_list expected_si_list) False)
+  | _ -> assert false
 
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)

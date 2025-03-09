@@ -48,10 +48,10 @@ let vec_opt ty size_opt =
 (* <<id,...>>.t with f(id,...) *)
 let size_app sf_id id_list =
   App(sf_id, List.map (fun id -> Svar(id)) id_list)
-let intro_sizefun sf_id id_list ty =
-  make (Tsizefun { id_list; ty; constraints = size_app sf_id id_list })
-let sizefun id_list ty constraints =  
-  make (Tsizefun { id_list; ty; constraints })
+let intro_sizefun sf_id id_list ty is_rec =
+  make (Tsizefun { id_list; ty; constraints = size_app sf_id id_list; is_rec })
+let sizefun id_list ty constraints is_rec =  
+  make (Tsizefun { id_list; ty; constraints; is_rec })
 let rec vec_n n ty size_opt =
   if n <= 0 then ty else vec_n (n-1) (vec_opt ty size_opt) size_opt
 let arrow_type ty_kind ty_name_opt ty_arg ty_res =
@@ -117,7 +117,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
 	  let m = Ident.fresh (Ident.source n) in
 	  Some(m), subst_in_type (Env.add n (Svar m) senv) ty_res in
      arrow_type ty_kind ty_name_opt ty_arg ty_res
-  | Tsizefun { id_list; ty; constraints } ->
+  | Tsizefun { id_list; ty; constraints; is_rec } ->
      let id_fresh_list =
        List.map (fun id -> Ident.fresh (Ident.source id)) id_list in
      let senv =
@@ -125,7 +125,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
          (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
          senv id_list id_fresh_list in
      sizefun id_fresh_list (subst_in_type senv ty)
-       (Sizes.subst_in_constraints senv constraints)
+       (Sizes.subst_in_constraints senv constraints) is_rec
 
 (** Remove dependences from a type *)
 (* [t1 -A-> t2] becomes [t1 -> t2];
@@ -301,9 +301,9 @@ let rec copy ty =
     | Tvec(ty, si) ->
        if level = generic then vec (copy ty) si
        else ty
-    | Tsizefun { id_list; ty; constraints } ->
+    | Tsizefun { id_list; ty; constraints; is_rec } ->
        if level = generic
-       then sizefun id_list (copy ty) constraints
+       then sizefun id_list (copy ty) constraints is_rec
        else ty
 
 (* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
@@ -478,7 +478,7 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
     (fun (id, id_list, ty, constraints) ->
       let constraints = if is_rec then Fix(f_list, size_app id id_list)
                         else constraints in
-      (id, sizefun id_list ty constraints))
+      (id, sizefun id_list ty constraints false))
     id_id_list_ty_constraints_list
     
 let filter_product arity ty =
@@ -509,8 +509,8 @@ let filter_arrow expected_k ty =
 let filter_sizefun ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tsizefun { id_list; ty; constraints } ->
-     id_list, ty, constraints
+  | Tsizefun { id_list; ty; constraints; is_rec } ->
+     id_list, ty, constraints, is_rec
   | _ -> raise Unify
 
 let filter_vec ty =
