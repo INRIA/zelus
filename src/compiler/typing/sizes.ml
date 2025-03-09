@@ -347,16 +347,45 @@ let rec matches { Zelus.pat_desc } si =
      (x, si) :: def_list, sc
   | _ -> raise Fail
 
+(* generate a conditional. Do a bit of by case definition to make functions *)
+(* that use it simpler *)
+let conditional sc sc_true sc_false =
+    match sc, sc_true, sc_false with 
+    | True, _, _ -> sc_true 
+    | False, _, _ -> sc_false 
+    | _ when sc_true = sc_false -> sc_true
+    | _, True, False -> sc
+    | _ -> If(sc, sc_true, sc_false)
+
+let lt si1 si2 = Rel { rel = Lt; lhs = si1; rhs = si2 }
+let eq si1 si2 = Rel { rel = Eq; lhs = si1; rhs = si2 }
+
 (* define a conditional constraint [if cond1 then c1 else ... else cn] *)
 let rec if_list def_cond_sc_list =
   let let_in l sc = match l with | [] -> sc | _ -> Let(l, sc) in
-  let conditional sc sc_true sc_false =
-    match sc with | True -> sc_true | _ -> If(sc, sc_true, sc_false) in
   match def_cond_sc_list with
   | [] -> True
   | [(def_list,_ ), sc] -> let_in def_list sc 
   | ((def_list, cond), sc) :: def_cond_sc_list ->
      conditional cond (let_in def_list sc) (if_list def_cond_sc_list)
+
+(* define the prefix order between two tuples of sizes *)
+(* [(si_1,...,si_n) < (si_1',...,si_n')] iff
+ *- if (si_1 < si_1') then true
+ *- else if si_1 = si_1' then (si_2,...) < (si_2',...) *)
+let if_strictly_decreasing actual_si_list expected_si_list sc_true =
+  let rec decrease actual_si_list expected_si_list =
+    match actual_si_list, expected_si_list with
+    | [], [] -> True
+    | [actual_si], [expected_si] -> lt actual_si expected_si
+    | actual_si :: actual_si_list, expected_si :: expected_si_list ->
+       conditional (lt actual_si expected_si) True
+         (conditional 
+            (eq actual_si expected_si) 
+            (decrease actual_si_list expected_si_list) False)
+    | _ -> assert false in
+  let sc_true = decrease actual_si_list expected_si_list in
+  conditional sc_true False
 
 (* An alternative representation. *)
 (* Suppose that variables are ordered x0 < ... < xn *)
