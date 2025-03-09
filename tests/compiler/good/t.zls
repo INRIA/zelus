@@ -1,6 +1,6 @@
 let rec f_<<n>> =
   match size n with
-  | 0 -> true | _ -> g_<<n-1>>
+  | 0 -> true | _ -> g_<<n-n/2>>
 and g_<<k>> = f_<<k>>
 
 let rec f__<<n>> =
