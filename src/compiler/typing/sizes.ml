@@ -123,6 +123,12 @@ module SumOfProducts =
       end
   end
 
+(* An alternative representation. *)
+(* Suppose that variables are ordered x0 < ... < xn *)
+(* represent the polynomial as a value of the inductive type *)
+(* pi = xi.pk + pj where j => k /\ i > k, with Pk a polynomial. It is the *)
+(* result of the Euclidian division of pi by variable xi. *)
+
 (* main entries *)
 let const v = Sint v
 let zero = const 0
@@ -320,19 +326,34 @@ let apply op si1 si2 =
 let frac num denom =
   match num with | Sint(vi) -> Sint(vi / denom) | _ -> Sfrac { num; denom }
 
-let rec subst env si =
+let rec subst_in_size env si =
   match si with
   | Sint _ -> si
-  | Sop(op, si1, si2) -> apply op (subst env si1) (subst env si2)
-  | Sfrac { num; denom } -> frac (subst env num) denom
+  | Sop(op, si1, si2) -> apply op (subst_in_size env si1) (subst_in_size env si2)
+  | Sfrac { num; denom } -> frac (subst_in_size env num) denom
   | Svar(n) ->
-     try Env.find n env with | Not_found -> raise Fail
+     try Env.find n env with | Not_found -> si
 
-let subst_in_constraints env sc =
-  if Env.is_empty env then sc
-  else
-    let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
-    Let(id_e_list, sc)
+(* substitution in a constraint. Assume that there is no name conflict *)
+(* that is, free variables in [env] do not appear in [sc] *)
+let rec subst env sc =
+  match sc with
+  | True | False -> sc
+  | And(sc_list) -> And(List.map (subst env) sc_list)
+  | Rel { rel; lhs; rhs } -> 
+     Rel { rel; lhs = subst_in_size env lhs; rhs = subst_in_size env rhs }
+  | If(sc1, sc2, sc3) ->
+     If(subst env sc1, subst env sc2, subst env sc3)
+  | App(n, e_list) ->
+     App(n, List.map (subst_in_size env) e_list)
+  | Let(id_e_list, sc) ->
+     Let(List.map (fun (id, e) -> (id, subst_in_size env e)) id_e_list,
+         subst env sc)
+  | Fix(id_id_list_sc_list, sc) ->
+     Fix(List.map 
+           (fun (id, id_list, sc) -> (id, id_list, subst env sc)) 
+           id_id_list_sc_list,
+         subst env sc)
 
 (* matching. Given [si] and [pat] generate a boolean condition *)
 (* when [pat] matches [si]; produce definitions [xi = ei] if necessary *)
@@ -346,6 +367,12 @@ let rec matches { Zelus.pat_desc } si =
      let def_list, sc = matches pat si in
      (x, si) :: def_list, sc
   | _ -> raise Fail
+
+let let_in env sc =
+  if Env.is_empty env then sc
+  else
+    let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
+    Let(id_e_list, sc)
 
 (* generate a conditional. Do a bit of by case definition to make functions *)
 (* that use it simpler *)
@@ -373,7 +400,7 @@ let rec if_list def_cond_sc_list =
 (* [(si_1,...,si_n) < (si_1',...,si_n')] iff
  *- if (si_1 < si_1') then true
  *- else if si_1 = si_1' then (si_2,...) < (si_2',...) *)
-let rec decrease actual_si_list expected_si_list =
+let rec decreases actual_si_list expected_si_list =
   match actual_si_list, expected_si_list with
   | [], [] -> True
   | [actual_si], [expected_si] -> lt actual_si expected_si
@@ -381,12 +408,7 @@ let rec decrease actual_si_list expected_si_list =
      conditional (lt actual_si expected_si) True
        (conditional 
           (eq actual_si expected_si) 
-          (decrease actual_si_list expected_si_list) False)
+          (decreases actual_si_list expected_si_list) False)
   | _ -> assert false
 
-(* An alternative representation. *)
-(* Suppose that variables are ordered x0 < ... < xn *)
-(* represent the polynomial as a value of the inductive type *)
-(* pi = xi.pk + pj where j => k /\ i > k, with Pk a polynomial. It is the *)
-(* result of the Euclidian division of pi by variable xi. *)
 

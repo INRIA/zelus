@@ -106,7 +106,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
   | Tconstr(gl, ty_list, abbrev) ->
      constr gl (List.map (subst_in_type senv) ty_list) abbrev
   | Tvec(ty_arg, si) ->
-     vec (subst_in_type senv ty_arg) (Sizes.subst_in_size senv si)
+     vec (subst_in_type senv ty_arg) (Sizes.subst senv si)
   | Tlink(ty_link) -> subst_in_type  senv ty_link
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
      let ty_arg = subst_in_type senv ty_arg in
@@ -125,7 +125,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
          (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
          senv id_list id_fresh_list in
      sizefun id_fresh_list (subst_in_type senv ty)
-       (Sizes.subst senv constraints) is_rec
+       (Sizes.subst_in_constraints senv constraints) is_rec
 
 (** Remove dependences from a type *)
 (* [t1 -A-> t2] becomes [t1 -> t2];
@@ -510,7 +510,7 @@ let filter_sizefun ty =
   let ty = typ_repr ty in
   match ty.t_desc with
   | Tsizefun { id_list; ty; constraints; is_rec } ->
-     id_list, ty, constraints, is_rec
+     id_list, ty, constraints
   | _ -> raise Unify
 
 let filter_vec ty =

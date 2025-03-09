@@ -1002,12 +1002,20 @@ and size_apply loc expected_k h f si_list =
                 (fun acc id si -> Env.add id si acc) Env.empty id_list si_list in
     let ty = Types.subst_in_type env ty in
     (* add the constraint to the stack of constraints *)
-    let constraints = Sizes.subst_in_constraints env constraints in
+    let constraints = 
+      if is_rec then 
+        (* check that the actual sizes decreases strictly *)
+        (* at every recursive call *)
+        Sizes.conditional 
+          (Sizes.decreases si_list 
+             (List.map (fun id -> Defsizes.Svar(id)) id_list))
+          (Sizes.subst env constraints) Defsizes.False
+      else Sizes.let_in env constraints in
     (* try to evaluate the size constraints *)
     let _ =
       try
-        if not (Sizes.trivial Env.empty Env.empty constraints)
-        then error loc (Esize_constraints_not_true(constraints))
+        if Sizes.trivial Env.empty Env.empty constraints then ()
+        else error loc (Esize_constraints_not_true(constraints))
       with
       | Sizes.Fail -> Defsizes.add constraints in
     ty, Tfun(Tconst)
