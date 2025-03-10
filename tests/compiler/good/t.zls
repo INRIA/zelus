@@ -1,13 +1,13 @@
 let rec f_<<n>> =
   match size n with
-  | 0 -> true | _ -> g_<<n-n/2>>
-and g_<<k>> = f_<<k>>
+  | 0 -> true | 1 -> false | _ -> g_<<n-n/2>>
+and g_<<k>> = f_<<k-1>>
 
 let rec f__<<n>> =
   match size n with
   | 0 -> true | _ -> false
 
-let f___ = f_<<1>>
+let f___ = f_<<42>>
 
 
 let rec f1<<n>>(x:[n]int) = f2<<n>>(x)
@@ -81,18 +81,52 @@ let dicho<<m>>(v, x:[m]'a) =
            | _ -> dicho<<n/2,i+n/2>>(v, x) in
   dicho<<m,0>>(v, x)
 
-(*
-let const rec or_<<n>>(x:[n]bool) returns (y)
-    if n = 0 then y = false
-    else y = x.(0) default false || (or_<<n-1>>(x.(0 .. n-2)))
+let rec or_n<<n>>(x:[n]bool) returns (y)
+    match size n with
+    | 0 -> y = false
+    | _ -> y = x.(0) or or_n<<n-1>>(x.(1 .. n-1))
 
-let const rec or__1<<n>>(x:[n]bool) returns (y)
-    if n = 0 then y = false
-    else if n = 1 then y = x.(n-1)
-    else
-      y = (or__1<<n/2>>(x.(0 .. (n/2 - 1)))) or
-          (or__1<<n/2>>(x.((n/2) .. (n - 1))))
-*)
+let rec or_n2<<n>>(x:[n]bool) returns (y)
+    match size n with
+    | 0 -> y = false
+    | _ -> y = x.(n-1) or or_n2<<n-1>>(x.(0 .. n-2))
+
+let rec or_log<<n>>(x:[n]bool) returns (y)
+    match size n with
+    | 0 -> y = false
+    | 1 -> y = x.(0)
+    | _ -> y = or_log<<n/2>>(x.(0 .. n/2 - 1)) or or_log<<n-n/2>>(x.(n/2 .. n-1))
+
+let or_n_42(x) = or_n<<42>>(x)
+let or_log_43(x) = or_log<<43>>(x)
+
+let half_adder(a, b) returns (s, carry)
+  s = if a then not b else b
+  and
+  carry = a && b
+
+let xor(a, b) = if a then not b else b
+
+let adder(a, b, c) returns (s, carry)
+  local s1, c1, c2
+  do s1, c1 = half_adder(a, b)
+  and s, c2 = half_adder(c1, c)
+  and carry = c1 or c2
+  done
+  
+let full_adder(a, b, c) returns (s, carry)
+  do  s = xor(a, xor(b, c))
+  and carry = (a && b) or (b && c) or (a && c)
+  done
+
+let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  match size n with
+  | 0 -> o = [||]
+  | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
+         do o = [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry)) done
+	 
+let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
+  o = add_n<<42>>(x, y, false)
 
 (* val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 } *)
 

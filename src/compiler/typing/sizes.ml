@@ -295,7 +295,7 @@ let rec fv_constraints bounded acc sc =
      let acc =
        List.fold_left (fun acc (_, s) -> fv bounded acc s) acc id_e_list in
      let bounded =
-       List.fold_left (fun acc (id, _) -> S.add id bounded) bounded id_e_list in
+       List.fold_left (fun acc (id, _) -> S.add id acc) bounded id_e_list in
      fv_constraints bounded acc sc
   | If(sc1, sc2, sc3) ->
      fv_constraints bounded
@@ -355,19 +355,6 @@ let rec subst env sc =
            id_id_list_sc_list,
          subst env sc)
 
-(* matching. Given [si] and [pat] generate a boolean condition *)
-(* when [pat] matches [si]; produce definitions [xi = ei] if necessary *)
-let rec matches { Zelus.pat_desc } si =
-  match pat_desc with
-  | Ewildpat -> [], True
-  | Econstpat(Eint(i)) -> [], Rel { rel = Eq; lhs = si; rhs = Sint(i) }
-  | Evarpat(x) -> [(x, si)], True
-  | Etypeconstraintpat(pat, _) -> matches pat si
-  | Ealiaspat(pat, x) ->
-     let def_list, sc = matches pat si in
-     (x, si) :: def_list, sc
-  | _ -> raise Fail
-
 let let_in env sc =
   if Env.is_empty env then sc
   else
@@ -396,6 +383,23 @@ let rec if_list def_cond_sc_list =
   | ((def_list, cond), sc) :: def_cond_sc_list ->
      conditional cond (let_in def_list sc) (if_list def_cond_sc_list)
 
+(* matching. Given [si] and [pat] generate a boolean condition *)
+(* when [pat] matches [si]; produce definitions [xi = ei] if necessary *)
+let rec matches { Zelus.pat_desc } si =
+  match pat_desc with
+  | Ewildpat -> [], True
+  | Econstpat(Eint(i)) -> [], Rel { rel = Eq; lhs = si; rhs = Sint(i) }
+  | Evarpat(x) -> [(x, si)], True
+  | Etypeconstraintpat(pat, _) -> matches pat si
+  | Eorpat(p1, p2) ->
+     let l1, sc1 = matches p1 si in
+     let l2, sc2 = matches p2 si in
+     l1 @ l2, conditional sc1 True sc2
+  | Ealiaspat(pat, x) ->
+     let def_list, sc = matches pat si in
+     (x, si) :: def_list, sc
+  | _ -> raise Fail
+
 (* define the prefix order between two tuples of sizes *)
 (* [(si_1,...,si_n) < (si_1',...,si_n')] iff
  *- if (si_1 < si_1') then true
@@ -411,4 +415,11 @@ let rec decreases actual_si_list expected_si_list =
           (decreases actual_si_list expected_si_list) False)
   | _ -> assert false
 
-
+(* given an constraint f(n1,...,n_k) and a tuple of sizes [si1,...,si_n] *)
+(* applies f(si1,...,si_n) if (si1,...,si_k) < (n1,...,n_k) *)
+let size_apply constraints actual_si_list =
+  match constraints with
+  | App(f, expected_si_list) ->
+     conditional (decreases actual_si_list expected_si_list)
+       (App(f, actual_si_list)) False
+  | _ -> assert false

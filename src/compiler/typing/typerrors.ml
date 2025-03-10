@@ -240,15 +240,19 @@ let message loc kind =
     (expected_number, actual_number) ->
     eprintf
       "@[%aType error: the number of size parameters must be the same\n\
-       in mutually recursive definitions of size functions\n\
+       in mutually recursive definitions of size functions.\n\
        (this function has %d parameters while one has %d parameters).@.@]"
       output_location loc
       actual_number expected_number
  | Esize_constraints_not_true(sc) ->
     eprintf
       "@[%aType error: the size constraint \
-       at this application point is not true.@.
-       %a@.@]]"
+       at this point is not true.\n\
+       (this can be because an array element is accessed out of the bounds,\n\
+       the actual size of an array does not matches an expected size,\n\
+       the size argument of a recursive functions \
+       does not decrease.)\n\
+       The size constraint is:\n%a@.@]]"
        output_location loc
        Ptypes.constraints_t sc 
  | Econstr_arity(ln, expected_arity, actual_arity) ->

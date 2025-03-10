@@ -48,8 +48,9 @@ let vec_opt ty size_opt =
 (* <<id,...>>.t with f(id,...) *)
 let size_app sf_id id_list =
   App(sf_id, List.map (fun id -> Svar(id)) id_list)
-let intro_sizefun sf_id id_list ty is_rec =
-  make (Tsizefun { id_list; ty; constraints = size_app sf_id id_list; is_rec })
+let intro_sizefun sf_id id_list id_rec_list ty =
+  make (Tsizefun { id_list; ty; constraints = size_app sf_id id_rec_list;
+                   is_rec = true })
 let sizefun id_list ty constraints is_rec =  
   make (Tsizefun { id_list; ty; constraints; is_rec })
 let rec vec_n n ty size_opt =

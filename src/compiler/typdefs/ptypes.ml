@@ -125,13 +125,14 @@ let constraints_t ff sc =
   constraint_t 0 ff sc
      
 let rec print prio ff { t_desc; t_level; t_index } =
-  let print_constraints ff sc =
+  let print_constraints id_list ff sc =
     let open Defsizes in
     match sc with
     | True -> ()
     | _ -> if !Misc.print_types_with_size_constraints then
              fprintf ff " with@ %a" constraints_t sc
-           else fprintf ff " with ..." in
+           else print_list_r (fun ff id -> fprintf ff "?%a" Ident.fprint_t id)
+                  " with " "," "" ff id_list in
   let priority = function
     | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ | Tvec _ -> 3
     | Tarrow _ | Tsizefun _ -> 1 | Tlink _ -> prio in
@@ -167,8 +168,8 @@ let rec print prio ff { t_desc; t_level; t_index } =
      fprintf ff "@[[%a]%a@]" (size 0) si (print prio_current) ty 
   | Tsizefun { id_list; ty; constraints } ->
      fprintf ff "@[<v2>%a.%a%a@]"
-       (print_list_l Ident.fprint_t "<<" "," ">>") id_list
-           (print prio_current) ty print_constraints constraints
+       (print_list_r Ident.fprint_t "<<" "," ">>") id_list
+           (print prio_current) ty (print_constraints id_list) constraints
   | Tlink(link) -> print prio ff link
   end;
   if prio_current < prio then fprintf ff ")"  

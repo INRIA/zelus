@@ -417,15 +417,6 @@ let env_of expected_k acc { eq_write } =
       n_set acc in
   env_of_names acc (Defnames.names S.empty eq_write)
 
-(* introduce a typing environment according to [expected_k] for size functions *)
-let intro_skeleton_type_of_sizefun { sf_id; sf_id_list; sf_e } =
-  let ty_res = intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e in
-  (sf_id, ty_res, Types.intro_sizefun sf_id sf_id_list ty_res)
-
-let intro_skeleton_type_of_sizefun { sf_id; sf_id_list; sf_e } =
-  let ty_res = intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e in
-  (sf_id, ty_res, Types.intro_sizefun sf_id sf_id_list ty_res)
-
 (* mutually recursive definitions must either define *)
 (* functions parameterized by a size or stream values *)
 let eq_or_sizefun loc l_eq =
@@ -1006,10 +997,7 @@ and size_apply loc expected_k h f si_list =
       if is_rec then 
         (* check that the actual sizes decreases strictly *)
         (* at every recursive call *)
-        Sizes.conditional 
-          (Sizes.decreases si_list 
-             (List.map (fun id -> Defsizes.Svar(id)) id_list))
-          (Sizes.subst env constraints) Defsizes.False
+        Sizes.size_apply constraints si_list
       else Sizes.let_in env constraints in
     (* try to evaluate the size constraints *)
     let _ =
@@ -1463,15 +1451,19 @@ and sizefun_list_t l_rec h sizefun_list =
       (fun { sf_e } -> intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
       sizefun_list in
   (* initial typing environment *)
-  let h0 =
+  (* [f_1: <<n_11,...>>.t_1 with [is_rec] f_11(id_rec_list);...;
+   *- f_k: <<nk1,...>.t_k with [is_rec] f_1k(id_rec_list)] *)
+  let h0 id_rec_list =
     List.fold_left2
       (fun acc { sf_id; sf_id_list } ty_body ->
-        env_of sf_id (Types.intro_sizefun sf_id sf_id_list ty_body l_rec) acc)
+        env_of sf_id (Types.intro_sizefun sf_id sf_id_list id_rec_list ty_body)
+          acc)
       Env.empty sizefun_list expected_ty_list in
-  let new_h = Env.append h0 h in
   let id_id_list_ty_constraints, defined_names =
     Util.mapfold2
       (fun acc ({ sf_id; sf_id_list; sf_loc } as sizefun) ty_body ->
+        let new_h =
+          if l_rec then Env.append (h0 sf_id_list) h else h in
         sizefun_t new_h sizefun ty_body,
         Total.join sf_loc (Defnames.singleton sf_id) acc)
       Defnames.empty sizefun_list expected_ty_list in
