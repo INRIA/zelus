@@ -119,12 +119,18 @@ let full_adder(a, b, c) returns (s, carry)
   and carry = (a && b) or (b && c) or (a && c)
   done
 
-let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+let rec add_n2<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   match size n with
   | 0 -> o = [||]
   | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
-         do o = [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry)) done
+         o  = [|s|] ++ (add_n2<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
 	 
+let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  o = match size n with
+  | 0 -> [||]
+  | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
+         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
 let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
 
