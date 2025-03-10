@@ -367,9 +367,8 @@ let conditional sc sc_true sc_false =
     match sc, sc_true, sc_false with 
     | True, _, _ -> sc_true 
     | False, _, _ -> sc_false 
-    | _ when sc_true = sc_false -> sc_true
     | _, True, False -> sc
-    | _ -> If(sc, sc_true, sc_false)
+    | _ -> if sc_true = sc_false then sc_true else If(sc, sc_true, sc_false)
 
 let lt si1 si2 = Rel { rel = Lt; lhs = si1; rhs = si2 }
 let eq si1 si2 = Rel { rel = Eq; lhs = si1; rhs = si2 }

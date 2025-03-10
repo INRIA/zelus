@@ -1,3 +1,21 @@
+let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  o = match size n with
+  | 0 -> [||]
+  | _ -> let s, carry = true, true in
+         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
+let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
+  o = add_n<<42>>(x, y, false)
+
+(*
+
+
+let rec g___<<n>>() returns (o)
+  o = match size n with
+  | 0 -> true | 1 -> let k = true in k | _ -> g___<<n-n/2>>()
+
+let main_1() = g___<<42>>()
+
 let rec f_<<n>> =
   match size n with
   | 0 -> true | 1 -> false | _ -> g_<<n-n/2>>
@@ -125,15 +143,6 @@ let rec add_n2<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
          o  = [|s|] ++ (add_n2<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
 	 
-let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
-  o = match size n with
-  | 0 -> [||]
-  | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
-         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
-
-let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
-  o = add_n<<42>>(x, y, false)
-
 (* val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 } *)
 
 (* let rec decoder<<n>>(adr:[n]bool) returns (i:[2^n]bool)
@@ -174,4 +183,5 @@ let node mon_pid (e)=
 let node pid_ e = mon_pid(0.1, 0.1, 0.1, 0.1, e)
 *)
     
+*)
 

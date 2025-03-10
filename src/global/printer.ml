@@ -357,9 +357,10 @@ module Make (Info: INFO) =
            block_of_equation b_eq expression e
       | Etypeconstraint(e, typ) ->
          fprintf ff "@[(%a: %a)@]" expression e ptype typ
-      | Ematch { is_total; e; handlers } ->
-         fprintf ff "@[<v>@[<hov 2>%smatch %a with@ @[%a@]@]@]"
+      | Ematch { is_size; is_total; e; handlers } ->
+         fprintf ff "@[<v>@[<hov 2>%smatch %s%a with@ @[%a@]@]@]"
            (if is_total then "total " else "")
+           (if is_size then "size " else "")
            expression e (print_list_l (match_handler expression) """""")
            handlers
       | Epresent { handlers; default_opt } ->
@@ -509,9 +510,10 @@ module Make (Info: INFO) =
          automaton_handler_list
            is_weak leqs block_of_equation block_of_equation expression
            ff (handlers, state_opt)
-      | EQmatch { is_total; e; handlers } ->
-         fprintf ff "@[<hov0>%smatch %a with@ @[%a@]@]"
+      | EQmatch { is_size; is_total; e; handlers } ->
+         fprintf ff "@[<hov0>%smatch %s%a with@ @[%a@]@]"
            (if is_total then "total " else "")
+           (if is_size then "size " else "")
            expression e (print_list_l (match_handler equation) """""") handlers
       | EQif { e; eq_true; eq_false } ->
          fprintf ff "@[<hov0>if %a@ then %a@ else %a@]"

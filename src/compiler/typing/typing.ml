@@ -934,24 +934,14 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
     | Efun(fe) ->
        let ty, actual_k = funexp expected_k h fe in
        ty, actual_k
-    | Ematch({ is_size = true; is_total; e; handlers } as mh) ->
+    | Ematch({ is_size; is_total; e; handlers } as mh) ->
        (* [match size e with | P1 -> ... | ...] *)
-       let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
-       let si = size_of_exp e in
-       let expected_ty = new_var () in
-       let is_total, actual_k_h =
-          match_size_handler_exp_list
-            e_loc expected_k h is_total si handlers expected_ty in
-        mh.is_total <- is_total;
-        expected_ty, Kind.sup actual_pat_k actual_k_h
-    | Ematch({ is_size = false; is_total; e; handlers } as mh) ->
-        let expected_pat_ty, actual_pat_k = expression expected_k h e in
-        let expected_ty = new_var () in
-        let is_total, actual_k_h =
-          match_handler_exp_list
-            e_loc expected_k h is_total handlers expected_pat_ty expected_ty in
-        mh.is_total <- is_total;
-        expected_ty, Kind.sup actual_pat_k actual_k_h
+       let is_total, actual_ty, actual_k =
+       if is_size then
+         typing_exp_match_size e_loc expected_k h is_total e handlers
+       else typing_exp_match e_loc expected_k h is_total e handlers in
+       mh.is_total <- is_total;
+       actual_ty, actual_k
     | Epresent { handlers; default_opt } ->
         let expected_ty = new_var () in
         let actual_k =
@@ -1267,21 +1257,13 @@ and equation expected_k h { eq_desc; eq_loc } =
      (* automata are only valid in a statefull context *)
      stateful eq_loc expected_k;
      automaton_handlers_eq is_weak eq_loc expected_k h handlers state_opt
-  | EQmatch({ is_size = true; is_total; e; handlers } as mh) ->
-     let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
-     let si = size_of_exp e in
-     let is_total, defnames, actual_k_h =
-       match_size_handler_eq_list
-         eq_loc expected_k h is_total si handlers in
+  | EQmatch({ is_size; is_total; e; handlers } as mh) ->
+     let is_total, defnames, actual_k =
+       if is_size then
+         typing_eq_match_size eq_loc expected_k h is_total e handlers
+       else typing_eq_match eq_loc expected_k h is_total e handlers in
      mh.is_total <- is_total;
-     defnames, Kind.sup actual_pat_k actual_k_h
-  | EQmatch({ is_size = false; is_total; e; handlers } as mh) ->
-     let expected_pat_ty, actual_k_e = expression expected_k h e in
-     let is_total, defnames, actual_k_h =
-       match_handler_eq_list
-         eq_loc expected_k h is_total handlers expected_pat_ty in
-     mh.is_total <- is_total;
-     defnames, Kind.sup actual_k_e actual_k_h
+     defnames, actual_k
   | EQif { e; eq_true; eq_false } ->
      let actual_k_e = expect expected_k h e Initial.typ_bool in
      let defnames1, actual_k_eq_true = equation expected_k h eq_true in
@@ -1320,6 +1302,38 @@ and equation_list expected_k h eq_list =
     Kind.sup actual_k_eq actual_k)
     (Defnames.empty, Tfun(Tconst)) eq_list
 
+and typing_eq_match eq_loc expected_k h is_total e handlers =
+  let expected_pat_ty, actual_k_e = expression expected_k h e in
+     let is_total, defnames, actual_k_h =
+       match_handler_eq_list
+         eq_loc expected_k h is_total handlers expected_pat_ty in
+     is_total, defnames, Kind.sup actual_k_e actual_k_h
+
+and typing_eq_match_size eq_loc expected_k h is_total e handlers =
+  let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
+  let si = size_of_exp e in
+  let is_total, defnames, actual_k_h =
+    match_size_handler_eq_list
+      eq_loc expected_k h is_total si handlers in
+  is_total, defnames, Kind.sup actual_pat_k actual_k_h
+
+and typing_exp_match_size loc expected_k h is_total e handlers =
+  let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
+  let si = size_of_exp e in
+  let expected_ty = new_var () in
+  let is_total, actual_k_h =
+    match_size_handler_exp_list
+      loc expected_k h is_total si handlers expected_ty in
+  is_total, expected_ty, Kind.sup actual_pat_k actual_k_h
+
+and typing_exp_match loc expected_k h is_total e handlers =
+  let expected_pat_ty, actual_pat_k = expression expected_k h e in
+  let expected_ty = new_var () in
+  let is_total, actual_k_h =
+    match_handler_exp_list
+      loc expected_k h is_total handlers expected_pat_ty expected_ty in
+  is_total, expected_ty, Kind.sup actual_pat_k actual_k_h
+    
 (* Type a present handler when the body is an expression or equation *)
 and present_handler_exp_list loc expected_k h p_h_list default_opt expected_ty =
   let _, actual_k =
