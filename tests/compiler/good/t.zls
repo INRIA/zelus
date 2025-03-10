@@ -1,3 +1,4 @@
+(*
 let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   o = match size n with
   | 0 -> [||]
@@ -6,8 +7,8 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
 
 let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
+*)
 
-(*
 
 
 let rec g___<<n>>() returns (o)
@@ -143,6 +144,66 @@ let rec add_n2<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
          o  = [|s|] ++ (add_n2<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
 	 
+let decodeur_simple(sel, adr) returns (s0, s1)
+  do
+     s0 = sel && not adr
+  and
+     s1 = sel && adr
+  done
+  
+let rec decodeur<<n,k>>(sel: bool, adr: [n]bool) returns (s: [k]bool)
+  local s0, s1 
+  do
+    (s0, s1) = decodeur_simple(sel, adr.(n-1))
+  and
+    match size n with
+    | 1 -> do s = [|s0; s1|] done
+    | _ -> do s = decodeur<<n-1, k/2>>(s0, adr.(0 .. n-2)) ++
+                  decodeur<<n-1, k/2>>(s1, adr.(0 .. n-2)) done
+  done
+
+let decodeur_2(adr: [2]bool) returns (s: [4]bool)
+  s = decodeur<<2,4>>(true, adr)
+
+(*
+-- multiplexeur
+-- inverse d'un decodeur.
+-- entree: une sur 2^n bits et une entree sur n bits.
+-- sortie: choisie la n-ieme entree.
+*)
+let multiplexeur_simple(a0, b0, b1) returns (s)
+  s = if a0 then b1 else b0
+
+let multiplexeur_double(a0, a1, b0, b1, b2, b3) returns (s)
+  local s0, s1, s2, s3 in
+  do
+   s = s0 or s1 or s2 or s3
+  and
+   s0 = b3 && a0 && a1
+  and
+   s1 = b2 && a1 && not a0
+  and
+   s2 = b1 && not a1 && a0
+  and
+   s3 = b0 && not a1 && not a0
+  done
+
+let rec multiplexeur_n<<n,k>>(a: [n]bool, b: [k]bool) returns (s:bool)
+  local s0, s1 in
+  do
+   match size n with
+   | 1 -> do s0, s1 = b.(0), b.(1) done
+   | _ -> do s0, s1 =
+            multiplexeur_n<<n-1,k/2>>(a.(0 .. n-1), b.(0 .. n-1)),
+            multiplexeur_n<<n-1, k/2>>(a.(0 .. n-1), b.(n-1 .. k/2)) done
+  and
+   s = multiplexeur_simple(a.(n-1), s0, s1)
+  done
+
+let multiplexeur_2(a: [2]bool, b: [4]bool) returns (s: bool)
+  s = multiplexeur_n<<2,4>>(a, b)
+
+
 (* val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 } *)
 
 (* let rec decoder<<n>>(adr:[n]bool) returns (i:[2^n]bool)
@@ -182,6 +243,5 @@ let node mon_pid (e)=
 
 let node pid_ e = mon_pid(0.1, 0.1, 0.1, 0.1, e)
 *)
-    
-*)
+ 
 
