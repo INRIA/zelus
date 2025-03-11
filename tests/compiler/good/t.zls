@@ -194,7 +194,7 @@ let rec multiplexeur_n<<n,k>>(a: [n]bool, b: [k]bool) returns (s:bool)
    match size n with
    | 1 -> do s0, s1 = b.(0), b.(1) done
    | _ -> do s0, s1 =
-            multiplexeur_n<<n-1,k/2>>(a.(0 .. n-1), b.(0 .. n-1)),
+            multiplexeur_n<<n-1,k/2>>(a.(0 ..n-1), b.(0 .. n-1)),
             multiplexeur_n<<n-1, k/2>>(a.(0 .. n-1), b.(n-1 .. k/2)) done
   and
    s = multiplexeur_simple(a.(n-1), s0, s1)
