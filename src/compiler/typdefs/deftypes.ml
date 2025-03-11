@@ -60,9 +60,10 @@ and typ_scheme =
 and typ_instance = { typ_instance : typ list }
 
 and kind =
-  | Tfun : vkind -> kind (* combinatorial expression *)
-  | Tnode : tkind -> kind (* stateful expression *)
+  | Tfun of vkind (* combinatorial expression *)
+  | Tnode of tkind (* stateful expression *)
 
+  
 and vkind =
   | Tconst (* value known at compile time *)
   | Tstatic (* value known at instantiation time *)

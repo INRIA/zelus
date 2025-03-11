@@ -17,16 +17,18 @@ let rec g___<<n>>() returns (o)
 
 let main_1() = g___<<42>>()
 
-let rec f_<<n>> =
-  match size n with
-  | 0 -> true | 1 -> false | _ -> g_<<n-n/2>>
-and g_<<k>> = f_<<k-1>>
+let h_<<l>> =
+ let rec f_<<n,m>> =
+   match size n with
+   | 0 -> true | 1 -> false | _ -> g_<<n-n/2,1>>
+ and g_<<k,m>> = f_<<k,0>> in
+ f_<<l,0>>
 
 let rec f__<<n>> =
   match size n with
   | 0 -> true | _ -> false
 
-let f___ = f_<<42>>
+let f___ = h_<<45>>
 
 
 let rec f1<<n>>(x:[n]int) = f2<<n>>(x)
@@ -63,7 +65,8 @@ let rec ffff<<n>>(x:[n]int) returns (y:[n]int)
     match size n with
     | 0 -> y = x
     | 1 -> y = x
-    | _ -> y = ffff<<n/2>>(x.(0 .. n/2 - 1)) ++ ffff<<n - n/2>>(x.(n/2 .. n - 1))
+    | _ -> y = ffff<<n/2>>(x.(0 .. n/2 - 1)) ++
+               ffff<<n - n/2>>(x.(n/2 .. n - 1))
 
 let f42(x:[10]int) returns (o:[10]int) o = ffff<<10>>(x)
 
@@ -113,11 +116,11 @@ let rec or_n2<<n>>(x:[n]bool) returns (y)
 let rec or_log<<n>>(x:[n]bool) returns (y)
     match size n with
     | 0 -> y = false
-    | 1 -> y = x.(0)
-    | _ -> y = or_log<<n/2>>(x.(0 .. n/2 - 1)) or or_log<<n-n/2>>(x.(n/2 .. n-1))
+    (* | 1 -> y = x.(0) *)
+    | _ -> y = or_log<<n/2>>(x.(0 .. n/2 - 1)) or
+               or_log<<n-n/2>>(x.(n/2 .. n-1))
 
 let or_n_42(x) = or_n<<42>>(x)
-let or_log_43(x) = or_log<<43>>(x)
 
 let half_adder(a, b) returns (s, carry)
   s = if a then not b else b
@@ -138,12 +141,13 @@ let full_adder(a, b, c) returns (s, carry)
   and carry = (a && b) or (b && c) or (a && c)
   done
 
-let rec add_n2<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   match size n with
   | 0 -> o = [||]
   | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
-         o  = [|s|] ++ (add_n2<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
-	 
+         o  = [|s|] ++
+	      (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
 let decodeur_simple(sel, adr) returns (s0, s1)
   do
      s0 = sel && not adr
@@ -151,7 +155,8 @@ let decodeur_simple(sel, adr) returns (s0, s1)
      s1 = sel && adr
   done
   
-let rec decodeur<<n,k>>(sel: bool, adr: [n]bool) returns (s: [k]bool)
+let rec decodeur<<n,k>>(sel: bool, adr: [n]bool)
+returns (s: [k]bool)
   local s0, s1 
   do
     (s0, s1) = decodeur_simple(sel, adr.(n-1))
@@ -188,21 +193,23 @@ let multiplexeur_double(a0, a1, b0, b1, b2, b3) returns (s)
    s3 = b0 && not a1 && not a0
   done
 
-let rec multiplexeur_n<<n,k>>(a: [n]bool, b: [k]bool) returns (s:bool)
+let rec multiplexeur_n<<n,k>>(a: [n]bool, b: [k]bool)
+returns (s:bool)
   local s0, s1 in
   do
    match size n with
    | 1 -> do s0, s1 = b.(0), b.(1) done
    | _ -> do s0, s1 =
-            multiplexeur_n<<n-1,k/2>>(a.(0 ..n-1), b.(0 .. n-1)),
-            multiplexeur_n<<n-1, k/2>>(a.(0 .. n-1), b.(n-1 .. k/2)) done
+            multiplexeur_n<<n-1,k/2>>
+	      (a.(0 .. n-2), b.(0 .. k/2 - 1)),
+            multiplexeur_n<<n-1, k/2>>
+	      (a.(0 .. n-2), b.(k/2 .. k - 1)) done
   and
    s = multiplexeur_simple(a.(n-1), s0, s1)
   done
 
-let multiplexeur_2(a: [2]bool, b: [4]bool) returns (s: bool)
-  s = multiplexeur_n<<2,4>>(a, b)
-
+let multiplexeur_2(a: [4]bool, b: [16]bool) returns (s: bool)
+  s = multiplexeur_n<<4,16>>(a, b)
 
 (* val or_1 : <<n>>.([n]bool -> bool) with { n/2 <= n; 0 < n/2 } *)
 
