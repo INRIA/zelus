@@ -13,13 +13,13 @@ let rec dicho<<n>>(v, x:[n]'a) =
 let main___1(x: [5]int) = dicho<<5>>(0, x)
 
 let dicho_without_slices<<m>>(v, x:[m]'a) =
-  let rec dicho<<n,i>>(v, x:[n]'a) =
+  let rec dicho<<n,i>>(v, x:[m]'a) =
     match size n with
     | 0 -> false
     | _ -> match compare v x.(i+n/2) with
            | 0 -> true
            | 1 -> dicho<<n/2,i>>(v, x)
-           | _ -> dicho<<n/2,i+n/2>>(v, x) in
+           | _ -> dicho<<n - n/2,i+n/2>>(v, x) in
   dicho<<m,0>>(v, x)
 
 let main___2(x) = dicho_without_slices<<42>>(0, x)
