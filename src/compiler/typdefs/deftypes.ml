@@ -62,7 +62,6 @@ and typ_instance = { typ_instance : typ list }
 and kind =
   | Tfun of vkind (* combinatorial expression *)
   | Tnode of tkind (* stateful expression *)
-
   
 and vkind =
   | Tconst (* value known at compile time *)
