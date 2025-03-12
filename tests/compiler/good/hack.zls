@@ -141,8 +141,3 @@ let get<<n, k>>(x:[n]'a) =
 
 let f<<n>>(x:[n]'a) = x ++ [|1|]
 
-let rec f_42<<n>> =
-  f_42<<0-1>>
-
-let main_ = f_42<<0>>
-
