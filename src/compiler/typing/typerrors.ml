@@ -217,7 +217,7 @@ let message loc kind =
       output_location loc
  | Enot_a_size_expression ->
     eprintf
-      "@[%aType error: this is not a valid size expression.@.@]"
+      "@[%aType error: this is not a size.@.@]"
       output_location loc
  | Esize_clash(cmp, actual_size, expected_size) ->
     let s = match cmp with
