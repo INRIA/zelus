@@ -9,8 +9,6 @@ let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
 *)
 
-
-
 let rec g___<<n>>() returns (o)
   o = match size n with
   | 0 -> true | 1 -> let k = true in k | _ -> g___<<n-n/2>>()

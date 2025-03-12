@@ -134,3 +134,15 @@ returns (s:bool)
 let multiplexer_2(a: [4]bool, b: [16]bool) returns (s: bool)
   s = multiplexer_n<<4,16>>(a, b)
 
+let get<<n, k>>(x:[n]'a) =
+  match size k with
+  | 0 -> 42
+  | _ -> x.(k)
+
+let f<<n>>(x:[n]'a) = x ++ [|1|]
+
+let rec f_42<<n>> =
+  f_42<<0-1>>
+
+let main_ = f_42<<0>>
+
