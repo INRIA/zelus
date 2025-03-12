@@ -1,7 +1,7 @@
-(* exemples du processeur Hack - livre Nand2Tetris *)
-(* et quelques autres *)
+(* Examples about the Hack processor - book Nand2Tetris *)
+(* and some others *)
 
-(* recherche par dichotomie dans un tableau *)
+(* dichotomy search in an array *)
 let rec dicho<<n>>(v, x:[n]'a) =
     match size n with
     | 0 -> false
@@ -62,7 +62,7 @@ let full_adder(a, b, c) returns (s, carry)
   and carry = (a && b) or (b && c) or (a && c)
   done
 
-(* adder *)
+(* n-bit adder *)
 let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   match size n with
   | 0 -> o = [||]
@@ -70,39 +70,39 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
          o  = [|s|] ++
 	      (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
 
-(* decoding/multi-plexing *)
-let decodeur_simple(sel, adr) returns (s0, s1)
+(* address decoder - address multiplexer *)
+let decoder_simple(sel, adr) returns (s0, s1)
   do
      s0 = sel && not adr
   and
      s1 = sel && adr
   done
   
-let rec decodeur<<n,k>>(sel: bool, adr: [n]bool)
+let rec decoder<<n,k>>(sel: bool, adr: [n]bool)
 returns (s: [k]bool)
   local s0, s1 
   do
-    (s0, s1) = decodeur_simple(sel, adr.(n-1))
+    (s0, s1) = decoder_simple(sel, adr.(n-1))
   and
     match size n with
     | 1 -> do s = [|s0; s1|] done
-    | _ -> do s = decodeur<<n-1, k/2>>(s0, adr.(0 .. n-2)) ++
-                  decodeur<<n-1, k/2>>(s1, adr.(0 .. n-2)) done
+    | _ -> do s = decoder<<n-1, k/2>>(s0, adr.(0 .. n-2)) ++
+                  decoder<<n-1, k/2>>(s1, adr.(0 .. n-2)) done
   done
 
-let decodeur_2(adr: [2]bool) returns (s: [4]bool)
-  s = decodeur<<2,4>>(true, adr)
+let decoder_2(adr: [2]bool) returns (s: [4]bool)
+  s = decoder<<2,4>>(true, adr)
 
 (*
--- multiplexeur
--- inverse d'un decodeur.
--- entree: une sur 2^n bits et une entree sur n bits.
--- sortie: choisie la n-ieme entree.
+-- multiplexer
+-- inverse of a decoder.
+-- input: 2^n bits and a n-bits address
+-- output: choose the n-th input
 *)
-let multiplexeur_simple(a0, b0, b1) returns (s)
+let multiplexer_simple(a0, b0, b1) returns (s)
   s = if a0 then b1 else b0
 
-let multiplexeur_double(a0, a1, b0, b1, b2, b3) returns (s)
+let multiplexer_double(a0, a1, b0, b1, b2, b3) returns (s)
   local s0, s1, s2, s3 in
   do
    s = s0 or s1 or s2 or s3
@@ -116,23 +116,30 @@ let multiplexeur_double(a0, a1, b0, b1, b2, b3) returns (s)
    s3 = b0 && not a1 && not a0
   done
 
-let rec multiplexeur_n<<n,k>>(a: [n]bool, b: [k]bool)
+let rec multiplexer_n<<n,k>>(a: [n]bool, b: [k]bool)
 returns (s:bool)
   local s0, s1 in
   do
    match size n with
    | 1 -> do s0, s1 = b.(0), b.(1) done
    | _ -> do s0, s1 =
-            multiplexeur_n<<n-1,k/2>>
+            multiplexer_n<<n-1,k/2>>
 	      (a.(0 .. n-2), b.(0 .. k/2 - 1)),
-            multiplexeur_n<<n-1, k/2>>
+            multiplexer_n<<n-1, k/2>>
 	      (a.(0 .. n-2), b.(k/2 .. k - 1)) done
   and
-   s = multiplexeur_simple(a.(n-1), s0, s1)
+   s = multiplexer_simple(a.(n-1), s0, s1)
   done
 
-let multiplexeur_2(a: [4]bool, b: [16]bool) returns (s: bool)
-  s = multiplexeur_n<<4,16>>(a, b)
+let multiplexer_2(a: [4]bool, b: [16]bool) returns (s: bool)
+  s = multiplexer_n<<4,16>>(a, b)
+
+let get<<n, k>>(x:[n]'a) =
+  match size k with
+  | 0 -> 42
+  | _ -> x.(k)
+
+let f<<n>>(x:[n]'a) = x ++ [|1|]
 
 node Nand (a, b: bool) returns (out: bool);
 let
