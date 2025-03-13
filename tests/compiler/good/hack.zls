@@ -141,3 +141,416 @@ let get<<n, k>>(x:[n]'a) =
 
 let f<<n>>(x:[n]'a) = x ++ [|1|]
 
+node Nand (a, b: bool) returns (out: bool);
+let
+  out = not (a and b);
+tel
+
+node Xor (a, b: bool) returns (out: bool);
+let
+  out = if a then not b else b;
+  -- l'operateur xor existe,  cad: out = a xor b;
+tel;
+
+node AndMuxOr(sel, a, b: bool) returns (out: bool);
+let
+  out = if sel then a or b else a and b;
+tel;
+
+node Mux (a, b, sel: bool) returns (out: bool);
+let
+  out = if sel then b else a;
+tel
+
+node DMux (in, sel: bool) returns (a, b: bool);
+let
+  a, b = if sel then (false, in) else (in, false);
+tel
+
+node check_mux_dmux (x, sel: bool) returns (o: bool);
+let
+  o = (x = Mux(DMux(x, sel), sel));
+tel
+
+node DMux4(in, a1, a0: bool) returns (s0, s1, s2, s3: bool);
+let
+  (s0, s1, s2, s3) =
+    if a0 then if a1 then (false, false, false, in)
+               else (false, in, false, false)
+    else if a1 then (false, false, in, false)
+         else (in, false, false, false);  
+tel;
+
+-- section 1.2.3
+-- -------------
+
+node Not16 (in: bool^16) returns (out: bool^16);
+let
+  out = not(in);
+tel
+
+-- ou ecrit recursivement
+node Not_n (const n: int; in: bool^n) returns (out: bool^n)
+let
+  assert (n>0);
+  out = with (n = 1) then [not(in[0])]
+        else ([not in[0]] | Not_n (n-1, in[1..n-1]));
+tel
+
+node Not16_2(in: bool^16) returns (out: bool^16)
+let
+  out = Not_n(16, in);
+tel
+
+node And16 (a, b: bool^16) returns (out: bool^16);
+let
+  out = a and b;
+tel
+
+node Or16 (a, b: bool^16) returns (out: bool^16);
+let
+  out = a or b;
+tel
+
+-- Mux
+node Mux_n (const n: int; a, b: bool^n; sel: bool) returns (out: bool^n);
+let
+  out = if sel then b else a;
+tel
+
+node Mux16 (a, b: bool^16; sel: bool) returns (out: bool^16);
+let
+  out = Mux_n (16, a, b, sel);
+tel
+
+-- section 1.2.4
+-- -------------
+-- Or
+node or_n_way (const n: int; in: bool^n) returns (out: bool);
+let
+  assert (n > 0);
+  out = with n = 1 then in[0]
+        else in[0] or or_n_way(n-1, in[1..n-1]);
+tel
+
+node or_n_way_log (const n: int; in: bool^n) returns (out: bool);
+let
+  assert (n >= 2);
+  assert (n mod 2 = 0);
+  out = with n = 2 then in[0] or in[1]
+        else or_n_way_log(n/2, in[0..(n/2)-1]) or
+             or_n_way_log(n/2, in[n/2..n-1]);
+tel
+
+node check_or_n_way_eq_or_n_way_log(in: bool^8) returns (o: bool);
+let
+  o = or_n_way(8, in) = or_n_way_log(8, in);
+tel
+
+node Or8Way (in: bool^8) returns (out: bool);
+let
+  out = or_n_way_log(8, in);
+tel
+
+node Or16Way (in: bool^16) returns (out: bool);
+let
+  out = or_n_way_log(16, in);
+tel
+
+-- And
+node and_n_way (const n: int; in: bool^n) returns (out: bool);
+let
+  assert (n >= 2);
+  out = with n = 2 then in[0] and in[1]
+        else in[0] and and_n_way(n-1, in[1..n-1]);
+tel
+
+node And8Way (in: bool^8) returns (out: bool);
+let
+  out = and_n_way(8, in);
+tel
+
+node And16Way (in: bool^16) returns (out: bool);
+let
+  out = and_n_way(16, in);
+tel
+
+
+-- Chapter 2: Boolean Arithmetic
+-- =============================
+-- http://www1.idc.ac.il/tecs/book/chapter%2002.pdf
+
+-- section 2.2.1
+-- -------------
+node HalfAdder (a, b : bool) returns (sum, carry : bool);
+let
+  sum = a xor b;
+  carry = a and b;
+tel
+
+node FullAdder (a, b, c : bool) returns (sum, carry : bool);
+var s1,c1,c2:bool;
+let
+  (s1, c1) = HalfAdder (a, b);
+  (sum, c2) = HalfAdder (c, s1);
+  carry = c1 or c2;
+tel
+
+node AdderReference(a,  b,  c: bool) returns (sum, carry: bool)
+ let
+   sum = (a xor b) xor c;
+   carry = (a and b) or (b and c) or (a and c);
+tel;
+
+node AdderReference2(a,  b,  c: bool) returns (sum, carry: bool)
+ let
+   sum = (a xor b) xor c;
+   carry = if a then b or c else b and c;
+tel;
+
+node AddEquivalence(a, b, c: bool) returns (ok: bool)
+  var sum1, carry1, sum2, carry2: bool;
+  let
+     (sum1, carry1) = FullAdder(a, b, c);
+     (sum2, carry2) = AdderReference(a, b, c);
+     ok = (sum1 = sum2) and (carry1 = carry2);
+  tel;
+
+node add_n (const n : int; x : bool^n; y : bool^n; c : bool)
+returns (o : bool^n);
+var s0, c0 : bool;
+let
+  assert (n>0);
+  s0, c0 = FullAdder (x[0], y[0], c);
+  o = with (n = 1) then [s0]
+      else ([s0] | add_n (n-1, x[1..n-1], y[1..n-1], c0));
+tel
+
+node inc_n (const n: int; x : bool^n) returns (o: bool^n);
+let
+  o = add_n(n, x, false^n, true);
+tel
+
+node Add16 (x : bool^16; y : bool^16) returns (o: bool^16);
+let
+  o = add_n(16, x, y, false);
+tel
+
+node Inc16 (x : bool^16) returns (o: bool^16);
+let
+  o = inc_n(16, x);
+tel
+
+-- question: show that -x = not(x) + 1.
+
+node minus_one_n(const n: int; x: bool^n) returns (mx: bool^n)
+  let
+    mx = inc_n(n, not(x));
+  tel;
+
+-- Checks that all bit are null
+node zero_n(const n: int; x: bool^n) returns (o: bool)
+  let 
+    o = not(or_n_way(n, x));
+  tel;
+
+node zero4(x: bool^4) returns (o: bool)
+  let
+    o = zero_n(4, x);
+  tel;
+
+node minus_correct_n(const n: int; x: bool^n) returns (ok: bool)
+  let
+     ok = zero_n(n, add_n(n, x, minus_one_n(n, x), false));
+  tel;
+
+node Minus_correct4(x: bool^4) returns (ok: bool)
+  let
+     ok = minus_correct_n(4, x);
+  tel;
+
+-- section 2.2.2
+-- -------------
+node ALU (in_x, in_y: bool^16; -- Two 16-bits data inputs
+          zx, -- Zero the x input
+          nx, -- Negate the x input
+          zy, -- Zero the y input
+          ny, -- Negate the y input
+          f,  -- Function code:  1 for Add,  0 for And
+          no  -- Negate the out output
+          : bool)
+returns (out: bool^16;
+         zr,  -- True iff out=0
+         ng   -- True iff out<0
+         : bool);
+var x, y, x_aux, y_aux, out_aux: bool^16;
+let
+  x_aux = if zx then false^16 else in_x;
+  x = if nx then Not16 (x_aux) else x_aux;
+  y_aux = if zy then false^16 else in_y;
+  y = if ny then Not16 (y_aux) else y_aux;
+  out_aux = if f then Add16 (x, y) else And16 (x, y);
+  out = if no then Not16 (out_aux) else out_aux;
+  zr = not (Or16Way (out));
+  ng = out[15];
+tel
+
+
+-- Chapter 3: Sequential Logic
+-- ===========================
+-- http://www1.idc.ac.il/tecs/book/chapter%2003.pdf
+
+-- section 3.2.1
+-- -------------
+
+node DFF (in: bool) returns (out: bool);
+let
+  out = false -> pre in;
+tel
+
+
+-- section 3.2.2
+-- -------------
+
+node Bit (in, load: bool) returns (out: bool);
+let
+  out = DFF(Mux(out, in, load));
+tel
+
+node Register_n (const n: int; in: bool^n; load: bool) returns (out: bool^n);
+let
+  assert (n >= 1);
+  out = with n = 1 then [ Bit (in[0], load) ]
+        else [ Bit (in[0], load) ] | Register_n (n-1, in[1..n-1], load);
+tel
+
+node Register (in: bool^16; load: bool) returns (out: bool^16);
+let
+  out = Register_n (16, in, load);
+tel
+
+node Register_n_2(const n: int; in: bool^n; load: bool) returns (out: bool^n);
+let
+  out = false^n -> pre(if load then in else out);
+tel
+
+node Register_2 (in: bool^16; load: bool) returns (out: bool^16);
+let
+  out = Register_n_2 (16, in, load);
+tel
+
+-- decodeur 2 vers 4.
+-- un circuit qui permet de selectionner une ligne a partir de son
+-- adresse ecrite en binaire.
+-- permet de realiser une RAM (Random Access Memory)
+-- a1 a0    s0  s1  s2  s3
+-- 0  0     1   0   0   0
+-- 0  1     0   1   0   0
+-- 1  0     0   0   1   0
+-- 1  1     0   0   0   0
+node Decoder_2_4(a0, a1: bool) returns (s0, s1, s2, s3: bool);
+var na0, na1: bool;
+let
+  na0 = not a0;
+  na1 = not a1;
+  s0 = na0 and na1;
+  s1 = a0 and na1;
+  s2 = na0 and a1;
+  s3 = a0 and a1;
+tel;
+
+-- section 3.2.4
+-- -------------
+node PC_spec (in: bool^16; inc, load, reset: bool) returns (out: bool^16);
+var pout: bool^16;
+let
+  out = false^16 -> if pre reset then false^16
+                    else
+                      if pre load then pre in
+                      else
+                        if pre inc then Inc16 (pout)
+                        else pout;
+  pout = pre out;
+tel
+
+node PC (in: bool^16; inc, load, reset: bool) returns (out: bool^16);
+let
+  out = DFF(Mux16(Mux16(Mux16(out,
+                              Inc16(out), inc),
+                        in, load),
+                  false^16, reset));
+tel
+
+-- lesar hack.lus check_PC_spec -forward
+node check_PC_spec(in: bool^16; inc, load, reset: bool)
+returns (ok: bool);
+let
+  ok = And16Way(PC_spec(in, inc, load, reset) = PC(in, inc, load, reset));
+tel
+
+
+-- Chapter 5: Computer Architecture
+-- ================================
+-- http://www1.idc.ac.il/tecs/book/chapter%2005.pdf
+
+-- section 5.2.2
+-- -------------
+
+node CPU (inM, instruction: bool^16; reset: bool)
+returns (outM: bool^16; writeM: bool; addressM: bool^15; pc: bool^15);
+var A, D, A_M: bool^16;
+    load_A, sel_input_A: bool;
+    load_D: bool;
+    load_PC, inc_PC: bool;
+    out_PC:bool^16;
+    zr, ng: bool;
+    sel_A_M, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3: bool;
+let
+  [sel_A_M, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3] =
+    instruction[3..15];
+  A = Register(Mux16(outM, instruction, sel_input_A), load_A);
+  D = Register(outM, load_D);
+  A_M = Mux16(A, inM, sel_A_M);
+  outM, zr, ng = ALU (D, A_M, c1, c2, c3, c4, c5, c6);
+  writeM = d3 and instruction[0];
+  addressM = A[1..15];
+  out_PC = PC(A, inc_PC, load_PC, reset);
+  pc = out_PC[1..15];
+  sel_input_A = not(instruction[0]);
+  load_A = not(instruction[0]) or d1;
+  load_D = d2 and instruction[0];
+  inc_PC = true;
+  load_PC =
+    (not j1 and not j2 and     j3 and (not zr and not ng)) or
+    (not j1 and     j2 and not j3 and zr) or
+    (not j1 and     j2 and     j3 and (zr or not ng)) or
+    (    j1 and not j2 and not j3 and (not zr and ng)) or
+    (    j1 and not j2 and     j3 and not zr) or
+    (    j1 and     j2 and not j3 and (zr or ng)) or
+    (    j1 and     j2 and     j3);
+tel
+
+-- Incr Machine :  machine qui incrémente un compteur
+node ROM32K_incr (adress: bool^15) returns (out: bool^16);
+let
+  out = if not(or_n_way(15, adress)) then
+          -- D = 0
+          true^3 | [false]
+          | [true, false, true, false, true, false]
+          | [ false, true, false ] | false^3
+        else
+          -- D = D + 1
+          true^3 | [false]
+          | [false, true, true, true, true, true]
+          | [ false, true, false ] | false^3;
+tel
+
+node incr_machine (reset: bool) returns (out: bool^16);
+var instruction: bool^16;
+    pc: bool^15;
+    writeM: bool;
+    addressM: bool^15;
+let
+  instruction = ROM32K_incr(pc);
+  out, writeM, addressM, pc = CPU(false^16, instruction, reset);
+tel
