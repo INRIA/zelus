@@ -1102,6 +1102,7 @@ and array_operator expected_k h loc op e_list =
      let actual_ki = expect expected_k h i Initial.typ_int in
      let si_i = size_of_exp h i in
      compare_sizes Defsizes.Lt i.e_loc si_i si;
+     compare_sizes Defsizes.Lte i.e_loc (Defsizes.Sint(0)) si_i;
      ty, Kind.sup actual_k actual_ki
   | Eget_with_default, [a; i; default] ->
      let ty_a, actual_k = expression expected_k h a in

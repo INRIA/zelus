@@ -12,6 +12,19 @@ let rec dicho<<n>>(v, x:[n]'a) =
 
 let main___1(x: [5]int) = dicho<<5>>(0, x)
 
+(* warning: the following example, that is, replacing a by-case *)
+(* definitions on equations by a expressions does not work. The typing *)
+(* verification is way more difficult. *)
+(* let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  o = match size n with
+  | 0 -> [||]
+  | _ -> let s, carry = true, true in
+         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
+let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
+  o = add_n<<42>>(x, y, false)
+*)
+
 let dicho_without_slices<<m>>(v, x:[m]'a) =
   let rec dicho<<n,i>>(v, x:[m]'a) =
     match size n with
@@ -141,7 +154,8 @@ let get<<n, k>>(x:[n]'a) =
 
 let f<<n>>(x:[n]'a) = x ++ [|1|]
 
-node Nand (a, b: bool) returns (out: bool);
+(*
+let nand (a, b: bool) returns (out: bool)
 let
   out = not (a and b);
 tel
@@ -554,3 +568,4 @@ let
   instruction = ROM32K_incr(pc);
   out, writeM, addressM, pc = CPU(false^16, instruction, reset);
 tel
+*)
