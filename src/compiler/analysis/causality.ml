@@ -884,10 +884,10 @@ and sizefun_t env c_free { sf_id; sf_id_list; sf_e; sf_loc } =
   let env = Env.append env_sizes env in
   let actual_tc = exp env c_free sf_e in
   (* check that [sf_id] can get type [ti_res] *)
-  let tc_expected =
+  let expected_tc =
     try let { t_tys = { typ_body = tc } } = Env.find sf_id env in tc
     with | Not_found -> assert false in
-  less_than sf_loc env tc_expected actual_tc
+  less_than sf_loc env expected_tc actual_tc
 
 (* The main function *)
 let implementation ff { desc = desc; loc = loc } =
