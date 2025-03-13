@@ -154,50 +154,39 @@ let get<<n, k>>(x:[n]'a) =
 
 let f<<n>>(x:[n]'a) = x ++ [|1|]
 
-(*
-let nand (a, b: bool) returns (out: bool)
-let
-  out = not (a and b);
-tel
+let nand (a, b: bool) returns (out_: bool)
+  out_ = not (a && b)
 
-node Xor (a, b: bool) returns (out: bool);
-let
-  out = if a then not b else b;
-  -- l'operateur xor existe,  cad: out = a xor b;
-tel;
+let xor_ (a, b: bool) returns (out_: bool)
+  out_ = if a then not b else b
 
-node AndMuxOr(sel, a, b: bool) returns (out: bool);
-let
-  out = if sel then a or b else a and b;
-tel;
+let andMuxOr(sel, a, b: bool) returns (out_: bool)
+  out_ = if sel then a or b else a && b
 
-node Mux (a, b, sel: bool) returns (out: bool);
-let
-  out = if sel then b else a;
-tel
+let mux (a, b, sel: bool) returns (out_: bool)
+  out_ = if sel then b else a
 
-node DMux (in, sel: bool) returns (a, b: bool);
-let
-  a, b = if sel then (false, in) else (in, false);
-tel
+let dmux (in_, sel: bool) returns (a, b: bool)
+  a, b = if sel then (false, in_) else (in_, false)
 
-node check_mux_dmux (x, sel: bool) returns (o: bool);
-let
-  o = (x = Mux(DMux(x, sel), sel));
-tel
+let check_mux_dmux (x, sel: bool) returns (o: bool)
+  local a, b do
+  (a, b) = dmux(x, sel) and o = (x = mux(a, b, sel)) done
 
-node DMux4(in, a1, a0: bool) returns (s0, s1, s2, s3: bool);
-let
+
+let dmux4(in_, a1, a0: bool) returns (s0, s1, s2, s3: bool)
   (s0, s1, s2, s3) =
-    if a0 then if a1 then (false, false, false, in)
-               else (false, in, false, false)
-    else if a1 then (false, false, in, false)
-         else (in, false, false, false);  
-tel;
+    if a0 then if a1 then (false, false, false, in_)
+               else (false, in_, false, false)
+    else if a1 then (false, false, in_, false)
+         else (in_, false, false, false)
 
+(*
 -- section 1.2.3
 -- -------------
+*)
 
+(*
 node Not16 (in: bool^16) returns (out: bool^16);
 let
   out = not(in);
