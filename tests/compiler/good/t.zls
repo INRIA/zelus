@@ -1,3 +1,5 @@
+let f_00<<n, k>>(x:[n]'a) = x.(k)
+
 (*
 let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   o = match size n with
@@ -145,6 +147,25 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
          o  = [|s|] ++
 	      (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
+let rec add_n2<<n>>(x:[n]bool, y:[n]bool, c) returns (o)
+  local l1:[n]'a, l2:[n]'a
+  do match size n with
+    | 0 -> l1 = [||]
+    | _ -> l1 = x
+    end
+  and
+    match size n with
+    | 0 -> l2 = [||]
+    | 1 -> l2 = [|true; false |]
+    | _ -> l2 = y
+    end
+  and
+    o = l1 = l2
+  done
+
+let main_44444(x, y : [42]bool) = add_n2<<42>>(x, y, false)
+
 
 let decodeur_simple(sel, adr) returns (s0, s1)
   do
