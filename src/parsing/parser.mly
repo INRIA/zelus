@@ -573,12 +573,23 @@ equation_empty_and_list:
 		       | Some(l) -> make (EQand(l)) $startpos $endpos }
 ;
 
+/* An equation is either an equation on stream values; the definition */
+/* of a size function; or a function */
 equation:
-   eq = localized(equation_desc) { eq }
+  | eq = stream_equation
+    { eq }
+  | eq = sizefun_definition
+    { eq }
+  | eq = fun_definition
+    { eq }
+;
+
+stream_equation:
+   eq = localized(stream_equation_desc) { eq }
 ;
 
 /* an equation; either ended by a terminal or an expression */
-equation_desc:
+stream_equation_desc:
   | LOCAL v_list = vardec_comma_list IN eq = equation
     { EQlocal(v_list, eq) } 
   | LOCAL v_list = vardec_comma_list DO eq = equation_empty_and_list DONE
@@ -619,18 +630,6 @@ equation_desc:
       { EQinit(i, e) }
   | p = pattern_with_type_expression EQUAL e = seq_expression
       { EQeq(p, e) }
-  | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
-        e = seq_expression
-    { EQsizefun(ide, ide_list, e) }
-  | a = is_atomic k = fun_kind_opt ide = ide 
-       LLESSER ide_list = list_of(COMMA, ide) GGREATER 
-       v_p_list_list = param_list_list r = result
-    { EQsizefun(ide, ide_list, funexp a k v_p_list_list r 
-			       $startpos(v_p_list_list) $endpos) }
-  | a = is_atomic k = fun_kind_opt ide = ide v_p_list_list = param_list_list 
-    r = result
-    { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
-	   funexp a k v_p_list_list r $startpos $endpos) }
   | DER i = ide EQUAL e = seq_expression opt = optional(init_expression)
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional(init_expression)
@@ -642,6 +641,32 @@ equation_desc:
     { EQforloop (forward_loop false f) }
   | FORWARD RESUME f = forward_loop_eq
     { EQforloop (forward_loop true f) }
+;
+
+sizefun_definition:
+   eq = localized(sizefun_definition_desc) { eq }
+;
+
+sizefun_definition_desc:
+  | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
+        e = seq_expression
+    { EQsizefun(ide, ide_list, e) }
+  | a = is_atomic k = fun_kind_opt ide = ide 
+       LLESSER ide_list = list_of(COMMA, ide) GGREATER 
+       v_p_list_list = param_list_list r = result
+    { EQsizefun(ide, ide_list, funexp a k v_p_list_list r 
+			       $startpos(v_p_list_list) $endpos) }
+;
+
+fun_definition:
+   eq = localized(fun_definition_desc) { eq }
+;
+
+fun_definition_desc:
+  | a = is_atomic k = fun_kind_opt ide = ide v_p_list_list = param_list_list 
+    r = result
+    { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
+	   funexp a k v_p_list_list r $startpos $endpos) }
 ;
 
 /* states of an automaton in an equation*/
