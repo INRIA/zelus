@@ -1,0 +1,19 @@
+let node gilbreath_stream (c:bool) returns (ok, o:bool)
+ local ps1, s1, ps2, s2, half
+ do
+  s1 = if c then not ps1 else ps1
+ and
+  ps1 = false -> pre s1
+ and
+  s2 = if not c then not ps2 else ps2
+ and
+  ps2 = true -> pre s2
+ and
+  o = if c then s1 else s2
+ and
+  half = false -> not (pre half)
+ and
+  ok = true -> not (half && (o = pre o))
+ and
+  assert ok
+ done
