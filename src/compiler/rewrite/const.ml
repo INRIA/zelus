@@ -67,7 +67,7 @@ let fresh () = Ident.fresh "r"
 let update acc genv env =
   { acc with e_renaming = Ident.Env.empty; e_values = env; e_gvalues = genv }
 
-(** Build a renaming from an environment *)
+(* Build a renaming from an environment *)
 let build ({ e_renaming } as acc) env =
   let buildrec n entry (env, renaming) =
     let m = Ident.fresh (Ident.source n) in
@@ -529,13 +529,17 @@ and leq_e acc leq =
     Coiteration.vleq acc.e_gvalues (Match.liftv acc.e_values) leq in
   catch l_env
 
+(* evaluation of compile-time definitions *)
+and const_leq_t acc leq =
+  let l_env = leq_e acc leq in
+  (* let l = Env.to_list l_env in *)
+  None, { acc with e_values = Env.append l_env acc.e_values }
+
 and leq_t acc ({ l_kind; l_eq; l_env; l_loc } as leq) =
   match l_kind with
   | Kconst ->
      (* evaluation of compile-time expressions *)
-     let l_env = leq_e acc leq in
-     (* let l = Env.to_list l_env in *)
-     None, { acc with e_values = Env.append l_env acc.e_values }
+     const_leq_t acc leq
   | Kstatic | Kany -> 
      (* equations are not evaluated *)
      let l_env, acc = build acc l_env in
@@ -690,6 +694,20 @@ let letdecl_list loc acc d_leq_opt d_names =
      { acc with e_defs =
                   { desc = Eletdecl { d_leq; d_names }; loc } :: acc.e_defs }
 
+(* an equation is immediate if it defines values which do not need any *)
+(* computation to be done *)
+let immediate { l_eq } =
+  let rec equation { eq_desc } =
+    match eq_desc with
+    | EQsizefun _ -> true
+    | EQeq(p, e) -> expression e
+    | EQand { eq_list } -> List.for_all equation eq_list
+    | _ -> false
+  and expression { e_desc } =
+    match e_desc with
+    | Econst _ | Efun _ -> true | _ -> false in
+  equation l_eq
+
 (* The main function. Reduce every definition *)
 let implementation acc ({ desc; loc } as impl) =
   match desc with
@@ -703,7 +721,10 @@ let implementation acc ({ desc; loc } as impl) =
                 e_defs = impl :: acc.e_defs }
   | Eletdecl { d_names; d_leq } ->
      (* [d_leq] must be either constant or static *)
-     let d_leq_opt, acc = leq_t acc d_leq in
+     let d_leq_opt, acc =
+       (* temporary solution: if [d_leq] defines size functions or *)
+       (* functions, evaluate them *)
+       if immediate d_leq then const_leq_t acc d_leq else leq_t acc d_leq in
      letdecl_list loc acc d_leq_opt d_names
   | Etypedecl _ -> { acc with e_defs = impl :: acc.e_defs }
 
