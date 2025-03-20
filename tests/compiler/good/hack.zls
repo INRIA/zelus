@@ -361,62 +361,73 @@ tel
 -- section 5.2.2
 -- -------------
 
-node CPU (inM, instruction: bool^16; reset: bool)
-returns (outM: bool^16; writeM: bool; addressM: bool^15; pc: bool^15);
-var A, D, A_M: bool^16;
-    load_A, sel_input_A: bool;
-    load_D: bool;
-    load_PC, inc_PC: bool;
-    out_PC:bool^16;
-    zr, ng: bool;
-    sel_A_M, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3: bool;
-let
-  [sel_A_M, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3] =
-    instruction[3..15];
-  A = Register(Mux16(outM, instruction, sel_input_A), load_A);
-  D = Register(outM, load_D);
-  A_M = Mux16(A, inM, sel_A_M);
-  outM, zr, ng = ALU (D, A_M, c1, c2, c3, c4, c5, c6);
-  writeM = d3 and instruction[0];
+let node cpu (inM, instruction: [16]bool, res: bool)
+returns (outM: [16]bool, writeM: bool, addressM: [15]bool, pc: [15]bool)
+local A, D, A_M,
+    load_A, sel_input_A,
+    load_D,
+    load_PC, inc_PC,
+    out_PC,
+    zr, ng,
+    sel_A_M, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3
+do
+  [|sel_A_M; c1; c2; c3; c4; c5; c6; d1; d2; d3; j1; j2; j3 |] =
+    instruction.(3 .. 15)
+and
+  a = register(Mux16(outM, instruction, sel_input_A), load_A)
+and
+  d = register(outM, load_D)
+and
+  A_M = mux16(A, inM, sel_A_M)
+and
+  outM, zr, ng = alu (D, A_M, c1, c2, c3, c4, c5, c6)
+and
+  writeM = d3 && instruction[0]
+and
   addressM = A[1..15];
-  out_PC = PC(A, inc_PC, load_PC, reset);
-  pc = out_PC[1..15];
-  sel_input_A = not(instruction[0]);
-  load_A = not(instruction[0]) or d1;
-  load_D = d2 and instruction[0];
+and
+  out_PC = pc(A, inc_PC, load_PC, reset)
+and
+  pc = out_PC.(1..15)
+and
+  sel_input_A = not(instruction.(0))
+and
+  load_A = not(instruction.(0)) or d1
+and
+  load_D = d2 && instruction.(0)
+and
   inc_PC = true;
+and
   load_PC =
-    (not j1 and not j2 and     j3 and (not zr and not ng)) or
-    (not j1 and     j2 and not j3 and zr) or
-    (not j1 and     j2 and     j3 and (zr or not ng)) or
-    (    j1 and not j2 and not j3 and (not zr and ng)) or
-    (    j1 and not j2 and     j3 and not zr) or
-    (    j1 and     j2 and not j3 and (zr or ng)) or
-    (    j1 and     j2 and     j3);
-tel
+    (not j1 && not j2 &&     j3 && (not zr && not ng)) or
+    (not j1 &&     j2 && not j3 && zr) or
+    (not j1 &&     j2 &&     j3 && (zr or not ng)) or
+    (    j1 && not j2 && not j3 && (not zr && ng)) or
+    (    j1 && not j2 &&     j3 && not zr) or
+    (    j1 &&     j2 && not j3 && (zr or ng)) or
+    (    j1 &&     j2 &&     j3)
+done
 
 -- Incr Machine :  machine qui incrémente un compteur
-node ROM32K_incr (adress: bool^15) returns (out: bool^16);
-let
-  out = if not(or_n_way(15, adress)) then
-          -- D = 0
-          true^3 | [false]
-          | [true, false, true, false, true, false]
-          | [ false, true, false ] | false^3
+let node rom32K_incr (adress: [15]bool) returns (out: [16]bool)
+  out = if not(or_n_way<<15>>(adress)) then
+          (* D = 0 *)
+          make<<3>>(true) ++ [|false|]
+          ++ [|true; false; true; false; true; false|]
+          ++ [| false; true; false |] ++ make<<3>>(false)
         else
-          -- D = D + 1
-          true^3 | [false]
-          | [false, true, true, true, true, true]
-          | [ false, true, false ] | false^3;
-tel
+          (* D = D + 1 *)
+          make<<3>>(true) ++ [|false|]
+          ++ [|false; true; true; true; true; true|]
+          ++ [| false; true; false |] ++ make<<3>>(false)
 
-node incr_machine (reset: bool) returns (out: bool^16);
-var instruction: bool^16;
-    pc: bool^15;
-    writeM: bool;
-    addressM: bool^15;
-let
-  instruction = ROM32K_incr(pc);
-  out, writeM, addressM, pc = CPU(false^16, instruction, reset);
-tel
-*)
+let node incr_machine (res: bool) returns (out_: [16]bool)
+ local instruction: [16]bool,
+    pc: [15]bool,
+    writeM: bool,
+    addressM: [15]bool
+ do
+  instruction = rom32K_incr(pc)
+ and
+   out, writeM, addressM, pc = cpu(make<<16>>(false), instruction, res)
+ done
