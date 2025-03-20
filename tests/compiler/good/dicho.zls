@@ -1,0 +1,32 @@
+let dicho_without_slices<<m>>(v, x:[m]'a) =
+  let rec dicho<<n,i>>(v, x:[m]'a) =
+    match size n with
+    | 0 -> false
+    | _ -> match compare v x.(i+n/2) with
+           | 0 -> true
+           | 1 -> dicho<<n/2,i>>(v, x)
+           | _ -> dicho<<n/2,i+n/2>>(v, x) in
+  dicho<<m,0>>(v, x)
+
+let main_1(x) = dicho_without_slices<<42>>(0, x)
+
+let rec dicho1<<n,i,l>>(v, x:[l]'a) =
+    match size n with
+    | 0 -> false
+    | _ -> match compare v x.(i+n/2) with
+           | 0 -> true
+           | 1 -> dicho1<<n/2,i,l>>(v, x)
+           | _ -> dicho1<<n/2,i+n/2,l>>(v, x)
+
+let main_2(x: [42]int) = dicho1<<42,0,42>>(0, x)
+
+let rec dicho2<<n>>(v, x:[n]'a) =
+    match size n with
+    | 0 -> false
+    | _ -> match compare v x.(n/2) with
+           | 0 -> true
+           | 1 -> dicho2<<n/2>>(v, x.(0 .. n/2 - 1))
+           | _ -> dicho2<<n-n/2-1>>(v, x.(n/2 + 1 .. n-1))
+
+let main_3(x: [5]int) = dicho2<<5>>(0, x)
+
