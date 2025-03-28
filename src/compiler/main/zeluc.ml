@@ -124,6 +124,7 @@ let main () =
           "-v", Arg.Unit set_verbose, doc_verbose;
           "-vv", Arg.Unit set_vverbose, doc_vverbose;
           "-version", Arg.Unit show_version, doc_version;
+          "-o", Arg.String set_outname, doc_outname;
           "-I", Arg.String add_include, doc_include;
           "-i", Arg.Set print_types, doc_print_types;
           "-isizes", Arg.Unit set_types_with_size_constraints, doc_print_types;
