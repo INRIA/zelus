@@ -40,8 +40,7 @@ let node g(x) =
     
 let node gg(x) = o where
   init o = 0
-  and
-    present x(v1, v2) -> do o = 1 -> last v1 + v2 done
+  and present x(v1, v2) -> do o = 1 -> last v1 + v2 done
 
 let node one (o1, o2) = o where
   o = present o1(x) | o2(x) -> x + x init 42
