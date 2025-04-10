@@ -381,10 +381,13 @@ and env_of_statepat expected_k spat =
 let env_of_pattern expected_k pat = env_of_pattern expected_k Env.empty pat  
 
 (* introduce an entry for name [n] according to [expected_k] *)
-let intro_sort expected_k =
+(* [i_in_eq] means that an equation [init n = ...] appears in the set *)
+(* of equations *)
+let intro_sort expected_k i_in_eq =
   match expected_k with
   | Tfun _ -> Sort_val
-  | Tnode _ -> Sort_mem Deftypes.empty_mem
+  | Tnode _ ->
+     Sort_mem (if i_in_eq then Deftypes.imem else Deftypes.empty_mem)
     
 (* extract a type skeleton from an expression. Limited to functions *)
 let rec intro_skeleton_type_of_expression expected_k { e_desc } =
@@ -419,12 +422,15 @@ let rec intro_skeleton_type_of_expression expected_k { e_desc } =
 
 (* introduce a typing environment according to [expected_k] for an equation *)
 let env_of expected_k acc { eq_write } =
+  let n_set = Defnames.names S.empty eq_write in
+  let i_names = eq_write.di in
   let env_of_names acc n_set =
     S.fold
       (fun n acc ->
-        Env.add n (fresh_typ_entry expected_k (intro_sort expected_k)) acc)
+        let sort = intro_sort expected_k (S.mem n i_names) in
+        Env.add n (fresh_typ_entry expected_k sort) acc)
       n_set acc in
-  env_of_names acc (Defnames.names S.empty eq_write)
+  env_of_names acc n_set
 
 (* mutually recursive definitions must either define *)
 (* functions parameterized by a size or stream values *)
@@ -820,13 +826,12 @@ and mark_reset_state def_states handlers =
   List.iter mark handlers
 
 
-(* makes an entry *)
-let decl m_opt =
-  match m_opt with
-  | None -> No
-  | Some({ e_desc = Econst(i) }) -> Decl(Some(i)) | _ -> Decl(None)
-
+(* makes an entry. *)
 let intro expected_k var_init var_default =
+  let decl m_opt =
+    match m_opt with
+    | None -> No
+    | Some({ e_desc = Econst(i) }) -> Decl(Some(i)) | _ -> Decl(None) in
   match expected_k with
   | Tfun _ -> Sort_val
   | Tnode _ ->
@@ -836,7 +841,6 @@ let intro expected_k var_init var_default =
 
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
-(* typing every declaration *)
 let rec vardec_list expected_k h v_list =
   List.fold_left (vardec expected_k h) (Env.empty, Tfun(Tconst)) v_list
 

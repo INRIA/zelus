@@ -137,7 +137,7 @@ let message loc kind =
       eprintf "@[%aType error: the variable %s of type %a is defined by case \
                    but one case is missing. \n\
                    Either define the variable as a signal or \
-                   give a default value.@.@]"
+                   give a initial or default value.@.@]"
         output_location loc
         (Ident.source s)
 	Ptypes.output_type expected_ty
