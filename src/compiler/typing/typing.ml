@@ -1464,7 +1464,7 @@ and leq_eq_list expected_k h eq_list =
 and sizefun_list_t l_rec h sizefun_list =
   let env_of id ty acc =
     Env.add id (typ_entry (Tfun(Tconst)) Sort_val ty) acc in
-  (* check that the number of size parameter is the same for all definitions *)
+  (* check that the number of size parameters is the same for all definitions *)
   let number_of_parameters { sf_id_list } = List.length sf_id_list in
   let expected_l = number_of_parameters (List.hd sizefun_list) in
   List.iter 
@@ -1649,8 +1649,7 @@ and for_exit_t expected_k h { for_exit } =
 and for_index_t expected_k for_index_opt =
   Util.optional_with_default
     (fun id ->
-      Env.singleton id (Deftypes.entry expected_k Deftypes.Sort_val 
-                          (Deftypes.scheme Initial.typ_int)))
+      Env.singleton id (Deftypes.size_entry (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
 and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =

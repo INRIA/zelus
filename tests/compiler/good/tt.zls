@@ -1,10 +1,13 @@
-let node f1(x) = o where
-  match x with true -> do o = 1 done and init o = 0
+let f<<k,m>>(x:[k]int) = x.(m-1)
 
-let node f2(x) = o where
-  init o = 0
-  and match x with true -> do o = 1 done
+let main(x:[42]int) = f<<42,0-4>>(x)
 
-(* let node f3(x) = o where
-  init o = 0
-  and present x(v1, v2) -> do o = 1 done *)
+let f11<<a,b,c>>(x, y) returns (z)
+  forward(42) [i] (xi in x, yi in y) returns (zi out z)
+    do forward(32) [j] (xij in xi, yij in yi) returns (zij out zi)
+       do zij = xij + yij + x.(i).(j) done
+    done
+
+(* for_all ((0 <= j < 32) *)
+
+(* forall i 32 e *)

@@ -61,7 +61,8 @@ let lift2 <<n>> (const f) (x, y) =
   let rec lift_rec <<n>> (x, y:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
-    | n -> o = [| f x.(0) y.(0) |] ++ (lift_rec <<n-1>> (x.(1 .. n-1), y.(1 .. n-1)) in
+    | n -> o = [| f x.(0) y.(0) |] ++
+               (lift_rec <<n-1>> (x.(1 .. n-1), y.(1 .. n-1))) in
   lift_rec <<n>> (x, y)
 
 let and16(x, y) = lift2<<16>>(x, y)
@@ -85,6 +86,7 @@ let rec or_log<<n>>(x:[n]bool) returns (y)
 
 let or_n_log_42(x) = or_log<<42>>(x)
 
+(*
 -- Chapter 2: Boolean Arithmetic
 -- =============================
 -- http://www1.idc.ac.il/tecs/book/chapter%2002.pdf
@@ -431,3 +433,4 @@ let node incr_machine (res: bool) returns (out_: [16]bool)
  and
    out, writeM, addressM, pc = cpu(make<<16>>(false), instruction, res)
  done
+*)
