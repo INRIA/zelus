@@ -412,12 +412,13 @@ module Make (Info: INFO) =
         | EQsizefun(x, x_list, e) ->
            let x = name loc env_pat x in
            (* build the renaming *)
-           let x_list, env = 
+           let x_list, x_env = 
              Util.mapfold 
                (fun acc n ->
                  if Env.mem n acc 
                  then Error.error loc (Error.Enon_linear_pat(n))
-                 else let m = fresh n in m, Env.add n m acc) env x_list in
+                 else let m = fresh n in m, Env.add n m acc) Env.empty x_list in
+           let env = Env.append x_env env in
            Zelus.EQsizefun
              { sf_id = x; sf_id_list = x_list; sf_e = expression env e;
                sf_loc = loc; sf_env = Ident.Env.empty }
