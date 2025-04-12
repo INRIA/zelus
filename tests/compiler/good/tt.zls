@@ -2,8 +2,11 @@ let f<<k,m>>(x:[k]int) = x.(m-1)
 
 let main(x:[42]int) = f<<42,1>>(x)
 
-let f11<<a,b,c>>(x, y) returns (z)
-  forward(42) [i] (xi in x, yi in y) returns (zi out z)
-    do forward(32) [j] (xij in xi, yij in yi) returns (zij out zi)
+let f11<<a,b>>(x, y) returns (z)
+  forward(a) [i] (xi in x, yi in y) returns (zi out z)
+    do forward(b) [j] (xij in xi, yij in yi) returns (zij out zi)
        do zij = xij + yij + x.(i).(j) done
     done
+
+let f12(x,y) returns (z)
+  z = f11<<12, 11>>(x, y)

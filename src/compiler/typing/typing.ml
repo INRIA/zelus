@@ -339,11 +339,10 @@ let arrow_type loc expected_k name_ty_list ty_res =
 
 (* add a new entry in the typing environment *)
 let typ_entry k sort ty = Deftypes.entry k sort (Deftypes.scheme ty)
-
 let fresh_typ_entry k sort = typ_entry k sort (Types.new_var ())
  
-let env_of_pattern expected_k acc pat =
-  let entry x acc = Env.add x (fresh_typ_entry expected_k Sort_val) acc in
+let env_of_pattern entry acc pat =
+  let entry x acc = Env.add x (entry ()) acc in                      
   let rec pattern acc { pat_desc } =
     match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
@@ -358,6 +357,12 @@ let env_of_pattern expected_k acc pat =
        List.fold_left (fun acc { arg } -> pattern acc arg) acc label_pat_list
   and pattern_list acc p_list = List.fold_left pattern acc p_list in
   pattern acc pat
+
+let size_entry () = Deftypes.size_entry (Deftypes.scheme (Initial.typ_int))
+let env_of_size_pattern pat = env_of_pattern size_entry Env.empty pat
+
+let env_of_pattern expected_k acc pat =
+  env_of_pattern (fun _ -> fresh_typ_entry expected_k Sort_val) acc pat
 
 let env_of_scondpat expected_k scpat =
   let rec env_of acc { desc } =
@@ -611,7 +616,8 @@ let match_size_handlers
   let handler ({ m_pat = pat; m_body = b } as mh) =
     (* push an empty size constraint *)
     Defsizes.push ();
-    let h0 = env_of_pattern expected_k pat in
+    let h0 = env_of_size_pattern pat in
+    (* all identifiers in [h0] are sizes *)
     pattern h0 pat Initial.typ_int;
     mh.m_env <- h0;
     let h = Env.append h0 h in

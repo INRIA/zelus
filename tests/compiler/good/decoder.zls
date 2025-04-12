@@ -1,0 +1,85 @@
+(*
+decoder 2 to 4.
+a circuit which select a line from an address to implement a
+RAM (Random Access Memory)
+input: an address in binary;
+truth table:
+a1 a0    s0  s1  s2  s3
+0  0     1   0   0   0
+0  1     0   1   0   0
+1  0     0   0   1   0
+1  1     0   0   0   0
+*)
+
+let decoder_2_4(a0, a1: bool) returns (s0, s1, s2, s3: bool)
+ local na0, na1: bool
+ do na0 = not a0
+ and na1 = not a1
+ and s0 = na0 && na1
+ and s1 = a0 && na1
+ and s2 = na0 && a1
+ and s3 = a0 && a1
+ done
+
+(* address decoder - address multiplexer *)
+let decoder_simple(sel, adr) returns (s0, s1)
+  do
+     s0 = sel && not adr
+  and
+     s1 = sel && adr
+  done
+  
+let rec decoder<<n,k>>(sel: bool, adr: [n]bool)
+returns (s: [k]bool)
+  local s0, s1 
+  do
+    (s0, s1) = decoder_simple(sel, adr.(n-1))
+  and
+    match size n with
+    | 1 -> do s = [|s0; s1|] done
+    | _ -> do s = decoder<<n-1, k/2>>(s0, adr.(0 .. n-2)) ++
+                  decoder<<n-1, k/2>>(s1, adr.(0 .. n-2)) done
+  done
+
+let decoder_2(adr: [2]bool) returns (s: [4]bool)
+  s = decoder<<2,4>>(true, adr)
+
+(* multiplexer. The inverse of a decoder.
+input: 2^n bits and a n-bits address
+output output: choose the n-th input
+*)
+
+let multiplexer_simple(a0, b0, b1) returns (s)
+  s = if a0 then b1 else b0
+
+let multiplexer_double(a0, a1, b0, b1, b2, b3) returns (s)
+  local s0, s1, s2, s3 in
+  do
+   s = s0 or s1 or s2 or s3
+  and
+   s0 = b3 && a0 && a1
+  and
+   s1 = b2 && a1 && not a0
+  and
+   s2 = b1 && not a1 && a0
+  and
+   s3 = b0 && not a1 && not a0
+  done
+
+let rec multiplexer_n<<n,k>>(a: [n]bool, b: [k]bool)
+returns (s:bool)
+  local s0, s1 in
+  do
+   match size n with
+   | 1 -> do s0, s1 = b.(0), b.(1) done
+   | _ -> do s0, s1 =
+            multiplexer_n<<n-1,k/2>>
+	      (a.(0 .. n-2), b.(0 .. k/2 - 1)),
+            multiplexer_n<<n-1, k/2>>
+	      (a.(0 .. n-2), b.(k/2 .. k - 1)) done
+  and
+   s = multiplexer_simple(a.(n-1), s0, s1)
+  done
+
+let multiplexer_2(a: [4]bool, b: [16]bool) returns (s: bool)
+  s = multiplexer_n<<4,16>>(a, b)

@@ -1,15 +1,6 @@
 (* Examples about the Hack processor - book Nand2Tetris *)
 (* and some others *)
 
-
-
-let get<<n, k>>(x:[n]'a) =
-  match size k with
-  | 0 -> 42
-  | _ -> x.(k)
-
-let f<<n>>(x:[n]'a) = x ++ [|1|]
-
 let nand (a, b: bool) returns (out_: bool)
   out_ = not (a && b)
 
@@ -37,12 +28,9 @@ let dmux4(in_, a1, a0: bool) returns (s0, s1, s2, s3: bool)
     else if a1 then (false, false, in_, false)
          else (in_, false, false, false)
 
-(*
--- section 1.2.3
--- -------------
-*)
+(* section 1.2.3 *)
 
-let lift <<n>> (const f) (x) =
+let lift <<n>> f (x) =
   let rec lift_rec <<n>> (x:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
@@ -50,14 +38,14 @@ let lift <<n>> (const f) (x) =
   lift_rec <<n>> (x)
 
 let not16 (in_: [16]bool) returns (out_: [16]bool)
-    out_ = lift<<16>> f in_
+    out_ = lift<<16>> (fun x -> not x) in_
 
 (* or with a for loop *)
-let lift_loop <<n>> (const f) (x:[n]bool) =
+let lift_loop <<n>> f (x:[n]bool) =
   foreach(n)(xi in x) returns ([|yi|])
     do yi = f xi done
 
-let lift2 <<n>> (const f) (x, y) =
+let lift2 <<n>> f (x, y) =
   let rec lift_rec <<n>> (x, y:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
@@ -65,8 +53,8 @@ let lift2 <<n>> (const f) (x, y) =
                (lift_rec <<n-1>> (x.(1 .. n-1), y.(1 .. n-1))) in
   lift_rec <<n>> (x, y)
 
-let and16(x, y) = lift2<<16>>(x, y)
-let or16(x,y) = lift2<<16>>(x, y)
+let and16(x, y) = lift2<<16>> (fun x y -> x && y) (x, y)
+let or16(x,y) = lift2<<16>> (fun x y -> x or y) (x, y)
 
 (* or n-way (linear) *)
 let rec or_n<<n>>(x:[n]'a) returns (y)
@@ -86,18 +74,25 @@ let rec or_log<<n>>(x:[n]bool) returns (y)
 
 let or_n_log_42(x) = or_log<<42>>(x)
 
+let rec and_log<<n>>(x:[n]bool) returns (y)
+    match size n with
+    | 0 -> y = false
+    | 1 -> y = x.(0)
+    | _ -> y = and_log<<n/2>>(x.(0 .. n/2 - 1)) &&
+               and_log<<n-n/2>>(x.(n/2 .. n-1))
+
+let and_n_log_42(x) = and_log<<42>>(x)
+
 (*
--- Chapter 2: Boolean Arithmetic
--- =============================
--- http://www1.idc.ac.il/tecs/book/chapter%2002.pdf
+Chapter 2: Boolean Arithmetic
+=============================
+http://www1.idc.ac.il/tecs/book/chapter%2002.pdf
+section 2.2.1
+*)
 
--- section 2.2.1
--- -------------
-
-(* warning: the following example, that is, replacing a by-case *)
-(* definitions on equations by a expressions does not type check. The typing *)
-(* verification is way more difficult: one branch has actual type [0]bool; the other *)
-(* has type [n]bool and the unification does not find the more general type *)
+(* warning: the following example does not type check. The typing *)
+(* is more difficult because the types [ti] of every branches are different *)
+(* the type system must find a more general type [t] such that [t[n/i] = ti] *)
 
 (* let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   o = match size n with
@@ -108,7 +103,6 @@ let or_n_log_42(x) = or_log<<42>>(x)
 let add_2(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
 *)
-
 
 let xor(a, b) = if a then not b else b
 
@@ -135,7 +129,6 @@ let adder_reference(a, b, c) returns (s, carry)
   and carry = if a then b or c else b && c
   done
 
-
 let add_equivalence(a, b, c: bool) returns (ok: bool)
   local sum1, carry1, sum2, carry2: bool
   do
@@ -154,6 +147,7 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
          o  = [|s|] ++
 	      (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
 
+(* build a constant array by repeating a value [v] *)
 let make<<n>>(v) =
   match size n with | 0 -> [||] | _ -> [|v|] ++ (make<<n-1>>(v))
 
@@ -184,8 +178,7 @@ let minus_correct_n<<n>>(x: [n]bool) returns (ok: bool)
 let minus_correct4(x: [4]bool) returns (ok: bool)
   ok = minus_correct_n<<4>>(x)
 
--- section 2.2.2
--- -------------
+(* section 2.2.2 *)
 let alu (in_x, in_y: [16]bool, (* Two 16-bits data inputs *)
           zx, (* Zero the x input *)
           nx, (* Negate the x input *)
@@ -194,7 +187,7 @@ let alu (in_x, in_y: [16]bool, (* Two 16-bits data inputs *)
           f,  (* Function code:  1 for Add,  0 for And *)
           no  (* Negate the out output *)
           : bool)
-returns (out: [16]bool;
+returns (out_: [16]bool,
          zr,  (* True iff out=0 *)
          ng   (* True iff out<0 *)
          : bool)
@@ -204,168 +197,73 @@ returns (out: [16]bool;
  and  y_aux = if zy then make<<16>>(false) else in_y
  and  y = if ny then not16 (y_aux) else y_aux
  and  out_aux = if f then add16 (x, y) else and16 (x, y)
- and  out = if no then not16 (out_aux) else out_aux
- and  zr = not (or16Way (out))
- and  ng = out.(15)
+ and  out_ = if no then not16 (out_aux) else out_aux
+ and  zr = not (or16Way (out_))
+ and  ng = out_.(15)
  done
 
 
--- Chapter 3: Sequential Logic
--- ===========================
--- http://www1.idc.ac.il/tecs/book/chapter%2003.pdf
+(* Chapter 3: Sequential Logic
+===========================
+http://www1.idc.ac.il/tecs/book/chapter%2003.pdf
+section 3.2.1 *)
 
--- section 3.2.1
--- -------------
+let node dff (in_: bool) returns (out_: bool)
+  out_ = false -> pre in_
 
-let node dff (in_: bool) returns (out_: bool);
-  out_ = false -> pre in_;
+(* section 3.2.2 *)
 
--- section 3.2.2
--- -------------
-
-let bit (in_, load: bool) returns (out_: bool);
-let
-  out = dFF(mux(out, in, load));
-tel
+let bit (in_, load: bool) returns (out_: bool)
+  out_ = dFF(mux(out_, in_, load))
 
 let node register_n<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
   match size n with
   | 0 -> out_ = [||]
-  | n -> out_ = [| bit(in_.(0), load) |] ++ (register_n<<n-1>>(in_.(1 .. n-1), load))
+  | n -> out_ = [| bit(in_.(0), load) |] ++
+                (register_n<<n-1>>(in_.(1 .. n-1), load))
 
 let node register (in_: bool, load) returns (out_)
-  out = register_n<<16>>(in_, load)
+  out_ = register_n<<16>>(in_, load)
 
-let node register_n_2<<n>>(in_: [n]bool, load: bool) returns (out: [n]bool)
-  out = make<<n>>(false) -> pre(if load then in_ else out_)
+let node register_n_2<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
+  out_ = (make<<n>>(false)) -> pre(if load then in_ else out_)
 
-let node register_2 (in_, load) returns (out)
-  out = register_n_2<<16>>(in_, load)
+let node register_2 (in_, load) returns (out_)
+  out_ = register_n_2<<16>>(in_, load)
 
-(*
--- decodeur 2 vers 4.
--- un circuit qui permet de selectionner une ligne a partir de son
--- adresse ecrite en binaire.
--- permet de realiser une RAM (Random Access Memory)
--- a1 a0    s0  s1  s2  s3
--- 0  0     1   0   0   0
--- 0  1     0   1   0   0
--- 1  0     0   0   1   0
--- 1  1     0   0   0   0
-*)
 
-let decoder_2_4(a0, a1: bool) returns (s0, s1, s2, s3: bool)
- local na0, na1: bool
- do na0 = not a0
- and na1 = not a1
- and s0 = na0 && na1
- and s1 = a0 && na1
- and s2 = na0 && a1
- and s3 = a0 && a1
- done
-
-(* address decoder - address multiplexer *)
-let decoder_simple(sel, adr) returns (s0, s1)
-  do
-     s0 = sel && not adr
-  and
-     s1 = sel && adr
-  done
-  
-let rec decoder<<n,k>>(sel: bool, adr: [n]bool)
-returns (s: [k]bool)
-  local s0, s1 
-  do
-    (s0, s1) = decoder_simple(sel, adr.(n-1))
-  and
-    match size n with
-    | 1 -> do s = [|s0; s1|] done
-    | _ -> do s = decoder<<n-1, k/2>>(s0, adr.(0 .. n-2)) ++
-                  decoder<<n-1, k/2>>(s1, adr.(0 .. n-2)) done
-  done
-
-let decoder_2(adr: [2]bool) returns (s: [4]bool)
-  s = decoder<<2,4>>(true, adr)
-
-(*
--- multiplexer
--- inverse of a decoder.
--- input: 2^n bits and a n-bits address
--- output: choose the n-th input
-*)
-let multiplexer_simple(a0, b0, b1) returns (s)
-  s = if a0 then b1 else b0
-
-let multiplexer_double(a0, a1, b0, b1, b2, b3) returns (s)
-  local s0, s1, s2, s3 in
-  do
-   s = s0 or s1 or s2 or s3
-  and
-   s0 = b3 && a0 && a1
-  and
-   s1 = b2 && a1 && not a0
-  and
-   s2 = b1 && not a1 && a0
-  and
-   s3 = b0 && not a1 && not a0
-  done
-
-let rec multiplexer_n<<n,k>>(a: [n]bool, b: [k]bool)
-returns (s:bool)
-  local s0, s1 in
-  do
-   match size n with
-   | 1 -> do s0, s1 = b.(0), b.(1) done
-   | _ -> do s0, s1 =
-            multiplexer_n<<n-1,k/2>>
-	      (a.(0 .. n-2), b.(0 .. k/2 - 1)),
-            multiplexer_n<<n-1, k/2>>
-	      (a.(0 .. n-2), b.(k/2 .. k - 1)) done
-  and
-   s = multiplexer_simple(a.(n-1), s0, s1)
-  done
-
-let multiplexer_2(a: [4]bool, b: [16]bool) returns (s: bool)
-  s = multiplexer_n<<4,16>>(a, b)
-
--- section 3.2.4
--- -------------
+(* section 3.2.4 *)
 let node pc_spec (in_, inc, load, res) returns (out_)
  local pout
- do out = make<<16>>(false) -> if pre res then make<<16>>(false)
-                               else
-                                 if pre load then pre in
-                                 else
-                                  if pre inc then inc16 (pout)
-                                  else pout
- and pout = pre out
+ do out_ = (make<<16>>(false)) -> if pre res then make<<16>>(false)
+                                  else
+                                   if pre load then pre in_
+                                   else
+                                    if pre inc then inc16 (pout)
+                                    else pout
+ and pout = pre out_
 done
 
-let node pc (in_ inc, load, res) returns (out)
-  out = dff(mux16(mux16(mux16(out,
-                              inc16(out), inc),
-                        in, load),
-                  make<<16>>(false), res))
+let node pc (in_, inc, load, res) returns (out_)
+  out_ = dff(mux16(mux16(mux16(out_,
+                               inc16(out_), inc),
+                         in_, load),
+                   make<<16>>(false), res))
 
 
--- lesar hack.lus check_PC_spec -forward
-node check_PC_spec(in: bool^16; inc, load, reset: bool)
-returns (ok: bool);
-let
-  ok = And16Way(PC_spec(in, inc, load, reset) = PC(in, inc, load, reset));
-tel
+let node check_PC_spec(in_: [16]bool, inc, load, res) returns (ok)
+  ok = and16(PC_spec(in_, inc, load, res) = PC(in_, inc, load, res))
 
 
--- Chapter 5: Computer Architecture
--- ================================
--- http://www1.idc.ac.il/tecs/book/chapter%2005.pdf
+(* Chapter 5: Computer Architecture
+================================
+http://www1.idc.ac.il/tecs/book/chapter%2005.pdf
+section 5.2.2 *)
 
--- section 5.2.2
--- -------------
-
+(*
 let node cpu (inM, instruction: [16]bool, res: bool)
 returns (outM: [16]bool, writeM: bool, addressM: [15]bool, pc: [15]bool)
-local A, D, A_M,
+local a, d, a_m,
     load_A, sel_input_A,
     load_D,
     load_PC, inc_PC,
@@ -409,15 +307,16 @@ and
     (    j1 &&     j2 && not j3 && (zr or ng)) or
     (    j1 &&     j2 &&     j3)
 done
+*)
 
--- Incr Machine :  machine qui incrémente un compteur
-let node rom32K_incr (adress: [15]bool) returns (out: [16]bool)
-  out = if not(or_n_way<<15>>(adress)) then
+(* Incr Machine :  machine which increment a counter *)
+let node rom32K_incr (adress: [15]bool) returns (out_: [16]bool)
+  out_ = if not(or_n_way<<15>>(adress)) then
           (* D = 0 *)
           make<<3>>(true) ++ [|false|]
           ++ [|true; false; true; false; true; false|]
           ++ [| false; true; false |] ++ make<<3>>(false)
-        else
+         else
           (* D = D + 1 *)
           make<<3>>(true) ++ [|false|]
           ++ [|false; true; true; true; true; true|]
@@ -431,6 +330,6 @@ let node incr_machine (res: bool) returns (out_: [16]bool)
  do
   instruction = rom32K_incr(pc)
  and
-   out, writeM, addressM, pc = cpu(make<<16>>(false), instruction, res)
+   out_, writeM, addressM, pc = cpu(make<<16>>(false), instruction, res)
  done
-*)
+
