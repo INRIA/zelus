@@ -1,13 +1,9 @@
 let f<<k,m>>(x:[k]int) = x.(m-1)
 
-let main(x:[42]int) = f<<42,0-4>>(x)
+let main(x:[42]int) = f<<42,1>>(x)
 
 let f11<<a,b,c>>(x, y) returns (z)
   forward(42) [i] (xi in x, yi in y) returns (zi out z)
     do forward(32) [j] (xij in xi, yij in yi) returns (zij out zi)
        do zij = xij + yij + x.(i).(j) done
     done
-
-(* for_all ((0 <= j < 32) *)
-
-(* forall i 32 e *)
