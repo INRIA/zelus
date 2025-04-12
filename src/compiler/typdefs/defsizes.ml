@@ -34,7 +34,7 @@ type 'e constraints =
   (* definition of mutually recursive functions on sizes *)
   | If of 'e constraints * 'e constraints * 'e constraints
   (* if c1 then c2 else c3 *)
-  | Forall of Ident.t * 'e * 'e * 'e constraints
+  | Forall of Ident.t * 'e * 'e constraints
   (* forall i in e .. e do c *)
   | True | False
 

@@ -277,12 +277,11 @@ let rec trivial f_env n_env sc =
                Env.empty id_id_list_sc_list)
      and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
      trivial (Lazy.force f_env_final) n_env sc
-  | Forall(id, e1, e2, sc) ->
-     let rec for_all v1 v2 f =
-       if v1 <= v2 then (f v1) && (for_all (v1+1) v2 f) else true in
-     let v1 = eval n_env e1 in
-     let v2 = eval n_env e2 in
-     for_all v1 v2 (fun v -> trivial f_env (Env.add id v n_env) sc)
+  | Forall(id, e, sc) ->
+     let rec for_all v f =
+       if v <= 0 then true else (f v) && (for_all (v-1) f) in
+     let v = eval n_env e in
+     for_all (v-1) (fun v -> trivial f_env (Env.add id v n_env) sc)
   
 (* free variables *)
 let rec fv bounded acc si =
@@ -321,10 +320,9 @@ let rec fv_constraints bounded acc sc =
            fv_constraints bounded acc sc)
          acc id_id_list_sc_list in
      fv_constraints bounded acc sc
-  | Forall(id, e1, e2, sc) ->
+  | Forall(id, e, sc) ->
      let acc = fv_constraints (S.add id bounded) acc sc in
-     let acc = fv bounded acc e1 in
-     fv bounded acc e2
+     fv bounded acc e
 
 let apply op si1 si2 =
   match si1, si2 with
@@ -364,8 +362,8 @@ let rec subst env sc =
            (fun (id, id_list, sc) -> (id, id_list, subst env sc)) 
            id_id_list_sc_list,
          subst env sc)
-  | Forall(id, e1, e2, sc) ->
-     Forall(id, subst_in_size env e1, subst_in_size env e2, subst env sc)
+  | Forall(id, e, sc) ->
+     Forall(id, subst_in_size env e, subst env sc)
 
 let let_in env sc =
   if Env.is_empty env then sc
