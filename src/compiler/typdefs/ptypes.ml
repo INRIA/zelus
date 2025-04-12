@@ -85,7 +85,7 @@ let constraints_t ff sc =
   let priority =
     function
     | App _ -> 3 | Fix _ -> 2 | Rel _ -> 2 | And _ -> 1 | Let _ -> 0
-    | If _ -> 0 | True | False -> 2 in
+    | If _ -> 0 | Forall _ -> 2 | True | False -> 2 in
   let eq_t ff { rel; lhs; rhs } =
     let s = match rel with | Eq -> "=" | Lt -> "<" | Lte -> "<=" in
     fprintf ff "@[(%a %s %a)@]" (size 0) lhs s (size 0) rhs in
@@ -113,11 +113,15 @@ let constraints_t ff sc =
     | Fix(f_id_list_c_list, c) ->
        (* [let rec f1(n1,...) = c1 and ... fk(n1,...) = ck in c] *)
        fprintf ff "@[<hov0>%a@ %a@]"
-         (Pp_tools.print_list_r fix_def_t "let rec " " and" " in") f_id_list_c_list
+         (Pp_tools.print_list_r fix_def_t "let rec " " and" " in")
+         f_id_list_c_list
          (constraint_t 0) c
     | If(sc1, sc2, sc3) ->
        fprintf ff "@[<hov0>if %a@ then@ %a@ else@ %a@]"
          (constraint_t 0) sc1 (constraint_t 0) sc2 (constraint_t 0) sc3
+    | Forall(id, e1, e2, sc) ->
+       fprintf ff "@[<hov0>forall@ %s@ to %a@ do %a@ %a done@]"
+          (Ident.name id) (size 0) e1 (size 0) e2 (constraint_t 0) sc
     | True -> fprintf ff "true"
     | False -> fprintf ff "false"
     end;
