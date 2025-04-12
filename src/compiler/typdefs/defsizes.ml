@@ -41,6 +41,8 @@ type 'e constraints =
 and 'a eq = { rel: rel; lhs: 'a; rhs: 'a }
 and rel = Eq | Lt | Lte
 
+let constraint_is_true sc = match sc with | True -> true | _ -> false
+
 (* the stack of size constraints *)
 type stack_of_size_constraint =
   { stack: exp constraints Stack.t;

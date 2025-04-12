@@ -30,7 +30,7 @@ let dmux4(in_, a1, a0: bool) returns (s0, s1, s2, s3: bool)
 
 (* section 1.2.3 *)
 
-let lift <<n>> f (x) =
+let lift <<n>> (const f) (x) =
   let rec lift_rec <<n>> (x:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
@@ -41,15 +41,15 @@ let not16 (in_: [16]bool) returns (out_: [16]bool)
     out_ = lift<<16>> (fun x -> not x) in_
 
 (* or with a for loop *)
-let lift_loop <<n>> f (x:[n]bool) =
+let lift_loop <<n>> (const f) (x:[n]bool) =
   foreach(n)(xi in x) returns ([|yi|])
     do yi = f xi done
 
-let lift2 <<n>> f (x, y) =
+let lift2 <<n>> (const f) (x, y:[n]bool) =
   let rec lift_rec <<n>> (x, y:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
-    | n -> o = [| f x.(0) y.(0) |] ++
+    | n -> o = [| f (x.(0)) (y.(0)) |] ++
                (lift_rec <<n-1>> (x.(1 .. n-1), y.(1 .. n-1))) in
   lift_rec <<n>> (x, y)
 
