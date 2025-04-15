@@ -317,7 +317,10 @@ and pattern funs acc ({ pat_desc } as p) =
     | Etypeconstraintpat(p1, ty) ->
        let p1, acc = pattern_it funs acc p1 in
        let ty, acc = type_expression_it funs.global_funs acc ty in
-       Etypeconstraintpat(p1, ty), acc in
+       Etypeconstraintpat(p1, ty), acc
+    | Earraypat(p_list) ->
+       let p_list, acc = Util.mapfold (pattern_it funs) acc p_list in
+       Earraypat(p_list), acc in
   { p with pat_desc }, acc
 
 and var_ident_it global_funs acc x =

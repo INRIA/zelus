@@ -141,8 +141,9 @@ let pattern env pat =
        let expected_tc = Tcausal.skeleton_for_variables pat_typ in
        less_than pat_loc env expected_tc actual_tc;
        expected_tc
-    | Econstr1pat(_, pat_list) ->
-        let c = Tcausal.new_var () in
+    | Econstr1pat(_, pat_list) | Earraypat(pat_list) ->
+       (* a constructor is considered to be strict *)
+       let c = Tcausal.new_var () in
         List.iter (fun pat -> pattern_less_than_on_c pat c) pat_list;
         Tcausal.skeleton_on_c c pat_typ
     | Etuplepat(pat_list) ->

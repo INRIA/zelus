@@ -114,7 +114,7 @@ let rec flatten_patt patt =
   | Etypeconstraintpat (p, _) -> flatten_patt p
   | Econstpat Evoid -> ["unit"]
   | Econstr0pat _ | Econstr1pat _ | Ewildpat | Econstpat _ | Eorpat _
-  | Erecordpat _  -> assert false
+  | Erecordpat _  | Earraypat _ -> assert false
 
 let flatten_arg arg = List.map (fun { var_name } -> var_name.source) arg
 

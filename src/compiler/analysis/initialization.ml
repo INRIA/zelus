@@ -196,8 +196,9 @@ let rec pattern env ({ pat_desc; pat_loc; pat_info } as p) expected_ti =
           try let { t_tys = { typ_body = ti } } = Env.find x env in ti
           with | Not_found -> assert false in
         less_than pat_loc expected_ti ti
-    | Econstr1pat(_, pat_list) ->
-        let i = Tinit.new_var () in
+    | Econstr1pat(_, pat_list) | Earraypat(pat_list) ->
+       (* a construct is considered to be strict *)
+       let i = Tinit.new_var () in
         less_than pat_loc expected_ti (Tinit.skeleton_on_i i pat_typ);
         List.iter
           (fun p -> pattern_less_than_on_i env p i) pat_list

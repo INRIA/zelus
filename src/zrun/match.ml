@@ -4,7 +4,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -159,7 +159,7 @@ let snil_list l = List.map (fun _ -> Snil) l
 let rec distribute v acc { pat_desc } =
   match pat_desc with
   | Evarpat(x) -> Env.add x v acc
-  | Etuplepat(p_list) | Econstr1pat(_, p_list) ->
+  | Etuplepat(p_list) | Econstr1pat(_, p_list) | Earraypat(p_list)->
      List.fold_left (distribute v) acc p_list
   | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
   | Ealiaspat(p, x) -> distribute v (Env.add x v acc) p

@@ -39,7 +39,7 @@ module Make (Info: INFO) =
       | Ewildpat | Econstr0pat _ | Econstpat _ -> acc
       | Evarpat(x) ->
          if S.mem x acc then acc else S.add x acc
-      | Econstr1pat(_, pat_list) | Etuplepat(pat_list) ->
+      | Econstr1pat(_, pat_list) | Etuplepat(pat_list) | Earraypat(pat_list) ->
          List.fold_left fv_pat acc pat_list
       | Erecordpat(label_pat_list) ->
          List.fold_left

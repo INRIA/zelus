@@ -346,7 +346,7 @@ let env_of_pattern entry acc pat =
   let rec pattern acc { pat_desc } =
     match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
-    | Econstr1pat(_, pat_list) | Etuplepat(pat_list) ->
+    | Econstr1pat(_, pat_list) | Etuplepat(pat_list) | Earraypat(pat_list)->
        pattern_list acc pat_list
     | Evarpat(x) -> entry x acc
     | Etypeconstraintpat(p, _) | Eorpat(p,_) -> pattern acc p
@@ -570,6 +570,11 @@ let rec pattern h ({ pat_desc; pat_loc; pat_info } as pat) ty =
   | Eorpat(p1, p2) ->
      pattern h p1 ty;
      pattern h p2 ty
+  | Earraypat(pat_list) ->
+     let ty_arg = new_var () in
+     List.iter (fun pat -> pattern h pat ty_arg) pat_list;
+     let n = List.length pat_list in
+     unify_pat pat ty (Types.vec ty_arg (Sint(n)))
 
 (* typing a list of patterns. *)
 let pattern_list h pat_list ty_list = List.iter2 (pattern h) pat_list ty_list

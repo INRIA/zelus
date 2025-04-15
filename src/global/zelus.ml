@@ -166,7 +166,8 @@ and 'info pattern_desc =
   | Ealiaspat of 'info pattern * Ident.t 
   | Eorpat of 'info pattern * 'info pattern 
   | Erecordpat of 'info pattern record list 
-  | Etypeconstraintpat of 'info pattern * type_expression 
+  | Etypeconstraintpat of 'info pattern * type_expression
+  | Earraypat of 'info pattern list
 
 type ('info, 'ienv, 'exp, 'eq) block =
   { b_vars: ('info, 'exp) vardec list;

@@ -151,7 +151,10 @@ let rec pattern f acc ({ pat_desc } as p) =
     | Etypeconstraintpat(p1, ty) ->
        let p1, acc = pattern f acc p1 in
        let ty, acc = type_expression acc ty in
-       Etypeconstraintpat(p1, ty), acc in
+       Etypeconstraintpat(p1, ty), acc
+    | Earraypat(p_list) ->
+       let p_list, acc = Util.mapfold (pattern f) acc p_list in
+       Earraypat(p_list), acc in
   { p with pat_desc }, acc
 
 let pattern acc p = pattern rename_t acc p

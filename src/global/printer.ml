@@ -148,6 +148,8 @@ module Make (Info: INFO) =
          fprintf ff "@[%a%a@]" longname ln (pattern_list "(" "," ")") pat_list
       | Etuplepat(pat_list) ->
          pattern_list "(" "," ")" ff pat_list
+      | Earraypat(pat_list) ->
+         pattern_list "[|" ";" "|]" ff pat_list
       | Etypeconstraintpat(p, ty_exp) ->
          fprintf ff "@[(%a:%a)@]" pattern p ptype ty_exp
       | Erecordpat(n_pat_list) ->
