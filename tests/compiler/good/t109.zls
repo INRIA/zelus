@@ -1,0 +1,9 @@
+let lift2 <<n>> (x:[n]bool) =
+  let rec lift_rec <<n>> (x:[n]bool) returns (o:[n]bool)
+    match size n with
+    | 0 -> o = [||]
+    | n -> o = [| x.(0) |] ++
+               (lift_rec <<n-1>> (x.(1 .. n-1))) in
+  lift_rec<<n>>(x)
+
+let main(x) = lift2<<42>>(x)
