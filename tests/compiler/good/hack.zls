@@ -252,6 +252,8 @@ let node pc_spec (in_, inc, load, res) returns (out_)
  and pout = pre out_
 done
 
+let mux16(b_true, b_false, cond) = if cond then b_true else b_false
+
 let node pc (in_, inc, load, res) returns (out_)
   out_ = dff(mux16(mux16(mux16(out_, inc16(out_), inc), in_, load),
                    make<<16>>(false), res))
