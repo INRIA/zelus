@@ -46,7 +46,7 @@ let lift_loop <<n>> (const f) (x:[n]bool) =
     do yi = f xi done
 
 let lift2 <<n>> (const f) (x, y:[n]bool) =
-  let rec lift_rec <<n>> (x, y:[n]bool) returns (o:[n]bool)
+  let rec lift_rec <<n>> (x:[n]bool, y:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
     | n -> o = [| f (x.(0)) (y.(0)) |] ++
@@ -57,31 +57,31 @@ let and16(x, y) = lift2<<16>> (fun x y -> x && y) (x, y)
 let or16(x,y) = lift2<<16>> (fun x y -> x or y) (x, y)
 
 (* or n-way (linear) *)
-let rec or_n<<n>>(x:[n]'a) returns (y)
+let rec or_n_way_linear<<n>>(x:[n]'a) returns (y)
     match size n with
     | 0 -> y = false
-    | _ -> y = x.(0) or or_n<<n-1>>(x.(1 .. n-1))
+    | _ -> y = x.(0) or or_n_way_linear<<n-1>>(x.(1 .. n-1))
 
-let or_n_linear_42(x) = or_n<<42>>(x)
+let or_n_way_linear_42(x) = or_n_way_linear<<42>>(x)
 
 (* or n-way (log) *)
-let rec or_log<<n>>(x:[n]bool) returns (y)
+let rec or_n_way<<n>>(x:[n]bool) returns (y)
     match size n with
     | 0 -> y = false
     | 1 -> y = x.(0)
-    | _ -> y = or_log<<n/2>>(x.(0 .. n/2 - 1)) or
-               or_log<<n-n/2>>(x.(n/2 .. n-1))
+    | _ -> y = or_n_way<<n/2>>(x.(0 .. n/2 - 1)) or
+               or_n_way<<n-n/2>>(x.(n/2 .. n-1))
 
-let or_n_log_42(x) = or_log<<42>>(x)
+let or_n_way_16(x) = or_n_way<<16>>(x)
 
-let rec and_log<<n>>(x:[n]bool) returns (y)
+let rec and_n_way<<n>>(x:[n]bool) returns (y)
     match size n with
     | 0 -> y = false
     | 1 -> y = x.(0)
-    | _ -> y = and_log<<n/2>>(x.(0 .. n/2 - 1)) &&
-               and_log<<n-n/2>>(x.(n/2 .. n-1))
+    | _ -> y = and_n_way<<n/2>>(x.(0 .. n/2 - 1)) &&
+               and_n_way<<n-n/2>>(x.(n/2 .. n-1))
 
-let and_n_log_42(x) = and_log<<42>>(x)
+let and_n_way_42(x) = and_n_way<<42>>(x)
 
 (*
 Chapter 2: Boolean Arithmetic
@@ -124,7 +124,7 @@ let adder_reference(a, b, c) returns (s, carry)
   and carry = (a && b) or (b && c) or (a && c)
   done
 
-let adder_reference(a, b, c) returns (s, carry)
+let adder_reference_2(a, b, c) returns (s, carry)
   do  s = xor(a, xor(b, c))
   and carry = if a then b or c else b && c
   done
@@ -148,12 +148,20 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
 	      (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
 
 (* build a constant array by repeating a value [v] *)
-let make<<n>>(v) =
-  match size n with | 0 -> [||] | _ -> [|v|] ++ (make<<n-1>>(v))
+let rec make<<n>>(v) returns (o:[n]'a)
+  match size n with
+  | 0 -> do o = [||] done
+  | _ -> do o = [|v|] ++ make<<n-1>>(v) done
 
-let inc_n<<n>>(x : [n]bool) returns (o: [n]bool)
+let rec make_2<<n>>(v) = forward(n) returns ([|vi|]) do vi = v done
+
+let inc_n<<n>>(x: [n]bool) returns (o: [n]bool)
   o = add_n<<n>>(x, make<<n>>(false), true)
 
+let not_n<<n>>(x: [n]bool) returns (o: [n]bool)
+  foreach(n) (xi in x) returns (oi out o)
+    do oi = not xi done
+    
 let add16 (x : [16]bool, y : [16]bool) returns (o: [16]bool)
   o = add_n<<16>>(x, y, false)
 
@@ -198,7 +206,7 @@ returns (out_: [16]bool,
  and  y = if ny then not16 (y_aux) else y_aux
  and  out_aux = if f then add16 (x, y) else and16 (x, y)
  and  out_ = if no then not16 (out_aux) else out_aux
- and  zr = not (or16Way (out_))
+ and  zr = not (or_n_way_16 (out_))
  and  ng = out_.(15)
  done
 
@@ -213,16 +221,16 @@ let node dff (in_: bool) returns (out_: bool)
 
 (* section 3.2.2 *)
 
-let bit (in_, load: bool) returns (out_: bool)
-  out_ = dFF(mux(out_, in_, load))
+let node bit (in_, load: bool) returns (out_: bool)
+  out_ = dff(mux(out_, in_, load))
 
-let node register_n<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
+let rec node register_n<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
   match size n with
   | 0 -> out_ = [||]
   | n -> out_ = [| bit(in_.(0), load) |] ++
                 (register_n<<n-1>>(in_.(1 .. n-1), load))
 
-let node register (in_: bool, load) returns (out_)
+let node register (in_, load) returns (out_)
   out_ = register_n<<16>>(in_, load)
 
 let node register_n_2<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
@@ -245,9 +253,7 @@ let node pc_spec (in_, inc, load, res) returns (out_)
 done
 
 let node pc (in_, inc, load, res) returns (out_)
-  out_ = dff(mux16(mux16(mux16(out_,
-                               inc16(out_), inc),
-                         in_, load),
+  out_ = dff(mux16(mux16(mux16(out_, inc16(out_), inc), in_, load),
                    make<<16>>(false), res))
 
 
