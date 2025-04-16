@@ -159,7 +159,7 @@ module LANG =
                              | _ -> assert false),
                      List.map inject l)
         | Earraypat(l) ->
-           Pconstr(Tconstr("vec", List.length l, []), List.map inject l)
+           Pconstr(Ttuple(List.length l), List.map inject l)
         | Etypeconstraintpat (p, _) -> inject p
         | Erecordpat l ->
             let ll = find_record_type_fields p.pat_info.t_typ in
