@@ -388,6 +388,8 @@ let rec pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
      Etypeconstraintpat(pattern p, ty)
   | Zelus.Ealiaspat(p, n) -> Ealiaspat(pattern p, n)
   | Zelus.Eorpat(p1, p2) -> Eorpat(pattern p1, pattern p2)
+  | Zelus.Earraypat(p_list) ->
+     Econstr1pat(Lident.Modname(Initial.array_list_ident), List.map pattern p_list)
 
 (* Translation of a math/with handler. *)
 let match_handlers body env loop_path context p_h_list =
