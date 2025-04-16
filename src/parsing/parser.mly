@@ -916,16 +916,20 @@ simple_pattern:
       { make (Evarpat i) $startpos $endpos }
   | LPAREN p = pattern RPAREN
       { p }
-  | LPAREN p = pattern_comma_list RPAREN
-      { make (Etuplepat (List.rev p)) $startpos $endpos }
+  | LPAREN l = pattern_comma_list RPAREN
+      { make (Etuplepat (List.rev l)) $startpos $endpos }
   | LPAREN RPAREN
       { make (Econstpat(Evoid)) $startpos $endpos }
   | UNDERSCORE
       { make Ewildpat $startpos $endpos }
   | LPAREN p = pattern COLON t = type_expression RPAREN
       { make (Etypeconstraintpat(p, t)) $startpos $endpos }
-  | LBRACE p = pattern_label_list RBRACE
-      { make (Erecordpat(p)) $startpos $endpos }
+  | LBRACE l = pattern_label_list RBRACE
+    { make (Erecordpat(l)) $startpos $endpos }
+  | LBRACKETBAR RBRACKETBAR
+    { make (Earraypat []) $startpos $endpos }
+  | LBRACKETBAR l = list_of(SEMI, pattern) RBRACKETBAR
+    { make (Earraypat(l)) $startpos $endpos }
 ;
 
 pattern_comma_list:

@@ -212,7 +212,7 @@ module Make (Info: INFO) =
       let rec build acc { desc } =
         match desc with
         | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
-        | Econstr1pat(_, p_list) | Etuplepat(p_list) ->
+        | Econstr1pat(_, p_list) | Etuplepat(p_list) | Earraypat(p_list) ->
            build_list acc p_list
         | Evarpat(n) ->
 	   if S.mem n acc then 
@@ -372,7 +372,9 @@ module Make (Info: INFO) =
              (List.map (fun (lname, p) ->
                   { Zelus.label = longname lname;
                     Zelus.arg = pattern_translate env p })
-	        l_p_list) in
+	        l_p_list)
+        | Earraypat(p_list) ->
+           Zelus.Earraypat(pattern_translate_list env p_list) in
       { Zelus.pat_desc = desc; Zelus.pat_loc = loc;
         Zelus.pat_info = Info.no_info }
     

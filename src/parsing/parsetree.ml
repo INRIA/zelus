@@ -151,6 +151,7 @@ and pattern_desc =
   | Eorpat : pattern * pattern -> pattern_desc
   | Erecordpat : (longname * pattern) list -> pattern_desc
   | Etypeconstraintpat : pattern * type_expression -> pattern_desc
+  | Earraypat : pattern list -> pattern_desc
 
 type statepatdesc =
   | Estate0pat : name -> statepatdesc
