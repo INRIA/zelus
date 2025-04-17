@@ -329,8 +329,8 @@ and
 done
 
 (* Incr Machine :  machine which increment a counter *)
-let node rom32K_incr (adress: [15]bool) returns (out_: [16]bool)
-  out_ = if not(or_n_way<<15>>(adress)) then
+let node rom32K_incr (address: [15]bool) returns (out_: [16]bool)
+  out_ = if not(or_n_way<<15>>(address)) then
           (* D = 0 *)
           make<<3>>(true) ++ [|false|]
           ++ [|true; false; true; false; true; false|]
