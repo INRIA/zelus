@@ -1,27 +1,26 @@
 (* Examples about the Hack processor - book Nand2Tetris *)
 (* and some others *)
 
-let nand (a, b: bool) returns (out_: bool)
+let nand (a, b) returns (out_)
   out_ = not (a && b)
 
-let xor_ (a, b: bool) returns (out_: bool)
+let xor_ (a, b) returns (out_)
   out_ = if a then not b else b
+
+let mux (a, b, sel) returns (out_)
+  out_ = if sel then b else a
+
+let dmux (in_, sel) returns (a, b)
+  a, b = if sel then (false, in_) else (in_, false)
+
+let check_mux_dmux (x, sel) returns (o)
+  let a, b = dmux(x, sel) in
+  do o = (x = mux(a, b, sel)) done
 
 let andMuxOr(sel, a, b: bool) returns (out_: bool)
   out_ = if sel then a or b else a && b
 
-let mux (a, b, sel: bool) returns (out_: bool)
-  out_ = if sel then b else a
-
-let dmux (in_, sel: bool) returns (a, b: bool)
-  a, b = if sel then (false, in_) else (in_, false)
-
-let check_mux_dmux (x, sel: bool) returns (o: bool)
-  local a, b do
-  (a, b) = dmux(x, sel) and o = (x = mux(a, b, sel)) done
-
-
-let dmux4(in_, a1, a0: bool) returns (s0, s1, s2, s3: bool)
+let dmux4(in_, a1, a0) returns (s0, s1, s2, s3)
   (s0, s1, s2, s3) =
     if a0 then if a1 then (false, false, false, in_)
                else (false, in_, false, false)
@@ -30,22 +29,27 @@ let dmux4(in_, a1, a0: bool) returns (s0, s1, s2, s3: bool)
 
 (* section 1.2.3 *)
 
-let lift <<n>> (const f) (x) =
+let lift1 <<n>> (const f) (x) =
   let rec lift_rec <<n>> (x:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
     | n -> o = [| f x.(0) |] ++ (lift_rec <<n-1>> (x.(1 .. n-1))) in
   lift_rec <<n>> (x)
 
-let not16 (in_: [16]bool) returns (out_: [16]bool)
-    out_ = lift<<16>> (fun x -> not x) in_
+let lift2 <<n>> (const f) (x, y) =
+  let rec lift_rec <<n>> (x:[n]bool, y:[n]bool) returns (o:[n]bool)
+    match size n with
+    | 0 -> o = [||]
+    | n -> o = [| f x.(0) y.(0) |] ++
+               (lift_rec <<n-1>> (x.(1 .. n-1), y.(1 .. n-1))) in
+  lift_rec <<n>> (x, y)
 
 (* or with a for loop *)
-let lift_loop <<n>> (const f) (x:[n]bool) =
+let lift_loop1 <<n>> (const f) (x:[n]bool) =
   foreach(n)(xi in x) returns ([|yi|])
     do yi = f xi done
 
-let lift2 <<n>> (const f) (x, y:[n]bool) =
+let lift_loop2 <<n>> (const f) (x, y:[n]bool) =
   let rec lift_rec <<n>> (x:[n]bool, y:[n]bool) returns (o:[n]bool)
     match size n with
     | 0 -> o = [||]
@@ -53,8 +57,10 @@ let lift2 <<n>> (const f) (x, y:[n]bool) =
                (lift_rec <<n-1>> (x.(1 .. n-1), y.(1 .. n-1))) in
   lift_rec <<n>> (x, y)
 
+let not16 (x) = lift1<<16>> (fun x -> not x) x
 let and16(x, y) = lift2<<16>> (fun x y -> x && y) (x, y)
 let or16(x,y) = lift2<<16>> (fun x y -> x or y) (x, y)
+let eq16(x,y) = lift2<<16>> (fun x y -> x = y) (x, y)
 
 (* or n-way (linear) *)
 let rec or_n_way_linear<<n>>(x:[n]'a) returns (y)
@@ -62,7 +68,7 @@ let rec or_n_way_linear<<n>>(x:[n]'a) returns (y)
     | 0 -> y = false
     | _ -> y = x.(0) or or_n_way_linear<<n-1>>(x.(1 .. n-1))
 
-let or_n_way_linear_42(x) = or_n_way_linear<<42>>(x)
+let or_n_way_linear16(x) = or_n_way_linear<<16>>(x)
 
 (* or n-way (log) *)
 let rec or_n_way<<n>>(x:[n]bool) returns (y)
@@ -72,7 +78,7 @@ let rec or_n_way<<n>>(x:[n]bool) returns (y)
     | _ -> y = or_n_way<<n/2>>(x.(0 .. n/2 - 1)) or
                or_n_way<<n-n/2>>(x.(n/2 .. n-1))
 
-let or_n_way_16(x) = or_n_way<<16>>(x)
+let or_n_way16(x) = or_n_way<<16>>(x)
 
 let rec and_n_way<<n>>(x:[n]bool) returns (y)
     match size n with
@@ -81,7 +87,7 @@ let rec and_n_way<<n>>(x:[n]bool) returns (y)
     | _ -> y = and_n_way<<n/2>>(x.(0 .. n/2 - 1)) &&
                and_n_way<<n-n/2>>(x.(n/2 .. n-1))
 
-let and_n_way_42(x) = and_n_way<<42>>(x)
+let and_n_way16(x) = and_n_way<<16>>(x)
 
 (*
 Chapter 2: Boolean Arithmetic
@@ -206,7 +212,7 @@ returns (out_: [16]bool,
  and  y = if ny then not16 (y_aux) else y_aux
  and  out_aux = if f then add16 (x, y) else and16 (x, y)
  and  out_ = if no then not16 (out_aux) else out_aux
- and  zr = not (or_n_way_16 (out_))
+ and  zr = not (or_n_way16 (out_))
  and  ng = out_.(15)
  done
 
@@ -216,12 +222,18 @@ returns (out_: [16]bool,
 http://www1.idc.ac.il/tecs/book/chapter%2003.pdf
 section 3.2.1 *)
 
-let node dff (in_: bool) returns (out_: bool)
-  out_ = false -> pre in_
+let node dff (x) returns (y)
+  y = false -> pre x
+
+let node dff_n<<n>>(x:[n]bool) returns (y:[n]bool)
+  foreach(n) (xi in x) returns (yi out y)
+    do yi = false -> pre xi done
+
+let node dff16(x) = dff_n<<16>>(x)
 
 (* section 3.2.2 *)
 
-let node bit (in_, load: bool) returns (out_: bool)
+let node bit (in_, load) returns (out_)
   out_ = dff(mux(out_, in_, load))
 
 let rec node register_n<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
@@ -252,15 +264,15 @@ let node pc_spec (in_, inc, load, res) returns (out_)
  and pout = pre out_
 done
 
-let mux16(b_true, b_false, cond) = if cond then b_true else b_false
+let mux16(b_true, b_false, cond) = mux(b_true, b_false, cond)
 
 let node pc (in_, inc, load, res) returns (out_)
-  out_ = dff(mux16(mux16(mux16(out_, inc16(out_), inc), in_, load),
-                   make<<16>>(false), res))
+  out_ = dff16(mux16(mux16(mux16(out_, inc16(out_), inc), in_, load),
+                     make<<16>>(false), res))
 
 
-let node check_PC_spec(in_: [16]bool, inc, load, res) returns (ok)
-  ok = and16(PC_spec(in_, inc, load, res) = PC(in_, inc, load, res))
+let node check_pc_spec(in_: [16]bool, inc, load, res) returns (ok)
+  ok = and_n_way16(eq16(pc_spec(in_, inc, load, res), pc(in_, inc, load, res)))
 
 
 (* Chapter 5: Computer Architecture
@@ -268,7 +280,6 @@ let node check_PC_spec(in_: [16]bool, inc, load, res) returns (ok)
 http://www1.idc.ac.il/tecs/book/chapter%2005.pdf
 section 5.2.2 *)
 
-(*
 let node cpu (inM, instruction: [16]bool, res: bool)
 returns (outM: [16]bool, writeM: bool, addressM: [15]bool, pc: [15]bool)
 local a, d, a_m,
@@ -282,21 +293,21 @@ do
   [|sel_A_M; c1; c2; c3; c4; c5; c6; d1; d2; d3; j1; j2; j3 |] =
     instruction.(3 .. 15)
 and
-  a = register(Mux16(outM, instruction, sel_input_A), load_A)
+  a = register(mux16(outM, instruction, sel_input_A), load_A)
 and
   d = register(outM, load_D)
 and
-  A_M = mux16(A, inM, sel_A_M)
+  a_m = mux16(a, inM, sel_A_M)
 and
-  outM, zr, ng = alu (D, A_M, c1, c2, c3, c4, c5, c6)
+  outM, zr, ng = alu (d, a_m, c1, c2, c3, c4, c5, c6)
 and
-  writeM = d3 && instruction[0]
+  writeM = d3 && instruction.(0)
 and
-  addressM = A[1..15];
+  addressM = a.(1 .. 15)
 and
-  out_PC = pc(A, inc_PC, load_PC, reset)
+  out_PC = pc(a, inc_PC, load_PC, res)
 and
-  pc = out_PC.(1..15)
+  pc = out_PC.(1 .. 15)
 and
   sel_input_A = not(instruction.(0))
 and
@@ -304,7 +315,7 @@ and
 and
   load_D = d2 && instruction.(0)
 and
-  inc_PC = true;
+  inc_PC = true
 and
   load_PC =
     (not j1 && not j2 &&     j3 && (not zr && not ng)) or
@@ -315,7 +326,6 @@ and
     (    j1 &&     j2 && not j3 && (zr or ng)) or
     (    j1 &&     j2 &&     j3)
 done
-*)
 
 (* Incr Machine :  machine which increment a counter *)
 let node rom32K_incr (adress: [15]bool) returns (out_: [16]bool)
