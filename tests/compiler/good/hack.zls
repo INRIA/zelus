@@ -10,22 +10,22 @@ let xor_ (a, b) returns (out_)
 let mux (a, b, sel) returns (out_)
   out_ = if sel then b else a
 
-let dmux (in_, sel) returns (a, b)
-  a, b = if sel then (false, in_) else (in_, false)
+let dmux (input, sel) returns (a, b)
+  a, b = if sel then (false, input) else (input, false)
 
 let check_mux_dmux (x, sel) returns (o)
   let a, b = dmux(x, sel) in
   do o = (x = mux(a, b, sel)) done
 
-let andMuxOr(sel, a, b: bool) returns (out_: bool)
-  out_ = if sel then a or b else a && b
+let andMuxOr(sel, a, b) returns (output)
+  output = if sel then a or b else a && b
 
-let dmux4(in_, a1, a0) returns (s0, s1, s2, s3)
+let dmux4(input, a1, a0) returns (s0, s1, s2, s3)
   (s0, s1, s2, s3) =
-    if a0 then if a1 then (false, false, false, in_)
-               else (false, in_, false, false)
-    else if a1 then (false, false, in_, false)
-         else (in_, false, false, false)
+    if a0 then if a1 then (false, false, false, input)
+               else (false, input, false, false)
+    else if a1 then (false, false, input, false)
+         else (input, false, false, false)
 
 (* section 1.2.3 *)
 
@@ -135,7 +135,7 @@ let adder_reference_2(a, b, c) returns (s, carry)
   and carry = if a then b or c else b && c
   done
 
-let add_equivalence(a, b, c: bool) returns (ok: bool)
+let add_equivalence(a, b, c) returns (ok: bool)
   local sum1, carry1, sum2, carry2: bool
   do
      (sum1, carry1) = full_adder(a, b, c)
@@ -193,27 +193,25 @@ let minus_correct4(x: [4]bool) returns (ok: bool)
   ok = minus_correct_n<<4>>(x)
 
 (* section 2.2.2 *)
-let alu (in_x, in_y: [16]bool, (* Two 16-bits data inputs *)
+let alu (input_x, input_y: [16]bool, (* Two 16-bits data inputs *)
           zx, (* Zero the x input *)
           nx, (* Negate the x input *)
           zy, (* Zero the y input *)
           ny, (* Negate the y input *)
           f,  (* Function code:  1 for Add,  0 for And *)
-          no  (* Negate the out output *)
-          : bool)
-returns (out_: [16]bool,
+          no  (* Negate the out output *))
+returns (output: [16]bool,
          zr,  (* True iff out=0 *)
-         ng   (* True iff out<0 *)
-         : bool)
- local x, y, x_aux, y_aux, out_aux: [16]bool
- do   x_aux = if zx then make<<16>>(false) else in_x
+         ng   (* True iff out<0 *))
+ local x, y, x_aux, y_aux, output_aux: [16]bool
+ do   x_aux = if zx then make<<16>>(false) else input_x
  and  x = if nx then not16 (x_aux) else x_aux
- and  y_aux = if zy then make<<16>>(false) else in_y
+ and  y_aux = if zy then make<<16>>(false) else input_y
  and  y = if ny then not16 (y_aux) else y_aux
- and  out_aux = if f then add16 (x, y) else and16 (x, y)
- and  out_ = if no then not16 (out_aux) else out_aux
- and  zr = not (or_n_way16 (out_))
- and  ng = out_.(15)
+ and  output_aux = if f then add16 (x, y) else and16 (x, y)
+ and  output = if no then not16 (output_aux) else output_aux
+ and  zr = not (or_n_way16 (output))
+ and  ng = output.(15)
  done
 
 
@@ -222,6 +220,7 @@ returns (out_: [16]bool,
 http://www1.idc.ac.il/tecs/book/chapter%2003.pdf
 section 3.2.1 *)
 
+(* data flip-flop *)
 let node dff (x) returns (y)
   y = false -> pre x
 
@@ -231,49 +230,53 @@ let node dff_n<<n>>(x:[n]bool) returns (y:[n]bool)
 
 let node dff16(x) = dff_n<<16>>(x)
 
+(* alternatively *)
+let node dff16_2(x) = (make<<16>>(false)) fby x
+
 (* section 3.2.2 *)
 
-let node bit (in_, load) returns (out_)
-  out_ = dff(mux(out_, in_, load))
+let node bit (input, load) returns (output)
+  output = dff(mux(output, input, load))
 
-let rec node register_n<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
+let rec node register_n<<n>>(input: [n]bool, load: bool)
+returns (output: [n]bool)
   match size n with
-  | 0 -> out_ = [||]
-  | n -> out_ = [| bit(in_.(0), load) |] ++
-                (register_n<<n-1>>(in_.(1 .. n-1), load))
+  | 0 -> output = [||]
+  | n -> output = [| bit(input.(0), load) |] ++
+                  (register_n<<n-1>>(input.(1 .. n-1), load))
 
-let node register16 (in_, load) returns (out_)
-  out_ = register_n<<16>>(in_, load)
+let node register16 (input, load) returns (output)
+  output = register_n<<16>>(input, load)
 
-let node register_n_2<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
-  out_ = (make<<n>>(false)) -> pre(if load then in_ else out_)
+let node register_n_2<<n>>(input: [n]bool, load: bool) returns (output: [n]bool)
+  output = (make<<n>>(false)) -> pre(if load then input else output)
 
-let node register_2 (in_, load) returns (out_)
-  out_ = register_n_2<<16>>(in_, load)
+let node register_2 (input, load) returns (output)
+  output = register_n_2<<16>>(input, load)
 
 
 (* section 3.2.4 *)
-let node pc_model_spec (in_, inc, load, res) returns (out_)
+let node pc_model_spec (input, inc, load, res) returns (output)
  local pout
- do out_ = (make<<16>>(false)) -> if pre res then make<<16>>(false)
+ do output = (make<<16>>(false)) -> if pre res then make<<16>>(false)
                                   else
-                                   if pre load then pre in_
+                                   if pre load then pre input
                                    else
                                     if pre inc then inc16 (pout)
                                     else pout
- and pout = pre out_
+ and pout = pre output
 done
 
 let mux16(b_true, b_false, cond) = mux(b_true, b_false, cond)
 
-let node pc_model (in_, inc, load, res) returns (out_)
-  out_ = dff16(mux16(mux16(mux16(out_, inc16(out_), inc), in_, load),
+let node pc_model (input, inc, load, res) returns (output)
+  output = dff16(mux16(mux16(mux16(output, inc16(output), inc), input, load),
                      make<<16>>(false), res))
 
 
-let node check_pc_model_spec(in_: [16]bool, inc, load, res) returns (ok)
-  ok = and_n_way16(eq16(pc_model_spec(in_, inc, load, res),
-                        pc_model(in_, inc, load, res)))
+let node check_pc_model_spec(input: [16]bool, inc, load, res) returns (ok)
+  ok = and_n_way16(eq16(pc_model_spec(input, inc, load, res),
+                        pc_model(input, inc, load, res)))
 
 
 (* Chapter 5: Computer Architecture
@@ -287,7 +290,7 @@ local a, d, a_m,
     load_A, sel_input_A,
     load_D,
     load_PC, inc_PC,
-    out_PC,
+    outputPC,
     zr, ng,
     sel_A_M, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3
 do
@@ -306,9 +309,9 @@ and
 and
   addressM = a.(1 .. 15)
 and
-  out_PC = pc_model(a, inc_PC, load_PC, res)
+  outputPC = pc_model(a, inc_PC, load_PC, res)
 and
-  pc = out_PC.(1 .. 15)
+  pc = outputPC.(1 .. 15)
 and
   sel_input_A = not(instruction.(0))
 and
@@ -329,8 +332,8 @@ and
 done
 
 (* Incr Machine :  machine which increment a counter *)
-let node rom32K_incr (address: [15]bool) returns (out_: [16]bool)
-  out_ = if not(or_n_way<<15>>(address)) then
+let node rom32K_incr (address: [15]bool) returns (output: [16]bool)
+  output = if not(or_n_way<<15>>(address)) then
           (* D = 0 *)
           make<<3>>(true) ++ [|false|]
           ++ [|true; false; true; false; true; false|]
@@ -341,7 +344,7 @@ let node rom32K_incr (address: [15]bool) returns (out_: [16]bool)
           ++ [|false; true; true; true; true; true|]
           ++ [| false; true; false |] ++ make<<3>>(false)
 
-let node incr_machine (res: bool) returns (out_: [16]bool)
+let node incr_machine (res: bool) returns (output: [16]bool)
  local instruction: [16]bool,
     pc: [15]bool,
     writeM: bool,
@@ -349,6 +352,6 @@ let node incr_machine (res: bool) returns (out_: [16]bool)
  do
   instruction = rom32K_incr(pc)
  and
-   out_, writeM, addressM, pc = cpu_model(make<<16>>(false), instruction, res)
+   output, writeM, addressM, pc = cpu_model(make<<16>>(false), instruction, res)
  done
 
