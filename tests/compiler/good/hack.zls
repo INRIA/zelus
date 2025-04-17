@@ -242,7 +242,7 @@ let rec node register_n<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
   | n -> out_ = [| bit(in_.(0), load) |] ++
                 (register_n<<n-1>>(in_.(1 .. n-1), load))
 
-let node register (in_, load) returns (out_)
+let node register16 (in_, load) returns (out_)
   out_ = register_n<<16>>(in_, load)
 
 let node register_n_2<<n>>(in_: [n]bool, load: bool) returns (out_: [n]bool)
@@ -253,7 +253,7 @@ let node register_2 (in_, load) returns (out_)
 
 
 (* section 3.2.4 *)
-let node pc_spec (in_, inc, load, res) returns (out_)
+let node pc_model_spec (in_, inc, load, res) returns (out_)
  local pout
  do out_ = (make<<16>>(false)) -> if pre res then make<<16>>(false)
                                   else
@@ -266,13 +266,14 @@ done
 
 let mux16(b_true, b_false, cond) = mux(b_true, b_false, cond)
 
-let node pc (in_, inc, load, res) returns (out_)
+let node pc_model (in_, inc, load, res) returns (out_)
   out_ = dff16(mux16(mux16(mux16(out_, inc16(out_), inc), in_, load),
                      make<<16>>(false), res))
 
 
-let node check_pc_spec(in_: [16]bool, inc, load, res) returns (ok)
-  ok = and_n_way16(eq16(pc_spec(in_, inc, load, res), pc(in_, inc, load, res)))
+let node check_pc_model_spec(in_: [16]bool, inc, load, res) returns (ok)
+  ok = and_n_way16(eq16(pc_model_spec(in_, inc, load, res),
+                        pc_model(in_, inc, load, res)))
 
 
 (* Chapter 5: Computer Architecture
@@ -280,7 +281,7 @@ let node check_pc_spec(in_: [16]bool, inc, load, res) returns (ok)
 http://www1.idc.ac.il/tecs/book/chapter%2005.pdf
 section 5.2.2 *)
 
-let node cpu (inM, instruction: [16]bool, res: bool)
+let node cpu_model (inM, instruction: [16]bool, res: bool)
 returns (outM: [16]bool, writeM: bool, addressM: [15]bool, pc: [15]bool)
 local a, d, a_m,
     load_A, sel_input_A,
@@ -293,9 +294,9 @@ do
   [|sel_A_M; c1; c2; c3; c4; c5; c6; d1; d2; d3; j1; j2; j3 |] =
     instruction.(3 .. 15)
 and
-  a = register(mux16(outM, instruction, sel_input_A), load_A)
+  a = register16(mux16(outM, instruction, sel_input_A), load_A)
 and
-  d = register(outM, load_D)
+  d = register16(outM, load_D)
 and
   a_m = mux16(a, inM, sel_A_M)
 and
@@ -305,7 +306,7 @@ and
 and
   addressM = a.(1 .. 15)
 and
-  out_PC = pc(a, inc_PC, load_PC, res)
+  out_PC = pc_model(a, inc_PC, load_PC, res)
 and
   pc = out_PC.(1 .. 15)
 and
@@ -348,6 +349,6 @@ let node incr_machine (res: bool) returns (out_: [16]bool)
  do
   instruction = rom32K_incr(pc)
  and
-   out_, writeM, addressM, pc = cpu(make<<16>>(false), instruction, res)
+   out_, writeM, addressM, pc = cpu_model(make<<16>>(false), instruction, res)
  done
 
