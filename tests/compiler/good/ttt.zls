@@ -1,3 +1,6 @@
-let main (x:[3]'a) =
-  let [|x1;x2;x3|] = [| x.(1); x.(2) |] in
-  x1, x2, x3
+let f<<n,i>>(x:[n]'a) = x.(i)
+
+let g(x:[42]'a) =
+  forward(42)[i](xi in x) returns (oi)
+    do oi = f<<i,i+2>>(x) done
+
