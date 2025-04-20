@@ -4,3 +4,5 @@ let g(x:[42]'a) =
   forward(42)[i](xi in x) returns (oi)
     do oi = f<<i,i+2>>(x) done
 
+(* verifier le typage des tailles car ce programme ne devrait pas etre accepte *)
+(* i+2 doit etre < i *)
