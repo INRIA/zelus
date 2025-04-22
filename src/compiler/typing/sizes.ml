@@ -426,9 +426,10 @@ let rec decreases actual_si_list expected_si_list =
 
 (* given an constraint f(n1,...,n_k) and a tuple of sizes [si1,...,si_n] *)
 (* applies f(si1,...,si_n) if (si1,...,si_k) < (n1,...,n_k) *)
-let size_apply constraints actual_si_list =
+let apply constraints actual_si_list =
   match constraints with
   | App(f, expected_si_list) ->
      conditional (decreases actual_si_list expected_si_list)
        (App(f, actual_si_list)) False
   | _ -> assert false
+

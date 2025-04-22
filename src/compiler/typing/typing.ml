@@ -178,6 +178,17 @@ let rec expansive { eq_desc } =
   | _ -> true
 and expansive_list eq_list = List.exists expansive eq_list
 
+(* check size constraints *)
+(* [si_list = [s0;...;s_{n-1}] is a list of sizes;
+ *- [env = [s0/x0;...;s_{n-1}/x_{n-1}] is a substitution
+ *- [sc] is a size constraint *)
+let eval_if_possible loc sc =
+  try
+    if Sizes.trivial Env.empty Env.empty sc then ()
+    else error loc (Esize_constraints_not_true(sc))
+  with
+  | Sizes.Fail -> Defsizes.add sc
+
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
 type state = { mutable s_reset: bool option; s_parameters: typ list }
@@ -999,7 +1010,7 @@ and size_apply loc expected_k h f si_list =
   (* typing the sequence of arguments *)
   let arg si = size h si in
   let si_list = List.map arg si_list in
-  let id_list, ty, constraints, is_rec =
+  let id_list, ty, sc, is_rec =
     try Types.filter_sizefun ty_fct
     with Unify -> error loc (Eapplication_of_non_function) in
   let expected_arit = List.length id_list in
@@ -1010,19 +1021,14 @@ and size_apply loc expected_k h f si_list =
                 (fun acc id si -> Env.add id si acc) Env.empty id_list si_list in
     let ty = Types.subst_in_type env ty in
     (* add the constraint to the stack of constraints *)
-    let constraints = 
+    let sc = 
       if is_rec then 
         (* check that the actual sizes decreases strictly *)
         (* at every recursive call *)
-        Sizes.size_apply constraints si_list
-      else Sizes.let_in env constraints in
+        Sizes.apply sc si_list
+      else Sizes.let_in env sc in
     (* try to evaluate the size constraints *)
-    let _ =
-      try
-        if Sizes.trivial Env.empty Env.empty constraints then ()
-        else error loc (Esize_constraints_not_true(constraints))
-      with
-      | Sizes.Fail -> Defsizes.add constraints in
+    eval_if_possible loc sc;
     ty, Tfun(Tconst)
   else
     error f.e_loc (Earity_clash(actual_arit, expected_arit))

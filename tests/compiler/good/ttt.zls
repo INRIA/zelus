@@ -1,8 +1,10 @@
 let f<<n,i>>(x:[n]'a) = x.(i)
 
-let g(x:[42]'a) =
-  forward(42)[i]() returns (oi)
+let g<<n>>(x:[n]'a) =
+  forward(n)[i]() returns (oi)
     do oi = f<<i,i+2>>(x) done
+
+let main() = g<<2>>[|1;2|]
 
 (* verifier le typage des tailles car ce programme ne devrait pas etre accepte *)
 (* i+2 doit etre < i *)
