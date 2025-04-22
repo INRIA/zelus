@@ -547,7 +547,7 @@ where_equation_and_list_aux:
     { eq :: eq_list }
 ;
 
-for_return:
+for_returns:
   | fv = for_vardec
     { [fv] }
   | LPAREN l = optional(list_of(COMMA, for_vardec)) RPAREN
@@ -1210,7 +1210,7 @@ foreach_loop_exp:
   /* foreach (size) [i] (xi in ei,...) do e [default e] */
   | s_opt = optional_size_expression
     i_opt = optional(index)
-    li = empty(input_list)
+    li = input_list
     DO e = expression
     d_opt = optional(default_expression)
     DONE
@@ -1219,8 +1219,8 @@ foreach_loop_exp:
        eq done */
     s_opt = optional_size_expression
     i_opt = optional(index)
-    li = empty(input_list)
-    RETURNS p = for_return
+    li = input_list
+    RETURNS p = for_returns
     b = block(equation_empty_and_list)
     DONE
     { (s_opt, i_opt, li, Forreturns { r_returns = p; r_block = b }) }
@@ -1230,7 +1230,7 @@ forward_loop_exp:
   /* forward (size) [i] (xi in ei,...) do e [default e] [while/unless/until e] done */
   | s_opt = optional_size_expression
     i_opt = optional(index)
-    li = empty(input_list)
+    li = input_list
     DO e = expression
     d_opt = optional(default_expression)
     o_opt = optional(loop_exit_condition)
@@ -1240,8 +1240,8 @@ forward_loop_exp:
        eq [while/unless/until e] done */
     s_opt = optional_size_expression
     i_opt = optional(index)
-    li = empty(input_list)
-    RETURNS p = for_return
+    li = input_list
+    RETURNS p = for_returns
     b = block(equation_empty_and_list)
     o_opt = optional(loop_exit_condition)
     DONE
@@ -1251,7 +1251,7 @@ forward_loop_exp:
 /* Loops for equations */
 foreach_loop_eq:
   s_opt = optional_size_expression i_opt = optional(index)
-    li = empty(input_list) RETURNS 
+    li = input_list RETURNS 
     lo = output_list f = block(equation_empty_and_list)
     DONE
     { (s_opt, i_opt, li, { for_out = lo; for_block = f }) }
@@ -1259,7 +1259,7 @@ foreach_loop_eq:
 
 forward_loop_eq:
   | s_opt = optional_size_expression i_opt = optional(index)
-    li = empty(input_list) RETURNS 
+    li = input_list RETURNS 
     lo = output_list 
     f = block(equation_empty_and_list)
     o_opt = optional(loop_exit_condition)
@@ -1278,8 +1278,7 @@ index:
 
 /* input in a for loop */
 input_list:
-  | LPAREN l = list_of(COMMA, localized(input_desc)) RPAREN { l }
-  | l = list_of(COMMA, localized(input_desc)) { l }
+  | LPAREN l = empty(list_of(COMMA, localized(input_desc))) RPAREN { l }
 ;
 
 input_desc:
