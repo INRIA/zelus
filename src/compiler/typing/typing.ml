@@ -1000,7 +1000,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
     | Esizeapp { f; size_list } ->
        size_apply e_loc expected_k h f size_list
     | Eforloop(fe) -> 
-       forloop_exp expected_k h fe in
+       forloop_exp e_loc expected_k h fe in
   e.e_info <- Typinfo.set_type e.e_info ty;
   ty, actual_k
 
@@ -1324,7 +1324,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      let actual_k = expect expected_k h e Initial.typ_bool in
      Defnames.empty, actual_k
   | EQforloop(f_eq) -> 
-     forloop_eq expected_k h f_eq
+     forloop_eq eq_loc expected_k h f_eq
   | EQsizefun _ ->
      assert false
 
@@ -1595,7 +1595,7 @@ and state_expression h def_states actual_reset { desc; loc } =
      Kind.sup actual_k (Kind.sup actual_k1 actual_k2)
 
 (* Typing of a for loop *)
-and forloop_exp expected_k h
+and forloop_exp loc expected_k h
   ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
@@ -1606,22 +1606,30 @@ and forloop_exp expected_k h
     List.fold_left (for_input_t expected_k h)
       (Env.empty, Tfun(Tconst), size_opt) for_input in
   let h = Env.append h_input h in
-  let k_kind = for_kind_t expected_k_for_body h for_kind in
+
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
   let h = Env.append h_env h in
+
+  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
+  (* push an empty size constraint *)
+  Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+  let k_kind = for_kind_t expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
-    for_exp_t expected_k_for_body h for_index size_opt for_body in
+    for_exp_t expected_k_for_body h size_opt for_body in
+  (* pop the current size constraint *)
+  Util.optional_unit
+    (fun _ i ->
+      let sc = Defsizes.pop () in
+      let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
+      eval_if_possible loc (Forall(i, si, sc))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   actual_ty, actual_k
 
-and for_exp_t expected_k h for_index size_opt for_exp =
-  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
-  (* push an empty size constraint *)
-  Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+and for_exp_t expected_k h size_opt for_exp =
   let ty_res, k = match for_exp with
     | Forexp { exp; default } ->
        let actual_ty, k_exp = expression expected_k h exp in
@@ -1638,12 +1646,6 @@ and for_exp_t expected_k h for_index size_opt for_exp =
        (* annotation *)
        r.r_env <- h_returns;
        type_of_for_vardec_list size_opt r_returns, Kind.sup k_returns k_block in
-  (* pop the current size constraint *)
-  Util.optional_unit
-    (fun _ i ->
-      let constraints = Defsizes.pop () in
-      let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      Defsizes.add (Forall(i, si, constraints))) () for_index;
   ty_res, k
 
 and for_vardec expected_k h (acc_h, acc_k) { desc = { for_vardec } } =
@@ -1679,10 +1681,7 @@ and for_index_t expected_k for_index_opt =
       Env.singleton id (Deftypes.size_entry (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
-and for_eq_t expected_k for_index size_opt h ({ for_out; for_block } as f) =
-  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
-  (* push an empty size constraint *)
-  Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
       (for_out_t expected_k size_opt h) (Env.empty, Tfun(Tconst)) for_out in
@@ -1693,12 +1692,6 @@ and for_eq_t expected_k for_index size_opt h ({ for_out; for_block } as f) =
   let d_names =
     List.fold_left
       (defnames_for_out d_names) Defnames.empty for_out in
-  (* pop the current size constraint *)
-  Util.optional_unit
-    (fun _ i ->
-      let constraints = Defsizes.pop () in
-      let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      Defsizes.add (Forall(i, si, constraints))) () for_index;
   d_names, Kind.sup actual_k_out actual_k
 
 and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
@@ -1782,7 +1775,7 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
      acc_h, Kind.sup acc_k (Kind.sup actual_k_left actual_k_right), size_opt
 
 (* Typing of a for loop *)
-and forloop_eq expected_k h
+and forloop_eq loc expected_k h
   ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
@@ -1792,12 +1785,23 @@ and forloop_eq expected_k h
   let h_input, actual_k_input, size_opt = 
     List.fold_left (for_input_t expected_k h)
       (Env.empty, Tfun(Tconst), size_opt) for_input in
-  let k_kind = for_kind_t expected_k_for_body h for_kind in
+  
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
   let h = Env.append h_env h in
+  
+  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
+  (* push an empty size constraint *)
+  Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+  let k_kind = for_kind_t expected_k_for_body h for_kind in
   let h_out, actual_k_for_body =
-    for_eq_t expected_k_for_body for_index size_opt h for_body in
+    for_eq_t expected_k_for_body size_opt h for_body in
+  (* pop the current size constraint *)
+  Util.optional_unit
+    (fun _ i ->
+      let constraints = Defsizes.pop () in
+      let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
+      Defsizes.add (Forall(i, si, constraints))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
