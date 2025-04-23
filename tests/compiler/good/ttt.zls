@@ -1,8 +1,22 @@
+let rec f1<<n>>(x) = match size n with | 0 -> x | m -> f1<<m-1>>(x) + x
+
+let j() =
+  forward(42)[i]() returns (oi)
+   do oi = f1<<i>>(0) done
+
+(* n et i sont des tailles. n est une taille statique; i est une taille bornee *)
+
 let f<<n,i>>(x:[n]'a) = x.(i)
+
+(* let f<<n>>(i:[n])(x:[n]'a) = x.(i) *)
 
 let h<<n>>(x:[42]'a) =
   forward(42)[i]() returns (oi)
     do oi = f<<i,i+2>>(x)  done
+
+(* f : <<n,i0>>.[n]'a -> 'a with i0 < n *)
+(* f<<i,i+2>>: [i]'a -> 'a with let n = i and i0 = i+2 in i0 < n *)
+(* x : [42]a. Donc on ajoute (i = 42) && (let n = i and i0 = i+2 in i0 < n *)
 
 let g<<n>>(x:[n]'a) =
   forward(n)[i]() returns (oi)
