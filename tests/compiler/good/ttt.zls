@@ -1,5 +1,9 @@
 let f<<n,i>>(x:[n]'a) = x.(i)
 
+let h<<n>>(x:[42]'a) =
+  forward(42)[i]() returns (oi)
+    do oi = f<<i,i+2>>(x) done
+
 let g<<n>>(x:[n]'a) =
   forward(n)[i]() returns (oi)
     do oi = f<<i,i+2>>(x) done
