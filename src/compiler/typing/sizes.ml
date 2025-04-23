@@ -282,6 +282,7 @@ let rec trivial f_env n_env sc =
        if v <= 0 then true else (f v) && (for_all (v-1) f) in
      let v = eval n_env e in
      for_all (v-1) (fun v -> trivial f_env (Env.add id v n_env) sc)
+  | Loc(_, sc) -> trivial f_env n_env sc
   
 (* free variables *)
 let rec fv bounded acc si =
@@ -323,6 +324,7 @@ let rec fv_constraints bounded acc sc =
   | Forall(id, e, sc) ->
      let acc = fv_constraints (S.add id bounded) acc sc in
      fv bounded acc e
+  | Loc(_, sc) -> fv_constraints bounded acc sc
 
 let apply op si1 si2 =
   match si1, si2 with
@@ -364,6 +366,7 @@ let rec subst env sc =
          subst env sc)
   | Forall(id, e, sc) ->
      Forall(id, subst_in_size env e, subst env sc)
+  | Loc(loc, sc) -> Loc(loc, subst env sc)
 
 let let_in env sc =
   if Env.is_empty env then sc

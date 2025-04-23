@@ -651,8 +651,8 @@ let match_size_handlers
     is_total || (Patternsig.check_match_handlers loc m_handlers) in
 
   (* add a conditional constraints [if pi matches si then c1 else ...] *)
-  let constraints = Sizes.if_list c_list in
-  Defsizes.add constraints;
+  let sc = Sizes.if_list c_list in
+  Defsizes.add sc;
   let defined_names_list =
     if is_total then defined_names_list
     else Defnames.empty :: defined_names_list in
@@ -1799,9 +1799,9 @@ and forloop_eq loc expected_k h
   (* pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
-      let constraints = Defsizes.pop () in
+      let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      Defsizes.add (Forall(i, si, constraints))) () for_index;
+      eval_if_possible loc (Forall(i, si, sc))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in

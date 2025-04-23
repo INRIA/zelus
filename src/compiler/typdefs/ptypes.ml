@@ -85,7 +85,7 @@ let constraints_t ff sc =
   let priority =
     function
     | App _ -> 3 | Fix _ -> 2 | Rel _ -> 2 | And _ -> 1 | Let _ -> 0
-    | If _ -> 0 | Forall _ -> 2 | True | False -> 2 in
+    | If _ -> 0 | Forall _ -> 2 | True | False -> 2 | Loc _ ->2 in
   let eq_t ff { rel; lhs; rhs } =
     let s = match rel with | Eq -> "=" | Lt -> "<" | Lte -> "<=" in
     fprintf ff "@[(%a %s %a)@]" (size 0) lhs s (size 0) rhs in
@@ -124,6 +124,7 @@ let constraints_t ff sc =
           (Ident.name id) (size 0) e (constraint_t 0) sc
     | True -> fprintf ff "true"
     | False -> fprintf ff "false"
+    | Loc(loc, sc) -> constraint_t prio ff sc
     end;
   if prio_current < prio then fprintf ff ")" in
   constraint_t 0 ff sc

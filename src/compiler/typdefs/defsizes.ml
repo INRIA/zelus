@@ -37,6 +37,8 @@ type 'e constraints =
   | Forall of Ident.t * 'e * 'e constraints
   (* forall i in e .. e do c *)
   | True | False
+  | Loc of Location.t * 'e constraints
+  (* localisation of errors *)
 
 and 'a eq = { rel: rel; lhs: 'a; rhs: 'a }
 and rel = Eq | Lt | Lte
