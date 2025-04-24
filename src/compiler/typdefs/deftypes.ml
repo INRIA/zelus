@@ -31,15 +31,16 @@ type typ = typ_desc node
 
 and typ_desc =
   | Tvar
-  | Tproduct of typ list
-  | Tconstr of Lident.qualident * typ list * abbrev ref
+  | Tproduct of typ list (* t1 * ... * tn *)
+  | Tconstr of Lident.qualident * typ list * abbrev ref (* (ty1,...,tyn) c *)
   | Tarrow of { ty_kind: kind; ty_name_opt: Ident.t option;
-                ty_arg: typ; ty_res: typ } 
+                ty_arg: typ; ty_res: typ } (* (n: ty1) -k-> ty2 *)
   | Tvec of typ * Defsizes.exp (* [e]t - array of length [e] *)
-  | Tsizefun of (* size function <<n1,...,nk>>.ty *)
+  | Tsizefun of (* size function <<i1:n1,...,ik:nk>>.ty with constraints *)
       { id_list: Ident.t list; (* [k > 0] *)
-        ty: typ;
+        ty: typ; (* the type of the body *)
         constraints: Defsizes.exp Defsizes.constraints;
+        (* an arithmetic constraint on size variables *)
         is_rec: bool; 
         (* the size function is recursive; this flag is *)
         (* used when building the recursive constraints on [n1,...] *)
