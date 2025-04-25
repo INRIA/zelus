@@ -83,8 +83,8 @@ let kind_of_ident k =
   | Initial -> "initial value"
                         
 let vkind_message = function
-    | Tconst -> "constant"
-    | Tstatic -> "static" | Tany -> "combinatorial"
+    | Tconst -> "compile time constant"
+    | Tstatic -> "static" | Tany -> "dynamic"
 
 let kind_message = function
   | Tfun(k) -> vkind_message k
