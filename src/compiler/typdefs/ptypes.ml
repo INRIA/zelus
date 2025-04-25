@@ -253,8 +253,8 @@ let output_tentry ff { t_path; t_sort; t_tys } =
     match i with | No -> "" | Eq | Decl _ -> pref ^ "/" in
   let rec path ff p = match p with
     | Pkind(k) -> fprintf ff "%s" (kind k)
-    | Pon(p, k) -> fprintf ff "@[<hov 2>%a on@ %s@]" path p (kind k)
-    | Psize -> fprintf ff "size" in  
+    | Psize(v) -> fprintf ff "%s size" (vkind v)
+    | Pon(p, k) -> fprintf ff "@[<hov 2>%a on@ %s@]" path p (kind k) in  
   let sort ff t_sort = match t_sort with
     | Sort_val -> fprintf ff "val/"
     | Sort_var -> fprintf ff "var/"

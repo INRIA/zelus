@@ -125,7 +125,7 @@ let less_than loc actual_k expected_k =
 let kind_of_path loc path =
   let rec kind path = match path with
     | Pkind(k) -> k
-    | Psize -> Tfun(Tconst)
+    | Psize(vkind) -> Tfun(vkind)
     | Pon(path, k_on) ->
      let k = kind path in
      less_than loc k k_on;
@@ -133,9 +133,11 @@ let kind_of_path loc path =
   kind path
 
 (* check that a path defines a size *)
-let check_path_is_a_size loc path =
+let check_path_is_a_size loc expected_vkind path =
   let rec check path = match path with
-    | Psize -> ()
+    | Psize(actual_vkind) ->
+       if not (Kind.vkind_is_less_than actual_vkind expected_vkind)
+       then error loc (Ekind_clash(Tfun(actual_vkind), Tfun(expected_vkind)))
     | Pon(path, _) -> check path
     | Pkind _ -> error loc Enot_a_size_expression in
   check path
@@ -369,8 +371,10 @@ let env_of_pattern entry acc pat =
   and pattern_list acc p_list = List.fold_left pattern acc p_list in
   pattern acc pat
 
-let size_entry () = Deftypes.size_entry (Deftypes.scheme (Initial.typ_int))
-let env_of_size_pattern pat = env_of_pattern size_entry Env.empty pat
+let size_entry vkind =
+  Deftypes.size_entry vkind (Deftypes.scheme (Initial.typ_int))
+let env_of_size_pattern vkind pat =
+  env_of_pattern (fun _ -> size_entry vkind) Env.empty pat
 
 let env_of_pattern expected_k acc pat =
   env_of_pattern (fun _ -> fresh_typ_entry expected_k Sort_val) acc pat
@@ -479,39 +483,41 @@ let pateq h { desc; loc } ty_e =
   | _ -> error loc (Earity_clash(n, List.length ty_e_list))
        
 (* Typing a size expression *)
-let rec size h { desc; loc } =
-  match desc with
-  | Size_int(i) -> Types.size_int i
-  | Size_var(x) ->
-      let { t_tys; t_path } = var loc h x in
-      let t_typ = Types.instance t_tys in
-      unify loc Initial.typ_int t_typ;
-      check_path_is_a_size loc t_path;
-      Types.size_var x
-  | Size_op(op, s1, s2) ->
-     let op = match op with
-       | Size_plus -> Defsizes.Splus
-       | Size_minus -> Defsizes.Sminus
-       | Size_mult -> Defsizes.Smult in
-     let s1 = size h s1 in
-     let s2 = size h s2 in
-     Types.size_op op s1 s2
-  | Size_frac { num; denom } ->
-      let num = size h num in
-      Types.size_frac num denom
+let size expected_vkind h e = 
+  let rec size { desc; loc } =
+    match desc with
+    | Size_int(i) -> Types.size_int i
+    | Size_var(x) ->
+       let { t_tys; t_path } = var loc h x in
+       let t_typ = Types.instance t_tys in
+       unify loc Initial.typ_int t_typ;
+       check_path_is_a_size loc expected_vkind t_path;
+       Types.size_var x
+    | Size_op(op, s1, s2) ->
+       let op = match op with
+         | Size_plus -> Defsizes.Splus
+         | Size_minus -> Defsizes.Sminus
+         | Size_mult -> Defsizes.Smult in
+       let s1 = size s1 in
+       let s2 = size s2 in
+       Types.size_op op s1 s2
+    | Size_frac { num; denom } ->
+       let num = size num in
+       Types.size_frac num denom in
+  size e
 
 (* Convert an expression into a size expression *)
-let size_of_exp h e =
-  let rec size_rec { e_desc; e_loc } = match e_desc with
+let size_of_exp expected_vkind h e =
+  let rec size { e_desc; e_loc } = match e_desc with
     | Econst(Eint(i)) -> Types.size_int i
     | Evar(n) ->
        let { t_path } = var e_loc h n in
-       check_path_is_a_size e_loc t_path;
+       check_path_is_a_size e_loc expected_vkind t_path;
        Types.size_var n
     | Eapp { f = { e_desc = Eglobal { lname = Lident.Modname(qualid) } };
              arg_list = [e1; e2] } ->
-       let s1 = size_rec e1 in
-       let s2 = size_rec e2 in
+       let s1 = size e1 in
+       let s2 = size e2 in
        if qualid = Initial.stdlib_name "+"
        then Types.size_op Splus s1 s2
        else if qualid = Initial.stdlib_name "-"
@@ -524,7 +530,7 @@ let size_of_exp h e =
             | _ -> error e_loc Enot_a_size_expression
        else error e_loc Enot_a_size_expression
     | _ -> error e_loc Enot_a_size_expression in
-  size_rec e
+  size e
 
 (* Typing patterns *)
 (* the kind of variables in [p] must be equal to [expected_k] *)
@@ -624,6 +630,8 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   Kind.sup_list k_list
 
 (* Typing a pattern matching of a size. Returns defined names *)
+(* the size must be known ultimately at compile-time (that is, it is a size *)
+(* not an index *)
 (* generates a size constraint [if si matches p1 then c1 else ... else cn] *)
 (* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
 (* for body [b] *)
@@ -632,7 +640,7 @@ let match_size_handlers
   let handler ({ m_pat = pat; m_body = b } as mh) =
     (* push an empty size constraint *)
     Defsizes.push ();
-    let h0 = env_of_size_pattern pat in
+    let h0 = env_of_size_pattern Tconst pat in
     (* all identifiers in [h0] are sizes *)
     pattern h0 pat Initial.typ_int;
     mh.m_env <- h0;
@@ -1008,7 +1016,7 @@ and size_apply loc expected_k h f si_list =
   (* first type the function [f] *)
   let ty_fct, actual_k_fct = expression expected_k h f in
   (* typing the sequence of arguments *)
-  let arg si = size h si in
+  let arg si = size Tconst h si in
   let si_list = List.map arg si_list in
   let id_list, ty, sc, is_rec =
     try Types.filter_sizefun ty_fct
@@ -1121,7 +1129,8 @@ and array_operator expected_k h loc op e_list =
      let ty_a, actual_k = expression expected_k h a in
      let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki = expect expected_k h i Initial.typ_int in
-     let si_i = size_of_exp h i in
+     (* [i] must be an index, that is, a positive integer bounded by a size *)
+     let si_i = size_of_exp (Kind.vkind_of_kind expected_k) h i in
      compare_sizes Defsizes.Lt i.e_loc si_i si;
      compare_sizes Defsizes.Lte i.e_loc (Defsizes.Sint(0)) si_i;
      ty, Kind.sup actual_k actual_ki
@@ -1136,8 +1145,9 @@ and array_operator expected_k h loc op e_list =
      let ty, si = check_is_vec a.e_loc ty_a in
      let actual_ki1 = expect expected_k h i1 Initial.typ_int in
      let actual_ki2 = expect expected_k h i2 Initial.typ_int in
-     let si1 = size_of_exp h i1 in
-     let si2 = size_of_exp h i2 in
+     (* [i1] and [i2] must be sizes; not index *)
+     let si1 = size_of_exp Tconst h i1 in
+     let si2 = size_of_exp Tconst h i2 in
      let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
      compare_sizes Defsizes.Lte a.e_loc si_i si;
      Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
@@ -1239,7 +1249,9 @@ and apply loc expected_k h f arg_list =
        let ty2 =
          match n_opt with
          | None -> ty2
-         | Some(n) -> subst_in_type (Env.singleton n (size_of_exp h arg)) ty2 in
+         | Some(n) ->
+            let si = size_of_exp (Kind.vkind_of_kind expected_arg_k) h arg in
+            subst_in_type (Env.singleton n si) ty2 in
        args actual_k_fct ty2 arg_list in
   args actual_k_fct ty_fct arg_list
 
@@ -1343,9 +1355,10 @@ and typing_eq_match eq_loc expected_k h is_total e handlers =
          eq_loc expected_k h is_total handlers expected_pat_ty in
      is_total, defnames, Kind.sup actual_k_e actual_k_h
 
+(* match/with of a size *)
 and typing_eq_match_size eq_loc expected_k h is_total e handlers =
   let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
-  let si = size_of_exp h e in
+  let si = size_of_exp Tconst h e in
   let is_total, defnames, actual_k_h =
     match_size_handler_eq_list
       eq_loc expected_k h is_total si handlers in
@@ -1353,7 +1366,7 @@ and typing_eq_match_size eq_loc expected_k h is_total e handlers =
 
 and typing_exp_match_size loc expected_k h is_total e handlers =
   let actual_pat_k = expect (Tfun(Tconst)) h e Initial.typ_int in
-  let si = size_of_exp h e in
+  let si = size_of_exp Tconst h e in
   let expected_ty = new_var () in
   let is_total, actual_k_h =
     match_size_handler_exp_list
@@ -1662,7 +1675,7 @@ and for_size_t expected_k h for_size_opt =
   | None -> None, Tfun(Tconst)
   | Some(e) ->
      let actual_k = expect (Tfun(Tany)) h e Initial.typ_int in
-     let s = size_of_exp h e in
+     let s = size_of_exp Tconst h e in
      Some(s), actual_k
 
 and for_kind_t expected_k h for_kind =
@@ -1675,10 +1688,13 @@ and for_kind_t expected_k h for_kind =
 and for_exit_t expected_k h { for_exit } =
   expect expected_k h for_exit Initial.typ_bool
 
+(* an index [i] is not a size; it is a value from the interval [0..n-1] where *)
+(* [n] is a size *)
 and for_index_t expected_k for_index_opt =
   Util.optional_with_default
     (fun id ->
-      Env.singleton id (Deftypes.size_entry (Deftypes.scheme Initial.typ_int)))
+      Env.singleton id
+        (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
 and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
@@ -1759,8 +1775,8 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
      (* [i in e0 to e1] or [i in e1 downto e0] *)
      let actual_k_left = expect expected_k h e_left Initial.typ_int in
      let actual_k_right = expect expected_k h e_right Initial.typ_int in
-     let si_left = size_of_exp h e_left in
-     let si_right = size_of_exp h e_right in
+     let si_left = size_of_exp Tconst h e_left in
+     let si_right = size_of_exp Tconst h e_right in
      let actual_size =
        (* [e1 - e0 + 1] *)
        Types.size_plus (Types.size_minus si_right si_left) Types.size_one in
@@ -1812,7 +1828,8 @@ and forloop_eq loc expected_k h
 (* <<n,...>>.ty_body with c] where [c] constraints [n,...] *)
 and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
   let entry acc id = 
-    Env.add id (Deftypes.size_entry (Deftypes.scheme Initial.typ_int)) acc in
+    Env.add id
+      (Deftypes.size_entry Tconst (Deftypes.scheme Initial.typ_int)) acc in
   (* a size function must be defined in a compile-time constant context *)
   (* push an empty size constraint *)
   Defsizes.push ();

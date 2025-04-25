@@ -80,7 +80,7 @@ type typentry =
     t_tys: typ_scheme (* its type *)
   }
 
-and path = Pkind of kind | Pon of path * kind | Psize
+and path = Pkind of kind | Psize of vkind | Pon of path * kind 
 
 and tsort =
   | Sort_val (* a let variable *)
@@ -138,7 +138,7 @@ let memory = Sort_mem mem
 let imemory = Sort_mem imem
 		   
 let entry v_kind sort t_tys = { t_path = Pkind(v_kind); t_sort = sort; t_tys }
-let size_entry t_tys = { t_path = Psize; t_sort = Sort_val; t_tys }
+let size_entry v_kind t_tys = { t_path = Psize(v_kind); t_sort = Sort_val; t_tys }
 
 let last t_sort =
   match t_sort with
