@@ -73,6 +73,12 @@ let compare_sizes cmp loc left_size right_size =
   if not (Sizes.compare cmp left_size right_size)
   then error loc (Esize_clash(cmp, left_size, right_size))
 
+let check_is_vec loc actual_ty =
+    try Types.filter_vec actual_ty
+    with
+    | Unify ->
+       error loc Esize_of_vec_is_undetermined
+  
 let unify_expr expr expected_ty actual_ty =
   try
     Types.unify expected_ty actual_ty
@@ -1107,11 +1113,6 @@ and expect_list expected_k h e_list ty =
     (Tfun(Tconst)) e_list
      
 and array_operator expected_k h loc op e_list =
-  let check_is_vec loc actual_ty =
-    try Types.filter_vec actual_ty
-    with
-    | Unify ->
-       error loc Esize_of_vec_is_undetermined in
   match op, e_list with
   | Earray_list, _ ->
      let ty = Types.new_var () in
@@ -1749,17 +1750,18 @@ and for_out_t expected_k size_opt h (acc_h, acc_k)
     acc_h, acc_k
 
 and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
-  let size_of loc size_opt =
-    match size_opt with
-    | None -> error loc Esize_of_vec_is_undetermined
-    | Some(actual_size) -> actual_size in
   match desc with
   | Einput { id; e; by } ->
      (* check that [id] is not already in [h_inputs] *)
      if Env.mem id acc_h then error loc (Ealready(Current, id));
-     let si = size_of loc size_opt in
-     let ty = Types.new_var () in
-     let actual_k = expect expected_k h e (Types.vec ty si) in
+     let ty_e, actual_k = expression expected_k h e in
+     let ty, si =
+       match size_opt with
+       | None -> check_is_vec e.e_loc ty_e
+       | Some(si) ->
+          let ty = Types.new_var () in
+          unify_expr e (Types.vec ty si) ty_e;
+          ty, si in
      let actual_k =
        match by with 
        | None -> actual_k 

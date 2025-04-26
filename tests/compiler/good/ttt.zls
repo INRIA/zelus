@@ -1,3 +1,6 @@
+let f0<<n>>(x) = forward(n)(xi in x) returns ([|oi|])
+                   do oi = xi + 1 done
+
 let rec f1<<n>>(x) = match size n with | 0 -> x | m -> f1<<m-1>>(x) + x
 
 let f2<<n>>(x:[n]'a) =
