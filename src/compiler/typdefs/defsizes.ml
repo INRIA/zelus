@@ -79,8 +79,8 @@ let pop () =
 let is_empty () =
   let c = c_stack.current in
   Stack.is_empty c_stack.stack && constraint_is_true c
-(* list of constraints *)
-(* let to_list () =
-  let l = Stack.to_list c_stack.stack in
-  c_stack.current :: l *)
+(* sequence of constraints *)
+let to_seq () =
+  let l = Stack.to_seq c_stack.stack in
+  Seq.cons c_stack.current l 
 
