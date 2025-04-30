@@ -75,9 +75,12 @@ let pop () =
   let c_old = Stack.pop c_stack.stack in
   c_stack.current <- c_old;
   c
-    (* the stack of constraints is empty *)
-let is_trivial () =
+(* the stack of constraints is empty *)
+let is_empty () =
   let c = c_stack.current in
-  constraint_is_true c
-
+  Stack.is_empty c_stack.stack && constraint_is_true c
+(* list of constraints *)
+(* let to_list () =
+  let l = Stack.to_list c_stack.stack in
+  c_stack.current :: l *)
 

@@ -195,7 +195,7 @@ let eval_if_possible loc sc =
     if Sizes.trivial Env.empty Env.empty sc then ()
     else error loc (Esize_constraints_not_true(sc))
   with
-  | Sizes.Fail -> Defsizes.add sc
+  | Sizes.Fail -> Defsizes.add (Defsizes.Loc(loc, sc))
 
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
