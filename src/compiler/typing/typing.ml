@@ -670,7 +670,7 @@ let match_size_handlers
 
   (* add a conditional constraints [if pi matches si then c1 else ...] *)
   let sc = Sizes.if_list c_list in
-  Defsizes.add sc;
+  Defsizes.add (Defsizes.Loc(loc, sc));
   let defined_names_list =
     if is_total then defined_names_list
     else Defnames.empty :: defined_names_list in
