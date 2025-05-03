@@ -55,7 +55,10 @@ type error =
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
-  | Esize_constraints_not_true of Defsizes.exp Defsizes.constraints
+  | Esize_constraints_not_true of 
+      (* [let env in sc_top[...sc_local at loc_local]] *)
+      { env: Defsizes.env; sc_top: Defsizes.exp Defsizes.constraints;
+        loc_local: Location.t; sc_local: Defsizes.exp Defsizes.constraints }
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Esize_parameter_mutually_recursive_definitions of int * int
   | Econstr_arity of Lident.t * int * int
@@ -244,17 +247,25 @@ let message loc kind =
        (this function has %d parameters while one has %d parameters).@.@]"
       output_location loc
       actual_number expected_number
- | Esize_constraints_not_true(sc) ->
+ | Esize_constraints_not_true { env; sc_top; loc_local; sc_local } ->
+    let fprint_v ff i = Format.fprintf ff "%d" i in
     eprintf
-      "@[%aType error: the size constraint \
-       at this point is not true.\n\
-       (this can be because an array element is accessed out of the bounds,\n\
-       the actual size of an array does not matches an expected size,\n\
-       the size argument of a recursive functions \
-       does not decrease.)\n\
-       The size constraint is:\n%a@.@]]"
+      "@[<hov 0>%aType error: at this point, the following \
+       size constraint:\n%a@.\n\
+       is false. This is because the sub-constraint:\n\n%a@.\n\
+       is false since:\n\n%a@.\n\
+       This sub-constraint comes from the following \
+       sub-expression@ in the source code:\n\n%a@ \
+       Overall, a size constraint is false either because@ \
+       an array element is accessed out of the bounds,@ \
+       or the actual size of an array does not match an expected size,@ \
+       or the size argument of a recursive function does not @ \
+       decrease strictly for the lexicographic order.\n@]"
        output_location loc
-       Ptypes.constraints_t sc 
+       Ptypes.constraints_t sc_top
+       Ptypes.constraints_t sc_local
+       (Ident.Env.fprint_t fprint_v) env
+       output_location loc_local       
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      let module Printer = Printer.Make(Typinfo) in
      eprintf

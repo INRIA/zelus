@@ -13,6 +13,7 @@
 (* *********************************************************************)
 
 (* definition of sizes and size constraints *)
+type env = int Ident.Env.t
 
 type exp = 
   | Sint of int (* [42] *)

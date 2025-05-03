@@ -39,7 +39,7 @@ let h<<n>>(x:[42]'a) =
 
 let g<<n>>(x:[n]'a) =
   forward(n)[i]() returns (oi)
-    do oi = f<<n,1>>(x) done
+    do oi = f<<n,52>>(x) done
 
 let main() = g<<2>>[|1;2|]
 

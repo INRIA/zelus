@@ -187,15 +187,19 @@ let rec expansive { eq_desc } =
 and expansive_list eq_list = List.exists expansive eq_list
 
 (* check size constraints *)
-(* [si_list = [s0;...;s_{n-1}] is a list of sizes;
- *- [env = [s0/x0;...;s_{n-1}/x_{n-1}] is a substitution
- *- [sc] is a size constraint *)
-let eval_if_possible loc sc =
+let check_if_possible loc sc =
   try
-    if Sizes.trivial Env.empty Env.empty sc then ()
-    else error loc (Esize_constraints_not_true(sc))
+    let r = 
+      if Sizes.check Env.empty Env.empty sc then ()
+      else 
+        try Sizes.localize loc Env.empty Env.empty sc
+        with | Sizes.Fail(loc_local, env, sc_local) ->
+                error loc 
+                  (Esize_constraints_not_true { env; sc_top = sc;
+                                                loc_local; sc_local })
+    in r
   with
-  | Sizes.Fail -> Defsizes.add (Defsizes.Loc(loc, sc))
+  | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(loc, sc))
 
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
@@ -1042,7 +1046,7 @@ and size_apply loc expected_k h f si_list =
         Sizes.apply sc si_list
       else Sizes.let_in env sc in
     (* try to evaluate the size constraints *)
-    eval_if_possible loc sc;
+    check_if_possible loc sc;
     ty, Tfun(Tconst)
   else
     error f.e_loc (Earity_clash(actual_arit, expected_arit))
@@ -1636,7 +1640,7 @@ and forloop_exp loc expected_k h
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      eval_if_possible loc (Forall(i, si, sc))) () for_index;
+      check_if_possible loc (Forall(i, si, sc))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1819,7 +1823,7 @@ and forloop_eq loc expected_k h
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      eval_if_possible loc (Forall(i, si, sc))) () for_index;
+      check_if_possible loc (Forall(i, si, sc))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in

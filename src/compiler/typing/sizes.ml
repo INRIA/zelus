@@ -17,9 +17,8 @@
 open Ident
 open Defsizes
 
-exception Fail
-exception Maybe
-
+exception Maybe (* cannot decide if a constraint is true or false *)
+  
 (* normal form: some of products *)
 module SumOfProducts =
   struct
@@ -180,6 +179,7 @@ let normalize si =
 (* are not taken into account. It does not matter for correctness *)
 (* and completeness since size constraints are ultimately evaluated *)
 let compare cmp si1 si2 =
+  let exception Maybe in
   let open SumOfProducts in
   let normalize si =
     let si, _ = normalize si in
@@ -230,7 +230,7 @@ let rec eval n_env si =
       v / denom
   | Svar(x) ->
       let v =
-        try Env.find x n_env with Not_found -> raise Fail in v
+        try Env.find x n_env with Not_found -> raise Maybe in v
   | Sop(op, si1, si2) ->
      let v1 = eval n_env si1 in
      let v2 = eval n_env si2 in
@@ -239,7 +239,7 @@ let rec eval n_env si =
 
 (* evaluation of constraints. *)
 (* [f_env]: environment of functions; [n_env]: environment of sizes *)
-let rec trivial f_env n_env sc =
+let rec check f_env n_env sc =
   match sc with
   | True -> true
   | False -> false
@@ -248,42 +248,47 @@ let rec trivial f_env n_env sc =
      let v2 = eval n_env rhs in
      let op = match rel with | Eq -> (=) | Lt -> (<) | Lte -> (<=) in
      op v1 v2
-  | And(sc_list) -> List.for_all (trivial f_env n_env) sc_list
+  | And(sc_list) -> List.for_all (check f_env n_env) sc_list
   | Let(id_e_list, sc) ->
      let n_env =
        List.fold_left
          (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
          n_env id_e_list in
-     trivial f_env n_env sc
+     check f_env n_env sc
   | If(sc1, sc2, sc3) ->
-     if trivial f_env n_env sc1 then trivial f_env n_env sc2 
-     else trivial f_env n_env sc3
+     if check f_env n_env sc1 then check f_env n_env sc2 
+     else check f_env n_env sc3
   | App(f, e_list) ->
      let v_list = List.map (eval n_env) e_list in
-     let v = try Env.find f f_env with Not_found -> raise Fail in
-     (* (f_env f) v_list *) v v_list
+     let v = try Env.find f f_env with Not_found -> raise Maybe in
+     v v_list
   | Fix(id_id_list_sc_list, sc) ->
-     (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
-     let rec f_env_fix =
-       lazy (List.fold_left 
-               (fun f_acc (id, id_list, sc) -> 
-                 Env.add id 
-                   (fun v_list -> 
-                     let n_env = 
-                       List.fold_left2 (fun acc id v -> Env.add id v acc)
-                         n_env id_list v_list in
-                     trivial (Lazy.force f_env_final) n_env sc)
-                   f_acc)
-               Env.empty id_id_list_sc_list)
-     and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
-     trivial (Lazy.force f_env_final) n_env sc
+     let f_env_final = letrec f_env n_env id_id_list_sc_list in
+     check f_env_final n_env sc
   | Forall(id, e, sc) ->
      let rec for_all v f =
        if v <= 0 then true else (f v) && (for_all (v-1) f) in
      let v = eval n_env e in
-     for_all (v-1) (fun v -> trivial f_env (Env.add id v n_env) sc)
-  | Loc(_, sc) -> trivial f_env n_env sc
+     for_all (v-1) (fun v -> check f_env (Env.add id v n_env) sc)
+  | Loc(_, sc) -> check f_env n_env sc
   
+(* fix-point computation of an environment of functions *)
+(* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
+and letrec f_env n_env id_id_list_sc_list =
+  let rec f_env_fix =
+    lazy (List.fold_left 
+            (fun f_acc (id, id_list, sc) -> 
+              Env.add id 
+                (fun v_list -> 
+                  let n_env = 
+                    List.fold_left2 (fun acc id v -> Env.add id v acc)
+                      n_env id_list v_list in
+                  check (Lazy.force f_env_final) n_env sc)
+                f_acc)
+            Env.empty id_id_list_sc_list)
+  and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
+  Lazy.force f_env_final
+
 (* free variables *)
 let rec fv bounded acc si =
   match si with
@@ -325,6 +330,44 @@ let rec fv_constraints bounded acc sc =
      let acc = fv_constraints (S.add id bounded) acc sc in
      fv bounded acc e
   | Loc(_, sc) -> fv_constraints bounded acc sc
+
+(* Localisation of errors. Only applied when a constraints is unsatisfied *)
+(* The check function and this functions could be merged, to avoid recomputing *)
+(* the result but it is more elegant to separate the two *)
+exception Fail of 
+            Location.t (* closest location in the source that *)
+                       (* generate the constraint *)
+            * int Env.t (* environment for size variables *)
+            * exp constraints (* size expression *)
+let rec localize loc f_env n_env sc =
+  (* simplify an environment; keep only variables that are free in a size *)
+  (* constraint *)
+  let clear n_env sc =
+    let acc = fv_constraints S.empty S.empty sc in
+    Env.filter (fun x _ -> S.mem x acc) n_env in
+  match sc with
+  | True | False | Rel _ | App _ ->
+     let v = check f_env n_env sc in
+     if not v then raise (Fail(loc, clear n_env sc, sc))
+  | And(sc_list) -> List.iter (localize loc f_env n_env) sc_list
+  | Let(id_e_list, sc) ->
+     let n_env =
+       List.fold_left
+         (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
+         n_env id_e_list in
+     localize loc f_env n_env sc
+  | If(sc1, sc2, sc3) ->
+     if check f_env n_env sc1 then localize loc f_env n_env sc2 
+     else localize loc f_env n_env sc3
+  | Fix(id_id_list_sc_list, sc) ->
+     let f_env_final = letrec f_env n_env id_id_list_sc_list in
+     localize loc f_env_final n_env sc
+  | Forall(id, e, sc) ->
+     let rec for_all v f =
+       if v <= 0 then () else begin f v; for_all (v-1) f end in
+     let v = eval n_env e in
+     for_all (v-1) (fun v -> localize loc f_env (Env.add id v n_env) sc)
+  | Loc(loc, sc) -> localize loc f_env n_env sc    
 
 let apply op si1 si2 =
   match si1, si2 with
@@ -410,7 +453,7 @@ let rec matches { Zelus.pat_desc } si =
   | Ealiaspat(pat, x) ->
      let def_list, sc = matches pat si in
      (x, si) :: def_list, sc
-  | _ -> raise Fail
+  | _ -> assert false
 
 (* define the prefix order between two tuples of sizes *)
 (* [(si_1,...,si_n) < (si_1',...,si_n')] iff
