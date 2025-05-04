@@ -120,7 +120,7 @@ let constraints_t ff sc =
        fprintf ff "@[<hov0>if %a@ then@ %a@ else@ %a@]"
          (constraint_t 0) sc1 (constraint_t 0) sc2 (constraint_t 0) sc3
     | Forall(id, e, sc) ->
-       fprintf ff "@[<hov0>forall@ %s@ lt %a@ do %a done@]"
+       fprintf ff "@[<hov0>forall@ %s@ < %a@ do %a done@]"
           (Ident.name id) (size 0) e (constraint_t 0) sc
     | True -> fprintf ff "true"
     | False -> fprintf ff "false"

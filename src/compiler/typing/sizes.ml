@@ -175,15 +175,26 @@ let normalize si =
       table [] in
   si, eqs
 
-(* decision algorithm. It is very basic since constraints *)
+(* for the moment, we do not use equations generated during the normalization *)
+let normalize si =
+  let si, _ = normalize si in
+  SumOfProducts.SumProduct.make si
+
+(* decision algorithm. It is a very basic algorithm since constraints *)
 (* are not taken into account. It does not matter for correctness *)
-(* and completeness since size constraints are ultimately evaluated *)
-let compare cmp si1 si2 =
+(* and completeness since size constraints are ultimately evaluated. This *)
+(* should be done in order to have better diagnosis *)
+let eq si1 si2 =
+  let open SumOfProducts in
+  let sp = normalize (minus si1 si2) in
+  if SumProduct.is_surely_zero sp then true
+  else if SumProduct.is_surely_not_zero sp then false
+  else (* add it to the constraint environment *)
+    (Defsizes.add (Rel { rel = Eq; lhs = si1; rhs = si2 }); true)
+
+let compare loc cmp si1 si2 =
   let exception Maybe in
   let open SumOfProducts in
-  let normalize si =
-    let si, _ = normalize si in
-    SumProduct.make si in
   try
     let result = match cmp with
       | Eq ->
@@ -206,7 +217,7 @@ let compare cmp si1 si2 =
   with
   | Maybe ->
      (* add it to the constraint environment *)
-     Defsizes.add (Rel { rel = cmp; lhs = si1; rhs = si2 }); true
+     Defsizes.add (Loc(loc, Rel { rel = cmp; lhs = si1; rhs = si2 })); true
 
 (* syntactic equatity *)
 let syntactic_equal si1 si2 =
@@ -426,8 +437,8 @@ let conditional sc sc_true sc_false =
     | _, True, False -> sc
     | _ -> if sc_true = sc_false then sc_true else If(sc, sc_true, sc_false)
 
-let lt si1 si2 = Rel { rel = Lt; lhs = si1; rhs = si2 }
-let eq si1 si2 = Rel { rel = Eq; lhs = si1; rhs = si2 }
+let make_lt si1 si2 = Rel { rel = Lt; lhs = si1; rhs = si2 }
+let make_eq si1 si2 = Rel { rel = Eq; lhs = si1; rhs = si2 }
 
 (* define a conditional constraint [if cond1 then c1 else ... else cn] *)
 let rec if_list def_cond_sc_list =
@@ -462,11 +473,11 @@ let rec matches { Zelus.pat_desc } si =
 let rec decreases actual_si_list expected_si_list =
   match actual_si_list, expected_si_list with
   | [], [] -> True
-  | [actual_si], [expected_si] -> lt actual_si expected_si
+  | [actual_si], [expected_si] -> make_lt actual_si expected_si
   | actual_si :: actual_si_list, expected_si :: expected_si_list ->
-     conditional (lt actual_si expected_si) True
+     conditional (make_lt actual_si expected_si) True
        (conditional 
-          (eq actual_si expected_si) 
+          (make_eq actual_si expected_si) 
           (decreases actual_si_list expected_si_list) False)
   | _ -> assert false
 

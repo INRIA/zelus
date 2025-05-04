@@ -431,7 +431,7 @@ let rec unify expected_ty actual_ty =
 	    else raise Unify
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
-           if not (Sizes.compare Defsizes.Eq si1 si2) then raise Unify
+           if not (Sizes.eq si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when
                (List.length id_list1) = (List.length id_list2) ->

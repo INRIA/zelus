@@ -41,6 +41,8 @@ type 'e constraints =
   | Loc of Location.t * 'e constraints
   (* localisation of errors *)
 
+and file_name = string (* name of the file *)
+
 and 'a eq = { rel: rel; lhs: 'a; rhs: 'a }
 and rel = Eq | Lt | Lte
 

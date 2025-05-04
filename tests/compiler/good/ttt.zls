@@ -19,6 +19,12 @@ let j() =
 
 let f<<n,i>>(x:[n]'a) = x.(i)
 
+let g<<n>>(x:[n]'a) =
+  forward(n)[i]() returns (oi)
+    do oi = f<<n,42>>(x) done
+
+let main() = g<<2>>[|1;2|]
+
 (* let f<<n>>[i](x:[n]'a) = x.(i) *)
 (* let f<<n,m>>[i][j](x) = x.(i).(j) *)
 
@@ -33,15 +39,3 @@ let h<<n>>(x:[42]'a) =
   forward(42)[i]() returns (oi)
     do oi = f<<42,41>>(x)  done
 
-(* f : <<n,i0>>.[n]'a -> 'a with i0 < n *)
-(* f<<i,i+2>>: [i]'a -> 'a with let n = i and i0 = i+2 in i0 < n *)
-(* x : [42]a. Donc on ajoute (i = 42) && (let n = i and i0 = i+2 in i0 < n *)
-
-let g<<n>>(x:[n]'a) =
-  forward(n)[i]() returns (oi)
-    do oi = f<<n,1>>(x) done
-
-let main() = g<<2>>[|1;2|]
-
-(* verifier le typage des tailles car ce programme ne devrait pas etre accepte *)
-(* i+2 doit etre < i *)

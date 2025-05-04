@@ -248,7 +248,11 @@ let message loc kind =
       output_location loc
       actual_number expected_number
  | Esize_constraints_not_true { env; sc_top; loc_local; sc_local } ->
-    let fprint_v ff i = Format.fprintf ff "%d" i in
+    let print_env ff h =
+      let l = Env.to_list h in
+      Pp_tools.print_list_r 
+        (fun ff (x, v) -> Format.fprintf ff "@[%a = %d@]" Ident.fprint_t x v) 
+        "" "," "" ff l in
     eprintf
       "@[<hov 0>%aType error: at this point, the following \
        size constraint:\n%a@.\n\
@@ -264,7 +268,7 @@ let message loc kind =
        output_location loc
        Ptypes.constraints_t sc_top
        Ptypes.constraints_t sc_local
-       (Ident.Env.fprint_t fprint_v) env
+       print_env env
        output_location loc_local       
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      let module Printer = Printer.Make(Typinfo) in
