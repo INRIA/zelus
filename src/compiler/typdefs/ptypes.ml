@@ -124,7 +124,7 @@ let constraints_t ff sc =
           (Ident.name id) (size 0) e (constraint_t 0) sc
     | True -> fprintf ff "true"
     | False -> fprintf ff "false"
-    | Loc(loc, sc) -> constraint_t prio ff sc
+    | Loc(_, sc) -> constraint_t prio ff sc
     end;
   if prio_current < prio then fprintf ff ")" in
   constraint_t 0 ff sc

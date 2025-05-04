@@ -347,7 +347,7 @@ let rec fv_constraints bounded acc sc =
 (* the result but it is more elegant to separate the two *)
 exception Fail of 
             Location.t (* closest location in the source that *)
-                       (* generate the constraint *)
+                        (* generate the constraint *)
             * int Env.t (* environment for size variables *)
             * exp constraints (* size expression *)
 let rec localize loc f_env n_env sc =
