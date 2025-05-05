@@ -17,7 +17,10 @@
 open Ident
 open Defsizes
 
-exception Maybe (* cannot decide if a constraint is true or false *)
+exception Maybe
+(* cannot decide if a constraint [sc] is true or false *)
+(* e.g., [sc] contains a free variable and the resolution algorithm *)
+(* not good enough *)
   
 (* normal form: some of products *)
 module SumOfProducts =
@@ -217,7 +220,8 @@ let compare loc cmp si1 si2 =
   with
   | Maybe ->
      (* add it to the constraint environment *)
-     Defsizes.add (Loc(loc, Rel { rel = cmp; lhs = si1; rhs = si2 })); true
+     Defsizes.add (Loc(Location.current_iname loc,
+                       Rel { rel = cmp; lhs = si1; rhs = si2 })); true
 
 (* syntactic equatity *)
 let syntactic_equal si1 si2 =
@@ -342,43 +346,57 @@ let rec fv_constraints bounded acc sc =
      fv bounded acc e
   | Loc(_, sc) -> fv_constraints bounded acc sc
 
-(* Localisation of errors. Only applied when a constraints is unsatisfied *)
-(* The check function and this functions could be merged, to avoid recomputing *)
-(* the result but it is more elegant to separate the two *)
-exception Fail of 
-            Location.t (* closest location in the source that *)
-                        (* generate the constraint *)
-            * int Env.t (* environment for size variables *)
-            * exp constraints (* size expression *)
-let rec localize loc f_env n_env sc =
+let localise f_env n_env sc =
   (* simplify an environment; keep only variables that are free in a size *)
   (* constraint *)
   let clear n_env sc =
     let acc = fv_constraints S.empty S.empty sc in
     Env.filter (fun x _ -> S.mem x acc) n_env in
-  match sc with
-  | True | False | Rel _ | App _ ->
-     let v = check f_env n_env sc in
-     if not v then raise (Fail(loc, clear n_env sc, sc))
-  | And(sc_list) -> List.iter (localize loc f_env n_env) sc_list
-  | Let(id_e_list, sc) ->
-     let n_env =
-       List.fold_left
-         (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
-         n_env id_e_list in
-     localize loc f_env n_env sc
-  | If(sc1, sc2, sc3) ->
-     if check f_env n_env sc1 then localize loc f_env n_env sc2 
-     else localize loc f_env n_env sc3
-  | Fix(id_id_list_sc_list, sc) ->
-     let f_env_final = letrec f_env n_env id_id_list_sc_list in
-     localize loc f_env_final n_env sc
-  | Forall(id, e, sc) ->
-     let rec for_all v f =
-       if v <= 0 then () else begin f v; for_all (v-1) f end in
-     let v = eval n_env e in
-     for_all (v-1) (fun v -> localize loc f_env (Env.add id v n_env) sc)
-  | Loc(loc, sc) -> localize loc f_env n_env sc    
+  (* Localisation of errors when a constraints is not satisfied *)
+  (* The check function and the localisation function could be merged *)
+  (* into one for better efficiency *)
+  let exception Error of 
+        { f_loc_list: Location.ft list; (* [floc1;...;flocn] *)
+          (* list of file/location in the source *)
+          (* to get constraint [sc] which is unsatisfied *)
+          (* in environment [env] *)
+          (* [floc1] is the closest *)
+          nested_env: int Env.t; (* environment for size variables *)
+          nested_sc: exp constraints
+                         (* the size expression that is not satisfied *)
+        } in
+  let rec localise f_loc_list f_env n_env sc =
+    match sc with
+    | True | False | Rel _ | App _ ->
+       let v = check f_env n_env sc in
+       let n_env = clear n_env sc in
+       if not v then
+         raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
+    | And(sc_list) -> List.iter (localise f_loc_list f_env n_env) sc_list
+    | Let(id_e_list, sc) ->
+       let n_env =
+         List.fold_left
+           (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
+           n_env id_e_list in
+       localise f_loc_list f_env n_env sc
+    | If(sc1, sc2, sc3) ->
+       if check f_env n_env sc1 then localise f_loc_list f_env n_env sc2 
+       else localise f_loc_list f_env n_env sc3
+    | Fix(id_id_list_sc_list, sc) ->
+       let f_env_final = letrec f_env n_env id_id_list_sc_list in
+       localise f_loc_list f_env_final n_env sc
+    | Forall(id, e, sc) ->
+       let rec for_all v f =
+         if v <= 0 then () else begin f v; for_all (v-1) f end in
+       let v = eval n_env e in
+       for_all (v-1) (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc)
+    | Loc(f_loc, sc) -> localise (f_loc :: f_loc_list) f_env n_env sc in
+  try
+    localise [] f_env n_env sc;
+    assert false
+  with
+    Error { f_loc_list; nested_env; nested_sc } ->
+    f_loc_list, nested_env, nested_sc
 
 let apply op si1 si2 =
   match si1, si2 with

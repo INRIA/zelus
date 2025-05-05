@@ -56,9 +56,15 @@ type error =
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
-      (* [let env in sc_top[...sc_local at loc_local]] *)
-      { env: Defsizes.env; sc_top: Defsizes.exp Defsizes.constraints;
-        loc_local: Location.t; sc_local: Defsizes.exp Defsizes.constraints }
+      (* [top_sc[... nested_sc ...] *)
+      { f_loc_list: Location.ft list;
+        (* list of file/location to the error *)
+        top_sc: Defsizes.exp Defsizes.constraints;
+        (* unsatisfied constraint *)
+        nested_env: int Env.t; (* the local environment *)
+        nested_sc: Defsizes.exp Defsizes.constraints;
+        (* the nested unsatisfied constraint *)
+      }
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Esize_parameter_mutually_recursive_definitions of int * int
   | Econstr_arity of Lident.t * int * int
@@ -247,7 +253,7 @@ let message loc kind =
        (this function has %d parameters while one has %d parameters).@.@]"
       output_location loc
       actual_number expected_number
- | Esize_constraints_not_true { env; sc_top; loc_local; sc_local } ->
+ | Esize_constraints_not_true { f_loc_list; top_sc; nested_env; nested_sc } ->
     let print_env ff h =
       let l = Env.to_list h in
       Pp_tools.print_list_r 
@@ -255,26 +261,26 @@ let message loc kind =
         "" "," "" ff l in
     eprintf
       "@[<hov 0>%aType error: at this point, the following \
-       size constraint:\n%a@.\n\
-       is false. This is because the sub-constraint:\n\n%a@.\n\
-       is false since:\n\n%a@.\n\
-       This sub-constraint comes from the following \
-       sub-expression@ in the source code:\n\n%a@ \
+       size constraint is false:\n%a@,\n\
+       This is because the following nested constraint is false:\n\n%a@,\n\
+       where the value of free variables is:\n\n%a@,\n\
+       This nested constraint comes from the sequence of \
+       expressions@ in the source code:\n\n%a@ \
        Overall, a size constraint is false either because@ \
        an array element is accessed out of the bounds,@ \
        or the actual size of an array does not match an expected size,@ \
        or the size argument of a recursive function does not @ \
-       decrease strictly for the lexicographic order.\n@]"
+       decrease strictly for the lexicographic order.@.@]"
        output_location loc
-       Ptypes.constraints_t sc_top
-       Ptypes.constraints_t sc_local
-       print_env env
-       output_location loc_local       
+       Ptypes.constraints_t top_sc
+       Ptypes.constraints_t nested_sc
+       print_env nested_env
+       output_location_list f_loc_list
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      let module Printer = Printer.Make(Typinfo) in
      eprintf
        "@[%aType error: the type constructor %a expects %d argument(s),@ \
-        but is here given %d arguments(s).\n"
+        but is here given %d arguments(s).@.@]"
        output_location loc
        Printer.longname ln
        expected_arity
@@ -282,7 +288,7 @@ let message loc kind =
  | Esizefun_and_equations_are_mixed ->
     eprintf
       "@[%aType error: definitions of (stream) equations and size functions \
-       are mixed.\n"
+       are mixed.@.@]"
        output_location loc
   end;
   raise Misc.Error

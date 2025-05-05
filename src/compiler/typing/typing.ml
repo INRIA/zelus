@@ -192,14 +192,15 @@ let check_if_possible loc sc =
     let r = 
       if Sizes.check Env.empty Env.empty sc then ()
       else 
-        try Sizes.localize loc Env.empty Env.empty sc
-        with | Sizes.Fail(loc_local, env, sc_local) ->
-                error loc 
-                  (Esize_constraints_not_true { env; sc_top = sc;
-                                                loc_local; sc_local })
+        (* [sc] is surely false *)
+        let f_loc_list, nested_env, nested_sc =
+          Sizes.localise Env.empty Env.empty sc
+        in error loc 
+             (Esize_constraints_not_true
+                { f_loc_list; top_sc = sc; nested_env; nested_sc })
     in r
   with
-  | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(loc, sc))
+  | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(Location.current_iname loc, sc))
 
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
@@ -670,7 +671,7 @@ let match_size_handlers
 
   (* add a conditional constraints [if pi matches si then c1 else ...] *)
   let sc = Sizes.if_list c_list in
-  Defsizes.add (Defsizes.Loc(loc, sc));
+  Defsizes.add (Defsizes.Loc(Location.current_iname loc, sc));
   let defined_names_list =
     if is_total then defined_names_list
     else Defnames.empty :: defined_names_list in

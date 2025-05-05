@@ -38,7 +38,7 @@ type 'e constraints =
   | Forall of Ident.t * 'e * 'e constraints
   (* forall i in e .. e do c *)
   | True | False
-  | Loc of Location.t * 'e constraints
+  | Loc of Location.ft * 'e constraints
   (* localisation of errors *)
 
 (* and filename = string (* name of the file *) *)
