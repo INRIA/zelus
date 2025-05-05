@@ -1,7 +1,3 @@
-let f n x =
-  local o default true with (&&)
-  do
-   forall i in 0 .. n, xi in x do
-     o += xi
-   done
-  in o
+let f<<n>> (x:[n]'a) =
+  forward(xi in x) returns (o init 0)
+    do o = last o + xi done

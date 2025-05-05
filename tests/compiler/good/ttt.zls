@@ -1,41 +1,10 @@
-let f0<<n>>(x) = forward(n)(xi in x) returns ([|oi|])
-                   do oi = xi + 1 done
-
-let rec f1<<n>>(x) = match size n with | 0 -> x | m -> f1<<m-1>>(x) + x
-
-let f2<<n>>(x:[n]'a) =
-  forward(n)[i]() returns ([|oi|])
-    do oi = forward(n)[j]() returns ([|oi|])
-             do oi = x.(i) + x.(n - 1 - j) done
-    done
+let reverse<<n>>(x:[n]int) returns (o:[n]int)
+  forward[i] returns (oi out o)
+    do oi = x.(i) done
     
-let f3(x) = f2<<42>>(x)
 
-let j() =
-  forward(42)[i]() returns (oi)
-   do oi = f1<<42>>(0) done
-
-(* n et i sont des tailles. n est une taille statique; i est une taille bornee *)
-
-let f<<n,i>>(x:[n]'a) = x.(i)
-
-let g<<n>>(x:[n]'a) =
-  forward(n)[i]() returns (oi)
-    do oi = f<<n,42>>(x) done
-
-let main() = g<<2>>[|1;2|]
-
-(* let f<<n>>[i](x:[n]'a) = x.(i) *)
-(* let f<<n,m>>[i][j](x) = x.(i).(j) *)
-
-(* let f<<i:n,j:m>>(x:[n]a) = x.(i).(j) *)
-
-(* f<<i:n,j:m>>(y) *)
-(* let f<<n:[i]>>(x) = x.(i) *) 
-(* let f<<n>>(i:[n])(x:[n]'a) = x.(i) *)
-(* Pour les tailles, il y a deux sortes: constante ou bornee. *)
-
-let h<<n>>(x:[42]'a) =
-  forward(42)[i]() returns (oi)
-    do oi = f<<42,41>>(x)  done
-
+(*
+let f n (x:[n]'a) =
+  forward[i](xi in x) returns (o init 0)
+    do o = last o + xi + x.(i) done
+*)

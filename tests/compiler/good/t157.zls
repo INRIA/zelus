@@ -1,0 +1,53 @@
+let f0<<n>>(x) = forward(n)(xi in x) returns ([|oi|])
+                   do oi = xi + 1 done
+
+let rec f1<<n>>(x) = match size n with | 0 -> x | m -> f1<<m-1>>(x) + x
+
+let f2<<n>>(x:[n]'a) =
+  forward(n)[i](xi in x) returns ([|oi|])
+    do oi = forward(n)[j]() returns ([|oi|])
+             do oi = xi + x.(i) + x.(n - 1 - j) done
+    done
+
+let transpose<<n,m>>(x:[n]([m]'a)) returns (o:[m]([n]'a))
+  forward(m)[i] returns (oi out o)
+    do forward(n)[j] returns (oij out oi)
+         do oij = x.(j).(i) done
+    done
+
+let transpose'<<n,m>> x = transpose<<n+1, m+1>>(x)
+
+let transpose''_2_4 x = transpose'<<2, 4>>(x)
+
+let f3(x) = f2<<42>>(x)
+
+let j() =
+  forward(42)[i]() returns (oi)
+   do oi = f1<<42>>(0) done
+
+(* in the following, [n] and [i] are sizes which must be bounded. Moreover *)
+(* [i < n] *)
+let f<<n,i>>(x:[n]'a) = x.(i)
+
+let g<<n>>(x:[n]'a) =
+  forward(n)[i]() returns (oi)
+    do oi = f<<n,1>>(x) done
+
+let main() = g<<2>>[|1;2|]
+
+(* the system not not allow for the moment to define a function which *)
+(* takes a size and an index, that is, an integer (positive) variable bounded *)
+(* by a size *)
+(* E.g., [let f<<n>>(x:[n]'a)(i) = x.(i)] is rejected *)
+(*
+*- let f<<n>>[i](x:[n]'a) = x.(i)
+*- let f<<n,m>>[i][j](x) = x.(i).(j)
+
+*- let f<<i:n,j:m>>(x:[n]a) = x.(i).(j)
+
+One idea could be to write:
+
+let f <<i:n>>(x:[n]'a) = x.(i)
+
+then, e.g.: f <<i:n>>(x) *)
+

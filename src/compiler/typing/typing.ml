@@ -1707,6 +1707,7 @@ and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
       (for_out_t expected_k size_opt h) (Env.empty, Tfun(Tconst)) for_out in
+  let h_out_ = Env.to_list h_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
@@ -1802,6 +1803,7 @@ and forloop_eq loc expected_k h
   ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
+  let h_ = Env.to_list h in
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
   let size_opt, k_size = for_size_t expected_k h for_size in
@@ -1817,7 +1819,7 @@ and forloop_eq loc expected_k h
   (* push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t expected_k_for_body h for_kind in
-  let h_out, actual_k_for_body =
+  let d_names, actual_k_for_body =
     for_eq_t expected_k_for_body size_opt h for_body in
   (* pop the current size constraint *)
   Util.optional_unit
@@ -1829,7 +1831,7 @@ and forloop_eq loc expected_k h
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
-  h_out, actual_k
+  d_names, actual_k
 
 (* A size function definition [f<<n,...>> = e] has type *)
 (* <<n,...>>.ty_body with c] where [c] constraints [n,...] *)

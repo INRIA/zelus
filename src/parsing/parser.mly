@@ -1279,6 +1279,7 @@ index:
 /* input in a for loop */
 input_list:
   | LPAREN l = empty(list_of(COMMA, localized(input_desc))) RPAREN { l }
+  | { [] }
 ;
 
 input_desc:

@@ -30,3 +30,15 @@ let rec dicho2<<n>>(v, x:[n]'a) =
 
 let main_3(x: [5]int) = dicho2<<5>>(0, x)
 
+let rec node buffer<<n>>(x) =
+  match size n with
+  | 0 -> x
+  | _ -> x fby (buffer<<n-1>>(x))
+
+let node buff3(x) = buffer<<3>>(x)
+
+let node make<<n>>(x) returns (o:[n]'a)
+  forward(n) returns (oi out o)
+    do oi = x done
+
+
