@@ -267,6 +267,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token EOF
 
 %right MINUSGREATER VFUN SFUN DFUN CFUN AFUN
+%nonassoc RBRACKET
 %nonassoc prec_result
 %left WHERE AND
 %nonassoc EMIT
@@ -750,6 +751,8 @@ scondpat_desc :
       { Econdpat(e, p) }
   | e = simple_expression
       { Econdexp(e) }
+  | UP e = simple_expression
+      { Econdexp (make (Eop(Eup, [e])) $startpos $endpos) }
   | scpat1 = scondpat AMPERSAND scpat2 = scondpat
       { Econdand(scpat1, scpat2) }
   | scpat1 = scondpat BAR scpat2 = scondpat
@@ -1443,9 +1446,8 @@ type_expression:
   | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
 			    a = arrow t_res = type_expression
     { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos }
-  | LBRACKET s = size_expression RBRACKET t = simple_type
+  | LBRACKET s = size_expression RBRACKET t = type_expression
     { make(Etypevec(t, s)) $startpos $endpos }
-
 ;
 
 simple_type:
