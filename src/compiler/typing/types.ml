@@ -42,9 +42,6 @@ let product ty_list =
 (* vectors are of size zero at this stage *)
 let typ_vec ty = make (Tvec(ty, Sint 0))
 let vec ty e = make (Tvec(ty, e))
-(* let vec_opt ty size_opt =
-  match size_opt with
-  | None -> ty | Some(size) -> vec ty size *)
 (* <<id,...>>.t with f(id,...) *)
 let size_app sf_id id_list =
   App(sf_id, List.map (fun id -> Svar(id)) id_list)

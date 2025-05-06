@@ -57,7 +57,8 @@ module Env =
     
     let fprint_t fprint_v ff env =
       Format.fprintf ff "@[<hov 2>{@ ";
-      iter (fun k v -> Format.fprintf ff "@[%a: %a,@]@ " M.fprint k fprint_v v) 
+      iter (fun k v ->
+          Format.fprintf ff "@[%a = %a,@]@ " M.fprint k fprint_v v) 
         env;
       Format.fprintf ff "}@]"
   end

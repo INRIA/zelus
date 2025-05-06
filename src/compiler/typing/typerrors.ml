@@ -259,27 +259,25 @@ let message loc kind =
       output_location loc
       actual_number expected_number
  | Esize_constraints_not_true { f_loc_list; top_sc; nested_env; nested_sc } ->
-    let print_env ff h =
-      let l = Env.to_list h in
-      Pp_tools.print_list_r 
-        (fun ff (x, v) -> Format.fprintf ff "@[%a = %d@]" Ident.fprint_t x v) 
-        "" "," "" ff l in
     eprintf
-      "@[<hov 0>%aType error: at this point, the following \
-       size constraint is false:\n%a@,\n\
-       This is because the following nested constraint is false:\n\n%a@,\n\
-       where the value of free variables is:\n\n%a@,\n\
+      "@[<hov0>%aType error: at this point, the following \
+       size constraint is false:\n@[%a@]@,\
+       This is because the following nested constraint is false:\n\n@[%a@]@,\
+       where the value for the free variables@ %a@ \
+       is:\n\n@[%a@]@,\
        This nested constraint comes from the sequence of \
-       expressions@ in the source code:\n\n%a@ \
+       expressions@ in the source code:\n\n@[%a@]@,\
        Overall, a size constraint is false either because@ \
-       an array element is accessed out of the bounds,@ \
-       or the actual size of an array does not match an expected size,@ \
+       an array element is accessed out of the bounds,@,\
+       or the actual size of an array does not match an expected size,@,\
        or the size argument of a recursive function does not @ \
        decrease strictly for the lexicographic order.@.@]"
        output_location loc
        Ptypes.constraints_t top_sc
        Ptypes.constraints_t nested_sc
-       print_env nested_env
+       Ident.S.fprint_t
+         (Sizes.fv_constraints Ident.S.empty Ident.S.empty nested_sc)
+       (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env
        output_location_list f_loc_list
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      let module Printer = Printer.Make(Typinfo) in

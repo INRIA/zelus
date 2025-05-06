@@ -187,7 +187,27 @@ let rec expansive { eq_desc } =
 and expansive_list eq_list = List.exists expansive eq_list
 
 (* check size constraints *)
-let check_if_possible loc sc =
+let check_size_constraint loc sc =
+  try
+    let r = 
+      if Sizes.check Env.empty Env.empty sc then ()
+      else 
+        (* [sc] is surely false *)
+        let f_loc_list, nested_env, nested_sc =
+          Sizes.localise Env.empty Env.empty sc
+        in error loc 
+             (Esize_constraints_not_true
+                { f_loc_list; top_sc = sc; nested_env; nested_sc })
+    in r
+  with
+  | Sizes.Maybe ->
+     error loc 
+             (Esize_constraints_not_true
+                { f_loc_list = []; top_sc = sc; nested_env = Env.empty;
+                  nested_sc = sc })
+
+(* check size constraints *)
+let check_size_constraint_if_possible loc sc =
   try
     let r = 
       if Sizes.check Env.empty Env.empty sc then ()
@@ -1047,7 +1067,7 @@ and size_apply loc expected_k h f si_list =
         Sizes.apply sc si_list
       else Sizes.let_in env sc in
     (* try to evaluate the size constraints *)
-    check_if_possible loc sc;
+    check_size_constraint_if_possible loc sc;
     ty, Tfun(Tconst)
   else
     error f.e_loc (Earity_clash(actual_arit, expected_arit))
@@ -1645,7 +1665,7 @@ and forloop_exp loc expected_k h
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_if_possible loc (Forall(i, si, sc))) () for_index;
+      check_size_constraint_if_possible loc (Forall(i, si, sc))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1711,7 +1731,6 @@ and for_eq_t expected_k size h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
       (for_out_t expected_k size h) (Env.empty, Tfun(Tconst)) for_out in
-  let h_out_ = Env.to_list h_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
@@ -1808,7 +1827,6 @@ and forloop_eq loc expected_k h
   ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
-  let h_ = Env.to_list h in
   let expected_k_for_body =
     if for_resume then expected_k else Tnode(Tdiscrete) in
   let size_opt, k_size = for_size_t expected_k h for_size in
@@ -1836,7 +1854,7 @@ and forloop_eq loc expected_k h
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_if_possible loc (Forall(i, si, sc))) () for_index;
+      check_size_constraint_if_possible loc (Forall(i, si, sc))) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1889,6 +1907,10 @@ let implementation ff is_first impl =
          else
            Interface.update_type_of_value ff loc n is_const t_tys in
 
+       (* check that no size constraints remain in the stack *)
+       let l = Defsizes.to_seq () in
+       Seq.iter (check_size_constraint loc) l;
+       
        (* update the global environment *)
        List.iter setenv d_names;
        impl
