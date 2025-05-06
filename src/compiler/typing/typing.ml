@@ -1624,18 +1624,22 @@ and forloop_exp loc expected_k h
   let h_input, actual_k_input, size_opt = 
     List.fold_left (for_input_t expected_k h)
       (Env.empty, Tfun(Tconst), size_opt) for_input in
-  let h = Env.append h_input h in
-
+  
   let h_index = for_index_t expected_k for_index in
   let h_env = Env.append h_index h_input in
   let h = Env.append h_env h in
+
+  (* the size must be determined at this point *)
+  let size =
+    match size_opt with | None -> error loc Esize_is_undetermined
+                        | Some(size) -> size in
 
   (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
   (* push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
-    for_exp_t expected_k_for_body h size_opt for_body in
+    for_exp_t expected_k_for_body h size for_body in
   (* pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
@@ -1648,14 +1652,14 @@ and forloop_exp loc expected_k h
   f.for_env <- h_env;
   actual_ty, actual_k
 
-and for_exp_t expected_k h size_opt for_exp =
+and for_exp_t expected_k h size for_exp =
   let ty_res, k = match for_exp with
     | Forexp { exp; default } ->
        let actual_ty, k_exp = expression expected_k h exp in
        let k_default =
          Util.optional_with_default
            (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
-       Types.vec_opt actual_ty size_opt, Kind.sup k_exp k_default
+       Types.vec actual_ty size, Kind.sup k_exp k_default
     | Forreturns({ r_returns; r_block } as r) ->
        let h_returns, k_returns =
          List.fold_left (for_vardec expected_k h)
@@ -1664,16 +1668,16 @@ and for_exp_t expected_k h size_opt for_exp =
        let h0, h, d_names, k_block = block_eq expected_k h r_block in
        (* annotation *)
        r.r_env <- h_returns;
-       type_of_for_vardec_list size_opt r_returns, Kind.sup k_returns k_block in
+       type_of_for_vardec_list size r_returns, Kind.sup k_returns k_block in
   ty_res, k
 
 and for_vardec expected_k h (acc_h, acc_k) { desc = { for_vardec } } =
   vardec expected_k h (acc_h, acc_k) for_vardec
 
-and type_of_for_vardec_list size_opt n_list =
+and type_of_for_vardec_list size n_list =
   let type_of { desc = { for_array; for_vardec } } =
     let ty = type_of_vardec for_vardec in
-    Types.vec_n for_array ty size_opt in
+    Types.vec_n for_array ty size in
   type_of_n_list type_of n_list
 
 and for_size_t expected_k h for_size_opt =
@@ -1703,10 +1707,10 @@ and for_index_t expected_k for_index_opt =
         (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
-and for_eq_t expected_k size_opt h ({ for_out; for_block } as f) =
+and for_eq_t expected_k size h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
-      (for_out_t expected_k size_opt h) (Env.empty, Tfun(Tconst)) for_out in
+      (for_out_t expected_k size h) (Env.empty, Tfun(Tconst)) for_out in
   let h_out_ = Env.to_list h_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
@@ -1725,7 +1729,7 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   let name = match for_out_name with | None -> for_name | Some(x) -> x in
   Defnames.union (Defnames.singleton name) acc
 
-and for_out_t expected_k size_opt h (acc_h, acc_k)
+and for_out_t expected_k size h (acc_h, acc_k)
       { desc = ({ for_name; for_out_name; for_init; for_default } as v); loc } =
   let ty = Types.new_var () in
   let actual_k_default =
@@ -1738,6 +1742,7 @@ and for_out_t expected_k size_opt h (acc_h, acc_k)
       (fun e -> stateful e.e_loc expected_k;
                 expect (Tnode(Tdiscrete)) h e ty)
       (Tfun(Tconst)) for_init in
+
   let actual_k = Kind.sup actual_k_default actual_k_init in
   let t_sort = intro expected_k for_init for_default in
   let entry =
@@ -1748,7 +1753,7 @@ and for_out_t expected_k size_opt h (acc_h, acc_k)
       (fun x -> (* xi out x *)
         (* find the type of [x] in [h] *)
         let ty_x = Types.instance (typ_of_var loc h x) in
-        let ty_out = Types.vec_opt ty size_opt in
+        let ty_out = Types.vec ty size in
         unify loc ty_out ty_x; ty_out) ty for_out_name in
     (* annotation *)
     v.for_info <- Typinfo.set_type v.for_info ty_out;
@@ -1815,12 +1820,17 @@ and forloop_eq loc expected_k h
   let h_env = Env.append h_index h_input in
   let h = Env.append h_env h in
   
+  (* the size must be determined at this point *)
+  let size =
+    match size_opt with | None -> error loc Esize_is_undetermined
+                        | Some(size) -> size in
+
   (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
   (* push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
-    for_eq_t expected_k_for_body size_opt h for_body in
+    for_eq_t expected_k_for_body size h for_body in
   (* pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->

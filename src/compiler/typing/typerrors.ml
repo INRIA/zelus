@@ -53,6 +53,7 @@ type error =
   | Eapplication_of_non_function
   | Epattern_not_total
   | Enot_a_size_expression
+  | Esize_is_undetermined 
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
@@ -219,6 +220,10 @@ let message loc kind =
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
        output_location loc
+ | Esize_is_undetermined ->
+    eprintf
+      "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
+      output_location loc
  | Esize_of_vec_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \

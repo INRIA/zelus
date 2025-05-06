@@ -42,9 +42,9 @@ let product ty_list =
 (* vectors are of size zero at this stage *)
 let typ_vec ty = make (Tvec(ty, Sint 0))
 let vec ty e = make (Tvec(ty, e))
-let vec_opt ty size_opt =
+(* let vec_opt ty size_opt =
   match size_opt with
-  | None -> ty | Some(size) -> vec ty size
+  | None -> ty | Some(size) -> vec ty size *)
 (* <<id,...>>.t with f(id,...) *)
 let size_app sf_id id_list =
   App(sf_id, List.map (fun id -> Svar(id)) id_list)
@@ -53,8 +53,8 @@ let intro_sizefun sf_id id_list id_rec_list ty =
                    is_rec = true })
 let sizefun id_list ty constraints is_rec =  
   make (Tsizefun { id_list; ty; constraints; is_rec })
-let rec vec_n n ty size_opt =
-  if n <= 0 then ty else vec_n (n-1) (vec_opt ty size_opt) size_opt
+let rec vec_n n ty size =
+  if n <= 0 then ty else vec_n (n-1) (vec ty size) size
 let arrow_type ty_kind ty_name_opt ty_arg ty_res =
   make (Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res })
 let rec arrow_type_list k ty_arg_list ty_res =
