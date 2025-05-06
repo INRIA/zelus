@@ -1,4 +1,9 @@
-(* dune exec -- zeluc t0.zls *)
+let reverse<<n>>(x:[n]int) returns (o:[n]int)
+  forward(n)[i] returns (oi out o)
+    do oi = x.(n - i) done
+
+let rev_42(x) = reverse<<42>>(x)
+
 let fix f x = let rec y = f x y in y
 
 let const map__ <<n>> f x y = forward(n) (xi in x, yi in y) returns ([|zi|])

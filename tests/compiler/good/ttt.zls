@@ -1,10 +1,5 @@
-let reverse<<n>>(x:[n]int) returns (o:[n]int)
-  forward[i] returns (oi out o)
-    do oi = x.(i) done
-    
 
-(*
 let f n (x:[n]'a) =
   forward[i](xi in x) returns (o init 0)
     do o = last o + xi + x.(i) done
-*)
+
