@@ -1,3 +1,6 @@
+
+
+
 let f<<n>> (x:[n]'a) =
   forward(xi in x) returns (o init 0)
     do o = last o + xi done
