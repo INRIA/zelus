@@ -30,7 +30,7 @@ let hybrid f2 () = o where
   end
   and init o = 0.0
 
-let p = 0.1
+
 
 let hybrid timer p = z where
   rec der t = 1.0 init 0.0 reset z -> 0.0 and z = up(last t -. p)

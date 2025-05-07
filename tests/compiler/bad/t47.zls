@@ -1,1 +1,0 @@
-let node f() = i where rec next i = i

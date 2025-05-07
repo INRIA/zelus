@@ -1,7 +1,0 @@
-(* boucle de causalite *)
-let hybrid g(x) = o where
-  rec match x with
-      | true -> do o = last o + 1 done
-      | false -> do o = 1 done
-      end
-      

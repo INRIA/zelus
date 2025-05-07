@@ -1,8 +1,0 @@
-(*
-  This program should be rejected. Both because it has a causality
-  loop and has an initialization issue.
-*)
-
-let node f () =
-  let rec init x = last x in x 
-

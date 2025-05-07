@@ -12,9 +12,9 @@ let node f2(x) = x + 2
 
 let node h g x = g(x+1) + g(x+2)
 
-let node boucle n x = 
+let node boucle<<n>>(x:[n]'a) = 
   local o
-  do forall i in 0 .. n, x_i in x, o_i out o do
+  do forward[i](x_i in x) returns (o_i out o) do
        o_i = f1(x_i) + i
      done in
   o
@@ -26,88 +26,47 @@ let node main1(x) = f(1+2)(x)
 let node main(x, t) =
   let r = (compose f1 f2)(x + 1) + f1(x+2) + f1(x+3)
       + (higher f3 f1) (1+4) (5+x) + (f (add(1, 2)))(x) in
-  ((boucle(42 + 1))(t)).(2) + r + main1(x)
+  (boucle<<42 + 1>>(t)).(2) + r + main1(x)
 
-let node map(f)(n)(t) = t' where
-  rec forall i in 0 .. (n-1), ti in t, ti' out t' do
-	 ti' = run f ti
-      done
+let node map<<n>>(const f)(t:[n]'a) = t' where
+  rec forward (t_i in t) returns (t'_i out t')
+	do t'_i = run f t_i done
 
 let node g x = x + x
 
-let node map_g(t) = map g (42+2) t
+let node map_g(t) = map<<42+2>>(g)(t)
     
-let f42 n t1 = t where rec
-  forall i in 0 .. n, t_i in t1, t out t do
-    t = t_i + 1 and x = 2
-  initialize
-    last x = 0
+let f42<<n>> t1 = t where rec
+  forward[i](t_i in t1) returns (ti out t, x init 0) do
+    ti = t_i + 1 and x = 2
   done
 	
 
-
-let sum_array n (t1, t2) = t where
-  forall i in 0 .. n, x in t1, y in t2, z out t do
+let sum_array<<n>> (t1, t2) returns (t)
+  forward[i](x in t1, y in t2) returns (z out t) do
       z = x + y
   done
 
 let sum_array2 t = (sum_array (42+42))(t, t)
 
-let node loop n () =
-  local m, m_i
-  do init m = 0 and m = m_i
-  and forall i in 0 .. n
-      do
-        m_i = last m_i + 1
-      initialize
-        last m_i = last m + 1
-      done in
-  m
+let node loop<<n>> () =
+  forward(n)[i] returns (m init 0) do m = last m + 1 done
 
-let node loop_42 () = loop 42 () + loop 43 ()
+let node loop_42 () = loop<<42>> () + loop<<43>> ()
 
-let node window n x =
-  local t, m
-  do forall i in 0 .. n, t_i out t do
-       m = 0 fby (last m) and t_i = m
-     initialize
-       last m = x
-     done in
-  t
-
-let scalar n (t1, t2) =
-  local o
-  do forall i in 0 .. n, x in t1, y in t2 do
-       o = last o + x * y
-     initialize
-       last o = 0
-     done
-in o
+let scalar<<n>> (t1, t2) =
+  forward[i](x in t1, y in t2) returns (o init 0)
+    do o = last o + x * y done
     
-let transpose n m (m1 : int[n+1][m+1]) = (m2) where rec
-  forall i in 0 .. n, m2_i out m2 do
-    forall j in 0 .. m, m1_j in m1, m2_i_j out m2_i do
-      m2_i_j = m1_j.(i) done
-    done
-  
-let sum_matrix n m (m1, m2) = (m3) where rec
-    forall i in 0 .. n, m1_i in m1, m2_i in m2, m3_i out m3 do
-      forall j in 0 .. m, m1_i_j in m1_i, m2_i_j in m2_i, m3_i_j out m3_i do
-	m3_i_j = m1_i_j + m2_i_j
-      done
-    done
-
-let init0 n (t) = (t') where rec
-  forall i in 0 .. n, t_i in t, t_i' out t' do
-    t_i' = t_i + i
-  done
-
-let matrix n m (m1, m2) = (m3) where rec
-  forall j in 0 .. n, m2_j in m2, m3_j out m3 do
-    (* m3_j = matrix_with_vector m1 m2_j *)
-    forall i in 0 .. m, m1_i in m1, m3_j_i out m3_j do
-      (* scalar product *)
-      m3_j_i = (scalar m)(m1_i, m2_j)
-    done
+let transpose<<n,m>>(m1 : [n][m]'a) returns (m2:[m][n]'a)
+ forward[i]() returns (m2_i out m2) 
+   do forward[j]() returns (m2_i_j out m2_i)
+        do m2_i_j = m1.(j).(i) done
    done
+   
+let sum_matrix<<n,m>>(m1, m2) = (m3) where rec
+    forward(m1_i in m1, m2_i in m2) returns (m3_i out m3)
+      do forward(m1_i_j in m1_i, m2_i_j in m2_i) returns (m3_i_j out m3_i)
+	   do m3_i_j = m1_i_j + m2_i_j done
+      done
 
