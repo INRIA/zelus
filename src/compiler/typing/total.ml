@@ -106,12 +106,12 @@ let merge loc h defnames_list =
 let join loc
 	 { dv = dv1; di = di1; der = der1 }
          { dv = dv2; di = di2; der = der2 } =
-  let dv1_ = S.to_list dv1 in
+  (* let dv1_ = S.to_list dv1 in
   let dv2_ = S.to_list dv2 in
   let di1_ = S.to_list di1 in
   let di2_ = S.to_list di2 in
   let der1_ = S.to_list der1 in
-  let der2_ = S.to_list der2 in
+  let der2_ = S.to_list der2 in *)
   let join k names1 names2 =
     let joinrec n acc = 
       if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
