@@ -234,6 +234,18 @@ let check_target_state loc expected_reset actual_reset =
        warning loc (Wreset_target_state(actual_reset, expected_reset));
      Some(expected_reset)
 
+(* Every shared variable defined in the initial state of an automaton *)
+(* left weakly is considered to be an initialized state variable. *)
+let turn_vars_into_memories h { dv } =
+  let add n acc =
+    let ({ t_sort = sort } as tentry) = Env.find n h in
+    match sort with
+    | Sort_mem({ m_init = No } as m) ->
+       Env.add n { tentry with t_sort = Sort_mem { m with m_init = Eq } } acc
+    | _ -> acc in
+  let first_h = S.fold add dv Env.empty in
+  first_h, Env.append first_h h
+
 (* Typing immediate values *)
 let immediate = function
   | Ebool _ -> Initial.typ_bool

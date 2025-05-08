@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -126,7 +126,7 @@ let join loc
   { dv = join Current dv1 dv2; di = join Initial di1 di2;
     der = join Derivative der1 der2 }
   
-(** Check that every variable defined in an automaton *)
+(* Check that every variable defined in an automaton *)
 (* has a definition or is a signal or its value can be implicitly kept *)
 module Automaton =
   struct
@@ -159,7 +159,7 @@ module Automaton =
         t_remaining: entry Env.t; (* other, non initial states *)
       }
     
-    (* observing function; for debugging purposes *)
+    (* observing function for debugging purposes *)
     let dump { t_initials; t_remaining } =
       let to_list defnames = S.to_list (Defnames.names S.empty defnames) in
       let entry (id, { e_state; e_trans }) =
@@ -182,7 +182,8 @@ module Automaton =
         state_handlers
 
     (* sets the [defined_names] for [state_name] *)
-    let add_state ({ t_initials; t_remaining } as table) defined_names state_name =
+    let add_state 
+          ({ t_initials; t_remaining } as table) defined_names state_name =
       let { e_loc; e_trans } as entry =
         try Env.find state_name t_initials
         with Not_found -> Env.find state_name t_remaining in
@@ -207,13 +208,15 @@ module Automaton =
       let d_ = dump table in ()
 
     let check ({ t_initials; t_remaining } as table) loc h =
-      let defnames_list =
+      let defnames_list_in_initial_states =
         Env.fold (fun _ { e_state } acc -> e_state :: acc) t_initials [] in
       let defnames_list =
         Env.fold
-          (fun _ { e_state } acc -> e_state :: acc) t_remaining defnames_list in
+          (fun _ { e_state } acc -> e_state :: acc) t_remaining 
+          defnames_list_in_initial_states in
       let defined_names = merge loc h defnames_list in
 
+      (* do the same for variables defined in transitions *)
       let defined_names_in_transitions =
         Env.fold (fun _ { e_trans } acc -> union e_trans acc) t_initials empty in
       let defined_names_in_transitions =
