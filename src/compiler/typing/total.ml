@@ -134,12 +134,10 @@ module Automaton =
       match statepat.desc with
         | Estate0pat(n) | Estate1pat(n, _) -> n
             
-    let state_names state =
-      let rec state_names acc { desc } =
-        match desc with
-        | Estate0(n) | Estate1(n, _) -> S.add n acc
-        | Estateif(_, se1, se2) -> state_names (state_names acc se1) se2 in
-      state_names S.empty state
+    let rec state_names acc { desc } =
+      match desc with
+      | Estate0(n) | Estate1(n, _) -> S.add n acc
+      | Estateif(_, se1, se2) -> state_names (state_names acc se1) se2
             
     (* build an initial table associating set of names to every state *)
     type entry = 
@@ -341,27 +339,41 @@ module Automaton =
     
     (* check that all states of the automaton are potentially accessible *)
     let check_all_states_are_accessible loc handlers se_opt = 
-      (* the name defined by the state declaration *)
-      let def_states acc { s_state = spat } =
-        let statepat { desc = desc } =
-	  match desc with | Estate0pat(n) | Estate1pat(n, _) -> n in
-        S.add (statepat spat) acc in
-      
-      (* the name defined by the call to a state *)
-      let called_states acc { s_trans = escape_list } =
-	let rec sexp acc { desc = desc } =
-	  match desc with
-          | Estate0(n) | Estate1(n, _) -> S.add n acc
-          | Estateif(_, se1, se2) -> sexp (sexp acc se1) se2 in
-	let escape acc { e_next_state = se } = sexp acc se in
-	List.fold_left escape acc escape_list in
+      (* fipoint *)
+      let rec fix f stop s =
+        if stop s then s else fix f stop (f s) in
 
+      (* the name defined by the state declaration *)
+      let statepat_name_of_handler { s_state = { desc } } =
+        match desc with | Estate0pat(n) | Estate1pat(n, _) -> n in
+      let called_states_of_handler { s_trans } =
+        (* the name defined by the call to a state *)
+        let called_states acc escape_list =
+	  let escape acc { e_next_state } = state_names acc e_next_state in
+	  List.fold_left escape acc escape_list in
+        called_states S.empty s_trans in
+
+      (* table that associate the list of potentially called states in state [n] *)
+      let table =
+        List.fold_left
+          (fun acc handler ->
+            Env.add (statepat_name_of_handler handler)
+              (called_states_of_handler handler) acc)
+          Env.empty handlers in
+
+      let next table acc =
+        S.fold
+          (fun n acc -> let r = try Env.find n table with Not_found -> S.empty in
+                        S.union acc r) acc S.empty in
+
+      (* the set of potential initial states *)
       let init_state_names =
         match se_opt with
         | None ->
            (* the first handler gives the initial state *)
-           def_states S.empty (List.hd handlers)
-        | Some(se) -> state_names se in
+           S.singleton (statepat_name_of_handler (List.hd handlers))
+        | Some(se) -> state_names S.emtpy se in                        
+
       let called_states =
 	List.fold_left called_states init_state_names handlers in
       let def_states = List.fold_left def_states S.empty handlers in
