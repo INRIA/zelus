@@ -773,7 +773,7 @@ let rec automaton_handlers
   let init_state_names =
     Total.Automaton.check_all_states_are_accessible loc handlers se_opt in
     
-  (* global table which associate the set of defined_names for every state *)
+  (* [table] associate the set of defined_names for every state *)
   let table = Total.Automaton.init_table is_weak init_state_names handlers in
 
   (* build the environment of states. *)
@@ -819,7 +819,10 @@ let rec automaton_handlers
       (* checks that [state] belond to the current set of [states] *)
       let actual_k_state =
         state_expression h env_of_states e_reset e_next_state in
-      (* checks that names are not defined twice in a state *)
+      (* add the transition. [state_names] is a set of states *)
+      (* which defines names in [defined_names]. If [is_weak = true] *)
+      (* [state_names] is the source state; otherwise, it is the set *)
+      (* of target states *)
       let state_names =
         if is_weak then S.singleton source_state
         else Total.Automaton.state_names e_next_state in
@@ -1132,6 +1135,8 @@ and operator expected_k h loc op e_list =
           Tnode(Tcont), [ty], Initial.typ_zero
        | Eup ->
           Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
+       | Einitial ->
+          Tnode(Tcont), [], Initial.typ_zero    
        | Eperiod ->
           Tfun(Tconst), [Initial.typ_float; Initial.typ_float],
           Types.zero_type expected_k

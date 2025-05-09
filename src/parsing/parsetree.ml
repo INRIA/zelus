@@ -90,6 +90,8 @@ type operator =
   (* period *)
   | Ehorizon : operator
   (* generate an event at a given horizon *)
+  | Einitial
+  (* true at the very first instant *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
   | Earray : array_operator -> operator

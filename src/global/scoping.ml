@@ -154,6 +154,7 @@ module Make (Info: INFO) =
       | Eatomic -> Zelus.Eatomic  
       | Etest -> Zelus.Etest
       | Eup -> Zelus.Eup
+      | Einitial -> Zelus.Einitial
       | Edisc -> Zelus.Edisc
       | Eperiod -> Zelus.Eperiod
       | Ehorizon -> Zelus.Ehorizon

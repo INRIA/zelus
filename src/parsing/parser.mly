@@ -1104,6 +1104,8 @@ expression_desc:
       { Eop(Eunarypre, [e]) }
   | e1 = simple_expression MINUSGREATER e2 = expression %prec prec_minus_greater
       { Eop(Eminusgreater, [e1; e2]) }
+  | INIT
+      { Eop(Einitial, []) }
   | UP e = expression
       { Eop(Eup, [e]) }
   | TEST e = expression

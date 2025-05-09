@@ -101,6 +101,8 @@ type operator =
   (* period - arity = 2 *)
   | Ehorizon 
   (* generate an event at a given horizon - arity = 1 *)
+  | Einitial
+  (* true at the very first instant - arity = 0 *)
   | Edisc 
   (* generate an event whenever x <> last x outside of integration *)
   | Earray of array_operator
