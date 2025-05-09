@@ -19,25 +19,24 @@
 open Ident
 open Zelus
 
-(* cost of operator. Values are random for the moment *)
+(* cost of operator. Values are dummy for the moment *)
 let rec operator acc op =
-  let op, acc = match op with
-    | Efby -> op, acc - 1
-    | Eunarypre -> op, acc - 1
-    | Eifthenelse -> op, acc - 1
-    | Eminusgreater -> op, acc - 1
-    | Eseq -> op, acc - 1
-    | Erun _ -> op, acc - 1
-    | Eatomic -> op, acc - 1
-    | Etest -> op, acc - 1
-    | Eup -> op, acc - 1
-    | Eperiod -> op, acc - 1
-    | Ehorizon -> op, acc - 1
-    | Edisc -> op, acc - 1
-    | Earray(op) ->
-       let op, acc = array_operator acc op in
-       Earray(op), acc in
-  if acc <= 0 then raise Exit else op, acc
+  let acc = match op with
+    | Efby -> acc - 2
+    | Eunarypre -> acc - 2
+    | Eifthenelse -> acc - 1
+    | Eminusgreater -> acc - 2
+    | Eseq -> acc 
+    | Erun _ -> acc 
+    | Eatomic -> acc 
+    | Etest -> acc - 1
+    | Eup -> acc - 2
+    | Einitial -> acc - 2
+    | Eperiod -> acc - 2
+    | Ehorizon -> acc - 2
+    | Edisc -> acc - 2
+    | Earray(op) -> array_operator acc op in
+  if acc <= 0 then raise Exit else acc
 
 and array_operator acc op =
   let v = match op with
@@ -51,12 +50,13 @@ and array_operator acc op =
     | Eflatten -> 1
     | Ereverse -> 1 in
   let acc = acc - v in
-  if acc <= 0 then raise Exit else op, acc
+  if acc <= 0 then raise Exit else acc
 
 let expression funs acc ({ e_desc } as e) =
   match e_desc with
   | Eop(op, e_list) ->
      let e_list, acc = Util.mapfold (Mapfold.expression_it funs) acc e_list in
+     let acc = operator acc op in
      { e with e_desc = Eop(op, e_list) }, acc
   | _ -> raise Mapfold.Fallback
 
