@@ -1,0 +1,8 @@
+for loops.
+
+Change the data type.
+
+- the tag "resume/reset" must be attached to the forward construct
+only. currently, the syntax allow forward resume ... (and not
+foreach resume which would be useless).
+
