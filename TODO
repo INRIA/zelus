@@ -6,3 +6,16 @@ Change the data type.
 only. currently, the syntax allow forward resume ... (and not
 foreach resume which would be useless).
 
+Add a reset without condition.
+
+reset eq done
+
+reset e done
+
+resets at every step.
+
+...
+| Ereset of expression * expression option
+
+...
+| EQreset of equation * expression option
