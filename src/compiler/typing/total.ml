@@ -142,13 +142,14 @@ module Automaton =
     (* build an initial table associating set of names to every state *)
     type entry = 
         { e_loc: Location.t;(* location in the source for the current block *)
-          mutable e_state: Defnames.defnames;
+          mutable e_defnames: Defnames.defnames;
 	  (* for a state [s], the set of names defined in [s] *)
-          mutable e_trans: Defnames.defnames;
+          mutable e_trans_defnames: Defnames.defnames;
 	  (* for an automaton with [until] transitions, the *)
           (* set of names defined on an output transition *)
           (* for an automaton with [unless] transitions, the set *)
           (* of names defined on a transition that enters [s] *)
+          e_target_states: S.t; (* set of target states *)
         }
 
     type table =
@@ -160,45 +161,67 @@ module Automaton =
     (* observing function for debugging purposes *)
     let dump { t_initials; t_remaining } =
       let to_list defnames = S.to_list (Defnames.names S.empty defnames) in
-      let entry (id, { e_state; e_trans }) =
-        id, to_list e_state, to_list e_trans in
+      let entry (id, { e_defnames; e_trans_defnames }) =
+        id, to_list e_defnames, to_list e_trans_defnames in
       List.map entry (Env.to_list t_initials),
       List.map entry (Env.to_list t_remaining)        
     
+    (* the name defined by the state declaration *)
+    let statepat_name_of_handler { s_state = { desc } } =
+      match desc with | Estate0pat(n) | Estate1pat(n, _) -> n
+
+    let called_states_of_handler s_trans =
+      (* the name defined by the call to a state *)
+      let called_states acc escape_list =
+	let escape acc { e_next_state } = state_names acc e_next_state in
+	List.fold_left escape acc escape_list in
+      called_states S.empty s_trans
+
     (* build the table *)
-    let init_table is_weak init_state_names state_handlers =
-      let add ({ t_initials; t_remaining } as acc)
-            { s_state; s_loc } =
+    let init_table is_weak handlers se_opt =
+      let add init_state_names ({ t_initials; t_remaining } as acc)
+            { s_state; s_loc; s_trans } =
         let state_name = state_patname s_state in
+        let e_target_states = called_states_of_handler s_trans in
         let entry =
-          { e_loc = s_loc; e_state = empty; e_trans = empty } in
+          { e_loc = s_loc; e_defnames = empty; 
+            e_trans_defnames = empty; e_target_states } in
         if S.mem state_name init_state_names then
           { acc with t_initials = Env.add state_name entry t_initials }
         else { acc with t_remaining = Env.add state_name entry t_remaining } in
+      (* compute the set of initial states *)
+      let init_state_names =
+        match se_opt with
+        | None ->
+           (* the first handler gives the initial state *)
+           S.singleton (statepat_name_of_handler (List.hd handlers))
+        | Some(se) -> state_names S.empty se in                        
+      (* initialise the table *)
       List.fold_left
-        add { t_initials = Env.empty; t_remaining = Env.empty; t_weak = is_weak }
-        state_handlers
+        (add init_state_names)
+        { t_initials = Env.empty; t_remaining = Env.empty; t_weak = is_weak }
+        handlers
 
     (* sets the [defined_names] for [state_name] *)
     let add_state 
           ({ t_initials; t_remaining } as table) defined_names state_name =
-      let { e_loc; e_trans } as entry =
+      let { e_loc; e_trans_defnames } as entry =
         try Env.find state_name t_initials
         with Not_found -> Env.find state_name t_remaining in
       (* check that names do not appear already in transitions *)
-      let _ = add e_loc defined_names e_trans in
-      entry.e_state <- defined_names;
+      let _ = add e_loc defined_names e_trans_defnames in
+      entry.e_defnames <- defined_names;
       let d_ = dump table in ()
       
     let add_transition ({ t_initials; t_remaining } as table)
           h defined_names state_name =
-      let { e_loc; e_state; e_trans } as entry =
+      let { e_loc; e_defnames; e_trans_defnames } as entry =
         try Env.find state_name t_initials
         with Not_found -> Env.find state_name t_remaining in
       (* check that names do not appear already in the state *)
-      let _ = add e_loc defined_names e_trans in
+      let _ = add e_loc defined_names e_trans_defnames in
       (* merge names with existing ones in transitions *)
-      entry.e_trans <- merge e_loc h [defined_names; e_trans];
+      entry.e_trans_defnames <- merge e_loc h [defined_names; e_trans_defnames];
       let d_ = dump table in ()
                 
     let add_transitions table h defined_names state_names =
@@ -207,68 +230,53 @@ module Automaton =
 
     let check ({ t_initials; t_remaining } as table) loc h =
       let defnames_list_in_initial_states =
-        Env.fold (fun _ { e_state } acc -> e_state :: acc) t_initials [] in
+        Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) t_initials [] in
       let defnames_list =
         Env.fold
-          (fun _ { e_state } acc -> e_state :: acc) t_remaining 
+          (fun _ { e_defnames } acc -> e_defnames :: acc) t_remaining 
           defnames_list_in_initial_states in
       let defined_names = merge loc h defnames_list in
 
       (* do the same for variables defined in transitions *)
       let defined_names_in_transitions =
-        Env.fold (fun _ { e_trans } acc -> union e_trans acc) t_initials empty in
+        Env.fold 
+          (fun _ { e_defnames } acc -> union e_defnames acc) t_initials empty in
       let defined_names_in_transitions =
-        Env.fold (fun _ { e_trans } acc -> union e_trans acc) t_remaining
+        Env.fold (fun _ { e_defnames } acc -> union e_defnames acc) t_remaining
           defined_names_in_transitions in
       let defined_names = union defined_names defined_names_in_transitions in
       let d_ = dump table in
       defined_names
-    (*
 
-              (* build an initial table associating set of names to every state *)
-    (* this table is built during typing. At the end, check that all defined *)
-    (* names have one and only one definition *)
-    (* this is done by function [check] *)
-    type entry = 
-      { e_loc: Location.t;
-        (* location in the source for the current block *)
-        mutable e_state: Defnames.defnames;
-	(* set of names defined in the current block *)
-        mutable e_trans: (Ident.t * Defnames.defnames) list;
-	(* target state and set of names defined in the transition *)
-      }
+    (* check that all states of the automaton are potentially accessible *)
+    let check_that_all_states_are_reachable loc { t_initials; t_remaining } = 
+      let next s_set =
+        let next s_name acc =
+          try let { e_target_states } =
+                try Env.find s_name t_initials
+                with Not_found -> Env.find s_name t_remaining in
+              S.union acc e_target_states
+          with Not_found -> assert false in
+        S.fold next s_set S.empty in
 
-    (* the initial states are particular depending on whether or not *)
-    (* they are left on a weak transition or not *)
-    type table =
-      { t_weak: bool;
-        t_initials: entry Env.t;
-        t_remaining: entry Env.t 
-      }
-
-    (* observing function; for debugging purposes *)
-    let dump { t_initials; t_remaining } =
-      let to_list defnames = S.to_list (Defnames.names S.empty defnames) in
-      let entry (id, { e_state; e_trans }) =
-        id, to_list e_state,
-        List.map (fun (id, defnames) -> id, to_list defnames) e_trans in
-      List.map entry (Env.to_list t_initials),
-      List.map entry (Env.to_list t_remaining)        
+      (* states that are accessible in one hop and not already reached *)
+      let init_states = 
+        Env.fold (fun n _ acc -> S.add n acc) t_initials S.empty in
+      let all_states = 
+        Env.fold (fun n _ acc -> S.add n acc) t_remaining init_states in
+      let one = ref init_states in
+      let reached = ref S.empty in
+      
+      (* fix point computation *)
+      while not (S.is_empty !one) do
+        one := S.diff (next !one) !reached;
+        reached := S.union !reached !one
+      done;
+      let unreachable_states = S.diff all_states !reached in
+      if not (S.is_empty unreachable_states)
+      then warning loc (Wunreachable_state (S.choose unreachable_states))        
     
-    (* build the table *)
-    let init_table is_weak init_state_names state_handlers =
-      let add ({ t_initials; t_remaining } as acc)
-            { s_state; s_loc } =
-        let state_name = state_patname s_state in
-        let entry =
-          { e_loc = s_loc; e_state = empty; e_trans = [] } in
-        if S.mem state_name init_state_names then
-          { acc with t_initials = Env.add state_name entry t_initials }
-        else { acc with t_remaining = Env.add state_name entry t_remaining } in
-      List.fold_left
-        add { t_initials = Env.empty; t_remaining = Env.empty; t_weak = is_weak }
-        state_handlers
-                
+    (*
     (* sets the [defined_names] for [state_name] *)
     let add_state { t_initials; t_remaining } defined_names state_name =
       let entry =
@@ -335,51 +343,5 @@ module Automaton =
             List.fold_left (fun acc (_, defnames) -> Defnames.union defnames acc)
               acc e_trans) t_initials defined_names_in_transitions in
       union defined_names defined_names_in_transitions
-             *)
-    
-    (* check that all states of the automaton are potentially accessible *)
-    let check_all_states_are_accessible loc handlers se_opt = 
-      (* fipoint *)
-      let rec fix f stop s =
-        if stop s then s else fix f stop (f s) in
-
-      (* the name defined by the state declaration *)
-      let statepat_name_of_handler { s_state = { desc } } =
-        match desc with | Estate0pat(n) | Estate1pat(n, _) -> n in
-      let called_states_of_handler { s_trans } =
-        (* the name defined by the call to a state *)
-        let called_states acc escape_list =
-	  let escape acc { e_next_state } = state_names acc e_next_state in
-	  List.fold_left escape acc escape_list in
-        called_states S.empty s_trans in
-
-      (* table that associate the list of potentially called states in state [n] *)
-      let table =
-        List.fold_left
-          (fun acc handler ->
-            Env.add (statepat_name_of_handler handler)
-              (called_states_of_handler handler) acc)
-          Env.empty handlers in
-
-      let next table acc =
-        S.fold
-          (fun n acc -> let r = try Env.find n table with Not_found -> S.empty in
-                        S.union acc r) acc S.empty in
-
-      (* the set of potential initial states *)
-      let init_state_names =
-        match se_opt with
-        | None ->
-           (* the first handler gives the initial state *)
-           S.singleton (statepat_name_of_handler (List.hd handlers))
-        | Some(se) -> state_names S.emtpy se in                        
-
-      let called_states =
-	List.fold_left called_states init_state_names handlers in
-      let def_states = List.fold_left def_states S.empty handlers in
-            
-      let unreachable_states = S.diff def_states called_states in
-      if not (S.is_empty unreachable_states)
-      then warning loc (Wunreachable_state (S.choose unreachable_states));
-      init_state_names
+             *)    
   end

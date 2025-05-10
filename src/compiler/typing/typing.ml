@@ -768,14 +768,21 @@ let rec automaton_handlers
           scondpat leqs body body_escape state_expression
           is_weak loc (expected_k: Deftypes.kind) h handlers se_opt =
 
-  (* check that all declared states are accessible; returns the set of *)
-  (* initial states *)
-  let init_state_names =
-    Total.Automaton.check_all_states_are_accessible loc handlers se_opt in
-    
-  (* [table] associate the set of defined_names for every state *)
-  let table = Total.Automaton.init_table is_weak init_state_names handlers in
+   (* 1. compute the potential set of initial states;
+     2. type check them.
+     3. compute the union of the defnames;
+     4. in all the other states, in case of a weak preemption,
+     all shared variable do have a last value.
+     5. modify the global env to indicate that all those variable
+        do have an initial value that is defered to the body *)
 
+  (* [table] associate the set of defined_names for every state *)
+  let table = 
+    Total.Automaton.init_table is_weak handlers se_opt in
+
+  (* check that all declared states are accessible *)
+  Total.Automaton.check_that_all_states_are_reachable loc table;
+      
   (* build the environment of states. *)
   let addname acc { s_state = statepat } =
     match statepat.desc with
@@ -825,7 +832,7 @@ let rec automaton_handlers
       (* of target states *)
       let state_names =
         if is_weak then S.singleton source_state
-        else Total.Automaton.state_names e_next_state in
+        else Total.Automaton.state_names S.empty e_next_state in
       Total.Automaton.add_transitions table h defined_names state_names;
       Kind.sup actual_k_e_cond
         (Kind.sup actual_k_let (Kind.sup actual_k_body actual_k_state)) in
@@ -859,15 +866,6 @@ let rec automaton_handlers
 
     defined_names, actual_k in
 
-  (*** TODO
-       1. compute the potential set of initial states;
-       2. type check them.
-       3. compute the union of the defnames;
-       4. in all the other states, in case of a weak preemption,
-       all shared variable do have a last value.
-       5. modify the global env to indicate that all those variable
-       do have an initial value that is defered to the body *)
-
   let defined_names_k_list = List.map (typing_handler h) handlers in
   let defined_names_list, k_list = List.split defined_names_k_list in
 
@@ -883,7 +881,7 @@ let rec automaton_handlers
 
   (* incorporate all the information computed concerning variables *)
   (* from the initial handler into the global one *)
-  (**** incorporate_into_env first_h h;  ****)
+  incorporate_into_env first_h h;
     
   (* finally, indicate for every state handler if it is entered *)
   (* by reset or not *)
