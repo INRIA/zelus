@@ -745,7 +745,7 @@ let rec automaton_handlers
           scondpat leqs body body_escape state_expression
           is_weak loc (expected_k: Deftypes.kind) h handlers se_opt =
 
-   (* 1. compute the potential set of initial states;
+  (* 1. compute the potential set of initial states;
      2. type check them.
      3. compute the union of the defnames;
      4. in all the other states, in case of a weak preemption,
@@ -755,19 +755,20 @@ let rec automaton_handlers
 
   (* Every shared variable defined in the initial state of an automaton *)
   (* left weakly is considered to be an initialized state variable. *)
-  let initialized_in_remaining_states h { dv } =
+  let add_initialized_last_variables_in_remaining_states h { dv } =
     let add n acc =
       let ({ t_sort = sort } as tentry) = Env.find n h in
       match sort with
       | Sort_mem({ m_init = No } as m) ->
          Env.add n { tentry with t_sort = Sort_mem { m with m_init = Eq } } acc
       | _ -> acc in
-    let first_h = S.fold add dv Env.empty in first_h in
-
+    let first_h = S.fold add dv Env.empty in
+    first_h, Env.append first_h h in
+    
   (* once all branch of the automaton has been typed *)
   (* incorporate the information computed about variables from *)
   (* the initial environment into the global one *)
-  let incorporate_into_env first_h h =
+  let remove_initialization_in_env first_h h =
     let mark n { t_sort = sort } =
       let tentry = Env.find n h in
       match sort with
@@ -782,10 +783,7 @@ let rec automaton_handlers
   let table, handlers_initial, handlers_remaining = 
     Total.Automaton.init_table is_weak handlers se_opt in
 
-  (* check that all declared states are accessible *)
-  Total.Automaton.check_that_all_states_are_reachable loc table;
-      
-  (* build the environment of states. *)
+  (* build the typing environment of states *)
   let addname acc { s_state = statepat } =
     match statepat.desc with
       | Estate0pat(s) -> Env.add s { s_reset = None; s_parameters = [] } acc
@@ -866,34 +864,42 @@ let rec automaton_handlers
     let actual_k =
       Kind.sup (Kind.sup_list actual_k_list)
         (Kind.sup actual_k_let actual_k_init) in
-
     actual_k in
 
   (* first type check the initial states *)
-  let defined_names_k_list = List.map (typing_handler h) handlers_initial in
-
-  let defined_names_k_list = List.map (typing_handler h) handlers in
-  let defined_names_list, k_list = List.split defined_names_k_list in
-
+  let initials_k_list = List.map (typing_handler h) handlers_initial in
+  let initials_k = Kind.sup_list initials_k_list in
+  let defined_names = Total.Automaton.check_initials table loc h in
+  let first_h, h =
+    if is_weak then
+      (* the intersection of variables defined in the initial states *)
+      (* are considered to be state variable that are initialized *)
+      add_initialized_last_variables_in_remaining_states h defined_names
+    else Env.empty, h in
+    
+  let remaining_k_list = List.map (typing_handler h) handlers_remaining in
+  let remaining_k = Kind.sup_list remaining_k_list in
+  
   (* identify variables which are partially defined in some states *)
   (* and/or transitions *)
-  let defined_names = Total.Automaton.check table loc h in
+  let defined_names = Total.Automaton.check_remaining table loc h in
   (* write defined_names in every handler *)
   List.iter2
-    (fun { s_body = { b_write = _ } as b } defined_names ->
+    (fun { s_state; s_body = { b_write = _ } as b } defined_names ->
       b.b_write <- defined_names)
     handlers defined_names_list;
 
-
+  (* check that all declared states are accessible *)
+  Total.Automaton.check_that_all_states_are_reachable loc table;
+   
   (* incorporate all the information computed concerning variables *)
   (* from the initial handler into the global one *)
-  (* TODO incorporate_into_env first_h h; *)
+  remove_initialization_in_env first_h h;
     
   (* finally, indicate for every state handler if it is entered *)
   (* by reset or not *)
   mark_reset_state env_of_states handlers;
-  let actual_k = Kind.sup_list k_list in
-  defined_names, Kind.sup actual_k_init actual_k
+  defined_names, Kind.sup actual_k_init (Kind.sup initials_k remaining_k)
 
 (* Once the body of an automaton has been typed, indicate for every *)
 (* handler if it is always entered by reset or not *)

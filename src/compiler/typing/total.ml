@@ -237,43 +237,23 @@ module Automaton =
       S.iter (set_defnames_for_transition table h defined_names) state_names;
       let d_ = dump table in ()
 
-    let check entry_env loc h =
+    (* given a set of [n, entry] compute the set of defined names *)
+    (* and check that names are not defined twice in the very same state *)
+    let check n_entry loc h =
       let defnames_list =
-        Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) entry_env [] in
+        Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) n_entry [] in
       let defined_names = merge loc h defnames_list in
 
       (* do the same for variables defined in transitions *)
       let defined_names_in_transitions =
         Env.fold 
-          (fun _ { e_defnames } acc -> union e_defnames acc) entry_env empty in
+          (fun _ { e_defnames } acc -> union e_defnames acc) n_entry empty in
       union defined_names defined_names_in_transitions
-
-    let check ({ t_initials; t_remaining } as table) loc h =
-      let defined_names = check t_initials loc h in
-      let defined_names = check t_remaining loc h in
-      let defined_names = merge loc h [defined_names; defined_names ] in
-      let d_ = dump table in
-      
-      let defnames_list_in_initial_states =
-        Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) t_initials [] in
-      let defnames_list =
-        Env.fold
-          (fun _ { e_defnames } acc -> e_defnames :: acc) t_remaining 
-          defnames_list_in_initial_states in
-      let defined_names = merge loc h defnames_list in
-
-      (* do the same for variables defined in transitions *)
-      let defined_names_in_transitions =
-        Env.fold 
-          (fun _ { e_defnames } acc -> union e_defnames acc) t_initials empty in
-      let defined_names_in_transitions =
-        Env.fold (fun _ { e_defnames } acc -> union e_defnames acc) t_remaining
-          defined_names_in_transitions in
-      let defined_names = union defined_names defined_names_in_transitions in
-      let d_ = dump table in
-      defined_names
-
-    (* check that all states of the automaton are potentially accessible *)
+    
+    let check_initials { t_initials } loc h = check t_initials loc h 
+    let check_remaining { t_remaining } loc h = check t_remaining loc h
+    
+        (* check that all states of the automaton are potentially accessible *)
     let check_that_all_states_are_reachable loc { t_initials; t_remaining } = 
       let next s_set =
         let next s_name acc =
@@ -294,6 +274,8 @@ module Automaton =
       
       (* fix point computation *)
       while not (S.is_empty !one) do
+        (* add next state access in the current state *)
+        (* that are not already visited (reached) *)
         one := S.diff (next !one) !reached;
         reached := S.union !reached !one
       done;
