@@ -1,3 +1,10 @@
+(*
+t118
+t120
+t128
+t139
+t142
+t42 *)
 let hybrid f1(z) returns (o)
   automaton
   | A1 -> do o = 1.0 until z then A2

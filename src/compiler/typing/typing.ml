@@ -234,18 +234,6 @@ let check_target_state loc expected_reset actual_reset =
        warning loc (Wreset_target_state(actual_reset, expected_reset));
      Some(expected_reset)
 
-(* Every shared variable defined in the initial state of an automaton *)
-(* left weakly is considered to be an initialized state variable. *)
-let turn_vars_into_memories h { dv } =
-  let add n acc =
-    let ({ t_sort = sort } as tentry) = Env.find n h in
-    match sort with
-    | Sort_mem({ m_init = No } as m) ->
-       Env.add n { tentry with t_sort = Sort_mem { m with m_init = Eq } } acc
-    | _ -> acc in
-  let first_h = S.fold add dv Env.empty in
-  first_h, Env.append first_h h
-
 (* Typing immediate values *)
 let immediate = function
   | Ebool _ -> Initial.typ_bool
@@ -255,17 +243,6 @@ let immediate = function
   | Estring(c) -> Initial.typ_string
   | Evoid -> Initial.typ_unit
 
-(* once all branch of the automaton has been typed *)
-(* incorporate the information computed about variables from *)
-(* the initial environment into the global one *)
-let incorporate_into_env first_h h =
-  let mark n { t_sort = sort } =
-    let tentry = Env.find n h in
-    match sort with
-    | Sort_mem({ m_init = Eq } as m) ->
-       tentry.t_sort <- Sort_mem { m with m_init = No }
-    | _ -> () in
-  Env.iter mark first_h
 
 (* Types for local identifiers *)
 let var loc h n =
@@ -776,8 +753,33 @@ let rec automaton_handlers
      5. modify the global env to indicate that all those variable
         do have an initial value that is defered to the body *)
 
+  (* Every shared variable defined in the initial state of an automaton *)
+  (* left weakly is considered to be an initialized state variable. *)
+  let initialized_in_remaining_states h { dv } =
+    let add n acc =
+      let ({ t_sort = sort } as tentry) = Env.find n h in
+      match sort with
+      | Sort_mem({ m_init = No } as m) ->
+         Env.add n { tentry with t_sort = Sort_mem { m with m_init = Eq } } acc
+      | _ -> acc in
+    let first_h = S.fold add dv Env.empty in first_h in
+
+  (* once all branch of the automaton has been typed *)
+  (* incorporate the information computed about variables from *)
+  (* the initial environment into the global one *)
+  let incorporate_into_env first_h h =
+    let mark n { t_sort = sort } =
+      let tentry = Env.find n h in
+      match sort with
+      | Sort_mem({ m_init = Eq } as m) ->
+         tentry.t_sort <- Sort_mem { m with m_init = No }
+      | _ -> () in
+    Env.iter mark first_h in
+
   (* [table] associate the set of defined_names for every state *)
-  let table = 
+  (* split the list of handlers into those that are potentially *)
+  (* initial; those that are not *)
+  let table, handlers_initial, handlers_remaining = 
     Total.Automaton.init_table is_weak handlers se_opt in
 
   (* check that all declared states are accessible *)
@@ -833,7 +835,8 @@ let rec automaton_handlers
       let state_names =
         if is_weak then S.singleton source_state
         else Total.Automaton.state_names S.empty e_next_state in
-      Total.Automaton.add_transitions table h defined_names state_names;
+      Total.Automaton.set_defnames_for_transitions 
+        table h defined_names state_names;
       Kind.sup actual_k_e_cond
         (Kind.sup actual_k_let (Kind.sup actual_k_body actual_k_state)) in
 
@@ -857,14 +860,17 @@ let rec automaton_handlers
       body expected_k h s_body in
     (* add the list of defined_names to the current state *)
     let s_name = Total.Automaton.state_patname s_state in
-    Total.Automaton.add_state table defined_names s_name;
+    Total.Automaton.set_defnames_for_state table defined_names s_name;
     let actual_k_list =
       List.map (escape s_name new_h expected_k) s_trans in
     let actual_k =
       Kind.sup (Kind.sup_list actual_k_list)
         (Kind.sup actual_k_let actual_k_init) in
 
-    defined_names, actual_k in
+    actual_k in
+
+  (* first type check the initial states *)
+  let defined_names_k_list = List.map (typing_handler h) handlers_initial in
 
   let defined_names_k_list = List.map (typing_handler h) handlers in
   let defined_names_list, k_list = List.split defined_names_k_list in
@@ -881,7 +887,7 @@ let rec automaton_handlers
 
   (* incorporate all the information computed concerning variables *)
   (* from the initial handler into the global one *)
-  incorporate_into_env first_h h;
+  (* TODO incorporate_into_env first_h h; *)
     
   (* finally, indicate for every state handler if it is entered *)
   (* by reset or not *)

@@ -25,7 +25,7 @@ open Deftypes
 open Types
 open Defnames
 
-(** Names written in a block *)
+(* Names written in a block *)
 let union def1 def2 = Defnames.union def1 def2
 
 (* add two sets of names provided they are distinct *)
@@ -147,8 +147,10 @@ module Automaton =
           mutable e_trans_defnames: Defnames.defnames;
 	  (* for an automaton with [until] transitions, the *)
           (* set of names defined on an output transition *)
+          (* belong to the source state [s] *)
           (* for an automaton with [unless] transitions, the set *)
-          (* of names defined on a transition that enters [s] *)
+          (* of names defined on a transition that enters target state [s'] *)
+          (* belong to that state *)
           e_target_states: S.t; (* set of target states *)
         }
 
@@ -179,16 +181,20 @@ module Automaton =
 
     (* build the table *)
     let init_table is_weak handlers se_opt =
-      let add init_state_names ({ t_initials; t_remaining } as acc)
-            { s_state; s_loc; s_trans } =
+      let add init_state_names ({ s_state; s_loc; s_trans } as handler) 
+            ({ t_initials; t_remaining } as table, handlers_initial,
+             handlers_remaining) =
         let state_name = state_patname s_state in
         let e_target_states = called_states_of_handler s_trans in
         let entry =
           { e_loc = s_loc; e_defnames = empty; 
             e_trans_defnames = empty; e_target_states } in
         if S.mem state_name init_state_names then
-          { acc with t_initials = Env.add state_name entry t_initials }
-        else { acc with t_remaining = Env.add state_name entry t_remaining } in
+          { table with t_initials = Env.add state_name entry t_initials },
+          handler :: handlers_initial, handlers_remaining
+        else 
+          { table with t_remaining = Env.add state_name entry t_remaining },
+          handlers_initial, handler :: handlers_remaining in
       (* compute the set of initial states *)
       let init_state_names =
         match se_opt with
@@ -197,13 +203,16 @@ module Automaton =
            S.singleton (statepat_name_of_handler (List.hd handlers))
         | Some(se) -> state_names S.empty se in                        
       (* initialise the table *)
-      List.fold_left
-        (add init_state_names)
-        { t_initials = Env.empty; t_remaining = Env.empty; t_weak = is_weak }
-        handlers
+      let table, handlers_initial, handlers_remaining =
+        List.fold_right
+          (add init_state_names)
+          handlers
+          ({ t_initials = Env.empty; t_remaining = Env.empty; t_weak = is_weak },
+           [], []) in
+      table, handlers_initial, handlers_remaining
 
     (* sets the [defined_names] for [state_name] *)
-    let add_state 
+    let set_defnames_for_state 
           ({ t_initials; t_remaining } as table) defined_names state_name =
       let { e_loc; e_trans_defnames } as entry =
         try Env.find state_name t_initials
@@ -213,7 +222,7 @@ module Automaton =
       entry.e_defnames <- defined_names;
       let d_ = dump table in ()
       
-    let add_transition ({ t_initials; t_remaining } as table)
+    let set_defnames_for_transition ({ t_initials; t_remaining } as table)
           h defined_names state_name =
       let { e_loc; e_defnames; e_trans_defnames } as entry =
         try Env.find state_name t_initials
@@ -224,11 +233,27 @@ module Automaton =
       entry.e_trans_defnames <- merge e_loc h [defined_names; e_trans_defnames];
       let d_ = dump table in ()
                 
-    let add_transitions table h defined_names state_names =
-      S.iter (add_transition table h defined_names) state_names;
+    let set_defnames_for_transitions table h defined_names state_names =
+      S.iter (set_defnames_for_transition table h defined_names) state_names;
       let d_ = dump table in ()
 
+    let check entry_env loc h =
+      let defnames_list =
+        Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) entry_env [] in
+      let defined_names = merge loc h defnames_list in
+
+      (* do the same for variables defined in transitions *)
+      let defined_names_in_transitions =
+        Env.fold 
+          (fun _ { e_defnames } acc -> union e_defnames acc) entry_env empty in
+      union defined_names defined_names_in_transitions
+
     let check ({ t_initials; t_remaining } as table) loc h =
+      let defined_names = check t_initials loc h in
+      let defined_names = check t_remaining loc h in
+      let defined_names = merge loc h [defined_names; defined_names ] in
+      let d_ = dump table in
+      
       let defnames_list_in_initial_states =
         Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) t_initials [] in
       let defnames_list =
