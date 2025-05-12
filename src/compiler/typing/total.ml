@@ -224,27 +224,21 @@ module Automaton =
     let set_defnames_for_state table defined_names state_name =
       let { e_loc; e_trans_defnames } as entry = find state_name table in
       (* check that names do not appear already in transitions *)
-      let d1 = to_list defined_names in
-      let d2 = to_list e_trans_defnames in
       let _ = add e_loc defined_names e_trans_defnames in
-      entry.e_defnames <- defined_names;
-      let d_ = dump table in ()
+      entry.e_defnames <- defined_names
       
     let set_defnames_for_transition table h defined_names state_name =
       let { e_loc; e_defnames; e_trans_defnames } as entry = find state_name table in
       (* check that names do not appear already in the state *)
-      let d1 = to_list defined_names in
-      let d2 = to_list e_defnames in
-      let d3 = to_list e_trans_defnames in
       let _ = add e_loc e_defnames e_trans_defnames in
       (* merge names with existing ones in transitions *)
-      entry.e_trans_defnames <- merge e_loc h [defined_names; e_trans_defnames];
-      let d_ = dump table in ()
+      if not (Defnames.is_empty defined_names) then
+        entry.e_trans_defnames <-
+          merge e_loc h [defined_names; e_trans_defnames]
                 
     (* iterate the previous function for a list of states *)
     let set_defnames_for_transitions table h defined_names state_names =
-      S.iter (set_defnames_for_transition table h defined_names) state_names;
-      let d_ = dump table in ()
+      S.iter (set_defnames_for_transition table h defined_names) state_names
 
     (* computes the set of names that are defined *)
     (* and have a last value. It depend on whether transitions are weak *)
@@ -268,7 +262,9 @@ module Automaton =
         defined_names in
       let initials_defnames = check t_initials loc h in
       let remaining_defnames = check t_remaining loc h in
-      merge loc h [initials_defnames; remaining_defnames]
+      if Env.is_empty t_initials then remaining_defnames
+      else if Env.is_empty t_remaining then Defnames.empty
+      else merge loc h [initials_defnames; remaining_defnames]
     
     (* check that all states of the automaton are potentially accessible *)
     let check_that_all_states_are_reachable loc
