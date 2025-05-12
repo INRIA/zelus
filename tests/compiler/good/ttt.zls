@@ -1,6 +1,4 @@
 (*
-t118
-t120
 t128
 t139
 t142
@@ -13,7 +11,7 @@ let hybrid f1(z) returns (o)
 
 let f2 (x:[4][5]int) = 1
 
-let f3 n (x:[n]'a) =
+let f3 <<n>> (x:[n]'a) =
   forward[i](xi in x) returns (o init 0)
     do o = last o + xi + x.(i) done
 
