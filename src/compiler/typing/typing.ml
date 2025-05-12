@@ -755,7 +755,7 @@ let rec automaton_handlers
 
   (* Every shared variable defined in the initial state of an automaton *)
   (* left weakly is considered to be an initialized state variable. *)
-  let add_initialized_last_variables_in_remaining_states h { dv } =
+  let add_initialized_last_names_in_remaining_states h { dv } =
     let add n acc =
       let ({ t_sort = sort } as tentry) = Env.find n h in
       match sort with
@@ -869,25 +869,26 @@ let rec automaton_handlers
   (* first type check the initial states *)
   let initials_k_list = List.map (typing_handler h) handlers_initial in
   let initials_k = Kind.sup_list initials_k_list in
-  let defined_names = Total.Automaton.check_initials table loc h in
+  let initials_defined_names =
+    Total.Automaton.initialized_names_in_initial_states table loc h in
   let first_h, h =
-    if is_weak then
-      (* the intersection of variables defined in the initial states *)
-      (* are considered to be state variable that are initialized *)
-      add_initialized_last_variables_in_remaining_states h defined_names
-    else Env.empty, h in
-    
+    (* the intersection of variables defined in the initial states *)
+    (* are considered to be state variable that are initialized *)
+    add_initialized_last_names_in_remaining_states h initials_defined_names in
+  
   let remaining_k_list = List.map (typing_handler h) handlers_remaining in
   let remaining_k = Kind.sup_list remaining_k_list in
   
   (* identify variables which are partially defined in some states *)
   (* and/or transitions *)
-  let defined_names = Total.Automaton.check_remaining table loc h in
+  let defined_names = Total.Automaton.check table loc h in
+  
   (* write defined_names in every handler *)
-  List.iter2
-    (fun { s_state; s_body = { b_write = _ } as b } defined_names ->
-      b.b_write <- defined_names)
-    handlers defined_names_list;
+  List.iter
+    (fun { s_state; s_body = { b_write = _ } as b } ->
+      b.b_write <- Total.Automaton.find_defined_names
+                     (Total.Automaton.state_patname s_state) table)
+    handlers;
 
   (* check that all declared states are accessible *)
   Total.Automaton.check_that_all_states_are_reachable loc table;
@@ -903,10 +904,10 @@ let rec automaton_handlers
 
 (* Once the body of an automaton has been typed, indicate for every *)
 (* handler if it is always entered by reset or not *)
-and mark_reset_state def_states handlers =
+and mark_reset_state env_of_states handlers =
   let mark ({ s_state } as handler) =
     let { s_reset = r } =
-      Env.find (Total.Automaton.state_patname s_state) def_states in
+      Env.find (Total.Automaton.state_patname s_state) env_of_states in
     let v = match r with | None | Some(false) -> false | Some(true) -> true in
     handler.Zelus.s_reset <- v in
   List.iter mark handlers
@@ -1619,12 +1620,12 @@ and scondpat expected_k type_of_condition h scpat =
 
 (* typing state expressions. [state] must be a stateless expression *)
 (* [actual_reset = true] if [state] is entered by reset *)
-and state_expression h def_states actual_reset { desc; loc } = 
+and state_expression h env_of_states actual_reset { desc; loc } = 
   match desc with
   | Estate0(s) ->
      begin try
          let ({ s_reset = expected_reset; s_parameters = args } as r) =
-           Env.find s def_states in
+           Env.find s env_of_states in
          if args <> []
          then error loc (Estate_arity_clash(s, 0, List.length args));
          r.s_reset <-
@@ -1636,7 +1637,7 @@ and state_expression h def_states actual_reset { desc; loc } =
   | Estate1(s, l) ->
      let ({ s_reset = expected_reset; s_parameters = args } as r) =
        try
-         Env.find s def_states
+         Env.find s env_of_states
        with
        | Not_found -> error loc (Estate_unbound s) in
      begin try
@@ -1656,8 +1657,8 @@ and state_expression h def_states actual_reset { desc; loc } =
   | Estateif(e, se1, se2) ->
      (* we impose that [e] is combinatorial *)
      let actual_k = expect (Tfun(Tany)) h e Initial.typ_bool in
-     let actual_k1 = state_expression h def_states actual_reset se1 in
-     let actual_k2 = state_expression h def_states actual_reset se2 in
+     let actual_k1 = state_expression h env_of_states actual_reset se1 in
+     let actual_k2 = state_expression h env_of_states actual_reset se2 in
      Kind.sup actual_k (Kind.sup actual_k1 actual_k2)
 
 (* Typing of a for loop *)

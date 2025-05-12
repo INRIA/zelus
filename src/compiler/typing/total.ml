@@ -161,12 +161,21 @@ module Automaton =
       }
     
     (* observing function for debugging purposes *)
+    let to_list defnames = S.to_list (Defnames.names S.empty defnames)
     let dump { t_initials; t_remaining } =
-      let to_list defnames = S.to_list (Defnames.names S.empty defnames) in
       let entry (id, { e_defnames; e_trans_defnames }) =
         id, to_list e_defnames, to_list e_trans_defnames in
       List.map entry (Env.to_list t_initials),
       List.map entry (Env.to_list t_remaining)        
+
+    (* get defined names associated to state name [s_name] *)
+    let find s_name { t_initials; t_remaining } =
+      try Env.find s_name t_initials
+      with Not_found ->
+        try Env.find s_name t_remaining with Not_found -> assert false
+    
+    let find_defined_names s_name table =
+      let { e_defnames } = find s_name table in e_defnames
     
     (* the name defined by the state declaration *)
     let statepat_name_of_handler { s_state = { desc } } =
@@ -212,59 +221,66 @@ module Automaton =
       table, handlers_initial, handlers_remaining
 
     (* sets the [defined_names] for [state_name] *)
-    let set_defnames_for_state 
-          ({ t_initials; t_remaining } as table) defined_names state_name =
-      let { e_loc; e_trans_defnames } as entry =
-        try Env.find state_name t_initials
-        with Not_found -> Env.find state_name t_remaining in
+    let set_defnames_for_state table defined_names state_name =
+      let { e_loc; e_trans_defnames } as entry = find state_name table in
       (* check that names do not appear already in transitions *)
+      let d1 = to_list defined_names in
+      let d2 = to_list e_trans_defnames in
       let _ = add e_loc defined_names e_trans_defnames in
       entry.e_defnames <- defined_names;
       let d_ = dump table in ()
       
-    let set_defnames_for_transition ({ t_initials; t_remaining } as table)
-          h defined_names state_name =
-      let { e_loc; e_defnames; e_trans_defnames } as entry =
-        try Env.find state_name t_initials
-        with Not_found -> Env.find state_name t_remaining in
+    let set_defnames_for_transition table h defined_names state_name =
+      let { e_loc; e_defnames; e_trans_defnames } as entry = find state_name table in
       (* check that names do not appear already in the state *)
-      let _ = add e_loc defined_names e_trans_defnames in
+      let d1 = to_list defined_names in
+      let d2 = to_list e_defnames in
+      let d3 = to_list e_trans_defnames in
+      let _ = add e_loc e_defnames e_trans_defnames in
       (* merge names with existing ones in transitions *)
       entry.e_trans_defnames <- merge e_loc h [defined_names; e_trans_defnames];
       let d_ = dump table in ()
                 
+    (* iterate the previous function for a list of states *)
     let set_defnames_for_transitions table h defined_names state_names =
       S.iter (set_defnames_for_transition table h defined_names) state_names;
       let d_ = dump table in ()
 
-    (* given a set of [n, entry] compute the set of defined names *)
-    (* and check that names are not defined twice in the very same state *)
-    let check n_entry loc h =
-      let defnames_list =
-        Env.fold (fun _ { e_defnames } acc -> e_defnames :: acc) n_entry [] in
-      let defined_names = merge loc h defnames_list in
+    (* computes the set of names that are defined *)
+    (* and have a last value. It depend on whether transitions are weak *)
+    (* ([until]) or strong ([unless]) *)
+    let initialized_names_in_initial_states { t_weak; t_initials } loc h =
+      if t_weak then
+        merge loc h
+          (List.map (fun (_, { e_defnames; e_trans_defnames }) ->
+               union e_defnames e_trans_defnames)
+             (Env.to_list t_initials))
+    else empty
 
-      (* do the same for variables defined in transitions *)
-      let defined_names_in_transitions =
-        Env.fold 
-          (fun _ { e_defnames } acc -> union e_defnames acc) n_entry empty in
-      union defined_names defined_names_in_transitions
+    (* given a map [n, entry] compute the set of defined names *)
+    (* merge the names defined in every state handler *)
+    let check { t_initials; t_remaining } loc h =
+      let check n_entry loc h =
+        let defnames_list =
+          Env.fold (fun _ { e_defnames; e_trans_defnames } acc ->
+              union e_defnames e_trans_defnames :: acc) n_entry [] in
+        let defined_names = merge loc h defnames_list in
+        defined_names in
+      let initials_defnames = check t_initials loc h in
+      let remaining_defnames = check t_remaining loc h in
+      merge loc h [initials_defnames; remaining_defnames]
     
-    let check_initials { t_initials } loc h = check t_initials loc h 
-    let check_remaining { t_remaining } loc h = check t_remaining loc h
-    
-        (* check that all states of the automaton are potentially accessible *)
-    let check_that_all_states_are_reachable loc { t_initials; t_remaining } = 
+    (* check that all states of the automaton are potentially accessible *)
+    let check_that_all_states_are_reachable loc
+          ({ t_initials; t_remaining } as table) = 
+      (* states that are accessible in one hop and not already reached *)
       let next s_set =
         let next s_name acc =
-          try let { e_target_states } =
-                try Env.find s_name t_initials
-                with Not_found -> Env.find s_name t_remaining in
-              S.union acc e_target_states
-          with Not_found -> assert false in
+          let { e_target_states } = find s_name table in
+          S.union acc e_target_states in
         S.fold next s_set S.empty in
 
-      (* states that are accessible in one hop and not already reached *)
+      (* initial states and all states *)
       let init_states = 
         Env.fold (fun n _ acc -> S.add n acc) t_initials S.empty in
       let all_states = 
@@ -274,8 +290,8 @@ module Automaton =
       
       (* fix point computation *)
       while not (S.is_empty !one) do
-        (* add next state access in the current state *)
-        (* that are not already visited (reached) *)
+        (* add state accessible in one hop from the current states *)
+        (* but not already visited (reached) *)
         one := S.diff (next !one) !reached;
         reached := S.union !reached !one
       done;
