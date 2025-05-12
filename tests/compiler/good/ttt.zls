@@ -1,18 +1,6 @@
+let hybrid xup(x) =
+  present up(x) | (init) on (x >= 0.0) -> ()
 (*
 t128
 t139
-t142
-t42 *)
-let hybrid f1(z) returns (o)
-  automaton
-  | A1 -> do o = 1.0 until z then A2
-  | A2 -> do der o = 1.0 done
-  end
-
-let f2 (x:[4][5]int) = 1
-
-let f3 <<n>> (x:[n]'a) =
-  forward[i](xi in x) returns (o init 0)
-    do o = last o + xi + x.(i) done
-
-
+t142 *)

@@ -121,6 +121,7 @@ module Make (Info: INFO) =
              List.map
                (fun ({ p_body } as p) -> { p with p_body = expression p_body })
                handlers in
+           let e = expression e in
            EQder { id; e; e_opt; handlers },
            { Defnames.empty with der = S.singleton id; di }
         | EQinit(x, e) ->

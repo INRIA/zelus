@@ -246,6 +246,7 @@ let immediate = function
 
 (* Types for local identifiers *)
 let var loc h n =
+  let h_ = Env.to_list h in
   try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
 
 let typ_of_var loc h n = let { t_tys } = var loc h n in t_tys
@@ -552,8 +553,7 @@ let size_of_exp expected_vkind h e =
     | _ -> error e_loc Enot_a_size_expression in
   size e
 
-(* Typing patterns *)
-(* the kind of variables in [p] must be equal to [expected_k] *)
+(* Typing patterns. Pre-condition: [h] must contains names that appear in [pat] *)
 let rec pattern h ({ pat_desc; pat_loc; pat_info } as pat) ty =
   (* type annotation *)
   pat.pat_info <- Typinfo.set_type pat_info ty;
@@ -1535,10 +1535,12 @@ and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
 (* [typing let [rec] eq1 and ... eqn] *)
 and leq_eq_list expected_k h eq_list =
   let h0 = List.fold_left (env_of expected_k) Env.empty eq_list in
+  let h0_ = Env.to_list h0 in
   (* because names are unique, typing of [l_eq] is done with [h+h0] *)
   (* otherwise, one would need two distinct type environments; one for *)
   (* names defined on the left-hand side of equations; one for right-hand side *)
   let new_h = Env.append h0 h in
+  let h0_ = Env.to_list h0 in
   let defined_names, actual_k = equation_list expected_k new_h eq_list in
   defined_names, h0, actual_k
 
