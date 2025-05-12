@@ -433,6 +433,7 @@ module Make (Info: INFO) =
            expression e1 expression e2 expression e3
       | Eup, [e] ->
          fprintf ff "@[up %a@]" expression e
+      | Einitial, [] -> fprintf ff "init" 
       | Etest, [e] ->
          fprintf ff "@[? %a@]" expression e
       | Eatomic, [e] ->

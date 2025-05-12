@@ -413,6 +413,8 @@ and operator env op ty e_list =
   | Eup, [e] ->
      exp_less_than_on_i env e izero;
      Tinit.skeleton_on_i izero ty
+  | Einitial, [] ->
+     Tinit.skeleton_on_i izero ty
   | (Edisc | Ehorizon), [e] ->
      exp_less_than_on_i env e izero;
      Tinit.skeleton_on_i izero ty
