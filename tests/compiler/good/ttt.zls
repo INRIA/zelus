@@ -1,5 +1,7 @@
 let hybrid xup(x) =
   present up(x) | (init) on (x >= 0.0) -> ()
+
+let f x = present x -> 1
 (*
 t128
 t139
