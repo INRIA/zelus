@@ -32,29 +32,29 @@ let node map<<n>>(const f)(t:[n]'a) = t' where
   rec forward (t_i in t) returns (t'_i out t')
 	do t'_i = run f t_i done
 
-let node g x = x + x
+let const node g x = x + x
 
 let node map_g(t) = map<<42+2>>(g)(t)
     
-let f42<<n>> t1 = t where rec
+let f42<<n>> (t1:[n]'a) = t where rec
   forward[i](t_i in t1) returns (ti out t, x init 0) do
     ti = t_i + 1 and x = 2
   done
 	
 
-let sum_array<<n>> (t1, t2) returns (t)
+let sum_array<<n>> (t1:[n]'a, t2:[n]'a) returns (t)
   forward[i](x in t1, y in t2) returns (z out t) do
-      z = x + y
+      z = x + y 
   done
 
-let sum_array2 t = (sum_array (42+42))(t, t)
+let sum_array2 t = sum_array<<42+42>>(t, t)
 
 let node loop<<n>> () =
   forward(n)[i] returns (m init 0) do m = last m + 1 done
 
 let node loop_42 () = loop<<42>> () + loop<<43>> ()
 
-let scalar<<n>> (t1, t2) =
+let scalar<<n>> (t1:[n]'a, t2:[n]'a) =
   forward[i](x in t1, y in t2) returns (o init 0)
     do o = last o + x * y done
     

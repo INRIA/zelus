@@ -197,7 +197,7 @@ let message loc kind =
         output_location loc
  | Ekind_clash(actual_kind, expected_kind) ->
        eprintf
-        "@[%aType error: this is a %s expression but is expected to be %s.@.@]"
+        "@[%aType error: this is a %s expression@ but is expected to be %s.@.@]"
         output_location loc
         (kind_message actual_kind) (kind_message expected_kind)
  | Esome_labels_are_missing ->
@@ -261,17 +261,17 @@ let message loc kind =
  | Esize_constraints_not_true { f_loc_list; top_sc; nested_env; nested_sc } ->
     eprintf
       "@[<hov0>%aType error: at this point, the following \
-       size constraint is false:\n@[%a@]@,\
-       This is because the following nested constraint is false:\n\n@[%a@]@,\
+       size constraint is false:@[%a@]@,\
+       This is because the following nested constraint is false:\n@[%a@]@,\
        where the value for the free variables@ %a@ \
-       is:\n\n@[%a@]@,\
-       This nested constraint comes from the sequence of \
-       expressions@ in the source code:\n\n@[%a@]@,\
-       Overall, a size constraint is false either because@ \
-       an array element is accessed out of the bounds,@,\
-       or the actual size of an array does not match an expected size,@,\
-       or the size argument of a recursive function does not @ \
-       decrease strictly for the lexicographic order.@.@]"
+       is:\n@[%a@]@,\
+       This constraint is generated during the typing of the following \
+       expressions:@ @[%a@]@,\
+       Overall, a size constraint is false because:@ \
+       - an array element is accessed out of the bounds, or@,\
+       - the actual size of an array does not match an expected size, or@,\
+       - the size argument of a recursive function does not decrease strictly @ \
+         for the lexicographic order.@.@]"
        output_location loc
        Ptypes.constraints_t top_sc
        Ptypes.constraints_t nested_sc

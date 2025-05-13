@@ -5,7 +5,7 @@ let g() returns (o)
   done
  done
 
-let hybrid g() returns (o)
+let hybrid h() returns (o)
  foreach (42)[i] returns (oi out o) do
   foreach (36)[j] returns (oij out oi) do
     do der oij = 1.0 and init oij = 0.0 done

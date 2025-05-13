@@ -1,8 +1,15 @@
-let hybrid xup(x) =
-  present up(x) | (init) on (x >= 0.0) -> ()
+let const f x = x + 1
 
-let f x = present x -> 1
-(*
-t128
-t139
-t142 *)
+let g x = x / 1
+
+let h x = f x
+
+let i x = g x
+
+let j g x = g x
+
+let k (const g) x = g x
+
+let l x = k f x
+
+let main x = j f x
