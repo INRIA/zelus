@@ -637,7 +637,7 @@ stream_equation_desc:
     RESET p = present_handlers(expression) %prec prec_der_with_reset
     { EQder(i, e, opt, p) }
   | FOREACH f = foreach_loop_eq
-    { EQforloop (foreach_loop false f) }
+    { EQforloop (foreach_loop true f) }
   | FORWARD f = forward_loop_eq
     { EQforloop (forward_loop false f) }
   | FORWARD RESUME f = forward_loop_eq
@@ -1179,7 +1179,7 @@ expression_desc:
   | ASSERT e = simple_expression
     { Eassert(e) }
   | FOREACH f = foreach_loop_exp
-    { Eforloop (foreach_loop false f) }
+    { Eforloop (foreach_loop true f) }
   | FORWARD f = forward_loop_exp
     { Eforloop (forward_loop false f) }
   | FORWARD RESUME f = forward_loop_exp
