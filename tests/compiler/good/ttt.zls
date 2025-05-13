@@ -1,3 +1,9 @@
+let transpose<<n,m>>(m1 : [n][m]'a) returns (m2:[m][n]'a)
+ forward(m)[i]() returns (m2_i out m2) 
+   do forward(n)[j]() returns (m2_i_j out m2_i)
+        do m2_i_j = m1.(j).(i) done
+   done
+
 let const f x = x + 1
 
 let g x = x / 1
