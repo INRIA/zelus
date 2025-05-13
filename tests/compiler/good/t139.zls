@@ -1,7 +1,7 @@
-let hybrid g() returns (o)
+let g() returns (o)
  forward resume (42)[i] returns (oi out o) do
   forward resume (36)[j] returns (oij out oi) do
-    do der oij = 1.0 and init oij = 0.0 done
+    do oij = 1.0 done
   done
  done
 
