@@ -246,7 +246,6 @@ let immediate = function
 
 (* Types for local identifiers *)
 let var loc h n =
-  let h_ = Env.to_list h in
   try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
 
 let typ_of_var loc h n = let { t_tys } = var loc h n in t_tys
@@ -1542,12 +1541,10 @@ and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
 (* [typing let [rec] eq1 and ... eqn] *)
 and leq_eq_list expected_k h eq_list =
   let h0 = List.fold_left (env_of expected_k) Env.empty eq_list in
-  let h0_ = Env.to_list h0 in
   (* because names are unique, typing of [l_eq] is done with [h+h0] *)
   (* otherwise, one would need two distinct type environments; one for *)
   (* names defined on the left-hand side of equations; one for right-hand side *)
   let new_h = Env.append h0 h in
-  let h0_ = Env.to_list h0 in
   let defined_names, actual_k = equation_list expected_k new_h eq_list in
   defined_names, h0, actual_k
 
@@ -1694,7 +1691,7 @@ and forloop_exp loc expected_k h
   (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
   (* push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
-  let k_kind = for_kind_t expected_k_for_body h for_kind in
+  let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
     for_exp_t expected_k_for_body h size for_body in
   (* pop the current size constraint *)
@@ -1745,10 +1742,13 @@ and for_size_t expected_k h for_size_opt =
      let s = size_of_exp Tconst h e in
      Some(s), actual_k
 
-and for_kind_t expected_k h for_kind =
+and for_kind_t loc expected_k h for_kind =
   match for_kind with
   | Kforeach -> Tfun(Tconst)
   | Kforward(for_exit_opt) ->
+     (* the forward iteration make sense only when the body *)
+     (* is combinational or discrete-time *)
+     less_than loc expected_k (Tnode(Tdiscrete));
      Util.optional_with_default
        (for_exit_t expected_k h) (Tfun(Tconst)) for_exit_opt
 
@@ -1883,7 +1883,7 @@ and forloop_eq loc expected_k h
   (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
   (* push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
-  let k_kind = for_kind_t expected_k_for_body h for_kind in
+  let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
     for_eq_t expected_k_for_body size h for_body in
   (* pop the current size constraint *)
