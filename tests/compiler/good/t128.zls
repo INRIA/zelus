@@ -58,7 +58,7 @@ let scalar<<n>> (t1:[n]'a, t2:[n]'a) =
   forward[i](x in t1, y in t2) returns (o init 0)
     do o = last o + x * y done
     
-let transpose<<n,m>>(m1 : [n][m]'a) returns (m2:[m][n]'a)
+let transpose<<n,m>>(m1 : [n][m]'a) returns (m2)
  forward(m)[i]() returns (m2_i out m2) 
    do forward(n)[j]() returns (m2_i_j out m2_i)
         do m2_i_j = m1.(j).(i) done

@@ -174,7 +174,7 @@ rule main = parse
   | ","  { COMMA }
   | ";"  { SEMI }
   | "->" { MINUSGREATER }
-  | "-V->" { VFUN }
+  | "-SC->" { VFUN }
   | "-S->" { SFUN }
   | "-A->" { AFUN }
   | "-D->" { DFUN }

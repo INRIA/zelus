@@ -218,7 +218,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token AFUN           /* "-A->" */
 %token DFUN           /* "-D->" */
 %token SFUN           /* "-S->" */
-%token VFUN           /* "-V->" */
+%token VFUN           /* "-SC->" */
 %token CFUN           /* "-C->" */
 %token NODE           /* "node" */
 %token OF             /* "of" */
