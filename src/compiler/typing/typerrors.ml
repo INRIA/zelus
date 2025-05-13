@@ -94,7 +94,7 @@ let kind_of_ident k =
                         
 let vkind_message = function
     | Tconst -> "compile time constant"
-    | Tstatic -> "static" | Tany -> "dynamic"
+    | Tstatic -> "static" | Tany -> "combinational"
 
 let kind_message = function
   | Tfun(k) -> vkind_message k
