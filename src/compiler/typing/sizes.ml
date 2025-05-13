@@ -12,8 +12,11 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* a decision algorithm for equality/inequalities between sizes *)
+(* decision for equality/inequalities constraints between sizes *)
+(* simple simplification functions *)
 (* sizes are of the form:  s ::= s + s | s * s | xi | v | xi/v *)
+(* constraints are: sc ::= sc & sc | if sc then sc else sc | true | false *)
+(*                      | forall i < s do sc | s = s | s <= s | s < s *)
 open Ident
 open Defsizes
 
