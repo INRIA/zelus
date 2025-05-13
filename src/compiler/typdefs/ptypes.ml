@@ -54,7 +54,7 @@ let kind k = match k with | Tfun(v) -> vkind v | Tnode(t) -> tkind t
 
 let arrow_tostring = function 
   | Tfun(k) ->
-     (match k with Tconst -> "-V->" | Tstatic -> "-S->" | Tany -> "-A->")
+     (match k with Tconst -> "-SC->" | Tstatic -> "-S->" | Tany -> "-A->")
   | Tnode(k) ->
      (match k with Tdiscrete -> "-D->" | Tcont -> "-C->")
     
@@ -74,7 +74,7 @@ let rec size prio ff si =
   | Sfrac { num; denom } ->
      fprintf ff "@[%a/%d@]" (size prio_s) num denom
   | Sop(op, si1, si2) ->
-     fprintf ff "@[%a %s %a@]"
+     fprintf ff "@[%a%s%a@]"
        (size prio_s) si1 (operator op) (size prio_s) si2;
   end;
   if prio > prio_s then fprintf ff ")"
@@ -173,10 +173,10 @@ let rec print prio ff { t_desc; t_level; t_index } =
      fprintf ff "@[[%a]%a@]" (size 0) si (print prio_current) ty 
   | Tsizefun { id_list; ty; constraints } ->
      if Defsizes.constraint_is_true constraints then
-       fprintf ff "@[<v2>%a.%a@]"
+       fprintf ff "@[<hov2>%a.%a@]"
          (print_list_r Ident.fprint_t "<<" "," ">>") id_list
          (print prio_current) ty
-     else fprintf ff "@[<v2>%a.%a@ %a@]"
+     else fprintf ff "@[<hov2>%a.%a@ %a@]"
          (print_list_r Ident.fprint_t "<<" "," ">>") id_list
          (print prio_current) ty (print_constraints id_list) constraints
   | Tlink(link) -> print prio ff link
