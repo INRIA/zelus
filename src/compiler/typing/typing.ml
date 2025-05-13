@@ -690,10 +690,10 @@ let match_size_handlers
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(* Typing a present handler. *)
-(*- Returns defined names and the kind is the supremum *)
+(* Typing a present handler *)
+(*- Returns defined names; the returned kind is the supremum *)
 let present_handlers scondpat body loc expected_k h h_list opt ty_res =
-  let handler ({ p_cond; p_body } as ph) =
+  let handler ty_res ({ p_cond; p_body } as ph) =
     (* local variables from [scpat] cannot be accessed through a last *)
     let h0 = env_of_scondpat expected_k p_cond in
     let h = Env.append h0 h in
@@ -709,23 +709,27 @@ let present_handlers scondpat body loc expected_k h h_list opt ty_res =
     let actual_k = if is_zero then Tnode(Tcont) else actual_k in
     defined_names, Kind.sup actual_k_spat actual_k in
 
-  let defined_names_k_list = List.map handler h_list in
-  let defined_names_list, k_list = List.split defined_names_k_list in
-
   (* treat the optional default case *)
-  let defined_names_list, actual_k =
+  let ty_res, defined_names, actual_k =
     match opt with
-    | NoDefault -> Defnames.empty :: defined_names_list, Tfun(Tconst)
+    | NoDefault ->
+       (* in that case, the result type is a signal *)
+       let ty = Types.new_var () in
+       unify loc (Initial.typ_signal ty) ty_res;
+       ty, Defnames.empty, Tfun(Tconst)
     | Init(b) ->
        let defined_names, actual_k = body (Tnode(Tdiscrete)) h b ty_res in
        stateful loc expected_k;
-       defined_names :: defined_names_list, actual_k
+       ty_res, defined_names, actual_k
     | Else(b) ->
        let defined_names, actual_k = body expected_k h b ty_res in
-       defined_names :: defined_names_list, actual_k in
+       ty_res, defined_names, actual_k in
                           
+  let defined_names_k_list = List.map (handler ty_res) h_list in
+  let defined_names_list, k_list = List.split defined_names_k_list in
+
   (* identify variables which are defined partially *)
-  Total.merge loc h defined_names_list,
+  Total.merge loc h (defined_names :: defined_names_list),
   Kind.sup actual_k (Kind.sup_list k_list)
 
 (* Every variable defined in the initial states of an automaton *)
@@ -1333,7 +1337,8 @@ and equation expected_k h { eq_desc; eq_loc } =
           let _ = expect expected_k h e Initial.typ_float in
           let _ = init eq_loc h id in S.singleton id in
      ignore (present_handler_exp_list
-               eq_loc expected_k h handlers NoDefault Initial.typ_float);
+               eq_loc expected_k h handlers NoDefault
+               (Initial.typ_signal Initial.typ_float));
      { Defnames.empty with di = di; der = S.singleton id }, Tnode(Tcont)
   | EQinit(n, e0) ->
      (* an initialization is valid only in a stateful context *)
@@ -1446,9 +1451,11 @@ and present_handler_exp_list loc expected_k h p_h_list default_opt expected_ty =
   actual_k
 
 and present_handler_eq_list loc expected_k h eq_h_list eq_opt =
+  (* the returned type is a dummy one; an equation does not have any type *)
+  let dummy = Types.new_var () in
   present_handlers scondpat
     (fun expected_k h eq _ -> equation expected_k h eq)
-    loc expected_k h eq_h_list eq_opt Initial.typ_unit
+    loc expected_k h eq_h_list eq_opt dummy
 
 (* Type a match handler when the body is an expression or equation *)
 and match_handler_eq_list loc expected_k h is_total eq_h_list pat_ty =
