@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -14,9 +14,9 @@
 
 (* Translation of fby/pre into init/last *)
 (*
-    [pre(e)] => [let rec m = e in last* m]
+    [pre(e)] => [let rec m = e and x = last* m in x]
 
-    [e1 fby e2] => [let rec init m = e1 and m = e2 in last*m]
+    [e1 fby e2] => [let rec init m = e1 and m = e2 and x = last*m in x]
 *)
 
 open Misc
@@ -69,12 +69,8 @@ let local_init_mem_value e1 e2 =
 
 
 (* translation of [pre] and [fby] *)
-let pre e =
-  let m = fresh_m () in
-  Aux.e_letrec [Aux.id_eq m e] (Aux.last_star m)
-let fby e1 e2 =
-  let m = fresh_m () in
-  Aux.e_letrec [Aux.eq_init m e1; Aux.id_eq m e2] (Aux.last_star m)
+let pre e = let_mem_value e
+let fby e1 e2 = let_init_mem_value e1 e2
 
 (* Translation of expressions. *)
 let expression funs acc e =
