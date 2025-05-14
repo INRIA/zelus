@@ -148,15 +148,15 @@ let normalize si =
   let module Table =
     Map.Make
       (struct type t = Defsizes.exp * int let compare = Stdlib.compare end) in
-  let rec simpl table si =
+  let rec norm table si =
     match si with
     | Sint _ | Svar _ -> si, table
     | Sop(op, si1, si2) ->
-       let si1, table = simpl table si1 in
-       let si2, table = simpl table si2 in
+       let si1, table = norm table si1 in
+       let si2, table = norm table si2 in
        Sop(op, si1, si2), table
     | Sfrac { num; denom } ->
-       let e, table = simpl table num in
+       let e, table = norm table num in
        (* add entry [(e, denom) -> p, r] with [p], [r] fresh variables] *)
        (* if the entry does not exist already *)
        try
@@ -167,7 +167,7 @@ let normalize si =
           let p = Ident.fresh "n" in
           let r = Ident.fresh "r" in
           Svar(p), Table.add (e, denom) (p, r) table in
-  let si, table = simpl Table.empty si in
+  let si, table = norm Table.empty si in
   let eqs =
     Table.fold
       (fun (e, k) (p, r) acc ->
@@ -311,10 +311,6 @@ and letrec f_env n_env id_id_list_sc_list =
             Env.empty id_id_list_sc_list)
   and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
   Lazy.force f_env_final
-
-(* simplification function of a constraint *)
-(* very basic. *)
-let rec simpl sc = sc
 
 (* free variables *)
 let rec fv bounded acc si =
