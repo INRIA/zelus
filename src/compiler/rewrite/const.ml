@@ -724,10 +724,7 @@ let implementation acc ({ desc; loc } as impl) =
                 e_defs = impl :: acc.e_defs }
   | Eletdecl { d_names; d_leq } ->
      (* [d_leq] must be either constant or static *)
-     let d_leq_opt, acc =
-       (* temporary solution: if [d_leq] defines size functions or *)
-       (* functions, evaluate them *)
-       if immediate d_leq then const_leq_t acc d_leq else leq_t acc d_leq in
+     let d_leq_opt, acc = leq_t acc d_leq in
      letdecl_list loc acc d_leq_opt d_names
   | Etypedecl _ -> { acc with e_defs = impl :: acc.e_defs }
 
