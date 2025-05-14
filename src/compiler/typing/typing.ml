@@ -1699,7 +1699,7 @@ and forloop_exp loc expected_k h
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible loc (Forall(i, si, sc))) () for_index;
+      check_size_constraint_if_possible loc (Sizes.forall i si sc)) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1891,7 +1891,7 @@ and forloop_eq loc expected_k h
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible loc (Forall(i, si, sc))) () for_index;
+      check_size_constraint_if_possible loc (Sizes.forall i si sc)) () for_index;
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in

@@ -25,7 +25,7 @@ exception Maybe
 (* e.g., [sc] contains a free variable and the resolution algorithm *)
 (* not good enough *)
   
-(* normal form: some of products *)
+(* normal form for polynomial sizes : some of products *)
 module SumOfProducts =
   struct
     (* a monomial [m] is an ordered product [x0^i0 x1^i1 ... xn^in] *)
@@ -128,7 +128,7 @@ module SumOfProducts =
       end
   end
 
-(* An alternative representation. *)
+(* To be done: an alternative representation for multi-variate polynomials *)
 (* Suppose that variables are ordered x0 < ... < xn *)
 (* represent the polynomial as a value of the inductive type *)
 (* pi = xi.pk + pj where j => k /\ i > k, with Pk a polynomial. It is the *)
@@ -186,10 +186,15 @@ let normalize si =
   let si, _ = normalize si in
   SumOfProducts.SumProduct.make si
 
-(* decision algorithm. It is a very basic algorithm since constraints *)
-(* are not taken into account. It does not matter for correctness *)
-(* and completeness since size constraints are ultimately evaluated. This *)
-(* should be done in order to have better diagnosis *)
+(* decision algorithm on two size expression [si1] and [si2]. *)
+(* It is a very basic decision algorithm since constraints *)
+(* are not taken into account. *)
+(* This is not a problem for correctness and completeness since *)
+(* since size constraints which are not trivially true nor false *)
+(* will be ultimately evaluated. *)
+(* In practice, this can be nonetheless problematic because diagnostic *)
+(* could certainly better if the decision algorithm was better (detecting *)
+(* at the earlier stage that a constraint is true or false *)
 let eq si1 si2 =
   let open SumOfProducts in
   let sp = normalize (minus si1 si2) in
@@ -289,7 +294,7 @@ let rec check f_env n_env sc =
      let v = eval n_env e in
      for_all (v-1) (fun v -> check f_env (Env.add id v n_env) sc)
   | Loc(_, sc) -> check f_env n_env sc
-  
+
 (* fix-point computation of an environment of functions *)
 (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
 and letrec f_env n_env id_id_list_sc_list =
@@ -302,10 +307,14 @@ and letrec f_env n_env id_id_list_sc_list =
                     List.fold_left2 (fun acc id v -> Env.add id v acc)
                       n_env id_list v_list in
                   check (Lazy.force f_env_final) n_env sc)
-                f_acc)
+                 f_acc)
             Env.empty id_id_list_sc_list)
   and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
   Lazy.force f_env_final
+
+(* simplification function of a constraint *)
+(* very basic. *)
+let rec simpl sc = sc
 
 (* free variables *)
 let rec fv bounded acc si =
@@ -457,6 +466,9 @@ let conditional sc sc_true sc_false =
     | False, _, _ -> sc_false 
     | _, True, False -> sc
     | _ -> if sc_true = sc_false then sc_true else If(sc, sc_true, sc_false)
+
+let forall id e sc =
+  match sc with | True -> True | False -> False | sc -> Forall(id, e, sc)
 
 let make_lt si1 si2 = Rel { rel = Lt; lhs = si1; rhs = si2 }
 let make_eq si1 si2 = Rel { rel = Eq; lhs = si1; rhs = si2 }
