@@ -119,6 +119,15 @@ let rec in_vkind ka { t_desc } =
                                && vkind_is_less_than ka left_kfun
   | Tsizefun { ty } -> in_vkind Tconst ty && vkind_is_less_than ka Tconst
 
+(* Kind inheritance. If the context has vkind [context_vkind] *)
+(* and the local declaration has vkind [vkind] *)
+(* introduced names will have the minimum of the two *)
+let vkind_inherits context_vkind vkind =
+  match context_vkind, vkind with
+  | (Tconst, _) | (_, Tconst) -> Tconst
+  | (Tstatic, _) | (_, Tstatic) -> Tstatic
+  | _ -> Tany
+
 (* Kind inheritance. If the context has kind [expected_k] *)
 (* and the local declaration is kind [vkind] *)
 (* names will have the minimum of the two *)
@@ -126,10 +135,5 @@ let inherits expected_k vkind =
   match expected_k, vkind with
   | Tnode _, (Tconst | Tstatic) -> Tfun vkind
   | Tnode _, Tany -> expected_k
-  | Tfun vfun, _ ->
-     let vfun = match vfun, vkind with
-       | (Tconst, _) | (_, Tconst) -> Tconst
-       | (Tstatic, _) | (_, Tstatic) -> Tstatic
-       | _ -> Tany in
-     Tfun vfun
+  | Tfun vfun, _ -> Tfun(vkind_inherits vfun vkind)
   
