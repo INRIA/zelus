@@ -37,11 +37,10 @@ let find name =
 
 (* the main node must be of type [expected_ty_arg_list] and the result of *)
 (* type [expected_ty_res_list] *)
-let check_type_of_main_node name
-    { qualid = qualid; info = { value_typ = tys } }
+let check_type_of_main_node name { qualid = qualid; info = { value_typ = tys } }
     opt_name expected_ty_arg expected_ty_res =
   let actual_ty = Types.instance tys in
-  let actual_k, opt_name, actual_ty_arg, actual_ty_res =
+  let actual_k, actual_opt_name, actual_ty_arg, actual_ty_res =
     try
       Types.filter_actual_arrow actual_ty
     with
@@ -49,7 +48,7 @@ let check_type_of_main_node name
         raise Error in
   let expected_k = actual_k in
   let expected_ty =
-    Types.arrow_type expected_k opt_name actual_ty_arg actual_ty_res in
+    Types.arrow_type expected_k opt_name expected_ty_arg expected_ty_res in
   try
     Types.unify expected_ty actual_ty; qualid, expected_k
   with
