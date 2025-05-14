@@ -1,12 +1,13 @@
+let node j x = let rec o = 0 fby x + 1 and z = 1 fby o and k = z + 2 in k + o
+
 let node h x =
   let rec init o = 1 and o = last o + 1 in last o
 
-let node j x = let rec o = 0 fby x + 1 and z = 1 fby o and k = z + 2 in k + o
-
+(*
 let node jj x = j(x+1) + j(x+2)
 
 let node main () =
   let nat = 0 in
   let o = jj nat in
   print_int o; print_newline ()
-
+*)
