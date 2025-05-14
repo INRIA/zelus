@@ -1,21 +1,18 @@
-let transpose<<n,m>>(m1 : [n][m]'a) returns (m2:[m][n]'a)
- forward(m)[i]() returns (m2_i out m2) 
-   do forward(n)[j]() returns (m2_i_j out m2_i)
-        do m2_i_j = m1.(j).(i) done
-   done
+let m = 1 + 2
 
-let const f x = x + 1
+let k = m + 1
 
-let g x = x / 1
+let f x = x + 1
 
-let h x = f x
+let node j x = 0 fby x + 1
 
-let i x = g x
+let node jj x = j(x+1) + j(x+2)
 
-let j g x = g x
+(* 
+let const g x = f x + 1
 
-let k (const g) x = g x
+let h<<n>> = 1
 
-let l x = k f x
-
-let main x = j f x
+let i x =
+  let g<<n>>(x) = x + 1 in
+  g<<1>> *)
