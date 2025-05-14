@@ -1516,19 +1516,21 @@ and leqs expected_k h l =
       h, Kind.sup acc_k actual_k) (h, Tfun(Tconst)) l
   
 and leq expected_k h ({ l_rec; l_kind; l_eq; l_loc } as l) =
-  let eq_or_s_list = eq_or_sizefun l_loc l_eq in
+  let eq_or_sizefun_list = eq_or_sizefun l_loc l_eq in
   (* in a context of kind [expected_k] that is static or constant *)
   (* all introduced names inherit this kind *)
-  let expected_eq_k =
+  let expected_k =
     Kind.inherits expected_k (Interface.vkindtype l_kind) in
   Misc.push_binding_level ();
-  let defined_names, h0, actual_k =
-    match eq_or_s_list with
+  let (defined_names, h0, actual_k), l_kind =
+    match eq_or_sizefun_list with
     | Either.Left(eq_list) ->
-       leq_eq_list expected_eq_k h eq_list
+       leq_eq_list expected_k h eq_list, l_kind
     | Either.Right(sizefun_list) ->
-       sizefun_list_t l_rec h sizefun_list in
+       sizefun_list_t l_rec h sizefun_list, Kconst in
   Misc.pop_binding_level ();
+  (* sets the [l_kind] field *)
+  l.l_kind <- l_kind;
   let is_gen = not (expansive l_eq) in
   let h0 = Types.gen_decl is_gen h0 in
   (* check that the type for every entry has the right kind *)
@@ -1930,10 +1932,15 @@ let implementation ff is_first impl =
     | Eopen(modname) ->
        if is_first then Modules.open_module modname; impl
     | Eletdecl { d_names; d_leq } ->
-       (* type the set of equations *)
+       (* type the set of equations. Top level values are, at most, static ones *)
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
+
        (* check that there is no unbounded size variables *)
        check_no_unbounded_size_name loc new_h;
+       
+       (* check that no size constraints remain in the stack *)
+       let l = Defsizes.to_seq () in
+       Seq.iter (check_size_constraint loc) l;
        
        (* add entry [n : tys] for every [n in d_names] in the global env. *)
        let setenv (n, id) =
@@ -1944,10 +1951,6 @@ let implementation ff is_first impl =
          else
            Interface.update_type_of_value ff loc n is_const t_tys in
 
-       (* check that no size constraints remain in the stack *)
-       let l = Defsizes.to_seq () in
-       Seq.iter (check_size_constraint loc) l;
-       
        (* update the global environment *)
        List.iter setenv d_names;
        impl

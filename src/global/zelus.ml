@@ -322,7 +322,7 @@ and ('info, 'ienv) for_vardec_desc =
 and is_rec = bool
 
 and ('info, 'ienv) leq =
-  { l_kind: vkind;
+  { mutable l_kind: vkind;
     l_rec: is_rec;
     l_eq: ('info, 'ienv) eq;
     l_loc : Location.t;

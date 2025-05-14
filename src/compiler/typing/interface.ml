@@ -138,7 +138,8 @@ let tkindtype = function | Kdiscrete -> Tdiscrete | Kcont -> Tcont
 let kindtype = function
   | Kfun(k) -> Tfun(vkindtype k) | Knode(k) -> Tnode(tkindtype k)
 
-let skindoftype = function | Kconst -> Tconst | Kstatic -> Tstatic | Kany -> Tany
+let skindoftype =
+  function | Kconst -> Tconst | Kstatic -> Tstatic | Kany -> Tany
 let tkindoftype = function | Tdiscrete -> Kdiscrete | Tcont -> Kcont
 let skindoftype = function
   | Tconst -> Kconst | Tstatic -> Kstatic | Tany -> Kany
