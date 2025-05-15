@@ -1,4 +1,4 @@
-let atomic node plus1 x = pre x + 1
+let atomic node plus1 x = 0 -> pre x + 1
     
 let node a x = o where
   rec o = 0 -> plus1 x
