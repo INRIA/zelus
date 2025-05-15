@@ -37,7 +37,7 @@ let good_one filename =
   let modname = String.capitalize_ascii (Filename.basename filename) in
   (* compile *)
   Misc.typeonly := true;
-  Misc.no_causality := true;
+  (* Misc.no_causality := true; *)
   (* Misc.no_initialization := true; *)
   Compiler.compile modname filename 
 
