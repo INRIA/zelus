@@ -41,4 +41,3 @@ let node make<<n>>(x) returns (o:[n]'a)
   forward(n) returns (oi out o)
     do oi = x done
 
-
