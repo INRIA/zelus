@@ -38,6 +38,7 @@ let good_one filename =
   (* compile *)
   Misc.typeonly := true;
   (* Misc.no_causality := true; *)
+  Misc.no_initialization := true;
   Compiler.compile modname filename 
 
 exception Error
