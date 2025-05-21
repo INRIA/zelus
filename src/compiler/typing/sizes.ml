@@ -260,6 +260,23 @@ let rec eval n_env si =
      let op = match op with | Splus -> (+) | Smult -> ( * ) | Sminus -> (-) in
      op v1 v2
 
+(* fix-point computation of an environment of functions *)
+(* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
+let letrec check f_env n_env id_id_list_sc_list =
+  let rec f_env_fix =
+    lazy (List.fold_left 
+            (fun f_acc (id, id_list, sc) -> 
+              Env.add id 
+                (fun v_list -> 
+                  let n_env = 
+                    List.fold_left2 (fun acc id v -> Env.add id v acc)
+                      n_env id_list v_list in
+                  check (Lazy.force f_env_final) n_env sc)
+                 f_acc)
+            Env.empty id_id_list_sc_list)
+  and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
+  Lazy.force f_env_final
+
 (* evaluation of constraints. *)
 (* [f_env]: environment of functions; [n_env]: environment of sizes *)
 let rec check f_env n_env sc =
@@ -286,7 +303,7 @@ let rec check f_env n_env sc =
      let v = try Env.find f f_env with Not_found -> raise Maybe in
      v v_list
   | Fix(id_id_list_sc_list, sc) ->
-     let f_env_final = letrec f_env n_env id_id_list_sc_list in
+     let f_env_final = letrec check f_env n_env id_id_list_sc_list in
      check f_env_final n_env sc
   | Forall(id, e, sc) ->
      let rec for_all v f =
@@ -295,22 +312,6 @@ let rec check f_env n_env sc =
      for_all (v-1) (fun v -> check f_env (Env.add id v n_env) sc)
   | Loc(_, sc) -> check f_env n_env sc
 
-(* fix-point computation of an environment of functions *)
-(* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
-and letrec f_env n_env id_id_list_sc_list =
-  let rec f_env_fix =
-    lazy (List.fold_left 
-            (fun f_acc (id, id_list, sc) -> 
-              Env.add id 
-                (fun v_list -> 
-                  let n_env = 
-                    List.fold_left2 (fun acc id v -> Env.add id v acc)
-                      n_env id_list v_list in
-                  check (Lazy.force f_env_final) n_env sc)
-                 f_acc)
-            Env.empty id_id_list_sc_list)
-  and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
-  Lazy.force f_env_final
 
 (* free variables *)
 let rec fv bounded acc si =
@@ -354,15 +355,15 @@ let rec fv_constraints bounded acc sc =
      fv bounded acc e
   | Loc(_, sc) -> fv_constraints bounded acc sc
 
+(* Localisation of errors when a constraints is not satisfied *)
+(* The check function and the localisation function could be merged *)
+(* into one for better efficiency *)
 let localise f_env n_env sc =
   (* simplify an environment; keep only variables that are free in a size *)
   (* constraint *)
   let clear n_env sc =
     let acc = fv_constraints S.empty S.empty sc in
     Env.filter (fun x _ -> S.mem x acc) n_env in
-  (* Localisation of errors when a constraints is not satisfied *)
-  (* The check function and the localisation function could be merged *)
-  (* into one for better efficiency *)
   let exception Error of 
         { f_loc_list: Location.ft list; (* [floc1;...;flocn] *)
           (* list of file/location in the source *)
@@ -371,16 +372,17 @@ let localise f_env n_env sc =
           (* [floc1] is the closest *)
           nested_env: int Env.t; (* environment for size variables *)
           nested_sc: exp constraints
-                         (* the size expression that is not satisfied *)
+          (* the size expression that is not satisfied *)
         } in
   let rec localise f_loc_list f_env n_env sc =
     match sc with
     | True | False | Rel _ | App _ ->
        let v = check f_env n_env sc in
        let n_env = clear n_env sc in
-       if not v then
-         raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
-    | And(sc_list) -> List.iter (localise f_loc_list f_env n_env) sc_list
+       if v then true
+       else raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
+    | And(sc_list) ->
+       List.for_all (localise f_loc_list f_env n_env) sc_list
     | Let(id_e_list, sc) ->
        let n_env =
          List.fold_left
@@ -391,17 +393,18 @@ let localise f_env n_env sc =
        if check f_env n_env sc1 then localise f_loc_list f_env n_env sc2 
        else localise f_loc_list f_env n_env sc3
     | Fix(id_id_list_sc_list, sc) ->
-       let f_env_final = letrec f_env n_env id_id_list_sc_list in
+       let f_env_final =
+         letrec (localise f_loc_list) f_env n_env id_id_list_sc_list in
        localise f_loc_list f_env_final n_env sc
     | Forall(id, e, sc) ->
        let rec for_all v f =
-         if v <= 0 then () else begin f v; for_all (v-1) f end in
+         if v <= 0 then true else (f v) && (for_all (v-1) f) in
        let v = eval n_env e in
        for_all (v-1) (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc)
     | Loc(f_loc, sc) -> localise (f_loc :: f_loc_list) f_env n_env sc in
+
   try
-    localise [] f_env n_env sc;
-    assert false
+    let _ = localise [] f_env n_env sc in assert false
   with
     Error { f_loc_list; nested_env; nested_sc } ->
     f_loc_list, nested_env, nested_sc
