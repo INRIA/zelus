@@ -110,6 +110,13 @@ let add_2(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
 *)
 
+let rec add_n___<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  match size n with
+  | 0 -> o = [||] 
+  | _ -> let s, carry = true, true in
+         do o = [|s|] ++ (add_n___<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+         done
+
 let xor(a, b) = if a then not b else b
 
 (* adders *)

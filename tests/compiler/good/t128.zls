@@ -69,4 +69,3 @@ let sum_matrix<<n,m>>(m1:[n][m]'a, m2:[n][m]'a) = (m3) where rec
       do forward(m1_i_j in m1_i, m2_i_j in m2_i) returns (m3_i_j out m3_i)
 	   do m3_i_j = m1_i_j + m2_i_j done
       done
-
