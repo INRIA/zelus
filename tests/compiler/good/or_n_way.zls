@@ -1,7 +1,7 @@
 let rec or_n_way<<n>>(x:[n]bool) returns (y)
     match size n with
     | 0 -> y = false
-    | 1 -> y = x.(2)
+    | 1 -> y = x.(0)
     | _ -> y = or_n_way<<n/2>>(x.(0 .. n/2 - 1)) or
                or_n_way<<n-n/2>>(x.(n/2 .. n-1))
 
