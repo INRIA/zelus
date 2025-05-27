@@ -82,7 +82,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t der: normalize derivative \n\
     \t\t period: remove periods \n\
     \t\t disc: remove discrete zero-crossings \n\
-    \t\t copylast: add copy equations [lx = last* x] for lasts \n\
+    \t\t copylast: add copy equations [lx = last* x] \n\
     \t\t lastinpatterns: add copies for lasts that are inputs or outputs \n\
     \t\t auto: remove automata statements \n\
     \t\t present: remove present statements \n\

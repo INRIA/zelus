@@ -36,18 +36,8 @@ let optim_list =
 
 (* source-to-source transformations *)
 let default_list =
-   [(* Warning: this step does not work for the moment. The renaming *)
-    (* of variables does not work. See [aform.ml] *)
-    (* "aform", "A-normal form. See below:",
-       (* type checks before computing A-normal form *)
-       type_check,
-       Aform.program;
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p); *)
-   "inline", "Inlining done. See below:", nothing,
+   ["inline", "Inlining done. See below:", nothing,
    Inline.program;
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p);
    "automata", "Translation of automata. See below:", nothing,
    Automata.program;
    "present", "Translation of present. See below:", nothing,
@@ -57,8 +47,8 @@ let default_list =
     input variable. See below:", nothing,
    Lastinpatterns.program;
    "copylast",
-   "Add a copy [lx = last* x] to remore nothing cycles when [x] \n\
-    is a local variable. See below:", nothing,
+   "Add a copy [lx = last* x] when [last x] is used \n\
+    in an expression. See below:", nothing,
    Copylast.program;
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
@@ -90,14 +80,17 @@ let default_list =
    Init.program;
    "letin", "Un-nesting of let/in and blocks. See below:", nothing,
    Letin.program;
+   (* Warning: this step does not work for the moment. The renaming *)
+    (* of variables does not work. See [aform.ml] *)
+    (* "aform", "A-normal form. See below:",
+       (* type checks before computing A-normal form *)
+       type_check,
+       Aform.program; *)
    "typing", "New typing step: See below:", nothing,
    (fun _ p -> Typing.program Format.std_formatter false p);
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
-   Schedule.program;
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p);
-     ]
+   Schedule.program]
 
 (* select the rewritting steps *)
 module S = Set.Make (String)

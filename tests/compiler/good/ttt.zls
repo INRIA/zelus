@@ -1,9 +1,25 @@
-let node j x = let rec o = 0 fby x + 1 and z = 1 fby o and k = z + 2 in k + o
-
 let node h x =
-  let rec init o = 1 and o = last o + 1 in last o
+  let rec init o = 1 and o = last o + 1 in last o (* + last x *)
+
+(* lastinpatterns is buggy *)
+
+let f x = 1
 
 (*
+let node cond_act (c) = (x, y) where rec
+  init x = 0 and init y = 0
+  and match c with
+  | true -> do x = 0 -> pre x + 1 done
+  | false -> do y = 0 -> pre y + 1 done
+  end
+*)
+
+(*
+let node j x =
+  let rec o = 0 fby x + 1
+  and z = 1 fby o
+  and k = z + 2 in k + o
+
 let node jj x = j(x+1) + j(x+2)
 
 let node main () =
