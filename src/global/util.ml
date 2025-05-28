@@ -41,6 +41,9 @@ let optional_get = function
   | Some x -> x
   | None   -> assert false
 
+let is_opt = function
+  | Some _ -> true | None -> false
+
 let rec iter f = function
   | [] -> []
   | x :: l -> let y = f x in y :: iter f l

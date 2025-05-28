@@ -21,22 +21,24 @@
 
 (* Example:
  *- [let node f(x) = ... x ... last x...] is rewritten
- *- [let node f(m) = local last x do x = m and ... m ... last* x...]
+ *- [let node f(m) = local last x do x = m and ...m...last* x...]
 
- *- [let node f(...x init e1 default e0...) returns (...) ...last x] is rewritten
+ *- [let node f(...x init e1 default e0...) returns (...) ...x...last x]
+ *- is rewritten
  *- [let node f(...m...) returns (...)
- *-       local x init ... default ... do x = m and ...last x done]
+ *-       local x init ... default ... do x = m and ...m...last* x done]
 
- *- [let node f(...) returns (...x init ... default ...) ... last* x ...] is rewritten
+ *- [let node f(...) returns (...x init ... default ...) ...x...last* x ...]
+ *- is rewritten
  *- [let node f(...) returns (...m ...)
-       local x init ... default ... do x = m and ... last* x]
+       local x init ... default ... do x = m and ...m...last* x]
 
- *- [match e with P(...x...) -> eq] is rewritten
- *- [match e with P(...m...) -> local x do x = m and eq]
+ *- [match e with P(...x...) -> ...x...last x...] is rewritten
+ *- [match e with P(...m...) -> local x do x = m and ...m...last* x...]
  *- [present
-       e(...x...) -> eq...[last x]...] is rewritten
+       e(...x...) -> ...x...last x...] is rewritten
  *- [present
-       e(...m...) -> local x do x = m and eq]
+       e(...m...) -> local x do x = m and ...m...last* m...]
  *)
 
            
@@ -50,14 +52,17 @@ type acc = Ident.t Env.t
 let empty = Env.empty
 
 let build funs acc l_env =
-  (* if [last x] is used introduce a fresh name [m] to store its result *)
-  let add x { Deftypes.t_sort } acc =
+  (* if [last x] is used, introduce a fresh name [m] and replace *)
+  (* the declaration for [x] by a declaration for [m]. [x] is renamed [m] *)
+  (* [last x], if it exists, is rewritten into [last* x] *)
+  (* a local declaration is added that defines the variable [x] *)
+  let add x ({ Deftypes.t_sort } as entry) (l_env, acc) =
     match t_sort with
-    | Sort_mem { m_last = true } | Sort_mem { m_init = Decl _ }
-      | Sort_mem { m_default = Decl _ } ->
-       let m = fresh "m" in Env.add x m acc
-    | _ -> acc in
-  Env.fold add l_env acc
+    | Sort_mem { m_last = true } ->
+       let m = fresh "m" in
+       Env.add m { entry with t_sort = Sort_val } l_env, Env.add x m acc
+    | _ -> Env.add x entry l_env, acc in
+  Env.fold add l_env (Env.empty, acc)
 
 let new_vardec v =
   { v with var_default = None; var_init = None;
@@ -66,20 +71,19 @@ let new_vardec v =
 
 (* update a variable declaration; remove the initialization *)
 (* and default part *)
-let update_vardec acc ({ var_name } as v) =
+let update_vardec acc (v_list, eq_list)
+      ({ var_name; var_init; var_default; var_is_last; var_init_in_eq  } as v) =
   try
     let m = Env.find var_name acc in
-    { (new_vardec v) with var_name = m }
+    { (new_vardec v) with var_name = m },
+    (v :: v_list, Aux.id_eq var_name (Aux.var m) :: eq_list)
   with
-  | Not_found -> v
-
-(*
-  let update_vardec acc ({ var_name } as v) =
-  try
-    let { new_name } = Env.find var_name acc in
-    { (new_vardec v) with var_name = new_name }
-  with
-    | Not_found -> v *)
+  | Not_found ->
+     if (Util.is_opt var_init) || (Util.is_opt var_default) then
+       let m = fresh "m" in
+       { (new_vardec v) with var_name = m },
+       (v :: v_list, eq_list)
+     else v, (v_list, eq_list)
 
 let var_ident funs acc x =
   try
@@ -112,22 +116,26 @@ let add_equations_into_e acc env e =
   Aux.e_local_vardec v_list eq_list e
 
 let match_handler_eq funs acc m_h =
-  let ({ m_body; m_env } as m_h), acc_h = Mapfold.match_handler_eq funs acc m_h in
+  let ({ m_body; m_env } as m_h), acc_h =
+    Mapfold.match_handler_eq funs acc m_h in
   (* add extra equations in the body *)
   { m_h with m_body = add_equations_into_eq acc_h m_env m_body }, acc
 
 let match_handler_e funs acc m_h =
-  let ({ m_body; m_env } as m_h), acc_h = Mapfold.match_handler_e funs acc m_h in
+  let ({ m_body; m_env } as m_h), acc_h =
+    Mapfold.match_handler_e funs acc m_h in
   (* add extra equations in the body *)
   { m_h with m_body = add_equations_into_e acc_h m_env m_body }, acc
 
 let present_handler_eq funs acc p_b =
-  let ({ p_body; p_env } as p_h), acc_h = Mapfold.present_handler_eq funs acc p_b in
+  let ({ p_body; p_env } as p_h), acc_h =
+    Mapfold.present_handler_eq funs acc p_b in
   (* add extra equations in the body *)
   { p_h with p_body = add_equations_into_eq acc_h p_env p_body }, acc
 
 let present_handler_e funs acc p_b =
-  let ({ p_body; p_env } as p_h), acc_h = Mapfold.present_handler_e funs acc p_b in
+  let ({ p_body; p_env } as p_h), acc_h =
+    Mapfold.present_handler_e funs acc p_b in
   (* add extra equations in the body *)
   { p_h with p_body = add_equations_into_e acc_h p_env p_body }, acc
 
@@ -150,35 +158,21 @@ let block funs acc ({ b_vars; b_body; b_write } as b) =
   let b_body, acc = Mapfold.equation_it funs acc b_body in
   { b with b_vars; b_body }, acc
 
-(* update the list of arguments of a function *)
-(* such that default and initial values are removed *)
-let update_arg_list acc (v_list, eq_list) f_args =
-  let update_vardec (v_list, eq_list)
-        ({ var_name; var_init; var_default; var_is_last; var_init_in_eq } as v) =
-    try
-      let m = Env.find var_name acc in
-      { (new_vardec v) with var_name = m } :: v_list,
-      Aux.id_eq var_name (Aux.var m) :: eq_list
-    with
-    | Not_found -> v :: v_list, eq_list in
-  Util.mapfold update_vardec (v_list, eq_list) f_args
-
 let funexp funs acc ({ f_args; f_body = ({ r_desc } as r); f_env } as f) =
   let arg acc v_list = Util.mapfold (Mapfold.vardec_it funs) acc v_list in
-
-  let f_env, acc = Mapfold.build_it funs.global_funs acc f_env in
-
+  
   let f_args, acc = Util.mapfold arg acc f_args in
-
+  let f_env, acc = Mapfold.build_it funs.global_funs acc f_env in
+  
+  let f_args, (v_list, eq_list) =
+         Util.mapfold (Util.mapfold (update_vardec acc)) ([], []) f_args in
   let f_args, r_desc, acc = match r_desc with
     | Exp(e) ->
        let e, acc = Mapfold.expression funs acc e in
-       let f_args, (v_list, eq_list) = update_arg_list acc ([], []) f_args in
        let e = Aux.e_local_vardec v_list eq_list e in
        f_args, Exp(e), acc
     | Returns (b) ->
        let { b_body } as b, acc = Mapfold.block_it funs acc b in
-       let f_args, (v_list, eq_list) = update_arg_list acc ([], []) f_args in
        let b_body = Aux.eq_local_vardec v_list (b_body :: eq_list) in
        f_args, Returns { b with b_body }, acc in
   { f with f_args; f_body = { r with r_desc }; f_env }, acc
