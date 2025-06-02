@@ -49,18 +49,18 @@ let empty = { env = Env.empty; renaming = Env.empty }
 
 (* Make equations [lx1 = last* x1 and ... lxn = last* xn] *)
 (* from a [renaming] where [renaming(x) = lx] *)
-let add_last_copy_eq l_renaming =
+let add_lx_lastx l_renaming =
   let copy lx x = Aux.id_eq lx (Aux.last_star x) in
   Env.fold (fun x lx acc -> copy lx x :: acc) l_renaming []
 
-(* add copy names in [l_env] *)
+(* add copy names [lx] to [l_env] *)
 let add_last_names_in_env l_env l_renaming =
   Env.fold (fun x lx acc -> Env.add lx Typinfo.no_ienv acc) l_renaming l_env
 
 (* Make an equation [let lx1 = last* x1 and ... lx_n = last* xn in eq] *)
 let eq_let_lx_lastx l_renaming eq =
   if Env.is_empty l_renaming then eq
-  else let eq_list = add_last_copy_eq l_renaming in
+  else let eq_list = add_lx_lastx l_renaming in
        Aux.eq_let (Aux.leq eq_list) eq
 
 (* Inject [let lx1 = last* x1 and ... lx_n = last* xn in eq] into a block *)
@@ -110,7 +110,7 @@ let leq_t funs ({ env } as acc) ({ l_eq; l_env; l_rec } as leq) =
   (* the resulting equations are recursive if [l_rec] or *)
   (* at least one copy is added *)
   let l_rec = l_rec || not (Env.is_empty l_renaming) in
-  { leq with l_eq = Aux.par (l_eq :: add_last_copy_eq l_renaming);
+  { leq with l_eq = Aux.par (l_eq :: add_lx_lastx l_renaming);
              l_env = add_last_names_in_env l_env l_renaming; l_rec },
   { env; renaming }
 
