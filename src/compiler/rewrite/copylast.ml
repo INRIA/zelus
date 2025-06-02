@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -12,10 +12,10 @@
 (*                                                                     *)
 (* *********************************************************************)
 
+(* Add a copy [lx] and an equation [lx = last*x]. Replace [last x] by [lx] *)
 (* This pass is necessary for static scheduling. *)
-(* For every local variable [x] that is not an input nor output *)
-(* such that [last x] is used *)
-(* add an equation [lx = last* x] and replace [last x] by [lx] *)
+(* This is done for every variable [x] for which [last x] is used *)
+(* and that is neither an input, an output or a variable in a pattern matching *)
 
 (*
   Example:
@@ -39,8 +39,9 @@ type 'a acc =
   { (* names that are defined locally as [local ... x ... do ... ] or *)
     (* [let [rec] ... x ... in ...] *)
     env: 'a Env.t; 
-    (* if [x] is local and [last x] is used, [last x] is replaced by [lx] *)
-    (* and an equation [lx = last*x] is added. *)
+    (* if [x] is a local variable and [last x] is used in a expression *)
+    (* then [last x] is replaced by [lx] and an equation [lx = last*x] is added. *)
+    (* if [last* x] is used, it is left unchanged *)
     renaming: Ident.t Env.t; (* renaming [x -> lx] *)
   }
 
