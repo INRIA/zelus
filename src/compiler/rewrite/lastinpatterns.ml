@@ -54,8 +54,9 @@ let empty = Env.empty
 let build funs acc l_env =
   (* if [last x] is used, introduce a fresh name [m] and replace *)
   (* the declaration for [x] by a declaration for [m]. [x] is renamed [m] *)
-  (* [last x], if it exists, is rewritten into [last* x] *)
-  (* a local declaration is added that defines the variable [x] *)
+  (* [last x] is rewritten into [last* x] *)
+  (* a local declaration is added for [x] and an equation [x = m] *)
+  (* if [last x] is used *)
   let add x ({ Deftypes.t_sort } as entry) (l_env, acc) =
     match t_sort with
     | Sort_mem { m_last = true } ->
