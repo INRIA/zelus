@@ -147,6 +147,7 @@ let for_returns funs acc ({ r_returns; r_block } as r) =
   { r with r_returns; r_block }, acc
 
 let for_eq_t funs acc ({ for_out; for_block } as f) =
+  (* no use of the [build] function here *)
   let for_out, acc =
     Util.mapfold (Mapfold.for_out_it funs) acc for_out in
   let for_block, acc = Mapfold.block_it funs acc for_block in
@@ -154,29 +155,30 @@ let for_eq_t funs acc ({ for_out; for_block } as f) =
 
 (* variables in blocks are unchanged *)
 let block funs acc ({ b_vars; b_body; b_write } as b) =
+  (* no use of the [build] function here *)
   let b_vars, acc = 
     Util.mapfold (Mapfold.vardec_it funs) acc b_vars in
   let b_body, acc = Mapfold.equation_it funs acc b_body in
   { b with b_vars; b_body }, acc
 
-let funexp funs acc ({ f_args; f_body = ({ r_desc } as r); f_env } as f) =
-  let arg acc v_list = Util.mapfold (Mapfold.vardec_it funs) acc v_list in
-  
-  let f_args, acc = Util.mapfold arg acc f_args in
-  let f_env, acc = Mapfold.build_it funs.global_funs acc f_env in
-  
+(* variables in let body are unchanged *)
+let leq_t funs acc ({ l_eq } as leq) =
+  let l_eq, acc = Mapfold.equation_it funs acc l_eq in
+  { leq with l_eq }, acc
+
+let funexp funs acc f =
+  let ({ f_args; f_body = ({ r_desc } as r) } as f), acc =
+    Mapfold.funexp funs acc f in
   let f_args, (v_list, eq_list) =
          Util.mapfold (Util.mapfold (update_vardec acc)) ([], []) f_args in
   let f_args, r_desc, acc = match r_desc with
     | Exp(e) ->
-       let e, acc = Mapfold.expression funs acc e in
        let e = Aux.e_local_vardec v_list eq_list e in
        f_args, Exp(e), acc
-    | Returns (b) ->
-       let { b_body } as b, acc = Mapfold.block_it funs acc b in
+    | Returns({ b_body } as b) ->
        let b_body = Aux.eq_local_vardec v_list (b_body :: eq_list) in
        f_args, Returns { b with b_body }, acc in
-  { f with f_args; f_body = { r with r_desc }; f_env }, acc
+  { f with f_args; f_body = { r with r_desc } }, acc
 
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
@@ -188,7 +190,7 @@ let program _ p =
   let funs = 
     { Mapfold.defaults with match_handler_eq; match_handler_e;
                             present_handler_eq; present_handler_e;
-                            for_returns; for_eq_t; block; funexp;
+                            for_returns; for_eq_t; block; leq_t; funexp;
                             set_index; get_index; global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

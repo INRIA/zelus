@@ -100,17 +100,15 @@ let expression funs ({ env } as acc) ({ e_desc } as e) =
      else
        e, acc
   | Elet({ l_env } as leq, e) ->
-     let leq, acc = Mapfold.leq_it funs { acc with env = Env.append l_env env } leq in
-     let { renaming } = acc in
-     let l_ = Env.to_list renaming in
+     let leq, acc =
+       Mapfold.leq_it funs { acc with env = Env.append l_env env } leq in
      let e, acc = Mapfold.expression_it funs acc e in
      let leq, acc = add_lx_lastx_to_leq acc leq in
      { e with e_desc = Elet(leq, e) }, acc
   | Elocal({ b_env } as b, e) ->
-     let b, acc = Mapfold.block_it funs { acc with env = Env.append b_env env } b in
+     let b, acc =
+       Mapfold.block_it funs { acc with env = Env.append b_env env } b in
      let e, acc = Mapfold.expression_it funs acc e in
-     let { renaming } = acc in
-     let l_ = Env.to_list renaming in
      let b, acc = add_lx_lastx_to_block acc b in
      { e with e_desc = Elocal(b, e) }, acc
   | _ ->
@@ -119,17 +117,15 @@ let expression funs ({ env } as acc) ({ e_desc } as e) =
 let equation funs ({ env } as acc) ({ eq_desc } as eq) =
   match eq_desc with
   | EQlet({ l_env } as leq, eq) ->
-     let leq, acc = Mapfold.leq_it funs { acc with env = Env.append l_env env } leq in
+     let leq, acc =
+       Mapfold.leq_it funs { acc with env = Env.append l_env env } leq in
      let eq, acc = Mapfold.equation_it funs acc eq in
-     let { renaming } = acc in
-     let l_ = Env.to_list renaming in
      let leq, acc = add_lx_lastx_to_leq acc leq in
      { eq with eq_desc = EQlet(leq, eq) }, acc
   | EQlocal({ b_env } as b) ->
-     let b, acc = Mapfold.block_it funs { acc with env = Env.append b_env env } b in
+     let b, acc =
+       Mapfold.block_it funs { acc with env = Env.append b_env env } b in
      let b, acc = add_lx_lastx_to_block acc b in
-     let { renaming } = acc in
-     let l_ = Env.to_list renaming in
      { eq with eq_desc = EQlocal(b) }, acc
   | _ -> Mapfold.equation funs acc eq
 
