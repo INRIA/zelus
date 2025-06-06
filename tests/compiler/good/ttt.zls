@@ -1,8 +1,12 @@
+let node f x = let rec y = last y + x in y
+
+(*
 let node h x =
   let rec init o = 1 and o = last o + 1 in last o (* + last x *)
 
 let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
+*)
 
 (*
 let node h x =
@@ -14,7 +18,9 @@ let node hh x =
 
 (* lastinpatterns is buggy *)
 
+(*
 let f x = 1
+*)
 
 (*
 let node cond_act (c) = (x, y) where rec

@@ -99,7 +99,8 @@ let less_for_var loc n actual_ti expected_ti =
 
 (* Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] then
- *- [x] is initialized, that is [last x: 0]; otherwise [last x: 1] *)
+ *- [x] is initialized, that is [last x: 0] provided [e:0]; otherwise [last x: 1]
+ *- and [x] must be initialized, that is [x:0] *)
 let build_env loc l_env env =
   let open Deftypes in
   let entry x { t_sort; t_tys = { typ_body } } =
@@ -108,11 +109,14 @@ let build_env loc l_env env =
         (* if an equation [der x = ...] is given but no initialisation *)
         (* either through [init x = ...] or [x = ...], [x] is not initialized *)
         error loc (Ider(x))
-    | Sort_mem { m_init } ->
-       let t_last = match m_init with | Eq | Decl _ -> izero | No -> ione in
+    | Sort_mem { m_init = (Eq | Decl _) } ->
+       let t_tys =
+         Definit.scheme (Tinit.skeleton_on_i izero typ_body) in
+       { t_last = izero; t_tys }
+    | Sort_mem { m_init = No } ->
        let t_tys =
          Definit.scheme (Tinit.skeleton_on_i (Tinit.new_var ()) typ_body) in
-       { t_last; t_tys }
+       { t_last = ione; t_tys }
     | _ ->
        let t_tys = Definit.scheme (Tinit.skeleton typ_body) in
        { t_last = ione; t_tys } in
@@ -328,7 +332,13 @@ and exp env ({ e_desc; e_info; e_loc } as e) =
                    with | Not_found -> print x in
        Tinit.instance t_tys e_typ
     | Elast { id } -> 
-       begin try 
+       let { t_tys = { typ_body } ; t_last } =
+         try Env.find id env with | Not_found -> print id in
+       let ty = Tinit.fresh_on_i t_last typ_body in
+       (* check that [id] is initialized *)
+       
+         with 
+         | Not_found -> Tinit.skeleton_on_i ione e_typ endbegin try 
            (* [last x] is initialized only if an equation [init x = e] *)
            (* appears and [e] is also initialized *)
            let { t_tys = { typ_body } ; t_last } = Env.find id env in
