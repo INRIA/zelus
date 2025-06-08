@@ -1,12 +1,17 @@
-let node f x = let rec y = last y + x in y
+let node f1 x = let rec y = 0 -> last y + x in y
 
-(*
+let node f x returns o
+  automaton
+  | I -> do o = 1 unless true then A
+  | A -> do o = last o + 1 done
+  end
+
 let node h x =
   let rec init o = 1 and o = last o + 1 in last o (* + last x *)
 
 let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
-*)
+
 
 (*
 let node h x =
@@ -22,14 +27,12 @@ let node hh x =
 let f x = 1
 *)
 
-(*
 let node cond_act (c) = (x, y) where rec
   init x = 0 and init y = 0
   and match c with
   | true -> do x = 0 -> pre x + 1 done
   | false -> do y = 0 -> pre y + 1 done
   end
-*)
 
 (*
 let node j x =
