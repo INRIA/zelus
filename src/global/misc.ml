@@ -78,9 +78,9 @@ let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
 let inline_all = ref false
 
+(* verbose *)
 let verbose = ref false
 let vverbose = ref false
-let debug = ref true
 
 let set_verbose () =
   verbose := true;
@@ -90,9 +90,15 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
+(* debug *)
+let debug = ref true
+
 let set_debug () =
   debug := true;
   set_verbose ()
+
+(* output the result of successive the successive passes *)
+let print_passes = ref false
 
 let print_types = ref false
 let print_types_with_size_constraints = ref false

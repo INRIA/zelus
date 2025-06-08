@@ -121,10 +121,10 @@ let rewrite_list () =
 
 (* Apply a sequence of source-to-source transformation *)
 (* do equivalence checking for every step if [n_steps <> 0] *)
-let main print_message genv0 p n_steps =
+let main is_print print_message genv0 p n_steps =
   let compare name n_steps genv0 p p' =
-  print_message ("Checks the pass " ^ name ^
-                   " for " ^ (string_of_int n_steps) ^" steps\n");
+  print_message is_print ("Checks the pass " ^ name ^
+                            " for " ^ (string_of_int n_steps) ^" steps\n");
   let genv = Coiteration.program genv0 p in
   let genv' = Coiteration.program genv0 p' in
   Coiteration.check n_steps genv genv'; p' in
@@ -132,8 +132,8 @@ let main print_message genv0 p n_steps =
   let rewrite_and_compare genv p (name, comment, prepass, rewrite) =
     let p = prepass p in
     let p' = rewrite genv p in
-    print_message ("Pass " ^ name ^ ": " ^ comment);
-    if !Misc.verbose then Printer.program Format.std_formatter p';
+    print_message is_print ("Pass " ^ name ^ ": " ^ comment);
+    if is_print then Printer.program Format.std_formatter p';
     if n_steps = 0 then p' else compare name n_steps genv p p' in
     
   let iter genv p l = List.fold_left (rewrite_and_compare genv) p l in

@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -40,6 +40,7 @@ let compile file =
 
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
+let doc_print_passes = "\t Output compiler passes"
 and doc_version = "\t The version of the compiler"
 and doc_outname = "<name> \t Simulation file name <name>"
 and doc_print_types = "\t Print types"
@@ -123,6 +124,7 @@ let main () =
       (Arg.align [
           "-v", Arg.Unit set_verbose, doc_verbose;
           "-vv", Arg.Unit set_vverbose, doc_vverbose;
+          "-passes", Arg.Set print_passes, doc_print_passes;
           "-version", Arg.Unit show_version, doc_version;
           "-o", Arg.String set_outname, doc_outname;
           "-I", Arg.String add_include, doc_include;
