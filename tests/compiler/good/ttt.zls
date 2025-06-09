@@ -1,3 +1,9 @@
+let node ff x returns o
+  automaton
+  | I -> do o = 1 until true then A
+  | A -> do o = last o + 1 done
+  end
+
 let g = 9.81
 
 let hybrid f(z) = o where
@@ -18,13 +24,8 @@ let node main() =
   print_int o; print_newline ()
 *)
 
-(*
-let node f x returns o
-  automaton
-  | I -> do o = 1 unless true then A
-  | A -> do o = last o + 1 done
-  end
 
+(*
 let node h x =
   let rec init o = 1 and o = last o + 1 in last o (* + last x *)
 
