@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -62,7 +62,7 @@ let rec init { eq_desc } =
 
 let nodep ({ eq_desc }) =
   match eq_desc with
-  | EQeq(_, { e_desc = Eop(Eup, _) })
+  | EQeq(_, { e_desc = Eop(Eup _, _) })
   | EQder { e_opt = None; handlers = [] } -> true | _ -> false
 
 let index { eq_index } = eq_index

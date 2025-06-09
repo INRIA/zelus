@@ -1,4 +1,22 @@
-let node f1 x = let rec y = 0 -> last y + x in y
+let g = 9.81
+
+let hybrid f(z) = o where
+  rec present z -> do o = 1.0 done else do der o = 1.0 done
+  and init o = 2.0
+
+let hybrid ball() =
+  let rec der y = y' init 10.0
+  and der y' = -. g init 0.0 reset up(-. y) -> 0.8 *. last y' in
+  y
+
+(*
+let node from n returns m
+  m = 0 fby (let rec p = 1 fby (m+p) in p)
+
+let node main() =
+  let o = from 0 in
+  print_int o; print_newline ()
+*)
 
 (*
 let node f x returns o

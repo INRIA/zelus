@@ -431,8 +431,8 @@ module Make (Info: INFO) =
       | Eifthenelse,[e1;e2;e3] ->
          fprintf ff "@[<hov2>(if@ %a then@ %a@ else@ %a)@]"
            expression e1 expression e2 expression e3
-      | Eup, [e] ->
-         fprintf ff "@[up %a@]" expression e
+      | Eup { is_zero }, [e] ->
+         fprintf ff "@[up%s %a@]" (if is_zero then "z" else "b") expression e
       | Einitial, [] -> fprintf ff "init" 
       | Etest, [e] ->
          fprintf ff "@[? %a@]" expression e
@@ -530,7 +530,8 @@ module Make (Info: INFO) =
          (* remove useless do/done when [eq] is a list of equations *)
          let equation ff ({ eq_desc } as eq) =
            match eq_desc with
-           | EQand { ordered; eq_list } -> and_equation ordered "" "" ff eq_list
+           | EQand { ordered; eq_list } -> 
+              and_equation ordered "" "" ff eq_list
            | _ -> equation ff eq in
          fprintf ff "@[<hov>reset@   @[%a@]@ @[<hov 2>every@ %a@]@]"
            equation eq expression e
@@ -538,7 +539,8 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov1>(%a in@ %a)@]" leq l_eq equation eq
       | EQlocal(b_eq) -> block_of_equation ff b_eq
       | EQand { ordered; eq_list } ->
-         and_equation ordered "do " " done" ff eq_list
+         fprintf ff "@[<hov0>%a@]"
+           (and_equation ordered "do " " done") eq_list
       | EQempty -> fprintf ff "()"
       | EQassert(e) ->
          fprintf ff "@[<hov2>assert %a@]" expression e
@@ -568,8 +570,8 @@ module Make (Info: INFO) =
            for_exit_condition for_kind       
     
     and and_equation ordered po pf ff eq_list =
-      let a = if ordered then "then " else "and " in
-      print_list_l equation po a pf ff eq_list
+      let a = if ordered then "; " else " and " in
+      print_list_r equation po a pf ff eq_list
     
     (* print for loops *)
     and kind_of_forloop ff for_kind =

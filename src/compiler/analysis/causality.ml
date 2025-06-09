@@ -496,7 +496,7 @@ and operator env op c_free ty e_list =
       exp_less_than_on_c env c_free e2 c_res;
       exp_less_than_on_c env c_free e3 c_res;
       Tcausal.skeleton_on_c c_res ty
-  | Eup, [e] ->
+  | Eup _, [e] ->
      exp_less_than_on_c env c_free e (Tcausal.new_var ());
      Tcausal.skeleton_on_c c_res ty
   | Einitial, [] ->

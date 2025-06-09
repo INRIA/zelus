@@ -450,7 +450,7 @@ let rec expression env loop_path context { Zelus.e_desc } =
   | Zelus.Etypeconstraint(e, ty_expression) ->
      let e, context = expression env loop_path context e in
      Etypeconstraint(e, ty_expression), context
-  | Zelus.Eop(Zelus.Eup, [e]) ->
+  | Zelus.Eop(Zelus.Eup _, [e]) ->
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
      let e = if !Misc.zsign then Aux.sgn e else e in 
      expression env loop_path context e

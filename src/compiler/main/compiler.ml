@@ -173,7 +173,7 @@ let compile modname filename =
 
     (* compile-time evaluation of definitions *)
     let otc = open_out_bin obj_name in
-    let p = do_step is_print "Compile-time evaluation done. See below:"
+    let p = do_step is_print "Evaluate compile-time expressions. See below:"
               Printer.program (Const.program otc genv0) p in
     
     let p = Rewrite.main is_print print_message genv0 p !Misc.n_steps in
@@ -185,7 +185,10 @@ let compile modname filename =
               Oprinter.program Translate.program p in
 
     (* prepare the hybrid code for the interaction with the numerical solvers *)
-    let p = do_step is_print "Add code for the interface with the solver. See below:"
+    let p = 
+      do_step is_print 
+        "Add code to read/write continuous states and zero-crossing vectors. \
+         See below:"
             Oprinter.program Inout.program p in
     
     let mlc = open_out ml_name in

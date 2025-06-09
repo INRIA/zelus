@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -30,7 +30,7 @@ let rec operator acc op =
     | Erun _ -> acc 
     | Eatomic -> acc 
     | Etest -> acc - 1
-    | Eup -> acc - 2
+    | Eup _ -> acc - 2
     | Einitial -> acc - 2
     | Eperiod -> acc - 2
     | Ehorizon -> acc - 2
@@ -60,8 +60,10 @@ let expression funs acc ({ e_desc } as e) =
      { e with e_desc = Eop(op, e_list) }, acc
   | _ -> raise Mapfold.Fallback
 
-let expression max e =
+(* the main entry function *)
+let result r =
   let global_funs = Mapfold.default_global_funs in
   let funs =
     { Mapfold.defaults with expression; global_funs } in
-  Mapfold.expression_it funs max e
+  let _, acc = Mapfold.result_it funs 0 r in
+  acc

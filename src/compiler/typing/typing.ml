@@ -1147,8 +1147,9 @@ and operator expected_k h loc op e_list =
        | Edisc ->
           let ty = new_var () in
           Tnode(Tcont), [ty], Initial.typ_zero
-       | Eup ->
-          Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
+       | Eup { is_zero } ->
+          Tnode(Tcont), [Initial.typ_float], 
+          if is_zero then Initial.typ_zero else Initial.typ_bool
        | Einitial ->
           Tnode(Tcont), [], Initial.typ_zero    
        | Eperiod ->
@@ -1923,8 +1924,9 @@ and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
 let implementation ff is_first impl =
   (* turn off warning when not the first typing step *)
   Misc.no_warning := not is_first;
-  (* first set the read/write information. The write information is *)
-  (* used to type declarations [let eq in ...] *)
+  (* allow [der x = ...] and [x = ...] in parallel *)
+  Misc.allow_join_der_dv := not is_first;
+  (* compute read/write information on the whole program *)
   let { desc; loc } as impl =
     if is_first then impl else Write.implementation impl in
   try
@@ -1932,7 +1934,8 @@ let implementation ff is_first impl =
     | Eopen(modname) ->
        if is_first then Modules.open_module modname; impl
     | Eletdecl { d_names; d_leq } ->
-       (* type the set of equations. Top level values are, at most, static ones *)
+       (* type the set of equations. Top level values are, at most, *)
+       (* static ones *)
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
 
        (* check that there is no unbounded size variables *)

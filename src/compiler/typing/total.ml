@@ -106,12 +106,6 @@ let merge loc h defnames_list =
 let join loc
 	 { dv = dv1; di = di1; der = der1 }
          { dv = dv2; di = di2; der = der2 } =
-  (* let dv1_ = S.to_list dv1 in
-  let dv2_ = S.to_list dv2 in
-  let di1_ = S.to_list di1 in
-  let di2_ = S.to_list di2 in
-  let der1_ = S.to_list der1 in
-  let der2_ = S.to_list der2 in *)
   let join k names1 names2 =
     let joinrec n acc = 
       if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
@@ -121,8 +115,14 @@ let join loc
       if S.mem n names1 then
         error loc (Ealready_with_different_kinds(k1, k2, n)) in
     S.iter disjointrec names2 in
-  disjoint Current Derivative dv1 der2;
-  disjoint Current Derivative dv2 der1;
+  (* by default [der x = ...] and [x = ...] in parallel is rejected *)
+  (* the right way to do it would be do use a clock calculus such that *)
+  (* the clock for the definition of [der x] and [x] are exclusive *)
+  (* this option is used because rewrite steps can put definitions for *)
+  (* [der x] and [x] in parallel *)
+  if not !Misc.allow_join_der_dv then
+    (disjoint Current Derivative dv1 der2;
+     disjoint Current Derivative dv2 der1);
   { dv = join Current dv1 dv2; di = join Initial di1 di2;
     der = join Derivative der1 der2 }
   

@@ -113,10 +113,11 @@ let parseonly = ref false
 let typeonly = ref false
 let rewriteonly = ref false
 let use_gtk = ref false
+let use_rif = ref false
 let zsign = ref false
 let with_copy = ref false
-let use_rif = ref false
-
+let allow_join_der_dv = ref false
+ 
 (* the list of nodes to evaluate *)
 let main_nodes = ref ([] :string list)
 let set_main s = main_nodes := s :: !main_nodes

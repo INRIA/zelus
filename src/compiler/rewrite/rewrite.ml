@@ -24,36 +24,35 @@ let nothing p = p
 let type_check p = Typing.program Format.std_formatter false p
     
 let optim_list =
-  ["deadcode", "Dead-code removal. See below:", nothing,
-   Deadcode.program;
+  [(* "copy", "Remove of copy variables. See below:", nothing,
+   Copy.program;
+   "deadcode", "Dead-code removal. See below:", nothing,
+   Deadcode.program; *)
    (* "cse", "Common sub-expression elimination. See below:", nothing,
    Cse.program; *)
-  "copy", "Remove of copy variables. See below:", nothing,
-   Copy.program;
-   (* "zopt", "Sharing of zero-crossings. See below:", nothing,
+  (* "zopt", "Sharing of zero-crossings. See below:", nothing,
    Zopt.program *)
   ]
 
 (* source-to-source transformations *)
 let default_list =
-   ["inline", "Inlining done. See below:", nothing,
+   ["inline", "Inlining of annotated and small function calls. See below:", nothing,
    Inline.program;
+   "der", "Remove init and reset handlers in ODEs. See below:", nothing,
+   Der.program;
    "automata", "Translation of automata. See below:", nothing,
    Automata.program;
    "present", "Translation of present. See below:", nothing,
    Present.program;
    "lastinpatterns",
-   "Replace [last x] by [last* m] when [x] is an \n\
-    input variable. See below:", nothing,
+   "Replace [last x] by [last* m] when [x] is pattern variable. See below:", 
+   nothing,
    Lastinpatterns.program;
    "copylast",
-   "Add a copy [lx = last* x] when [last x] is used \n\
-    in an expression. See below:", nothing,
+   "Add a copy [lx = last* x] to remove false cycles. See below:", nothing,
    Copylast.program;
-   "der", "Remove init and reset handlers in ODEs. See below:", nothing,
-   Der.program;
    "exp2eq",
-   "translate match/reset expressions in their equational form. See below:",
+   "Translate match/reset expressions in their equational form. See below:",
    nothing,
    Exp2eq.program;
    "returns",
@@ -69,7 +68,8 @@ let default_list =
    Shared.program;
    "period", "Translation of periods done. See below:", nothing,
    Period.program;
-   "encore", "Add horizons [horizon h = 0.0] for zero-crossings. See below:",
+   "encore", "Add an extra step for zero-crossings on a weak transitions 
+   [horizon h = 0.0]. See below:",
     nothing,
    Encore.program;
    "disc", "Translation of disc done. See below:", nothing,
@@ -78,7 +78,7 @@ let default_list =
    Pre.program;
    "init", "Compilation of initializations. See below:", nothing,
    Init.program;
-   "letin", "Un-nesting of let/in and blocks. See below:", nothing,
+   "letin", "Un-nest let/in and blocks. See below:", nothing,
    Letin.program;
    (* Warning: this step does not work for the moment. The renaming *)
     (* of variables does not work. See [aform.ml] *)
@@ -91,6 +91,8 @@ let default_list =
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
    Schedule.program]
+
+let number_of_passes = List.length default_list + List.length optim_list 
 
 (* select the rewritting steps *)
 module S = Set.Make (String)
@@ -129,10 +131,16 @@ let main is_print print_message genv0 p n_steps =
   let genv' = Coiteration.program genv0 p' in
   Coiteration.check n_steps genv genv'; p' in
   
+  let pass_number = ref 0 in
+
   let rewrite_and_compare genv p (name, comment, prepass, rewrite) =
+    incr pass_number;
     let p = prepass p in
     let p' = rewrite genv p in
-    print_message is_print ("Pass " ^ name ^ ": " ^ comment);
+    let name_of_the_pass = "Pass " ^ name ^ " (" ^
+        (string_of_int !pass_number) ^ "/" ^ (string_of_int number_of_passes)
+        ^ "):\n" in
+    print_message is_print (name_of_the_pass ^ comment);
     if is_print then Printer.program Format.std_formatter p';
     if n_steps = 0 then p' else compare name n_steps genv p p' in
     

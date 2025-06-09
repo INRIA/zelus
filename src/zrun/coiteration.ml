@@ -4,7 +4,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -433,7 +433,7 @@ let rec iexp is_fun genv env { e_desc; e_loc  } =
      | Edisc, [e] -> 
        if is_fun then error { kind = Eshould_be_combinatorial; loc = e_loc }
        else iexp is_fun genv env e
-     | Eup, [e] ->
+     | Eup _, [e] ->
         if is_fun then error { kind = Eshould_be_combinatorial; loc = e_loc }
         else let* s = iexp is_fun genv env e in
           return
@@ -905,7 +905,7 @@ and sexp genv env { e_desc; e_loc } s =
           Primitives.lift1 Primitives.test v |>
             Opt.to_result ~none:{ kind = Etype; loc = e_loc } in
         return (v, s)
-     | Eup, [e], Slist [Szstate { zin }; s] ->
+     | Eup _, [e], Slist [Szstate { zin }; s] ->
        (* [zin]: set to true when the solver detect a zero-crossing; *)
        (* [zout]: output to be followed for zero-crossing detection *)
         let* zout, s = sexp genv env e s in

@@ -12,6 +12,10 @@
 (*                                                                     *)
 (* *********************************************************************)
 
+(* Inlining of function calls. Only global function names are inlined *)
+(* - function calls annotated with [inline] are systematically inlined *)
+(* - small functions (according to a cost function) are statically expanded *)
+
 open Misc
 open Location
 open Zelus
@@ -23,12 +27,9 @@ open Value
 open Error
 open Mapfold
 
-let error { kind; loc } =
-  Format.eprintf "Error during inlining\n";
-  Error.message loc kind;
-  raise Error
+exception No_inline
 
-let catch v = match v with | Ok(v) -> v | Error(v) -> error v
+let _ = inlining_level := -100000
 
 (* the type of the accumulator *)
 type 'a acc =
@@ -39,6 +40,27 @@ type 'a acc =
   }
 
 let empty = { genv = Genv.empty; renaming = Env.empty }
+
+(* Inlining decision. The function call [lname e1 ... en] is inlined *)
+(* either because [is_inline = true] or the body is small enough *)
+let inline is_inline { genv } lname =
+  let { Genv.info } = 
+    try 
+      Genv.find_value lname genv
+    with
+      Not_found ->
+      if is_inline then
+        Format.eprintf 
+          "Inline error: unbound global %s at function call\n" 
+          (Lident.modname lname);
+      raise No_inline in
+  match info with
+  | Vclosure({ c_funexp = { f_args; f_body; f_env }; c_genv } as closure) ->
+     (* the local environment [c_env] should be empty *)
+     if is_inline then closure
+     else if Cost.result f_body >= !inlining_level + List.length f_args 
+     then closure else raise No_inline
+  | _ -> raise No_inline
 
 (* Build a renaming from an environment *)
 let build global_funs ({ renaming } as acc) env =
@@ -79,7 +101,7 @@ let local_in funs f_env f_args arg_list acc r =
   let eq_list = List.map2 Aux.eq_of_f_arg_arg_make f_args arg_list in
   let vardec_list =
     List.fold_left (fun acc vardec_list -> vardec_list @ acc) [] f_args in
-  let { r_desc } as r, acc = Mapfold.result funs acc r in
+  let { r_desc } as r, acc = Mapfold.result_it funs acc r in
   match r_desc with
   | Exp(e_r) ->
      Aux.emake (Elocal(Aux.block_make vardec_list eq_list, e_r)), acc
@@ -94,61 +116,16 @@ let local_in funs f_env f_args arg_list acc r =
 let expression funs ({ genv } as acc) e = 
   let { e_desc } as e, acc = Mapfold.expression funs acc e in
   match e_desc with
-  | Eapp { is_inline = true;
-           f = { e_desc = Eglobal { lname }; e_loc = f_loc }; arg_list } ->
-    let { Genv.info } =
-      try Genv.find_value lname genv with Not_found ->
-        Format.eprintf 
-          "Inline error: unbound global %s at function call\n" 
-          (Lident.modname lname);
-        raise Error in
-    begin match info with
-    | Vclosure
-      { c_funexp = { f_args; f_body; f_env }; c_genv } ->
-       let e, acc =
+  | Eapp { is_inline; f = { e_desc = Eglobal { lname } }; arg_list } ->
+     let e, acc =
+       try
+         let { c_funexp = { f_args; f_body; f_env }; c_genv } =
+           inline (is_inline || !Misc.inline_all) acc lname in
          local_in
-           funs f_env f_args arg_list { acc with genv = c_genv } f_body in
-       e, { acc with genv }
-    | _ -> e, acc
-    end
-  | Eapp { f = { e_desc = Efun { f_args; f_body; f_env } }; arg_list } ->
-     local_in funs f_env f_args arg_list acc f_body
+           funs f_env f_args arg_list { acc with genv = c_genv } f_body
+       with No_inline -> e, acc in
+     e, acc
   | _ -> e, acc
-
-(*
-  (* check that an expression is either a lambda or a global name; the *)
-(* global environment only contains lambdas. Update [acc] *)
-(* this solution is fragile and may be changed later. It expect that *)
-(* all lambdas to be inlined are global and named ([letdef x = fun ...]) *)
-let value_and_update_env ({ genv } as acc) name { e_desc } =
-  match e_desc with
-  | Efun c_funexp ->
-     let v = Vclosure { c_funexp; c_genv = genv; c_env = Env.empty } in
-     (* store the value in the global environment *)
-     let genv = Genv.add name v genv in { acc with genv }
-  | Eglobal { lname } ->
-     begin try 
-         let { info } = Genv.find_value lname genv in
-         (* store the value in the global environment *)
-         let genv = Genv.add name info genv in { acc with genv }
-       with Not_found -> acc end
-  | _ -> raise Fallback
-
-let implementation funs acc impl =
-  let { desc } as impl, ({ genv } as acc) = 
-    Mapfold.implementation funs acc impl in
-  let acc = match desc with
-    (* the right-hand side of definitions that are inlined *)
-    (* must be either lambdas or global names *)
-    | Eletdecl 
-      { d_names = [name, id];
-        d_leq =
-          { l_eq = { eq_desc = EQeq({ pat_desc = Evarpat(n) }, e ) } } }
-         when id = n -> 
-       value_and_update_env acc name e
-    | _ -> raise Fallback in
-  impl, acc
- *)
 
 let open_t funs ({ genv } as acc) modname =
   let genv = Genv.try_to_open_module genv modname in modname, { acc with genv }

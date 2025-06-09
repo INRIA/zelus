@@ -74,6 +74,8 @@ and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
 and doc_no_opt = "\t (undocumented)"
 and doc_no_warning = "\t Turn off warnings"
+and doc_join_der_dv = "\t (undocumented)"
+and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
 and doc_check = "<n> \t Check equivalence for that amount of steps"
 and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t +<s> turn on step s\n\
@@ -148,7 +150,10 @@ let main () =
           "-inlineall", Arg.Set inline_all, doc_inline_all;
           "-zsign", Arg.Set zsign, doc_zsign;
           "-copy", Arg.Set with_copy, doc_with_copy;
+          "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;
           "-check", Arg.Int set_check_equivalence_for_n_steps, doc_check;
+          "-nowarning", Arg.Set no_warning, doc_no_warning;
+          "-rif", Arg.Set use_rif, doc_rif;
           "-step", Arg.String Rewrite.set_steps, doc_set_steps;
       ])
       compile

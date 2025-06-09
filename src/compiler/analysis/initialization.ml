@@ -409,7 +409,7 @@ and operator env op ty e_list =
      exp_less_than_on_i env e2 i;
      exp_less_than_on_i env e3 i;
      Tinit.skeleton_on_i i ty
-  | Eup, [e] ->
+  | Eup _, [e] ->
      exp_less_than_on_i env e izero;
      Tinit.skeleton_on_i izero ty
   | Einitial, [] ->
