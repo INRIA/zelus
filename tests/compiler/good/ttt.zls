@@ -1,9 +1,3 @@
-let node ff x returns o
-  automaton
-  | I -> do o = 1 until true then A
-  | A -> do o = last o + 1 done
-  end
-
 let g = 9.81
 
 let hybrid f(z) = o where
