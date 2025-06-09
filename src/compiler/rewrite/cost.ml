@@ -19,7 +19,7 @@
 open Ident
 open Zelus
 
-(* cost of operator. Values are dummy for the moment *)
+(* cost of operators *)
 let rec operator acc op =
   let acc = match op with
     | Efby -> acc - 2
@@ -53,17 +53,20 @@ and array_operator acc op =
   if acc <= 0 then raise Exit else acc
 
 let expression funs acc ({ e_desc } as e) =
+  let e, acc = Mapfold.expression funs acc e in
   match e_desc with
-  | Eop(op, e_list) ->
-     let e_list, acc = Util.mapfold (Mapfold.expression_it funs) acc e_list in
+  | Eop(op, _) ->
      let acc = operator acc op in
-     { e with e_desc = Eop(op, e_list) }, acc
-  | _ -> raise Mapfold.Fallback
+     e, acc
+  | Eapp _ -> e, acc - 2
+  | _ -> e, acc
 
 (* the main entry function *)
-let result r =
+let result max r =
   let global_funs = Mapfold.default_global_funs in
   let funs =
     { Mapfold.defaults with expression; global_funs } in
-  let _, acc = Mapfold.result_it funs 0 r in
-  acc
+  try
+    let _ = Mapfold.result_it funs max r in true
+  with 
+  | Exit -> false

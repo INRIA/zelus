@@ -58,7 +58,7 @@ let inline is_inline { genv } lname =
   | Vclosure({ c_funexp = { f_args; f_body; f_env }; c_genv } as closure) ->
      (* the local environment [c_env] should be empty *)
      if is_inline then closure
-     else if Cost.result f_body >= !inlining_level + List.length f_args 
+     else if Cost.result (!inlining_level + List.length f_args) f_body
      then closure else raise No_inline
   | _ -> raise No_inline
 
