@@ -46,7 +46,8 @@ let empty = { genv = Genv.empty; renaming = Env.empty }
 let inline is_inline { genv } lname =
   let { Genv.info } = 
     try 
-      Genv.find_value lname genv
+      (* temporary patch. 10/06/2025 *)
+      if is_inline then Genv.find_value lname genv else raise Not_found
     with
       Not_found ->
       if is_inline then
