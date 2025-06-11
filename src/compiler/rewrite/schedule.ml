@@ -96,9 +96,12 @@ let block funs acc ({ b_vars; b_body } as b) =
   let b_body = Aux.seq (schedule b_body) in
   { b with b_vars; b_body }, acc
 
+let match_handler_eq funs acc ({ m_body } as m) =
+  { m with m_body = Aux.seq (schedule m_body) }, acc
+
 let program genv0 p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with leq_t; block; global_funs } in
+    { Mapfold.defaults with leq_t; block; match_handler_eq; global_funs } in
   let p, _ = Mapfold.program_it funs genv0 p in
   p
