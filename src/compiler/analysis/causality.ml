@@ -54,12 +54,20 @@ exception Error of Location.t * error
 
 let error loc kind = raise (Error(loc, kind))
 
-let message loc { kind; cycle } =
+let message loc { kind; cycle; env } =
   begin
     match kind with
     | Cless_than(left_tc, right_tc) ->
         let c_set = vars (vars S.empty left_tc) right_tc in
         let cycle = Tcausal.keep_names_in_cycle c_set cycle in
+
+        let _, rel = relation (S.empty, []) c_set in
+
+        (*
+          let env, cset, rel, left_tc, right_tc =
+          Tcausal.simplify_by_io_env env left_tc right_tc in
+         *)
+        
         Format.eprintf
           "@[%aCausality error: This expression has causality type@ %a,\
            @ whereas it should be less than@ %a@.\
@@ -67,10 +75,23 @@ let message loc { kind; cycle } =
           output_location loc
           Pcaus.ptype left_tc
           Pcaus.ptype right_tc
-          (Pcaus.cycle true) cycle
+          (Pcaus.cycle true) cycle;
+        if !Misc.verbose
+        then Format.eprintf
+               "@[The current environment is:@ %a\n\
+                and the partial order is:@ %a\n@]"
+               Tcausal.penv env Tcausal.prel rel
     | Cless_than_name(name, left_tc, right_tc) ->
         let c_set = vars (vars S.empty left_tc) right_tc in
         let cycle = Tcausal.keep_names_in_cycle c_set cycle in
+
+        let _, rel = relation (S.empty, []) c_set in
+
+        (*
+          let env, cset, rel, left_tc, right_tc =
+          Tcausal.simplify_by_io_env env left_tc right_tc in
+         *)
+        
         Format.eprintf
           "@[%aCausality error: The variable %s has causality type@ %a,\
            @ whereas it should be less than@ %a@.\
@@ -79,7 +100,12 @@ let message loc { kind; cycle } =
           (Ident.source name)
 	  Pcaus.ptype left_tc
           Pcaus.ptype right_tc
-          (Pcaus.cycle true) cycle
+          (Pcaus.cycle true) cycle;
+        if !Misc.verbose
+        then Format.eprintf
+               "@[The current environment is:@ %a\n\
+                and the partial order is:@ %a\n@]"
+               Tcausal.penv env Tcausal.prel rel
   end;
   raise Misc.Error
 
@@ -117,7 +143,7 @@ let type_of_n_list type_of n_list =
   | [tc] -> tc
   | _ -> Tcausal.product tc_list
 
-(** Typing a pattern. [pattern env p = tc] where [tc] is the type *)
+(* Typing a pattern. [pattern env p = tc] where [tc] is the type *)
 (* of pattern [p] in [env] *)
 let pattern env pat =
   (* check that the type of pat is less than a type synchronised on [c] *)
@@ -246,7 +272,7 @@ let last_env shared defnames env =
     Ident.S.fold add (Ident.S.diff shared names) Env.empty in
   Env.append env_defnames env
     
-(** Tcausality analysis of a match handler.*)
+(* Causality analysis of a match handler.*)
 (* free variables must have a causality tag less than [c_body] *)
 let match_handlers body env c_body c_e m_h_list =
   let handler { m_pat = p; m_body = b; m_env = m_env } =

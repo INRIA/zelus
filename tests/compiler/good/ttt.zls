@@ -1,3 +1,14 @@
+let node f x = pre(x) + 1
+
+type t = A | B
+
+let node cond_act (c) = x, y where rec
+  init x = 0 and init y = 0
+  and match c with
+  | A -> local m do m = 1 and x = y + 1 done
+  | B -> local m do m = 2 and y = x + 1 done
+
+(*
 let g = 9.81
 
 let node ff () =
@@ -13,7 +24,6 @@ let hybrid ball() =
   and der y' = -. g init 0.0 reset up(-. y) -> 0.8 *. last y' in
   y
 
-(*
 let node from n returns m
   m = 0 fby (let rec p = 1 fby (m+p) in p)
 
