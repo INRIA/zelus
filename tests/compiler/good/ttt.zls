@@ -1,5 +1,9 @@
 let g = 9.81
 
+let node ff () =
+  let init x = 0 fby 1 fby 2 in
+  x + 1
+
 let hybrid f(z) = o where
   rec present z -> do o = 1.0 done else do der o = 1.0 done
   and init o = 2.0

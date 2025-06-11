@@ -49,6 +49,4 @@ let rec map_plus <<n>>(x:[n]int, y:[n]int) returns (o:[n]int)
 let map_plus2 <<n>>(x:[n]int, y:[n]int) returns (o:[n]int)
   foreach (xi in x, yi in y) returns (oi out o)
     do oi = xi + yi done
-    
-let map_ = map_plus<<42>>
 
