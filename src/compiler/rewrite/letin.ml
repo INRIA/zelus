@@ -141,8 +141,8 @@ let equation funs acc ({ eq_desc } as eq) =
        let _, acc = Util.mapfold (Mapfold.equation_it funs) empty eq_list in
        acc
     | EQinit(id, e_init) ->
-       let e, acc = Mapfold.expression_it funs empty e_init in
-       add_par { eq with eq_desc = EQinit(id, e) } empty
+       let e_init = atomic_expression funs empty e_init in
+       add_par { eq with eq_desc = EQinit(id, e_init) } empty
     | EQlet(l, eq) ->
        (* definitions in [l] are merges with equations in [eq] *)
        (* but sequential order between them is preserved *)
