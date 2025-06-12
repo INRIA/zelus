@@ -699,13 +699,11 @@ and present_handler_exp_list env c_free c_e c_body p_h_list e_opt =
   Tcausal.suptype_list true tc_list
 
 (* Typing a present handler for blocks *)
-and present_handler_eq_list
-    env shared c_free c_e c_body p_h_list p_h_opt =
+and present_handler_eq_list env shared c_free c_e c_body p_h_list p_h_opt =
   (* [spat -> body]: all outputs from [body] depend on [spat] *)
   (* shared variables depend on their last causality *)
-  let equation env c_free ({ eq_write } as eq) =
-    let env = last_env shared eq_write env in
-    equation env c_free eq in
+  let equation env c_free eq =
+      equation_with_shared_variables shared env c_free eq in
   ignore
     (present_handlers
        scondpat equation env c_free c_e c_body p_h_list p_h_opt)
@@ -719,8 +717,7 @@ and match_handler_exp_list env c_body c_e m_h_list =
 (* Typing a match handler for blocks. *)
 and match_handler_eq_list env shared c_body c_e m_h_list =
   let equation env c_free ({ eq_write } as eq) =
-    let env = last_env shared eq_write env in
-    equation env c_free eq in
+    equation_with_shared_variables shared env c_free eq in
   ignore (match_handlers equation env c_body c_e m_h_list)
 
 and automaton_handler_eq_list loc c_free is_weak defnames env s_h_list se_opt =
@@ -728,6 +725,21 @@ and automaton_handler_eq_list loc c_free is_weak defnames env s_h_list se_opt =
     scondpat exp_less_than_on_c
     leqs block_eq block_eq
     loc c_free is_weak defnames env s_h_list se_opt
+
+(* typing an equation which defines variables only when a condition holds *)
+(* this situation appends for control structure,  i.e., with by-case *)
+(* definitions of streams *)
+(* if [defnames = {x1,..., xn} with x1:ct'1;...;xn:ct'n in env *)
+(* add [x1:ct1;...;xn:ctn] st ct1 < ct'1,..., ctn < ct'n *)
+(* if [x in shared\defnames, then the variables defined in [eq] are implicitly *)
+(* completed with a default value. This is achieved by considering that *)
+(* the causality of [x] is that of [last x] *)
+and equation_with_shared_variables shared env c_free ({ eq_write; eq_loc } as eq) =
+  (* shared variables not in [eq_write] depend on their last causality *)
+  let env = last_env shared eq_write env in
+  let env = def_env eq_loc eq_write env in
+  equation env c_free eq;
+  env
 
 (* Typing a block with a set of equations in its body. *)
 (* if [defnames = {x1,..., xn} with x1:ct'1;...;xn:ct'n in env *)
