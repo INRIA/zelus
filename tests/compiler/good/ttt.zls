@@ -1,29 +1,13 @@
-let node f x = pre(x) + 1
-
-type t = A | B
-
-let node cond_act (c) = x, y where rec
-  init x = 0 and init y = 0
-  and match c with
-  | A -> (* local m do m = 1 and *) do x = y + 1 done
-  | B -> (* local m do m = 2 and *) do y = x + 1 done
-
-(*
 let g = 9.81
-
-let node ff () =
-  let init x = 0 fby 1 fby 2 in
-  x + 1
-
-let hybrid f(z) = o where
-  rec present z -> do o = 1.0 done else do der o = 1.0 done
-  and init o = 2.0
 
 let hybrid ball() =
   let rec der y = y' init 10.0
-  and der y' = -. g init 0.0 reset up(-. y) -> 0.8 *. last y' in
-  y
+  and der y' = -. g init 0.0 reset z -> 0.8 *. last y'
+  and z = up(-. y) in
+  let o = present z -> 1.0 else 0.0 in
+  ()
 
+(*
 let node from n returns m
   m = 0 fby (let rec p = 1 fby (m+p) in p)
 

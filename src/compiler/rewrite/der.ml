@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* rewrite of an [der x = e init e0 reset z1 -> e1 | ... | zn -> en] *)
-(* into [init x = e0 and present z1 -> x = e1 | ...  else der x = e] *)
+(* into [present z1 -> x = e1 | ...  end  and der x = e and init x = e0] *)
 
 open Location
 open Zelus
@@ -27,12 +27,12 @@ let p_handlers id handlers =
 
 
 let present_der id e0_opt handlers der_id_eq =
-  let eq = match handlers with
+  let handlers = p_handlers id handlers in
+  let eq =
+    match handlers with
     | [] -> der_id_eq
-    | _ ->
-       let handlers = p_handlers id handlers in
-       Aux.eqmake (Defnames.singleton id)
-         (EQpresent { handlers; default_opt = Else(der_id_eq) }) in
+    | _ -> Aux.eqmake (Defnames.singleton id)
+             (EQpresent { handlers; default_opt = NoDefault }) in
   match e0_opt with
   | None -> eq | Some(e0) -> Aux.eq_and eq (Aux.eq_init id e0)
 

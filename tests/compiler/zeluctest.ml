@@ -36,9 +36,9 @@ let good_one filename =
   Modules.clear ();
   let modname = String.capitalize_ascii (Filename.basename filename) in
   (* compile *)
-  Misc.typeonly := true;
+  (* Misc.typeonly := true; *)
   (* Misc.no_causality := true; *)
-  Misc.no_initialization := true;
+  (* Misc.no_initialization := true; *)
   Compiler.compile modname filename 
 
 exception Error
