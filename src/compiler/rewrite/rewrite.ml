@@ -86,6 +86,8 @@ let default_list =
        (* type checks before computing A-normal form *)
        type_check,
        Aform.program; *)
+   "write", "Compute write variables: See below:", nothing,
+   (fun _ p -> Write.program p);
    "typing", "New typing step: See below:", nothing,
    (fun _ p -> Typing.program Format.std_formatter false p);
    ] @ optim_list @ [
