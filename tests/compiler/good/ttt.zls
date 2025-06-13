@@ -1,3 +1,13 @@
+let node cond_act (c) = 
+ local x, y do
+  if c then
+         do x = y + 1 done
+      else
+         do y = x + 1 done
+  and init x = 0 and init y = 0 in
+ x, y
+
+(*
 let g = 9.81
 
 let hybrid ball() =
