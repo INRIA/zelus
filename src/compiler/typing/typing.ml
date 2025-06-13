@@ -916,18 +916,15 @@ and mark_reset_state env_of_states handlers =
   List.iter mark handlers
 
 
-(* makes an entry. *)
-let intro expected_k var_init var_default =
-  let decl m_opt =
+(* makes an entry for a variable declaration *)
+let intro_vardec expected_k var_init var_default var_init_in_eq =
+  let decl m_opt in_eq =
     match m_opt with
-    | None -> No
+    | None -> if in_eq then Eq else No
     | Some({ e_desc = Econst(i) }) -> Decl(Some(i)) | _ -> Decl(None) in
-  match expected_k with
-  | Tfun _ -> Sort_val
-  | Tnode _ ->
-     let m_init = decl var_init in
-     let m_default = decl var_default in
-     Sort_mem { Deftypes.empty_mem with m_init; m_default }    
+  let m_init = decl var_init var_init_in_eq in
+  let m_default = decl var_default false in
+  Sort_mem { Deftypes.empty_mem with m_init; m_default }    
 
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
@@ -936,7 +933,7 @@ let rec vardec_list expected_k h v_list =
 
 and vardec expected_k h (acc_h, acc_k)
  ({ var_name; var_default; var_init; var_clock;
-    var_typeconstraint; var_loc } as v) =
+    var_typeconstraint; var_loc; var_init_in_eq } as v) =
   let expected_ty =
     match var_typeconstraint with
     | None -> Types.new_var ()
@@ -953,7 +950,7 @@ and vardec expected_k h (acc_h, acc_k)
                 expect (Tnode(Tdiscrete)) h e expected_ty)
       (Tfun(Tconst)) var_init in
   let actual_k = Kind.sup actual_k_default actual_k_init in
-  let t_sort = intro expected_k var_init var_default in
+  let t_sort = intro_vardec expected_k var_init var_default var_init_in_eq in
   let entry =
     Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
   (* type annotation *)
@@ -1803,7 +1800,7 @@ and for_out_t expected_k size h (acc_h, acc_k)
       (Tfun(Tconst)) for_init in
 
   let actual_k = Kind.sup actual_k_default actual_k_init in
-  let t_sort = intro expected_k for_init for_default in
+  let t_sort = intro_vardec expected_k for_init for_default false in
   let entry =
     Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
   let acc_h = Env.add for_name entry acc_h in

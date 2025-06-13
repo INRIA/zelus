@@ -1,10 +1,19 @@
-let node cond_act (c) = 
+let node cond_act1 (c) = 
  local x, y do
-  if c then
+  init x = 0 and init y = 0
+  and if c then
          do x = y + 1 done
       else
          do y = x + 1 done
-  and init x = 0 and init y = 0 in
+  in
+ x, y
+
+let node cond_act2 (c) = 
+ let rec init x = 0 and init y = 0
+     and if c then
+         do x = y + 1 done
+      else
+         do y = x + 1 done in
  x, y
 
 (*
@@ -16,6 +25,7 @@ let hybrid ball() =
   and z = up(-. y) in
   let o = present z -> 1.0 else 0.0 in
   ()
+*)
 
 (*
 let node from n returns m
