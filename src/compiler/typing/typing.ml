@@ -624,11 +624,14 @@ let check_total_pattern_list p_list = List.iter check_total_pattern p_list
 
 (* Typing a pattern matching. Returns defined names *)
 let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
-  let handler ({ m_pat = pat; m_body = b } as mh) =
+  let handler ({ m_pat = pat; m_body = b; m_zero } as mh) =
     let h0 = env_of_pattern expected_k pat in
     pattern h0 pat pat_ty;
     mh.m_env <- h0;
     let h = Env.append h0 h in
+    let expected_k = 
+      (* for source programs the field [m_zero] is false *)
+      if m_zero then lift_to_discrete expected_k else expected_k in
     let defined_names, actual_k = body expected_k h b ty_res in
     defined_names, actual_k in
   let defined_names_k_list = List.map handler m_handlers in
@@ -703,7 +706,7 @@ let present_handlers scondpat body loc expected_k h h_list opt ty_res =
     (* sets [zero = true] if [expected_k = Tcont] *)
     ph.p_zero <- is_zero;
     ph.p_env <- h0;
-    let expected_k = if is_zero then Tnode(Tdiscrete) else expected_k in
+    let expected_k = Types.lift_to_discrete expected_k in
     let defined_names, actual_k = body expected_k h p_body ty_res in
     let actual_k = if is_zero then Tnode(Tcont) else actual_k in
     defined_names, Kind.sup actual_k_spat actual_k in
