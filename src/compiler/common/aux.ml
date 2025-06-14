@@ -288,7 +288,7 @@ let new_major env =
                 t_sort = Deftypes.major ();
                 t_tys = Deftypes.scheme Initial.typ_bool } env in
   let major = var m in
-  env, major
+  major, env
 	 
 let major env =
   let exception Return of (Typinfo.info, Typinfo.ienv) Zelus.exp in
@@ -301,6 +301,6 @@ let major env =
     Env.iter find env;
     new_major env
   with
-  | Return(x) -> env, x 
+  | Return(x) -> x, env
 
 
