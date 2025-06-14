@@ -36,8 +36,11 @@ let optim_list =
 
 (* source-to-source transformations *)
 let default_list =
-   ["inline", "Inlining of annotated and small function calls. See below:", nothing,
+  ["inline", "Inlining of annotated and small function calls. See below:", 
+   nothing,
    Inline.program;
+   "typing", "New typing step: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p);
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
    "automata", "Translation of automata. See below:", nothing,
@@ -88,10 +91,7 @@ let default_list =
        Aform.program; *)
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
-   Schedule.program;
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p);
-     ]
+   Schedule.program]
 
 let number_of_passes = List.length default_list + List.length optim_list 
 
