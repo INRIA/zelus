@@ -78,7 +78,7 @@ let is_less_than actual_k expected_k =
 let stateful = function | Tfun _ -> false | Tnode _ -> true
 
 (* The sup of two kind. This function should be applied when *)
-(* the sup exists; it should not raise an error *)
+(* the sup exists *)
 let sup k1 k2 =
   let sup k1 k2 = match k1, k2 with
   | (Tconst, _) -> k2 | (_, Tconst) -> k1
@@ -88,7 +88,7 @@ let sup k1 k2 =
   | (Tfun k1, Tfun k2) -> Tfun (sup k1 k2)
   | (Tfun _, _) -> k2
   | (_, Tfun _) -> k1
-  | _ -> if k1 = k2 then k1 else assert false
+  | (Tnode _, Tnode _) -> k1
                               
 let sup_list l =
   match l with
