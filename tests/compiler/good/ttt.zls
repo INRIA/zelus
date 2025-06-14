@@ -53,19 +53,6 @@ let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
 *)
 
-(* lastinpatterns is buggy *)
-
-(*
-let f x = 1
-
-
-let node cond_act (c) = (x, y) where rec
-  init x = 0 and init y = 0
-  and match c with
-  | true -> do x = 0 -> pre x + 1 done
-  | false -> do y = 0 -> pre y + 1 done
-  end
-*)
 
 (*
 let node j x =
