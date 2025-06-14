@@ -59,8 +59,8 @@ and doc_rewriteonly = "\t  Stop after rewritting"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
-   \t\t   where <out> is equal to the argument of -o if the flag\n\
-   \t\t   has been set, or <node> otherwise"
+          \t\t\t where <out> is equal to the argument of -o if the flag\n\
+          \t\t\t has been set, or <node> otherwise"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_use_gtk = "\t Use lablgtk2 interface."
 and doc_inlining_level = "<n> \t Level of inlining"
@@ -74,33 +74,36 @@ and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
 and doc_no_opt = "\t (undocumented)"
 and doc_no_warning = "\t Turn off warnings"
-and doc_join_der_dv = "\t (undocumented)"
-and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
+and doc_rif = 
+  "\t Use RIF format over stdin and stdout to communicate \n\
+   \t\t\t I/O to the node being simulated"
 and doc_check = "<n> \t Check equivalence for that amount of steps"
+and doc_no_reduce = "\t No static evaluation of constants"
 and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
-    \t\t +<s> turn on step s\n\
-    \t\t -<s> turn off step s\n\
-    \t\t s can be: +a: takes all; -a: takes none\n\
-    \t\t inline: inlining \n\
-    \t\t der: normalize derivative \n\
-    \t\t period: remove periods \n\
-    \t\t disc: remove discrete zero-crossings \n\
-    \t\t copylast: add copy equations [lx = last* x] \n\
-    \t\t lastinpatterns: add copies for lasts that are inputs or outputs \n\
-    \t\t auto: remove automata statements \n\
-    \t\t present: remove present statements \n\
-    \t\t exp2eq: remove pattern matching and resets on expressions \n\
-    \t\t returns: remove [returns (p) eq] \n\
-    \t\t pre: remove pre/fby \n\
-    \t\t init: remove initialization (->) \n\
-    \t\t complete: complete branches \n\
-    \t\t encore: add an extra step when a zero-crossing \n\
+    \t\t\t +<s> turn on step s\n\
+    \t\t\t -<s> turn off step s\n\
+    \t\t\t +a: takes all; -a: takes none\n\
+    \t\t\t s can be one of the following values\n\
+    \t\t\t der: normalize derivative \n\
+    \t\t\t period: remove periods \n\
+    \t\t\t disc: remove discrete zero-crossings \n\
+    \t\t\t copylast: add copy equations [lx = last* x] \n\
+    \t\t\t lastinpatterns: add copies for lasts that are inputs or outputs \n\
+    \t\t\t auto: remove automata statements \n\
+    \t\t\t present: remove present statements \n\
+    \t\t\t exp2eq: remove pattern matching and resets on expressions \n\
+    \t\t\t returns: remove [returns (p) eq] \n\
+    \t\t\t pre: remove pre/fby \n\
+    \t\t\t init: remove initialization (->) \n\
+    \t\t\t complete: complete branches \n\
+    \t\t\t encore: add an extra step when a zero-crossing \n\
     \t\t\t change a discrete-time state variable \n\
-    \t\t letin: fuse blocks \n\
-    \t\t schedule: static scheduling \n\
-    \t\t aform: translation into A-normal form \n\
-    \t\t copy: remove copy variables \n\
-    \t\t Example: -step -a+step+inline+static. Default is +a."
+    \t\t\t letin: fuse blocks \n\
+    \t\t\t schedule: static scheduling \n\
+    \t\t\t aform: translation into A-normal form \n\
+    \t\t\t copy: remove copy variables \n\
+    \t\t\t Example: -step -a+step+inline+static. Default is +a."
+and doc_join_der_dv = "\t (undocumented)"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -133,7 +136,8 @@ let main () =
           "-i", Arg.Set print_types, doc_print_types;
           "-isizes", Arg.Unit set_types_with_size_constraints, doc_print_types;
           "-ic", Arg.Set print_causality_types, doc_print_causality_types;
-          "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
+          "-ii", Arg.Set print_initialization_types, 
+          doc_print_initialization_types;
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
           "-nostdlib", Arg.Set no_stdlib, doc_no_stdlib;
@@ -143,18 +147,19 @@ let main () =
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
           "-gtk2", Arg.Unit set_gtk, doc_use_gtk;
-          "-nocausality", Arg.Set no_causality, doc_nocausality;
-          "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
-          "-noinit", Arg.Set no_initialization, doc_no_initialization;
           "-inline", Arg.Int set_inlining_level, doc_inlining_level;
           "-inlineall", Arg.Set inline_all, doc_inline_all;
           "-zsign", Arg.Set zsign, doc_zsign;
           "-copy", Arg.Set with_copy, doc_with_copy;
-          "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;
           "-check", Arg.Int set_check_equivalence_for_n_steps, doc_check;
           "-nowarning", Arg.Set no_warning, doc_no_warning;
           "-rif", Arg.Set use_rif, doc_rif;
+          "-noreduce", Arg.Set no_reduce, doc_no_reduce;
           "-step", Arg.String Rewrite.set_steps, doc_set_steps;
+          "-nocausality", Arg.Set no_causality, doc_nocausality;
+          "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
+          "-noinit", Arg.Set no_initialization, doc_no_initialization;
+          "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;
       ])
       compile
       errmsg;
