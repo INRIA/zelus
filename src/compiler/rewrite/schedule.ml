@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -89,15 +89,15 @@ let leq_t funs acc leq =
   let l_eq = Aux.seq (schedule l_eq) in
   { leq with l_eq }, acc
 
-let block funs acc ({ b_vars; b_body } as b) =
-  let b_vars, acc =
-    Util.mapfold (Mapfold.vardec_it funs) acc b_vars in
-  let b_body, acc = Mapfold.equation_it funs acc b_body in
+let block funs acc b =
+  let { b_body } as b, acc = Mapfold.block funs acc b in
   let b_body = Aux.seq (schedule b_body) in
-  { b with b_vars; b_body }, acc
+  { b with b_body }, acc
 
-let match_handler_eq funs acc ({ m_body } as m) =
-  { m with m_body = Aux.seq (schedule m_body) }, acc
+let match_handler_eq funs acc m =
+  let { m_body } as m, acc = Mapfold.match_handler_eq funs acc m in
+  let m_body = Aux.seq (schedule m_body) in
+  { m with m_body }, acc
 
 let program genv0 p =
   let global_funs = Mapfold.default_global_funs in

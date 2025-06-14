@@ -21,7 +21,7 @@ module Printer = Printer.Make(Typinfo)
 module Write = Write.Make(Typinfo)
 
 let nothing p = p
-let type_check p = Typing.program Format.std_formatter false p
+let type_check _ p = Typing.program Format.std_formatter false p
     
 let optim_list =
   [(* "copy", "Remove of copy variables. See below:", nothing,
@@ -39,8 +39,6 @@ let default_list =
   ["inline", "Inlining of annotated and small function calls. See below:", 
    nothing,
    Inline.program;
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p);
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
    "automata", "Translation of automata. See below:", nothing,
@@ -77,7 +75,8 @@ let default_list =
    Encore.program;
    "disc", "Translation of disc done. See below:", nothing,
    Disc.program;
-   "pre", "Compilation of memories (fby/pre) into (init/last). See below:", nothing,
+   "pre", "Compilation of memories (fby/pre) into (init/last). See below:",
+   nothing,
    Pre.program;
    "init", "Compilation of initializations. See below:", nothing,
    Init.program;
@@ -90,8 +89,9 @@ let default_list =
        type_check,
        Aform.program; *)
    ] @ optim_list @ [
-   "schedule", "Static scheduling. See below:", nothing,
-   Schedule.program]
+   "schedule", "Static scheduling. See below:", nothing, Schedule.program;
+    "typing", "New typing step: See below:", nothing,
+   type_check]
 
 let number_of_passes = List.length default_list + List.length optim_list 
 
