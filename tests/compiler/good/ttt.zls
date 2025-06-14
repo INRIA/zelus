@@ -16,7 +16,7 @@ let node cond_act2 (c) =
          do y = x + 1 done in
  x, y
 
-(*
+
 let g = 9.81
 
 let hybrid ball() =
@@ -25,16 +25,16 @@ let hybrid ball() =
   and z = up(-. y) in
   let o = present z -> 1.0 else 0.0 in
   ()
-*)
 
-(*
+
+
 let node from n returns m
   m = 0 fby (let rec p = 1 fby (m+p) in p)
 
 let node main() =
   let o = from 0 in
   print_int o; print_newline ()
-*)
+
 
 
 (*
