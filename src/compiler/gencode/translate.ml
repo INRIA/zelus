@@ -75,7 +75,7 @@ let entry_of n env =
   try
     Env.find n env
   with Not_found ->
-    Misc.internal_error "Unbound variable" Printer.name n
+    Misc.internal_error "Translate: unbound variable" Printer.name n
 
 (** Translation of immediate values *)
 let immediate = function
@@ -135,12 +135,15 @@ let var { e_sort; e_typ; e_size = ei_list } =
         Estate(left_state_value_index (state true n m_mkind) ei_list)
 
 (* Make an assignment according to the sort of a variable [n] *)
-let assign { e_sort; e_size = ei_list } e =
+let assign n { e_sort; e_size = ei_list } e =
   match e_sort with
-  | In _ -> assert false
+  | In _ -> (* this case should not happend *) 
+     Misc.internal_error "Translate: assign" Printer.name n
   | Out(n, sort) ->
      match sort with
-     | Sort_val -> assert false
+     | Sort_val -> 
+        (* this case should not happend *) 
+        Misc.internal_error "Translate: assign (wrong sort)" Printer.name n
      | Sort_var -> Eassign(left_value_index (Eleft_name n) ei_list, e)
      | Sort_mem { m_mkind } ->
 	Eassign_state(left_state_value_index (state false n m_mkind) ei_list, e)
@@ -148,9 +151,10 @@ let assign { e_sort; e_size = ei_list } e =
 (* Generate the code for a definition *)
 (* [k] is the continuation. Either a local def [let id = e in k] or *)
 (* an assignment, to a shared or state variable [self.id <- e; k] *)
-let def { e_typ; e_sort; e_size = ei_list } e k =
+let def n { e_typ; e_sort; e_size = ei_list } e k =
   match e_sort with
-  | In _ -> assert false
+  | In _ -> (* this case should not happend *) 
+     Misc.internal_error "Translate: def" Printer.name n
   | Out(id, sort) ->
      match sort with
      | Sort_val ->
@@ -163,9 +167,11 @@ let def { e_typ; e_sort; e_size = ei_list } e k =
 			   (state false id m_mkind) ei_list, e)) k
 	  
 (* Generate the code for [der x = e] *)
-let der { e_sort; e_size = ei_list } e k =
+let der n { e_sort; e_size = ei_list } e k =
   match e_sort with
-  | In _ -> assert false
+  | In _ -> 
+     (* this case should not happend *) 
+     Misc.internal_error "Translate: der" Printer.name n
   | Out(n, sort) ->
      Oaux.seq (Eassign_state(left_state_value_index
 			       (Eleft_state_primitive_access
@@ -195,7 +201,8 @@ let rec letvar l k =
 let out_of n env =
   let { e_typ = ty; e_sort = sort; e_size = ix_list } = entry_of n env in
   match sort with
-  | In _ -> assert false
+  | In _ -> (* this case should not happend *)
+     Misc.internal_error "Translate: out_of" Printer.name n
   | Out(x, sort) -> x, ty, sort, ix_list
 
 (* Translate size expressions *)
@@ -572,13 +579,13 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
   match desc with
   | Zelus.EQeq({ Zelus.pat_desc = Zelus.Evarpat(n) }, e) ->
      let e, context = expression env loop_path context e in
-     def (entry_of n env) e step, context
+     def n (entry_of n env) e step, context
   | Zelus.EQeq(p, e) ->
      let e, context = expression env loop_path context e in
      letpat (pattern p) e step, context
   | Zelus.EQder { id; e; e_opt = None; handlers = [] } ->
      let e, context = expression env loop_path context e in
-     der (entry_of id env) e step, context
+     der id (entry_of id env) e step, context
   | Zelus.EQmatch { e; handlers } ->
      let e, context = expression env loop_path context e in
      let handlers, context =
@@ -592,7 +599,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      let r_e, context = expression env loop_path context r_e in
      let e, ({ init } as e_context) = expression env loop_path empty_context e in
      Oaux.seq
-       (ifthen r_e (Oaux.seq (assign (entry_of x env) e) init)) step,
+       (ifthen r_e (Oaux.seq (assign x (entry_of x env) e) init)) step,
      seq context e_context
   | Zelus.EQreset(eq, r_e) ->
      let r_e, context = expression env loop_path context r_e in
@@ -602,7 +609,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      Oaux.seq (ifthen r_e init) e, seq context context_eq
   | Zelus.EQinit(x, e) ->
      let e_c, context = expression env loop_path context e in
-     let x_equal_e = assign (entry_of x env) e_c in
+     let x_equal_e = assign x (entry_of x env) e_c in
      (* initialization of a state variable with a static value *)
      if Types.static e
      then step,

@@ -48,6 +48,11 @@ let emake desc : Typinfo.exp =
 let pmake desc : Typinfo.pattern =
   { pat_desc = desc; pat_loc = no_location; pat_info = Typinfo.no_info }
 
+(* annotate with a type *)
+let e_with_type ({ e_info } as e) ty =
+  { e with e_info = Typinfo.set_type e_info ty }
+let p_with_type ({ pat_info } as p) ty =
+  { p with pat_info = Typinfo.set_type pat_info ty }
 
 let global lname = Eglobal { lname = lname }
 let const c = emake (Econst c)
