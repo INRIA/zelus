@@ -173,7 +173,8 @@ let compile modname filename =
 
     (* compile-time evaluation of definitions *)
     let otc = open_out_bin obj_name in
-    let p = do_step is_print "Evaluate compile-time expressions. See below:"
+    let p = do_optional_step !Misc.no_reduce
+              is_print "Evaluate compile-time expressions. See below:"
               Printer.program (Const.program otc genv0) p in
     
     let p = Rewrite.main is_print print_message genv0 p !Misc.n_steps in
@@ -192,7 +193,7 @@ let compile modname filename =
             Oprinter.program Inout.program p in
     
     let mlc = open_out ml_name in
-    let _ = do_step is_print "Emit OCaml code. See below:"
+    let _ = do_step is_print "Print OCaml code. See below:"
               Ocamlprinter.program (write_implementation mlc) p in
     ()
   with
