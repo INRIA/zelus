@@ -41,10 +41,9 @@ let useful u = if u then "u" else ""
 let level l = string_of_int l
 
 let extra { c_polarity = p; c_useful = u; c_level = l; c_index = i } =
-  if !Misc.verbose
+  if !Misc.vverbose
   then polarity p ^ useful u ^ level l ^ "(" ^ (string_of_int i) ^ ")" else ""
 
-  
 (* Print the causality *)
 let rec caus ff c = 
   match c.c_desc with

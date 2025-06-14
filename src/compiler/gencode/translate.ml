@@ -146,7 +146,7 @@ let assign { e_sort; e_size = ei_list } e =
 	Eassign_state(left_state_value_index (state false n m_mkind) ei_list, e)
 
 (* Generate the code for a definition *)
-(* [k] is is the continuation. Either a local def [let id = e in k] or *)
+(* [k] is the continuation. Either a local def [let id = e in k] or *)
 (* an assignment, to a shared or state variable [self.id <- e; k] *)
 let def { e_typ; e_sort; e_size = ei_list } e k =
   match e_sort with
@@ -279,7 +279,7 @@ let choose env ty =
                    arg_list = List.map value ty_list } in
   Some(value ty)
 
-(** Computes a default value *)
+(* Computes a default value *)
 let default env ty v_opt =
   match v_opt with
   | None -> choose env ty
@@ -293,12 +293,14 @@ let append loop_path l_env env =
   (* and a [letvar] declaration for every shared variable *)
   let addrec n { t_sort; t_tys = { typ_body } } (env_acc, mem_acc, var_acc) =
     match t_sort with
-      | Sort_val ->
-	 Env.add n { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = [] }
+      | Sort_val | Sort_mem { m_mkind = None; m_last = false; m_init = No } ->
+	 (* if [n] is a memory but no [last] nor [init] is defined *)
+         (* it is treated as a local variable *)
+         Env.add n { e_typ = typ_body; e_sort = Out(n, Sort_val); e_size = [] }
            env_acc,
 	 mem_acc, var_acc
       | Sort_var ->
-	 Env.add n { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = [] }
+	 Env.add n { e_typ = typ_body; e_sort = Out(n, Sort_var); e_size = [] }
            env_acc,
 	 mem_acc,
          (n, is_mutable typ_body, typ_body, default env typ_body None)
@@ -311,10 +313,11 @@ let append loop_path l_env env =
            { m_name = n; m_value = choose env typ_body; m_typ = typ_body;
 	     m_kind = m_mkind; m_size = [] } mem_acc,
 	 var_acc in
-  Env.fold addrec l_env (env, Parseq.empty, [])
+  let env_acc, mem_acc, var_acc = Env.fold addrec l_env (env, Parseq.empty, []) in
+  env_acc, mem_acc, var_acc
 
 
-(** Translation of a stateful function application [f se1 ... sen e] *)
+(* Translation of a stateful function application [f se1 ... sen e] *)
 (* if [loop_path = [i1;...;ik]
  * instance o = f se1 ... sen
  * call o.(i1)...(ik).step(e)
@@ -447,7 +450,7 @@ let rec expression env loop_path context { Zelus.e_desc } =
   | Zelus.Etypeconstraint(e, ty_expression) ->
      let e, context = expression env loop_path context e in
      Etypeconstraint(e, ty_expression), context
-  | Zelus.Eop(Zelus.Eup, [e]) ->
+  | Zelus.Eop(Zelus.Eup _, [e]) ->
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
      let e = if !Misc.zsign then Aux.sgn e else e in 
      expression env loop_path context e

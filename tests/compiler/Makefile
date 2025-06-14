@@ -8,7 +8,7 @@ all:
 clean:
 #	dune clean
 	(cd good; rm -r -f *.zci *.zlo *~ *.out \
-	*.ml *.cmi *.cmo *.cmxi *.cmxo)
+	*.ml *.cmi *.cmo *.cmxi *.cmxo *.o *.cmx)
 	(cd bad; rm -r -f *.zci *.zlo *~ *.out \
-	*.ml *.cmi *.cmo *.cmxi *.cmxo)
+	*.ml *.cmi *.cmo *.cmxi *.cmxo *.o *.cmx)
 

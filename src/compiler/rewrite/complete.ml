@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -27,7 +27,8 @@ let der_eq_zero x = Aux.eq_der x zero
 (* complete a set of equations with default equations for every *)
 (* variable from [der] which is not defined in [w] *)
 (* [match e with ...| Pi -> eqi | ...] writes der =>
-    match e with ...| Pi -> der x = 0.0 and ... eqi | ...] if x in der\der(eqi) *)
+    match e with ...| Pi -> der x = 0.0 and ... eqi | ...] if x in der\der(eqi) /\
+                                                              x not in dv(eqi) *)
 let complete { der = der_global} ({ eq_desc; eq_write } as eq) =
   let l = S.diff der_global eq_write.der in
   let eq_list = S.fold (fun x eq_list -> (der_eq_zero x) :: eq_list) l [eq] in

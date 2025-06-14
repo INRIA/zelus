@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -265,7 +265,8 @@ let on_op e1 e2 = binop "on" e1 e2
 let min_op e1 e2 = binop "min" e1 e2
 let greater_or_equal e1 e2 = binop ">=" e1 e2
 let greater e1 e2 = binop ">" e1 e2
-let up e = emake (Eop(Eup, [e]))
+let upz e = emake (Eop(Eup { is_zero = true }, [e]))
+let upb e = emake (Eop(Eup { is_zero = false }, [e]))
 let pre e = emake (Eop(Eunarypre, [e]))
 let minusgreater e1 e2 = emake (Eop(Eminusgreater, [e1;e2]))
 let fby e1 e2 = emake (Eop(Efby, [e1;e2]))
@@ -287,7 +288,7 @@ let new_major env =
                 t_sort = Deftypes.major ();
                 t_tys = Deftypes.scheme Initial.typ_bool } env in
   let major = var m in
-  env, major
+  major, env
 	 
 let major env =
   let exception Return of (Typinfo.info, Typinfo.ienv) Zelus.exp in
@@ -300,6 +301,6 @@ let major env =
     Env.iter find env;
     new_major env
   with
-  | Return(x) -> env, x 
+  | Return(x) -> x, env
 
 

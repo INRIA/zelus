@@ -624,11 +624,14 @@ let check_total_pattern_list p_list = List.iter check_total_pattern p_list
 
 (* Typing a pattern matching. Returns defined names *)
 let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
-  let handler ({ m_pat = pat; m_body = b } as mh) =
+  let handler ({ m_pat = pat; m_body = b; m_zero } as mh) =
     let h0 = env_of_pattern expected_k pat in
     pattern h0 pat pat_ty;
     mh.m_env <- h0;
     let h = Env.append h0 h in
+    let expected_k = 
+      (* for source programs the field [m_zero] is false *)
+      if m_zero then lift_to_discrete expected_k else expected_k in
     let defined_names, actual_k = body expected_k h b ty_res in
     defined_names, actual_k in
   let defined_names_k_list = List.map handler m_handlers in
@@ -703,7 +706,7 @@ let present_handlers scondpat body loc expected_k h h_list opt ty_res =
     (* sets [zero = true] if [expected_k = Tcont] *)
     ph.p_zero <- is_zero;
     ph.p_env <- h0;
-    let expected_k = if is_zero then Tnode(Tdiscrete) else expected_k in
+    let expected_k = Types.lift_to_discrete expected_k in
     let defined_names, actual_k = body expected_k h p_body ty_res in
     let actual_k = if is_zero then Tnode(Tcont) else actual_k in
     defined_names, Kind.sup actual_k_spat actual_k in
@@ -916,18 +919,15 @@ and mark_reset_state env_of_states handlers =
   List.iter mark handlers
 
 
-(* makes an entry. *)
-let intro expected_k var_init var_default =
-  let decl m_opt =
+(* makes an entry for a variable declaration *)
+let intro_vardec expected_k var_init var_default var_init_in_eq =
+  let decl m_opt in_eq =
     match m_opt with
-    | None -> No
+    | None -> if in_eq then Eq else No
     | Some({ e_desc = Econst(i) }) -> Decl(Some(i)) | _ -> Decl(None) in
-  match expected_k with
-  | Tfun _ -> Sort_val
-  | Tnode _ ->
-     let m_init = decl var_init in
-     let m_default = decl var_default in
-     Sort_mem { Deftypes.empty_mem with m_init; m_default }    
+  let m_init = decl var_init var_init_in_eq in
+  let m_default = decl var_default false in
+  Sort_mem { Deftypes.empty_mem with m_init; m_default }    
 
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
@@ -936,7 +936,7 @@ let rec vardec_list expected_k h v_list =
 
 and vardec expected_k h (acc_h, acc_k)
  ({ var_name; var_default; var_init; var_clock;
-    var_typeconstraint; var_loc } as v) =
+    var_typeconstraint; var_loc; var_init_in_eq } as v) =
   let expected_ty =
     match var_typeconstraint with
     | None -> Types.new_var ()
@@ -953,7 +953,7 @@ and vardec expected_k h (acc_h, acc_k)
                 expect (Tnode(Tdiscrete)) h e expected_ty)
       (Tfun(Tconst)) var_init in
   let actual_k = Kind.sup actual_k_default actual_k_init in
-  let t_sort = intro expected_k var_init var_default in
+  let t_sort = intro_vardec expected_k var_init var_default var_init_in_eq in
   let entry =
     Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
   (* type annotation *)
@@ -1147,8 +1147,9 @@ and operator expected_k h loc op e_list =
        | Edisc ->
           let ty = new_var () in
           Tnode(Tcont), [ty], Initial.typ_zero
-       | Eup ->
-          Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
+       | Eup { is_zero } ->
+          Tnode(Tcont), [Initial.typ_float], 
+          if is_zero then Initial.typ_zero else Initial.typ_bool
        | Einitial ->
           Tnode(Tcont), [], Initial.typ_zero    
        | Eperiod ->
@@ -1802,7 +1803,7 @@ and for_out_t expected_k size h (acc_h, acc_k)
       (Tfun(Tconst)) for_init in
 
   let actual_k = Kind.sup actual_k_default actual_k_init in
-  let t_sort = intro expected_k for_init for_default in
+  let t_sort = intro_vardec expected_k for_init for_default false in
   let entry =
     Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
   let acc_h = Env.add for_name entry acc_h in
@@ -1923,8 +1924,9 @@ and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
 let implementation ff is_first impl =
   (* turn off warning when not the first typing step *)
   Misc.no_warning := not is_first;
-  (* first set the read/write information. The write information is *)
-  (* used to type declarations [let eq in ...] *)
+  (* allow [der x = ...] and [x = ...] in parallel *)
+  Misc.allow_join_der_dv := not is_first;
+  (* compute read/write information on the whole program *)
   let { desc; loc } as impl =
     if is_first then impl else Write.implementation impl in
   try
@@ -1932,7 +1934,8 @@ let implementation ff is_first impl =
     | Eopen(modname) ->
        if is_first then Modules.open_module modname; impl
     | Eletdecl { d_names; d_leq } ->
-       (* type the set of equations. Top level values are, at most, static ones *)
+       (* type the set of equations. Top level values are, at most, *)
+       (* static ones *)
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
 
        (* check that there is no unbounded size variables *)

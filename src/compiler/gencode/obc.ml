@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -79,8 +79,10 @@ and exp =
   | Eletvar of { id: Ident.t; is_mutable: is_mutable;
                  ty: Deftypes.typ; e_opt: exp option; e : exp }
   (* var id : ty [= e1] in e2 *)
-  | Eletmem of mentry list * exp (* [let mem m1...mk in e] *)
-  | Eletinstance of ientry list * exp (* [let instances i1...ik in e] *)
+  | Eletmem of mentry list * exp 
+  (* [let mem m1...mk in e] *)
+  | Eletinstance of ientry list * exp 
+  (* [let instances i1...ik in e] *)
   | Eassign of left_value * exp (* [x.v <- ...] *)
   | Eassign_state of left_state_value * exp (* [x.v <- ...] *)
   | Esequence of exp list

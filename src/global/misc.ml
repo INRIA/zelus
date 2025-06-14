@@ -78,9 +78,9 @@ let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
 let inline_all = ref false
 
+(* verbose *)
 let verbose = ref false
 let vverbose = ref false
-let debug = ref true
 
 let set_verbose () =
   verbose := true;
@@ -90,9 +90,15 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
+(* debug *)
+let debug = ref true
+
 let set_debug () =
   debug := true;
   set_verbose ()
+
+(* output the result of successive the successive passes *)
+let print_passes = ref false
 
 let print_types = ref false
 let print_types_with_size_constraints = ref false
@@ -107,9 +113,15 @@ let parseonly = ref false
 let typeonly = ref false
 let rewriteonly = ref false
 let use_gtk = ref false
+let use_rif = ref false
 let zsign = ref false
 let with_copy = ref false
-let use_rif = ref false
+let no_reduce = ref false
+
+(* two internal undocumented flags *)
+(* switch off some static verifications during typing *)
+(* temporary solution *)
+let allow_join_der_dv = ref false
 
 (* the list of nodes to evaluate *)
 let main_nodes = ref ([] :string list)

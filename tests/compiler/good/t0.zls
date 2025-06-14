@@ -62,7 +62,7 @@ let hybrid gh(z) =
   and present (disc(last x)) -> do () = print_int x done in
   x
 
-let node f0(x) returns (y)
+let node f0(x) returns (y init 42)
   y = last y + x
   
 let const node f1<<n>>(x) returns (y)
@@ -96,7 +96,7 @@ let const node f2<<n>>(x, z) returns (y)
 
 let node f3(x, z) returns (y)
   forward(43) (i in 0 to 42, xi in x) returns (yi out y)
-    local k in
+    local k init 42 in
     do yi = xi + 1 and k = last k + 1 unless z = 0 done
 
 let node f4(x, z) returns (y)

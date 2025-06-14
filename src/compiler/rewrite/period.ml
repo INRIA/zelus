@@ -12,8 +12,10 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* elimation of periods. Periods are only allowed in continuous-time nodes *)
-(* This step needs valid type information at application points to be done *)
+(* elimation of periods. period(e1|e2) is only allowed in hybrid nodes *)
+
+(* After this step, every hybrid node is supposed to have an implicit state variable *)
+(* major_name of kind Major. The lower level code generation step will set it *)
 
 (* For every function, an extra input [time] is added. A period (v1|v2) *)
 (* is translated into the computation of an horizon *)
@@ -68,16 +70,8 @@ open Mapfold
 
 let fresh () = Ident.fresh "time"
 
-type acc = { time: Ident.t option }
-
-let empty = { time = None }
-
-let intro { time } =
-  let t = match time with | None -> fresh () | Some(t) -> t in
-  t, { time = Some t }
-
 (* The translation function for periods *)
-let period major time phase period =
+let period_t major time phase period =
   (* [local h, z *)
   (*  do init h = time + phase
       and h = horizon (if z then last h + period else last h) *)
@@ -95,6 +89,7 @@ let period major time phase period =
                        (Aux.greater_or_equal (Aux.var time)
                           (Aux.last_star z)))]]
     (Aux.var z)
+
 (* Ensure that a zero-crossing cannot be done *)
 (* twice without time passing *)
     (*
@@ -115,14 +110,16 @@ let period major time phase period =
   make_let env eq_list (float_var z)
      *)
 
-let up major time e = e
+let get acc = match acc with | None -> assert false | Some(major, time) -> major, time
 
 (* Add the extra input parameter "time" for hybrid nodes *)
-let funexp funs acc ({ f_kind } as f) =
-  match f_kind with
-  | Knode(Kcont) ->
-     let { f_args; f_env } as f, acc_local = Mapfold.funexp funs empty f in
-     let time, _ = intro acc_local in
+let funexp funs acc ({ f_kind; f_env } as f) =
+  match f_kind with 
+  (* a hybrid node have an implicit state variable of kind "Major" *)
+  | Knode(Kcont) -> 
+     let major, f_env = Aux.major f_env in 
+     let time = fresh () in
+     let { f_args; f_env } as f, _ = Mapfold.funexp funs (Some(major, time)) f in
      let head, tail = Util.firsts f_args in
      let f_args =
        head @ [Aux.vardec time false None None :: tail] in
@@ -136,14 +133,20 @@ let expression funs acc e =
   | Eapp({ f; arg_list } as app) ->
      (* The type of [f] must be known *)
      let ty_f = Typinfo.get_type f.e_info in
-     let time, acc = intro acc in
-     let arg_list =
+      let arg_list =
        if Types.is_hybrid_funtype (List.length arg_list) ty_f then
+         let _, time = get acc in
          let head, tail = Util.firsts arg_list in
-         head @ [Aux.pair (Aux.var time) tail]
+         let tail = match tail.e_desc with 
+           | Etuple(l) -> { e with e_desc = Etuple (Aux.var time :: l) }
+           | _ -> Aux.pair (Aux.var time) tail in
+         head @ [tail]
        else arg_list in
-     let t, acc = intro acc in
      { e with e_desc = Eapp { app with arg_list } }, acc
+  | Eop(Eperiod, [phase; period]) -> 
+     let major, time = get acc in
+     let e = period_t major time phase period in
+     e, acc
   | _ -> e, acc
 
 let set_index funs acc n =
@@ -155,5 +158,5 @@ let program _ p =
   let funs =
     { Mapfold.defaults with expression; funexp; set_index; get_index;
                             global_funs } in
-  let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
+  let { p_impl_list } as p, _ = Mapfold.program_it funs None p in
   { p with p_impl_list = p_impl_list }

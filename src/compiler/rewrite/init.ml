@@ -47,7 +47,7 @@ open Mapfold
    | Pn -> local in do init in = true and in = false and eqn]
 *)
 
-let fresh () = Ident.fresh "i"
+let fresh () = Ident.fresh "init"
 
 (* the initialization variable *)
 type acc = { i : Ident.t option }
@@ -148,10 +148,10 @@ let result funs acc ({ r_desc } as r) =
   (* introduce one init per branch *)
   let r_desc, acc = match r_desc with
     | Exp(e) ->
-       let e, acc = Mapfold.reset_e funs acc e in
+       let e, acc = Mapfold.reset_e_it funs acc e in
        Exp(e), acc
     | Returns(b) ->
-       let b, acc = Mapfold.block funs acc b in
+       let b, acc = Mapfold.block_it funs acc b in
        Returns(b), acc in
   { r with r_desc }, acc
 

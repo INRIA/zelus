@@ -624,7 +624,7 @@ let reduce cset =
     cset
  
     
-(** Computes the dependence relation from a list of causality variables *)
+(* Computes the dependence relation from a list of causality variables *)
 (* variables in [already] are disgarded *)
 let relation (already, rel) cset =
   let rec relation (already, rel) c =
@@ -635,7 +635,7 @@ let relation (already, rel) cset =
         relation (S.add c already, (c, set c.c_sup) :: rel) c.c_sup in
   S.fold (fun c acc -> relation acc c) cset (already, [])
 
-(** Generalisation of a type *)
+(* Generalisation of a type *)
 (* the level of generalised type variables *)
 (* is set to [generic]. Returns [generic] when a sub-term can be generalised *)
 let list_of_vars = ref []
@@ -799,6 +799,28 @@ let filter_arrow tc =
   | Cfun(tc1, tc2) -> tc1, tc2
   | _ -> assert false
 
+(* simplifies a typing environment *)
+let simplify_by_io_env env expected_tc actual_tc =
+  let mark_env _ { t_tys = { typ_body = tc }; t_last_typ = ltc_opt } =
+    mark_and_polarity true tc;
+    Util.optional_unit mark_and_polarity true ltc_opt in
+  let simplify_env { t_tys = { typ_body = tc } as t_tys; t_last_typ = ltc_opt } =
+    let tc = simplify_by_io tc in
+    let ltc_opt = Util.optional_map simplify_by_io ltc_opt in
+    { t_tys = { t_tys with typ_body = tc }; t_last_typ = ltc_opt } in
+  Env.iter mark_env env;
+  mark_and_polarity true expected_tc;
+  mark_and_polarity true actual_tc;
+  let env = Env.map simplify_env env in
+  (* Computes the set of free variables and dependence relations *)
+  let cset =
+    Env.fold
+      (fun _ { t_tys = { typ_body = tc }; t_last_typ = ltc_opt } acc ->
+         Util.optional vars (vars acc tc) ltc_opt) env S.empty in
+  let cset = vars (vars cset expected_tc) actual_tc in
+  let already, rel = relation (S.empty, []) cset in
+  env, cset, rel, simplify_by_io expected_tc, simplify_by_io actual_tc
+
 (* compute the dependence relations *)
 let prel ff rel =
   match rel with
@@ -812,7 +834,7 @@ let penv ff env =
     match ltc_opt with
     | None -> Format.fprintf ff "@[%a: %a@]" Printer.source_name n Pcaus.scheme tc
     | Some(ltc) ->
-        Format.fprintf ff "@[%a: %a | %a@]"
+        Format.fprintf ff "@[%a: %a last %a@]"
           Printer.source_name n Pcaus.scheme tc Pcaus.ptype ltc in
   let env = Env.bindings env in
   Pp_tools.print_list_r pentry "{" ";" "}" ff env

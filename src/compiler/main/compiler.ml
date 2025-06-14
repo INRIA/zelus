@@ -85,22 +85,22 @@ let scalar_interface modname filename =
 let interface modname filename =
   compile_interface parse_interface_file modname filename ".zli"
            
-let print_message comment =
-  if !verbose then
+let print_message c_opt comment =
+  if c_opt then
     Format.fprintf Format.std_formatter
       "@[------------------------------------------------------------------\n\
        %s\n\
        --------------------------------------------------------------------@]@."
       comment
 
-let do_step comment output step input = 
-  print_message comment;
+let do_step is_print comment output step input = 
+  print_message is_print comment;
   let o = step input in
-  if !Misc.verbose then output Format.std_formatter o;
+  if is_print then output Format.std_formatter o;
   o
 
-let do_optional_step no_step comment output step input = 
-  if no_step then input else do_step comment output step input
+let do_optional_step no_step is_print comment output step input = 
+  if no_step then input else do_step is_print comment output step input
 
 (* write the OCaml code into file [mlc] *)
 let write_implementation mlc p_obc =
@@ -128,28 +128,32 @@ let compile modname filename =
   Modules.initialize modname;
   Location.initialize source_name;
 
+  let is_print = !Misc.print_passes in
+  
   (* Parsing *)
   let p = parse_implementation_file source_name in
-  print_message "Parsing done";
+  print_message is_print "Parsing done";
 
   try
     (* Associate unique index to variables *)
     let module Printer = Printer.Make(Typinfo) in
     let module Scoping = Scoping.Make(Typinfo) in
-    let p = do_step "Scoping done. See below:" Printer.program
+    let p = do_step is_print "Scoping done. See below:" Printer.program
               Scoping.program p in
     (* Write defined variables for equations *)
     let module Write = Write.Make(Typinfo) in
-    let p = do_step "Write done. See below: "
+    let p = do_step is_print "Write done. See below: "
               Printer.program Write.program p in
     if !parseonly then raise Stop;
-    let p = do_step "Typing done. See below:" Printer.program
+    let p = do_step is_print "Typing done. See below:" Printer.program
               (Typing.program info_ff true) p in
-    let p = do_optional_step !Misc.no_causality "Causality done. See below:"
-              Printer.program (Causality.program info_ff) p in
-    let p = do_optional_step
-              !Misc.no_initialization "Initialization done. See below:"
-              Printer.program (Initialization.program info_ff) p in
+    let p = 
+      do_optional_step !Misc.no_causality is_print "Causality done. See below:"
+        Printer.program (Causality.program info_ff) p in
+    let p = 
+      do_optional_step
+        !Misc.no_initialization is_print "Initialization done. See below:"
+        Printer.program (Initialization.program info_ff) p in
     (* Write the symbol table into the interface file *)
     let itc = open_out_bin obj_interf_name in
     Misc.apply_with_close_out Modules.write itc;
@@ -157,7 +161,7 @@ let compile modname filename =
 
     (* Mark functions calls to be inlined. This step uses type informations *)
     (* computed during the causality analysis *)
-    let p = do_step "Mark functions calls to be inlined. See below:"
+    let p = do_step is_print "Mark functions calls to be inlined. See below:"
 	      Printer.program Markfunctions.program p in
 
     (* source-to-source transformations *)
@@ -169,23 +173,27 @@ let compile modname filename =
 
     (* compile-time evaluation of definitions *)
     let otc = open_out_bin obj_name in
-    let p = do_step "Compile-time evaluation done. See below:"
+    let p = do_optional_step !Misc.no_reduce
+              is_print "Evaluate compile-time expressions. See below:"
               Printer.program (Const.program otc genv0) p in
     
-    let p = Rewrite.main print_message genv0 p !Misc.n_steps in
+    let p = Rewrite.main is_print print_message genv0 p !Misc.n_steps in
 
     if !Misc.rewriteonly then raise Stop;
     
     (* generation of sequential code *)
-    let p = do_step "Generation of sequential code done. See below:"
+    let p = do_step is_print "Generation of sequential code done. See below:"
               Oprinter.program Translate.program p in
 
     (* prepare the hybrid code for the interaction with the numerical solvers *)
-    let p = do_step "Add code for the interface with the solver. See below:"
+    let p = 
+      do_step is_print 
+        "Add code to read/write continuous states and zero-crossing vectors. \
+         See below:"
             Oprinter.program Inout.program p in
     
     let mlc = open_out ml_name in
-    let _ = do_step "Emit OCaml code. See below:"
+    let _ = do_step is_print "Print OCaml code. See below:"
               Ocamlprinter.program (write_implementation mlc) p in
     ()
   with

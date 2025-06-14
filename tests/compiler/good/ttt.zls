@@ -1,10 +1,46 @@
-let node h (x, y) returns (o init 0)
-  match x with
-  | true -> do o = (1 fby o) + y done
-  | false -> do done
-  end
-  
+let node cond_act1 (c) = 
+ local x, y do
+  init x = 0 and init y = 0
+  and if c then
+         do x = y + 1 done
+      else
+         do y = x + 1 done
+  in
+ x, y
+
+let node cond_act2 (c) = 
+ let rec init x = 0 and init y = 0
+     and if c then
+         do x = y + 1 done
+      else
+         do y = x + 1 done in
+ x, y
+
+
+let g = 9.81
+
+let hybrid ball() =
+  let rec der y = y' init 10.0
+  and der y' = -. g init 0.0 reset z -> 0.8 *. last y'
+  and z = up(-. y) in
+  let o = present z -> 1.0 else 0.0 in
+  ()
+
+
+
+let node from n returns m
+  m = 0 fby (let rec p = 1 fby (m+p) in p)
+
+let node main() =
+  let o = from 0 in
+  print_int o; print_newline ()
+
+
+
 (*
+let node h x =
+  let rec init o = 1 and o = last o + 1 in last o (* + last x *)
+
 let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
 *)
@@ -17,14 +53,6 @@ let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
 *)
 
-(*
-let node cond_act (c) = (x, y) where rec
-  init x = 0 and init y = 0
-  and match c with
-  | true -> do x = 0 -> pre x + 1 done
-  | false -> do y = 0 -> pre y + 1 done
-  end
-*)
 
 (*
 let node j x =

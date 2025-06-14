@@ -4,7 +4,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -95,7 +95,7 @@ type operator =
   (* the argument is atomic - arity = 1 *)
   | Etest 
   (* testing the presence of a signal - arity = 1 *)
-  | Eup 
+  | Eup of { is_zero: bool} (* when [is_zero], [up: _ -> zero], [up: _ -> bool] otherwise *)
   (* zero-crossing detection - arity = 1 *)
   | Eperiod 
   (* period - arity = 2 *)

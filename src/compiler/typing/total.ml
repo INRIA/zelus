@@ -106,12 +106,6 @@ let merge loc h defnames_list =
 let join loc
 	 { dv = dv1; di = di1; der = der1 }
          { dv = dv2; di = di2; der = der2 } =
-  (* let dv1_ = S.to_list dv1 in
-  let dv2_ = S.to_list dv2 in
-  let di1_ = S.to_list di1 in
-  let di2_ = S.to_list di2 in
-  let der1_ = S.to_list der1 in
-  let der2_ = S.to_list der2 in *)
   let join k names1 names2 =
     let joinrec n acc = 
       if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
@@ -121,8 +115,14 @@ let join loc
       if S.mem n names1 then
         error loc (Ealready_with_different_kinds(k1, k2, n)) in
     S.iter disjointrec names2 in
-  disjoint Current Derivative dv1 der2;
-  disjoint Current Derivative dv2 der1;
+  (* by default [der x = ...] and [x = ...] in parallel is rejected *)
+  (* the right way to do it would be do use a clock calculus such that *)
+  (* the clock for the definition of [der x] and [x] are exclusive *)
+  (* this option is used because rewrite steps can put definitions for *)
+  (* [der x] and [x] in parallel *)
+  if not !Misc.allow_join_der_dv then
+    (disjoint Current Derivative dv1 der2;
+     disjoint Current Derivative dv2 der1);
   { dv = join Current dv1 dv2; di = join Initial di1 di2;
     der = join Derivative der1 der2 }
   
@@ -282,7 +282,7 @@ module Automaton =
       let all_states = 
         Env.fold (fun n _ acc -> S.add n acc) t_remaining init_states in
       let one = ref init_states in
-      let reached = ref S.empty in
+      let reached = ref init_states in
       
       (* fix point computation *)
       while not (S.is_empty !one) do
@@ -294,73 +294,4 @@ module Automaton =
       let unreachable_states = S.diff all_states !reached in
       if not (S.is_empty unreachable_states)
       then warning loc (Wunreachable_state (S.choose unreachable_states))        
-    
-    (*
-    (* sets the [defined_names] for [state_name] *)
-    let add_state { t_initials; t_remaining } defined_names state_name =
-      let entry =
-        try Env.find state_name t_initials
-        with Not_found -> Env.find state_name t_remaining in
-      entry.e_state <- defined_names
-          
-    (* sets the [defined_names] for one transition in [state_name] *)
-    let add_transition { t_initials; t_remaining } defined_names
-          state_name target_state_name =
-      let { e_state; e_trans } as e =
-        try Env.find state_name t_initials
-        with Not_found -> Env.find state_name t_remaining in
-      e.e_trans <- (target_state_name, defined_names) :: e_trans
-    
-    (* for an [until] transition, the names defined on a transition *)
-    (* belong to the source state. Hence, they must be distinct. For an *)
-    (* [unless] transition, they belong to the target state. Hence, *)
-    (* they must be distinct. *)
-    (* In Zelus (w.r.t Lucid Synchrone), all transitions in an automaton *)
-    (* are of the same sort ([until or unless]) *)
-    let check_state
-          { t_weak; t_initials; t_remaining } h
-          _ { e_loc; e_state; e_trans } =
-      let check (target_name, target_defined_names) =
-        let _ = if t_weak then
-                  add e_loc e_state target_defined_names
-                else
-                  let { e_loc; e_state } =
-                    try Env.find target_name t_initials
-                    with Not_found -> Env.find target_name t_remaining in
-                  add e_loc e_state target_defined_names in
-        () in
-      List.iter check e_trans
-
-    (* computes the set of names that are defined *)
-    (* and have a last value. It depend on whether transitions are weak *)
-    (* ([until]) or strong ([unless]) *)
-    let names_in_initial_states { t_weak; t_initials } loc h =
-      if t_weak then empty
-      else
-        merge loc h (List.map (fun (_, { e_state }) -> e_state)
-                       (Env.to_list t_initials))
-
-    (* computes the names defined by an automaton *)
-    (* and check that transitions do not redefine names *)
-    let check ({ t_initials; t_remaining } as table) loc h =
-      Env.iter (check_state table h) t_initials;
-      Env.iter (check_state table h) t_remaining;
-      let defnames_list =
-        Env.fold (fun _ { e_state } acc -> e_state :: acc) t_initials [] in
-      let defnames_list =
-        Env.fold
-          (fun _ { e_state } acc -> e_state :: acc) t_remaining defnames_list in
-      let defined_names = merge loc h defnames_list in
-      let defined_names_in_transitions =
-        Env.fold
-          (fun _ { e_trans } acc ->
-            List.fold_left (fun acc (_, defnames) -> Defnames.union defnames acc)
-              acc e_trans) t_initials empty in
-      let defined_names_in_transitions =
-        Env.fold
-          (fun _ { e_trans } acc ->
-            List.fold_left (fun acc (_, defnames) -> Defnames.union defnames acc)
-              acc e_trans) t_initials defined_names_in_transitions in
-      union defined_names defined_names_in_transitions
-             *)    
   end

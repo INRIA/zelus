@@ -12,24 +12,17 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* Elimation of disc. *)
+(* Elimation of disc. disc(e) is only allowed in hybrid nodes *)
 
 (* [disc(x)] is translated into *)
 (* [local cx init x, z do cx = x and z = major && (x <> last* cx) in z] *)
 
+(* After this step, every hybrid node is supposed to have an implicit state variable *)
+(* major of kind Major. The lower level code generation step will set it *)
+
 open Ident
 open Zelus
 open Aux
-
-let fresh () = Ident.fresh "z"
-
-type acc = unit
-
-let empty = ()
-
-(* temporary version. for the moment [major] is a global variable. It will *)
-(* be an extra input parameter *)
-let major = Aux.var (Ident.fresh "major")
 
 (* The translation function for [disc(e)] *)
 let disc major e =
@@ -50,12 +43,24 @@ let disc major e =
                                           (Aux.last_star cx)))))])
     (Aux.var z)
 
-let expression funs acc { e_desc } =
+(* [acc = None or Some(major)] *)
+let expression funs acc e =
+  let { e_desc } as e, acc = Mapfold.expression funs acc e in
   match e_desc with
   | Eop(Edisc, [e]) ->
-     let e, acc = Mapfold.expression_it funs acc e in
-     disc major e, acc
-  | _ -> raise Mapfold.Fallback
+     let e = match acc with 
+       | None -> assert false | Some(major) -> disc major e in
+     e, acc
+  | _ -> e, acc
+
+let funexp funs acc ({ f_kind; f_env } as f) =
+  let acc, f_env = 
+    match f_kind with 
+    (* a hybrid node have an implicit state variable of kind "Major" *)
+    | Knode(Kcont) -> 
+       let major, f_env = Aux.major f_env in Some(major), f_env
+    | _ -> None, f_env in
+  Mapfold.funexp funs acc f
 
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
@@ -64,7 +69,7 @@ let get_index funs acc n = Ident.get (), acc
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with expression; set_index; get_index;
+    { Mapfold.defaults with funexp; expression; set_index; get_index;
                             global_funs } in
-  let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
+  let { p_impl_list } as p, _ = Mapfold.program_it funs None p in
   { p with p_impl_list = p_impl_list }

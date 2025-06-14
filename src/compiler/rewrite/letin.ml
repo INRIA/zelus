@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -125,7 +125,11 @@ let expression funs acc ({ e_desc } as e) =
 
 let atomic_expression funs acc e =
   let e, acc = Mapfold.expression_it funs acc e in
-  e_local acc e, empty
+  e_local acc e
+
+let atomic_equation funs acc eq =
+  let eq, acc = Mapfold.equation_it funs acc eq in
+  eq_local acc
 
 (* Translate an equation. *)
 (* [equation funs { c_vardec; c_eq } eq = empty_eq, [{ c_vardec'; c_eq'}] *)
@@ -137,8 +141,8 @@ let equation funs acc ({ eq_desc } as eq) =
        let _, acc = Util.mapfold (Mapfold.equation_it funs) empty eq_list in
        acc
     | EQinit(id, e_init) ->
-       let e, acc = Mapfold.expression_it funs empty e_init in
-       add_par { eq with eq_desc = EQinit(id, e) } empty
+       let e_init = atomic_expression funs empty e_init in
+       add_par { eq with eq_desc = EQinit(id, e_init) } empty
     | EQlet(l, eq) ->
        (* definitions in [l] are merges with equations in [eq] *)
        (* but sequential order between them is preserved *)
@@ -158,9 +162,6 @@ let leq_t funs acc ({ l_eq = { eq_write } as l_eq } as l) =
   let n_names = Defnames.names S.empty eq_write in
   { l with l_eq }, add_names n_names acc
 
-let atomic_equation funs acc eq =
-  let eq, acc = Mapfold.equation_it funs acc eq in
-  eq_local acc, empty
 
 let block funs acc ({ b_vars; b_body } as b) =
   (* assume that [b_vars] does not contain expressions (default/init) anymore *)
@@ -168,36 +169,40 @@ let block funs acc ({ b_vars; b_body } as b) =
   b, add_vardec b_vars acc
     
 let if_eq funs acc (eq_true, eq_false) =
-  let eq_true, _ = atomic_equation funs acc eq_true in
-  let eq_false, _ = atomic_equation funs acc eq_false in
+  let eq_true = atomic_equation funs empty eq_true in
+  let eq_false = atomic_equation funs empty eq_false in
   (eq_true, eq_false), acc
 
 let match_handler_eq funs acc ({ m_body } as m_h) =
-  let eq, acc = atomic_equation funs acc m_body in
+  let eq = atomic_equation funs empty m_body in
   { m_h with m_body = eq }, acc
 
 let match_handler_e funs acc ({ m_body } as m_h) =
-  let e, acc = atomic_expression funs acc m_body in 
+  let e = atomic_expression funs empty m_body in 
   { m_h with m_body = e }, acc
 
 let present_handler_eq funs acc ({ p_cond; p_body } as p_b) =
   let p_cond, acc = Mapfold.scondpat_it funs acc p_cond in
-  let p_body, acc = atomic_equation funs acc p_body in
+  let p_body = atomic_equation funs empty p_body in
   { p_b with p_cond; p_body }, acc
 
 let present_handler_e funs acc ({ p_cond; p_body } as p_b) =
   let p_cond, acc = Mapfold.scondpat_it funs acc p_cond in
-  let p_body, acc = atomic_expression funs acc p_body in
+  let p_body = atomic_expression funs empty p_body in
   { p_b with p_cond; p_body }, acc
 
-let reset_e funs acc e = atomic_expression funs acc e
+let reset_e funs acc e = 
+  let e = atomic_expression funs empty e in
+  e, acc
 
-let reset_eq funs acc eq = atomic_equation funs acc eq
+let reset_eq funs acc eq = 
+  let eq = atomic_equation funs empty eq in
+  eq, acc
 
 let result funs acc ({ r_desc } as r) =
   let r_desc, acc = match r_desc with
   | Exp(e) ->
-     let e, acc = atomic_expression funs acc e in
+     let e = atomic_expression funs empty e in
      Exp(e), acc
   | Returns(b) ->
      let b, acc = Mapfold.block_it funs acc b in
@@ -207,9 +212,9 @@ let result funs acc ({ r_desc } as r) =
 let for_exp_t funs acc for_body =
   match for_body with
   | Forexp { exp; default } ->
-     let exp, acc = atomic_expression funs empty exp in
-     let default, acc =
-       Util.optional_with_map (atomic_expression funs) acc default in
+     let exp = atomic_expression funs empty exp in
+     let default =
+       Util.optional_map (atomic_expression funs empty) default in
      Forexp { exp; default }, acc
   | Forreturns(f) ->
      let f, acc = Mapfold.for_returns_it funs acc f in
@@ -222,10 +227,10 @@ let for_eq_t funs acc ({ for_out; for_block } as for_eq) =
   { for_eq with for_out; for_block }, acc
 
 let for_out_t funs acc ({ desc = ({ for_init; for_default } as desc) } as f) =
-  let for_init, acc =
-    Util.optional_with_map (atomic_expression funs) acc for_init in
-  let for_default, acc =
-    Util.optional_with_map (atomic_expression funs) acc for_default in
+  let for_init =
+    Util.optional_map (atomic_expression funs acc) for_init in
+  let for_default =
+    Util.optional_map (atomic_expression funs acc) for_default in
   { f with desc = { desc with for_init; for_default } }, acc
 
 let letdecl funs acc (d_names, ({ l_eq } as leq)) =

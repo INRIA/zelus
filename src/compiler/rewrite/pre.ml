@@ -14,9 +14,9 @@
 
 (* Translation of fby/pre into init/last *)
 (*
-    [pre(e)] => [let rec m = e and x = last* m in x]
+    [pre(e)] => [let rec m = e and _pre_m = last* m in _pre_m]
 
-    [e1 fby e2] => [let rec init m = e1 and m = e2 and x = last*m in x]
+    [e1 fby e2] => [let rec init m = e1 and m = e2 and _fby_m = last* m in _fby_m]
 *)
 
 open Misc
@@ -27,32 +27,34 @@ open Zelus
 open Aux
 open Mapfold
 
-let fresh_x () = fresh "x"
+let fresh_pre () = fresh "_pre_m"
+let fresh_fby () = fresh "_fby_m"
 let fresh_m () = fresh "m"
+let fresh name = fresh name
 
 (* some auxiliary functions; not used for the moment *)
 (* Defines a value [let x = e in e_let] *)
-let let_value e =
-  let x = fresh_x () in
+let let_value name e =
+  let x = fresh name in
   Aux.e_letrec [Aux.id_eq x e] (var x)
 
 (* two options - generates let/rec or local/in *)
 (* [let rec m = e and x = last* m in x] *)
 let let_mem_value e =
-  let x = fresh_x () in
+  let x = fresh_pre () in
   let m = fresh_m () in
   Aux.e_letrec [Aux.id_eq m e; Aux.id_eq x (Aux.last_star m)] (var x)
     
 (* [let rec init m = e1 and m = e2 and x = last* m in x] *)
 let let_init_mem_value e1 e2 =
-  let x = fresh_x () in
+  let x = fresh_fby () in
   let m = fresh_m () in
   Aux.e_letrec [Aux.eq_init m e1; Aux.id_eq m e2; Aux.id_eq x (Aux.last_star m)]
     (var x)
 
 (* Defines a value [local x, (last m) do m = e and x = last* m in x] *)
 let local_mem_value e =
-  let x = fresh_x () in
+  let x = fresh_pre () in
   let m = fresh_m () in
   Aux.e_local (Aux.block_make [Aux.vardec x false None None;
                                Aux.vardec m true None None]
@@ -61,7 +63,7 @@ let local_mem_value e =
 (* Defines a state variable with initialization *)
 (* [local x, m init e1 do m = e2 and x = last* m in x] *)
 let local_init_mem_value e1 e2 =
-  let x = fresh_x () in
+  let x = fresh_fby () in
   let m = fresh_m () in
   Aux.e_local (Aux.block_make [Aux.vardec x false None None;
                                Aux.vardec m false (Some(e1)) None]
@@ -84,12 +86,12 @@ let expression funs acc e =
      pre e1, acc
   | Eop(Eifthenelse, [e1; e2; e3]) ->
      (* if [e2] (and [e3]) is stateful, name the result *)
-     let e2 = if Unsafe.expression e2 then let_value e2 else e2 in
-     let e3 = if Unsafe.expression e3 then let_value e3 else e3 in
+     let e2 = if Unsafe.expression e2 then let_value "_if_true" e2 else e2 in
+     let e3 = if Unsafe.expression e3 then let_value "_if_false" e3 else e3 in
      { e with e_desc = Eop(Eifthenelse, [e1; e2; e3]) }, acc
-  | Eop(Eup, [e1]) ->
+  | Eop(Eup _, [e1]) ->
      (* turns it into [let x = up(e1) in x] *)
-     let_value e, acc
+     let_value "_up" { e with e_desc = Eop(Eup { is_zero = false }, [e1]) }, acc
   | _ -> e, acc
 
 let set_index funs acc n =

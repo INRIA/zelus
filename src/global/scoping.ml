@@ -153,7 +153,7 @@ module Make (Info: INFO) =
       | Erun(i) -> Zelus.Erun(i)
       | Eatomic -> Zelus.Eatomic  
       | Etest -> Zelus.Etest
-      | Eup -> Zelus.Eup
+      | Eup -> Zelus.Eup { is_zero = true }
       | Einitial -> Zelus.Einitial
       | Edisc -> Zelus.Edisc
       | Eperiod -> Zelus.Eperiod
