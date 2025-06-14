@@ -86,13 +86,12 @@ let default_list =
        (* type checks before computing A-normal form *)
        type_check,
        Aform.program; *)
-   "write", "Compute write variables: See below:", nothing,
-   (fun _ p -> Write.program p);
-   "typing", "New typing step: See below:", nothing,
-   (fun _ p -> Typing.program Format.std_formatter false p);
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing,
-   Schedule.program]
+   Schedule.program;
+   "typing", "New typing step: See below:", nothing,
+   (fun _ p -> Typing.program Format.std_formatter false p);
+     ]
 
 let number_of_passes = List.length default_list + List.length optim_list 
 
