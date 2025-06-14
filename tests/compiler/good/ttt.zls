@@ -1,8 +1,13 @@
-let node h x =
-  let rec init o = 1 and o = last o + 1 in last o (* + last x *)
-
+let node h (x, y) returns (o init 0)
+  match x with
+  | true -> do o = (1 fby o) + y done
+  | false -> do done
+  end
+  
+(*
 let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
+*)
 
 (*
 let node h x =
@@ -11,10 +16,6 @@ let node h x =
 let node hh x =
   local x do x = last x + 1 and init x = 0 in last x + 1
 *)
-
-(* lastinpatterns is buggy *)
-
-let f x = 1
 
 (*
 let node cond_act (c) = (x, y) where rec
