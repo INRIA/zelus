@@ -77,7 +77,8 @@ let local_init_in_eq { i } eq =
   | None -> eq
   | Some(id) ->
      Aux.eq_local
-       (Aux.block_make [Aux.vardec id false None None] (eq :: (init id)))
+       (Aux.block_make
+          [Aux.init_vardec id false None None true] (eq :: (init id)))
 
 (* [let rec init id = true and id = false in e] *)
 let let_init_in_exp { i } e =
@@ -107,7 +108,7 @@ let block funs acc ({ b_vars; b_body } as b) =
   match i with
   | None -> { b with b_body }, acc
   | Some(id) ->
-     { b with b_vars = Aux.id_vardec id :: b_vars;
+     { b with b_vars = Aux.init_vardec id false None None true :: b_vars;
               b_body = Aux.par (b_body :: init id) }, acc
 
 let reset_eq funs acc eq = atomic_eq funs acc eq
