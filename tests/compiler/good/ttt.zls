@@ -1,4 +1,5 @@
-let f = 1
+let const f = 1
+let g = let const r = f in 2+r
 
 (*
 let node cond_act1 (c) = 
