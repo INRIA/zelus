@@ -179,22 +179,6 @@ let gvalue_texp_of_value loc funs acc ({ e_desc } as e) v =
   if is_immediate e then e, acc
   else exp_of loc funs acc v
 
-(* 
-  let rename_t ({ e_renaming } as acc) x = 
-  try Env.find x e_renaming, acc
-  with Not_found ->
-    Format.eprintf 
-      "Error during compile-time evaluation of constants; unbound identifier %s"
-      (Ident.name x);
-    raise Error *)
-
-(* let write_t acc { dv; di; der } =
-  let rename acc x = let x, _ = rename_t acc x in x in
-  let dv = S.map (rename acc) dv in
-  let di = S.map (rename acc) di in
-  let der = S.map (rename acc) der in
-  { dv; di; der }, acc *)
-
 (* Build a renaming from an environment *)
 let build global_funs ({ renaming } as acc) env =
   let buildrec n entry (env, renaming) =
