@@ -32,17 +32,17 @@ open Error
 (* Invariant: defined names in [e_renaming] and [e_values] must be distinct. *)
 type ('info, 'ienv, 'value) env =
   { (* environment for renaming. All variables will be renamed *)
-    env_renaming: Ident.t Ident.Env.t;
+    renaming: Ident.t Ident.Env.t;
     (* environment of constant values *)
-    env_values: 'value Ident.Env.t;
+    values: 'value Ident.Env.t;
     (* the global environment of constant values *)
-    env_gvalues: 'value Genv.genv;
+    gvalues: 'value Genv.genv;
     (* global definitions of constant values introduced during the reduction *)
     (* the head of the list is the last added value *)
-    env_defs: ('info, 'ienv) Zelus.implementation list;
+    defs: ('info, 'ienv) Zelus.implementation list;
     (* when [x] denotes a constant value [v], [v] has to be turned into *)
     (* an expression. [e_exp] memoize the expression that represents [v] *)
-    env_exp: ('info, 'ienv) Zelus.exp Ident.Env.t;
+    exp: ('info, 'ienv) Zelus.exp Ident.Env.t;
     }
 
 (* All compile-time constant expressions are reduced. A global name *)
@@ -59,27 +59,26 @@ let impl name id e =
     loc = e.e_loc }
 
 let empty =
-  { env_renaming = Ident.Env.empty;
-    env_values = Ident.Env.empty;
-    env_gvalues = Genv.empty;
-    env_defs = [];
-    env_exp = Ident.Env.empty;
+  { renaming = Ident.Env.empty;
+    values = Ident.Env.empty;
+    gvalues = Genv.empty;
+    defs = [];
+    exp = Ident.Env.empty;
   }
 
 let fresh () = Ident.fresh "const"
 
 let update acc genv env =
-  { acc with env_renaming = Ident.Env.empty;
-             env_values = env; e_gvalues = genv }
+  { acc with renaming = Ident.Env.empty; values = env; gvalues = genv }
 
 (* Build a renaming from an environment *)
-let build ({ env_renaming } as acc) env =
+let build ({ renaming } as acc) env =
   let buildrec n entry (env, renaming) =
     let m = Ident.fresh (Ident.source n) in
     Env.add m entry env,
     Env.add n m renaming in
-  let env, e_renaming = Env.fold buildrec env (Env.empty, env_renaming) in
-  env, { acc with env_renaming }
+  let env, e_renaming = Env.fold buildrec env (Env.empty, renaming) in
+  env, { acc with renaming }
 
 let error { kind; loc } =
   Format.eprintf "Error during compile-time evaluation of constants\n";
@@ -105,8 +104,8 @@ let no_leq loc =
              eq_loc = loc; eq_index = -1; eq_safe = true }; 
     l_env = Ident.Env.empty }
 
-let var_ident gfuns ({ env_renaming } as acc) x =
-  try Env.find x env_renaming, acc
+let var_ident gfuns ({ renaming } as acc) x =
+  try Env.find x renaming, acc
   with Not_found ->
     Format.eprintf 
       "Error during compile-time evaluation of constants; unbound identifier %s"
@@ -130,26 +129,27 @@ let var_ident gfuns ({ env_renaming } as acc) x =
   { dv; di; der }, acc *)
 
 (* constant evaluation of size expressions *)
-let size_e { env_values } si =
-  catch (Coiteration.size (Match.liftv env_values) si)
+let size_e { values } si =
+  catch (Coiteration.size (Match.liftv values) si)
 
 (* Expressions *)
 let expression funs acc ({ e_desc; e_loc } as e) =
   match e_desc with
   | Evar(x) ->
-     (* If [x] has a constant value [v], that is, it is defined by *)
-     (* a [let const x = ...] then [x] is replaced by this value *)
-     if Env.mem x acc.env_exp then Env.find x acc.env_exp, acc
+     if Env.mem x acc.renaming then
+       { e with e_desc = Evar(Env.find x acc.renaming) }
      else
-       (* or not; then generate a declaration to compute it *)
-       if Env.mem x acc.e_values then
-         let v = Env.find x acc.e_values in
-         let e, acc = value_t e_loc acc v in
-         e, { acc with e_exp = Env.add x e acc.e_exp }
+       (* [x] must be a compile-time constant value *)
+       if Env.mem x acc.values then
+         (* it is maybe already in the table of expressions *)
+         if Env.mem x acc.exp then Env.find x acc.exp, acc
+         else
+           (* or not; then generate a declaration to compute it *)
+           let v = Env.find x acc.values in
+           let e, acc = value_t e_loc acc v in
+           e, { acc with exp = Env.add x e acc.exp }
        else
-         (* otherwise, [x] is not constant; it is renamed *)
-         let x, acc = rename_t acc x in
-         { e with e_desc = Evar(x) }, acc
+         error { Error.kind = Eunbound_ident(x); loc = e_loc }
   | Eapp ({ is_inline; f; arg_list } as a) ->
      (* if an application need to be inlined *)
      (* it must be a compile-time constant expression *)
