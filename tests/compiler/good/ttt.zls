@@ -1,3 +1,6 @@
+let f = 1
+
+(*
 let node cond_act1 (c) = 
  local x, y do
   init x = 0 and init y = 0
@@ -34,7 +37,7 @@ let node from n returns m
 let node main() =
   let o = from 0 in
   print_int o; print_newline ()
-
+*)
 
 
 (*
