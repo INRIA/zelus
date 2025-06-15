@@ -59,7 +59,7 @@ let empty =
 
 let fresh () = Ident.fresh "const"
 
-let update acc genv env =
+let update_with_no_renaming acc genv env =
   { acc with renaming = Ident.Env.empty; values = env; gvalues = genv }
 
 let error { kind; loc } =
@@ -131,7 +131,7 @@ let rec exp_of loc funs acc v =
       | Vclosure { c_funexp; c_genv; c_env } ->
          (* add part of [g_env] and [c_env] in acc *)
          let c_env = pvalue_of_env loc c_env in
-         let acc_local = update acc c_genv c_env in
+         let acc_local = update_with_no_renaming acc c_genv c_env in
          (* reduce compile-time constants in the body of the function *)
          let f, acc_local = Mapfold.funexp_it funs acc_local c_funexp in 
          (* add a definition [m = fun(f)] in the global environment *)
@@ -185,7 +185,7 @@ let build global_funs ({ renaming } as acc) env =
     let m = Ident.fresh (Ident.source n) in
     Env.add m entry env,
     Env.add n m renaming in
-  let env, e_renaming = Env.fold buildrec env (Env.empty, renaming) in
+  let env, renaming = Env.fold buildrec env (Env.empty, renaming) in
   env, { acc with renaming }
 
 let var_ident global_funs ({ renaming } as acc) x =
@@ -349,28 +349,21 @@ let letdecl_list loc acc d_leq_opt d_names =
       let v = Env.find id values in
       { acc with gvalues = Genv.add name v gvalues }
     with
-    | Not_found -> acc in
+    | Not_found -> assert false in
+  let rename { renaming } (name, id) =
+    try
+      let m = Env.find id renaming in
+      (name, m)
+    with 
+    | Not_found -> assert false in
   match d_leq_opt with
   | None ->
      (* all names define compile-time constant values *)
      (* no code is generated but the global environment is updated *)
      List.fold_left add_gvalue acc d_names
   | Some(d_leq) ->
+     let d_names = List.map (rename acc) d_names in
      { acc with defs = { desc = Eletdecl { d_leq; d_names }; loc } :: acc.defs }
-
-(* an equation is immediate if it defines values which do not need any *)
-(* computation to be done *)
-let immediate { l_eq } =
-  let rec equation { eq_desc } =
-    match eq_desc with
-    | EQsizefun _ -> true
-    | EQeq(p, e) -> expression e
-    | EQand { eq_list } -> List.for_all equation eq_list
-    | _ -> false
-  and expression { e_desc } =
-    match e_desc with
-    | Econst _ | Efun _ -> true | _ -> false in
-  equation l_eq
 
 (* The main function. Reduce every compile-time constant definition *)
 let implementation funs acc ({ desc; loc } as impl) =
