@@ -196,7 +196,7 @@ let gvalue_texp_of_value loc funs acc ({ e_desc } as e) v =
   { dv; di; der }, acc *)
 
 (* Build a renaming from an environment *)
-let build ({ renaming } as acc) env =
+let build global_funs ({ renaming } as acc) env =
   let buildrec n entry (env, renaming) =
     let m = Ident.fresh (Ident.source n) in
     Env.add m entry env,
@@ -204,11 +204,12 @@ let build ({ renaming } as acc) env =
   let env, e_renaming = Env.fold buildrec env (Env.empty, renaming) in
   env, { acc with renaming }
 
-let var_ident gfuns ({ renaming } as acc) x =
+let var_ident global_funs ({ renaming } as acc) x =
   try Env.find x renaming, acc
   with Not_found ->
     Format.eprintf 
-      "Error during compile-time evaluation of constants; unbound identifier %s"
+      "@[Error during compile-time evaluation of constants:@ \
+       unbound identifier %s\n@]"
       (Ident.name x);
     raise Error
 
@@ -242,18 +243,19 @@ let leq_e acc leq =
 (* [let const eq in ...] - the equations are evaluated *)
 (* otherwise, they are not *)
 let leq_opt_t funs acc ({ l_kind; l_eq; l_env; l_loc } as leq) =
+  let ok = Typing.is_sizefun l_loc l_eq in
   match l_kind with
-  | Kconst ->
+  | (Kstatic | Kany) when not ok -> 
+     (* equations are not evaluated *)
+     let l_env, acc = Mapfold.build_it funs.Mapfold.global_funs acc l_env in
+     let l_eq, acc = Mapfold.equation_it funs acc l_eq in
+     Some { leq with l_eq; l_env }, acc
+  | _ ->
      (* evaluation of compile-time expressions *)
      let l_env = leq_e acc leq in
      (* let l = Env.to_list l_env in *)
      None, { acc with values = Env.append l_env acc.values }
-  | Kstatic | Kany -> 
-     (* equations are not evaluated *)
-     let l_env, acc = build acc l_env in
-     let l_eq, acc = Mapfold.equation_it funs acc l_eq in
-     Some { leq with l_eq; l_env }, acc
-
+  
 (* Expressions *)
 let expression funs acc ({ e_desc; e_loc } as e) =
   match e_desc with
@@ -370,11 +372,7 @@ let letdecl_list loc acc d_leq_opt d_names =
      (* no code is generated but the global environment is updated *)
      List.fold_left add_gvalue acc d_names
   | Some(d_leq) ->
-     let d_names =
-       List.map
-         (fun (name, id) -> let id, _ = rename_t acc id in name, id) d_names in
-     { acc with defs =
-                  { desc = Eletdecl { d_leq; d_names }; loc } :: acc.defs }
+     { acc with defs = { desc = Eletdecl { d_leq; d_names }; loc } :: acc.defs }
 
 (* an equation is immediate if it defines values which do not need any *)
 (* computation to be done *)
@@ -390,33 +388,44 @@ let immediate { l_eq } =
     | Econst _ | Efun _ -> true | _ -> false in
   equation l_eq
 
-(* The main function. Reduce every definition *)
+(* The main function. Reduce every compile-time constant definition *)
 let implementation funs acc ({ desc; loc } as impl) =
-  match desc with
-  | Eopen(name) ->
-     (* add [name] in the list of known modules *)
-     (* load it if it exists *)
-     (* This is a temporary solution: it uses two distinct tables *)
-     (* one for storing type informations; one for storing values. I *)
-     (* should take the solution used version 2, with a unique table *)
-     { acc with gvalues = Genv.try_to_open_module acc.gvalues name;
-                defs = impl :: acc.defs }
-  | Eletdecl { d_names; d_leq } ->
-     (* [d_leq] must be either constant or static *)
-     let d_leq_opt, acc = leq_opt_t funs acc d_leq in
-     letdecl_list loc acc d_leq_opt d_names
-  | Etypedecl _ -> { acc with defs = impl :: acc.defs }
+  let acc =
+    match desc with
+    | Eopen(name) ->
+       (* add [name] in the list of known modules *)
+       (* load it if it exists *)
+       (* This is a temporary solution: it uses two distinct tables *)
+       (* one for storing type informations; one for storing values. I *)
+       (* should take the solution used version 2, with a unique table *)
+       { acc with gvalues = Genv.try_to_open_module acc.gvalues name;
+                  defs = impl :: acc.defs }
+    | Eletdecl { d_names; d_leq } ->
+       (* [d_leq] must be either constant or static *)
+       let d_leq_opt, acc = leq_opt_t funs acc d_leq in
+       letdecl_list loc acc d_leq_opt d_names
+    | Etypedecl _ -> { acc with defs = impl :: acc.defs } in
+  impl, acc
 
-let set_index_t n = Ident.set n
-let get_index_t () = Ident.get ()
+let set_index funs acc n =
+  let _ = Ident.set n in n, acc
+let get_index funs acc n = Ident.get (), acc
 
 let program otc genv { p_impl_list; p_index } =
-  set_index_t p_index;
-  let { gvalues; defs } =
-    List.fold_left implementation { empty with gvalues = genv } p_impl_list in
-  apply_with_close_out (Genv.write gvalues) otc;
-  (* definitions in [acc.e_defs] are in reverse order *)
-  let p_impl_list = List.rev defs in
-  let p_index = get_index_t () in
-  { p_impl_list; p_index }
+  let global_funs = 
+    { Mapfold.default_global_funs with build; var_ident } in
+  let funs =
+    { Mapfold.defaults with expression; equation; implementation; global_funs } in
+  
+  let acc = { empty with gvalues = genv } in
 
+  let n, acc = Mapfold.set_index_it funs acc p_index in
+  let _, { gvalues; defs } = 
+    Util.mapfold (Mapfold.implementation_it funs) acc p_impl_list in
+  let p_index, acc = Mapfold.get_index_it funs acc n in
+  
+  (* store the value into the table of values *)
+  apply_with_close_out (Genv.write gvalues) otc;
+  (* definitions in [defs] are in reverse order *)
+  let p_impl_list = List.rev defs in
+  { p_impl_list; p_index }
