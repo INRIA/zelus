@@ -1,6 +1,8 @@
 let const f = 1
 let g = let const r = f in 2+r
 
+(* t9.zls. inline error. unbound var. *)
+
 (*
 let node cond_act1 (c) = 
  local x, y do
