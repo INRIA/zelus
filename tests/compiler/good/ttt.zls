@@ -1,3 +1,11 @@
+(* recursive functions defined at top level *)
+let rec f1<<n>>(x) returns o 
+  o = 42
+  (* do if n=0 then o = x
+  else o = f1<<n-1>>(x+1) done *)
+and g1<<n>>(x) = f1<<n-1>>(x)
+
+
 let const f = 1
 let g = let const r = f in 2+r
 
