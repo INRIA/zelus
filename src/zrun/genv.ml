@@ -143,3 +143,11 @@ let shortname { id = n } = n
 let empty =
   let c_empty = { name = ""; values = E.empty } in
   { current = c_empty; opened = []; modules = E.empty }
+
+(* debug info *)
+let show { current; opened; modules } =
+  let show_env { name; values } =
+    (name, E.to_list values) in
+  show_env current,
+  List.map show_env opened,
+  List.map (fun (m, env) -> (m, show_env env)) (E.to_list modules)

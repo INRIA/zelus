@@ -41,7 +41,7 @@ type ('info, 'ienv, 'value) env =
     (* the head of the list is the last added value *)
     defs: ('info, 'ienv) Zelus.implementation list;
     (* when [x] denotes a constant value [v], [v] has to be turned into *)
-    (* an expression. [e_exp] memoize the expression that represents [v] *)
+    (* an expression. [exp] memoize the expression that represents [v] *)
     exp: ('info, 'ienv) Zelus.exp Ident.Env.t;
     }
 
@@ -258,6 +258,14 @@ let expression funs acc ({ e_desc; e_loc } as e) =
        { e with e_desc = Evar(Env.find x acc.renaming) }, acc
      else
        error { Error.kind = Eunbound_ident(x); loc = e_loc }
+  | Eglobal { lname } -> 
+     (* either [lname] is a constant or not *)
+     let e, acc =
+       try 
+         let { Genv.info = v } = Genv.find_value lname acc.gvalues in
+         exp_of e_loc funs acc v
+       with Not_found -> e, acc in
+     e, acc
   | Elet(l, e_let) ->
      let l_opt, acc = leq_opt_t funs acc l in
      let e_let, acc = Mapfold.expression_it funs acc e_let in
@@ -401,6 +409,8 @@ let program otc genv { p_impl_list; p_index } =
     Util.mapfold (Mapfold.implementation_it funs) acc p_impl_list in
   let p_index, acc = Mapfold.get_index_it funs acc n in
   
+  let l_ = Genv.show gvalues in
+
   (* store the value into the table of values *)
   apply_with_close_out (Genv.write gvalues) otc;
   (* definitions in [defs] are in reverse order *)
