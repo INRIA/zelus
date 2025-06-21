@@ -519,7 +519,7 @@ fun_kind:
 ;
 
 result:
-  | RETURNS p = param eq = where_equation_and_list %prec prec_result
+  | RETURNS p = param eq = equation
     { make (Returns(p, eq)) $startpos $endpos }
   | t_opt = optional(colon_type_expression)
     EQUAL seq = seq_expression %prec prec_result
