@@ -101,6 +101,9 @@ let get_with_default loc v i default =
   | Varray(a), Vint(i) -> get a i
   | _ -> error { kind = Etype; loc }
 
+(* x.(i1 .. i2) returns a slices of [x] between index [i1] and [i2] *)
+(* if [i2 < i1], the result array is empty, that is, [||] *)
+(* if [x: [n]a] then x.(i1 .. i2) : [i2-i1+1]a *)
 let slice loc v i1 i2 =
   let slice v i1 i2 = match v with
     | Vflat(a) ->
@@ -108,6 +111,28 @@ let slice loc v i1 i2 =
        if i1 < n then
          if i2 < n then
            return (Value(Varray(Vflat(Array.sub a i1 (i2 - i1 + 1)))))
+         else error { kind = Earray_size { size = n; index = i2 }; loc }
+       else error { kind = Earray_size { size = n; index = i1 }; loc }
+    | Vmap { m_length; m_u } ->
+       if i1 < m_length then
+         if i2 < m_length then
+           return (Value(Varray(Vmap { m_length = i2 - i1 + 1; m_u })))
+         else
+           error { kind = Earray_size { size = m_length; index = i2 }; loc }
+       else error { kind = Earray_size { size = m_length; index = i1 }; loc } in
+  let+ v = v and+ i1 = i1 and+ i2 = i2 in
+  match v, i1, i2 with
+  | Varray(v), Vint(i1), Vint(i2) -> slice v i1 i2
+  | _ -> error { kind = Etype; loc }
+
+let slice loc v i1 i2 =
+  let slice v i1 i2 = match v with
+    | Vflat(a) ->
+       let n = Array.length a in
+       if i1 >= 0 then
+         let len = i2 - i1 + 1 in
+         if (len >= 0) && (i1 + len <= n) then
+           return (Value(Varray(Vflat(Array.sub a i1 len))))
          else error { kind = Earray_size { size = n; index = i2 }; loc }
        else error { kind = Earray_size { size = n; index = i1 }; loc }
     | Vmap { m_length; m_u } ->

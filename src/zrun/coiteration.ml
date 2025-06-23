@@ -13,36 +13,43 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* This file defines an operational (executable) semantics for a
+(* This file defines a functional (executable) semantics for a
  *- synchronous language like Lustre, Scade, Lucid Synchrone and Zelus.
  *- It is based on a companion file and working notes on the co-iterative
  *- semantics presented at the SYNCHRON workshop, December 2019,
  *- the class on "Advanced Functional Programming" given at Bamberg
- *- Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019, 2020, 2021
- *- The original version of this code is taken from the GitHub Zrun repo:
+ *- Univ. in June-July 2019 and slides for Master MPRI - M2, Fall 2019, 2020, 2021
+ *- The original version of this code is taken from the GitHub ZRun repo:
  *- https://github.com/marcpouzet/zrun
  *- ZRun was programmed right after the COVID confinment, in May-June 2020
  *- This second version includes some of the Zelus constructs:
  *- ODEs and zero-crossing; higher order functions;
  *- the implem. was done in 2021 and updated since then;
- *- first update during summer 2022 with array constructs inspired by that
- *- of the (beautiful) SISAL language; a restricted form was already
- *- implemented in Zelus V2 in 2017.
- *- w.r.t SISAL, for-loops can contain stateful (stream) functions;
- *- two style of for loop constructs are provided:
- *- 1/ the foreach loop iteration runs several instances of a stream
- *- function; in operational terms, every application has it own state;
- *- 2/ the forward loop is an "hyper-serial" loop iteration: a stream
- *- function to an input array taken as a input sequence; the sequence of
- *- outputs can be stored into an output array or only the last value is
- *- return. This construction is similar to the "clock domains" construct
- *- presented at PPDP'13/SCP'15 (Louis Mandel, Cedric Pasteur and Marc Pouzet)
- *- and temporal refinement by Caspi and Mikac because it performs several
- *- synchronous reactions as if it were a single one.
- *- The size of arrays and thenumber of iterations must be known statically.
+ *- first update during summer 2022 with array constructs inspired by the
+ *- loop construct from SISAL language expressed in a purely-functional form;
+ *- a first version of loop iteration (the "foreach" was named "forall" and was
+ *- implemented in Zelus V2 in 2017).
+ *- Two style of loop iterations are provided:
+ *- 1/ The "foreach" loop iteration runs several instances of a stream
+ *- function (say f); in operational terms, every application has it own state; it
+ *- corresponds to the classical "map" operation:
+ *- the input is an array of streams and the output is an array of streams.
+ *- 2/ The forward loop is an "hyper-serial" loop iteration: the array of input
+ *- stream is interpreted as a faster stream passed to [f] and whose result
+ *- is converted back into an array of streams. In this form, it is possible
+ *- to reset [f] for every new array coming in or not. And it is possible to
+ *- return the array of successive computation or only the very last one.
+ *- This construction is the data-flow version of the "clock domains" construct
+ *- of ReactiveML (PPDP'13 and SCP'15; by L. Mandel, C. Pasteur and M. Pouzet)
+ *- and the work on temporal refinement studied by Caspi and Mikac. It
+ *- performs several successive synchronous reactions but a single one is
+ *- observable. In term of generated code, it generated a for loop.
+ *- In this work, the size of arrays and maximum number of iterations must 
+ *- be known statically.
  *-
- *- If you find this work useful for your research, please cite
- *- the [EMSOFT'2023] paper and send a mail: [Marc.Pouzet@ens.fr]
+ *- If you find the work on ZRun work useful for your research, please cite
+ *- the [EMSOFT'2023] paper. Do not hesitate to send us a mail: 
+ *- [Marc.Pouzet@ens.fr]
  *)
 
 open Misc
@@ -172,6 +179,25 @@ let smatch_handler_list loc sbody genv env ve m_h_list s_list =
        return (r, s)
     | _ -> error { kind = Estate; loc = loc } in
   smatch_rec m_h_list s_list
+
+(* the argument [ve] is static and [s] is the state of the selected branch *)
+let static_match_handler_list loc sbody genv env ve m_h_list s =
+  let rec smatch_rec m_h_list =
+    match m_h_list with
+    | [] -> error { kind = Epattern_matching_failure; loc = loc }
+    | { m_pat; m_body } :: m_h_list ->
+       let r = Match.pmatch ve m_pat in
+       let* r, s =
+         match r with
+         | None ->
+            (* this is not the good handler; try an other one *)
+            smatch_rec m_h_list
+         | Some(env_pat) ->
+            let env_pat = liftv env_pat in
+            let env = Env.append env_pat env in
+            sbody genv env m_body s in
+       return (r, s) in
+  smatch_rec m_h_list
 
 (* an iterator *)
 let slist loc genv env sexp e_list s_list =
@@ -335,6 +361,8 @@ let sizefun_defs genv env { l_eq; l_loc } =
   | Left _ -> error { kind = Esizefun_def_recursive; loc = l_loc }
 
 (* Present handler *)
+(* In the code below, [is_fun] is a boolean flag. When true, the expression *)
+(* is expected to be combinational. If it is not, an error is raised *)
 let ipresent_handler is_fun iscondpat ibody genv env { p_cond; p_body } =
   let* sc = iscondpat is_fun genv env p_cond in
   let* sb = ibody is_fun genv env p_body in
@@ -501,9 +529,20 @@ let rec iexp is_fun genv env { e_desc; e_loc  } =
      return (Slist(se :: s_list))
   | Etypeconstraint(e, _) -> iexp is_fun genv env e
   | Efun _ -> return Sempty
-  | Ematch { e; handlers } ->
+  | Ematch { is_size; e; handlers } ->
+     (* if [is_size] then evaluate the corresponding branch *)
+     (* the initial state is that of the selected branch *)
      let* se = iexp is_fun genv env e in
-     let* s_handlers = map (imatch_handler is_fun iexp genv env) handlers in
+     if is_size then
+       (* evaluate the size; the result must be an integer *)
+       let* ve = vsexp genv env e se in
+       let* v = is_int e.e_loc ve in
+       let* sm =
+         Match.match_handler_list 
+           e_loc (iexp is_fun) genv env (Vint(v)) handlers in
+       return (Slist [Sstatic(Vint(v)); sm])
+     else
+       let* s_handlers = map (imatch_handler is_fun iexp genv env) handlers in
      return (Slist (se :: s_handlers))
   | Epresent { handlers; default_opt } ->
      let* s_handlers =
@@ -517,21 +556,17 @@ let rec iexp is_fun genv env { e_desc; e_loc  } =
        let* s_res = iexp is_fun genv env e_res in
        (* TODO: double the state; an idea from Louis Mandel *)
        (* in case of a reset, simply restart from this copy *)
-       (* alternatively, the current solution recalls [iexp] *)
-       (* in the actual, imperative implementation, generated code is *)
-       (* statically scheduled and reset is obtained *)
-       (* by executing a reset method which puts the state *)
-       (* to its initial value *)
+       (* The alternative (and current) solution recalls function [iexp] *)
+       (* In the generated code produced by a compiler, this code is *)
+       (* statically scheduled. The reset is obtained by calling a reset method *)
+    (* which set state variable to their initial value *)
        return (Slist[s_body; s_res])
   | Eassert(e_body) ->
      let* s_body = iexp is_fun genv env e_body in
      return s_body
   | Eforloop({ for_size; for_kind; for_input; for_body; for_resume }) ->
-     (* a forward loop with resume is allowed only in a statefull expression *)
-     if is_fun && for_resume 
-     then error { kind = Eshould_be_combinatorial; loc = e_loc }
-     else let* si_list = map (ifor_input is_fun genv env) for_input in
-       let* s_body, sr_list = 
+     let* si_list = map (ifor_input is_fun genv env) for_input in
+     let* s_body, sr_list = 
          ifor_exp is_fun for_resume genv env for_body in
        let* s_size, s_body =
          ifor_kind genv env for_size for_kind s_body in
@@ -578,8 +613,7 @@ and ifor_input is_fun genv env { desc; loc } =
      let* s2 = iexp is_fun genv env e_right in
      return (Slist [s1; s2])
 
-and ifor_output is_fun is_resume genv env
-  { desc = { for_init; for_default }; loc } =
+and ifor_output is_fun is_resume genv env { desc = { for_init; for_default }; loc } =
   let* s_init =
     match for_init with
     | None -> return Sempty
@@ -597,6 +631,9 @@ and ifor_output is_fun is_resume genv env
 and ifor_vardec is_fun is_resume genv env { desc = { for_vardec } } =
   ivardec is_fun is_resume genv env for_vardec
 
+(* if the for loop is a forward iteration that is reset *)
+(* the overal code is considered to be combinational whereas the body *)
+(* can be stateful *)
 and ifor_exp is_fun is_resume genv env r =
   match r with
   | Forexp { exp } ->
@@ -676,10 +713,22 @@ and ieq is_fun genv env { eq_desc; eq_loc  } =
        let* i, si = initial_state_of_automaton is_fun genv env a_h state_opt in
        (* two state variables: initial state of the automaton and reset bit *)
        return (Slist(i :: Sval(Value(Vbool(false))) :: si :: s_list))
-  | EQmatch { e; handlers } ->
+  | EQmatch { is_size; e; handlers } ->
+     (* if [is_size] then evaluate the corresponding branch *)
+     (* the initial state is that of the selected branch *)
      let* se = iexp is_fun genv env e in
-     let* sm_list = map (imatch_handler is_fun ieq genv env) handlers in
-     return (Slist (se :: sm_list))
+     if is_size then
+       (* evaluate the size; the result must be an integer *)
+       let* ve = vsexp genv env e se in
+       let* v = is_int e.e_loc ve in
+       let* sm =
+         Match.match_handler_list 
+           eq_loc (ieq is_fun) genv env (Vint(v)) handlers in
+       return (Slist [Sstatic(Vint(v)); sm])
+     else
+       (* the state is a list of states - one per hander *)
+       let* sm_list = map (imatch_handler is_fun ieq genv env) handlers in
+       return (Slist (se :: sm_list))
   | EQempty -> return Sempty
   | EQassert(e) ->
      let* se = iexp is_fun genv env e in
@@ -688,15 +737,18 @@ and ieq is_fun genv env { eq_desc; eq_loc  } =
                 for_body = { for_out; for_block }; for_resume }) ->
      (* if the size is not given there should be at least one input *)
      match for_size, for_input with
-       | None, [] -> error { kind = Eloop_cannot_determine_size; loc = eq_loc }
-       | _ ->
-         let* s_input_list = map (ifor_input is_fun genv env) for_input in
-         let* so_list = 
-           map (ifor_output (is_fun && for_resume) for_resume genv env) for_out in
-         let* s_body = iblock (is_fun && for_resume) genv env for_block in
-         let* s_size, s_body =
-           ifor_kind genv env for_size for_kind s_body in
-         return (Slist (s_size :: Slist (s_body :: so_list) :: s_input_list))
+     | None, [] -> error { kind = Eloop_cannot_determine_size; loc = eq_loc }
+     | _ ->
+        (* if the for loop is a forward iteration that is reset *)
+        (* the overal code is considered to be combinational whereas the body *)
+        (* can be stateful *)
+        let* s_input_list = map (ifor_input is_fun genv env) for_input in
+        let* so_list = 
+          map (ifor_output is_fun for_resume genv env) for_out in
+        let* s_body = iblock (is_fun && for_resume) genv env for_block in
+        let* s_size, s_body =
+          ifor_kind genv env for_size for_kind s_body in
+        return (Slist (s_size :: Slist (s_body :: so_list) :: s_input_list))
 
 and iblock is_fun genv env { b_vars; b_body } =
   let* s_b_vars = map (ivardec is_fun true genv env) b_vars in
@@ -1070,6 +1122,11 @@ and sexp genv env { e_desc; e_loc } s =
      return (v, Slist [s_eq; s])
   | Efun(fe), s ->
      return (Value(Vclosure { c_funexp = fe; c_genv = genv; c_env = env }), s)
+  | Ematch { is_size = true; handlers }, Slist [Sstatic(v_size); s] ->
+     (* [match size e with | P1 -> ... | ...] *)
+     let* v, s =
+       static_match_handler_list e_loc sexp genv env v_size handlers s in
+     return (v, Slist [Sstatic(v_size); s])
   | Ematch { e; handlers }, Slist(se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* v, s_list =
@@ -1671,6 +1728,13 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
           sautomaton_handler_list eq_loc
             is_weak genv env eq_write handlers ps pr s_list in
      return (env, Slist (Sval(ns) :: Sval(nr) :: si :: s_list))
+  | EQmatch { is_size = true; e; handlers }, Slist [Sstatic(v_size); s] ->
+     (* [match size e with | P1 -> ... | ...] *)
+     let* env_handler, s =
+       static_match_handler_list eq_loc seq genv env v_size handlers s in
+     (* complete missing entries in the environment *)
+     let* env_handler = Fix.by eq_loc env env_handler (names eq_write) in
+     return (env_handler, Slist [Sstatic(v_size); s])
   | EQmatch { e; handlers }, Slist (se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* env, s_list =
