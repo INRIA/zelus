@@ -6,6 +6,11 @@
  (action (run zeluc -nostdlib %{deps})))
 
 (rule
+ (targets dump.zci dump.ml)
+ (deps (:zls dump.zls) basics.zci list.zci)
+ (action (run zeluc %{zls})))
+
+(rule
  (targets char.zci complex.zci int32.zci nativeint.zci
           int64.zci random.zci string.zci graphics.zci
 	  basics.zci node.zci run.zci list.zci)
@@ -14,11 +19,6 @@
 	node.zli run.zli list.zli) stdlib.zci)
  (action (run zeluc %{zli})))
  
-(rule
- (targets dump.zci dump.ml)
- (deps (:zls dump.zls) basics.zci list.zci)
- (action (run zeluc %{zls})))
-
 (library
  (name zlstdlib)
  (libraries unix

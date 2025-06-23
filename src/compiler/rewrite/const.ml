@@ -259,6 +259,7 @@ let expression funs acc ({ e_desc; e_loc } as e) =
      else
        error { Error.kind = Eunbound_ident(x); loc = e_loc }
   | Eglobal { lname } -> 
+     let l_ = Genv.show acc.gvalues in
      (* either [lname] is a constant or not *)
      let e, acc =
        try 
@@ -396,13 +397,15 @@ let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
-let program otc genv { p_impl_list; p_index } =
+let program otc gvalues { p_impl_list; p_index } =
   let global_funs = 
     { Mapfold.default_global_funs with build; var_ident } in
   let funs =
-    { Mapfold.defaults with expression; equation; implementation; global_funs } in
-  
-  let acc = { empty with gvalues = genv } in
+    { Mapfold.defaults with expression; equation; implementation; global_funs }
+  in
+  let acc = { empty with gvalues } in
+
+  let l_ = Genv.show gvalues in
 
   let n, acc = Mapfold.set_index_it funs acc p_index in
   let _, { gvalues; defs } = 
