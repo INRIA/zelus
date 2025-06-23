@@ -276,7 +276,8 @@ let expression funs acc ({ e_desc; e_loc } as e) =
   | Eapp ({ is_inline; f; arg_list } as a) ->
      (* if an application need to be inlined *)
      (* it must be a compile-time constant expression *)
-     let arg_list, acc = Util.mapfold (Mapfold.expression_it funs) acc arg_list in
+     let arg_list, acc =
+       Util.mapfold (Mapfold.expression_it funs) acc arg_list in
      let f, acc = 
        if is_inline then 
          if is_immediate f then f, acc
