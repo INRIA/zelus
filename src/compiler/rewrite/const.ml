@@ -49,6 +49,8 @@ type ('info, 'ienv, 'value) env =
 (* is introduced to store the value of a constant value *)
 (* when this value is used in a non constant expression *)
 
+exception Non_representable of string
+
 let empty =
   { renaming = Ident.Env.empty;
     values = Ident.Env.empty;
@@ -68,6 +70,12 @@ let error { kind; loc } =
   raise Error
 
 let catch v = match v with | Ok(v) -> v | Error(v) -> error v
+
+let unexpected_failure s loc =
+  catch (error { kind = Error.Eunexpected_failure
+                          { arg = s;
+                            print = fun ff s -> Format.fprintf ff "%s" s };
+                 loc })
 
 let pvalue_of_env loc c_env =
   let add acc (x, { Value.cur = v }) =
@@ -93,11 +101,6 @@ let add_global_definition name id e =
 (* [exp_of_value loc funs acc v] represents [v] as an expression *)
 (* it will be defined as a global variable unless it is an immediate value *)
 let rec exp_of loc funs acc v =
-  let unexpected_failure s =
-    catch (error { kind = Error.Eunexpected_failure
-                            { arg = s;
-                              print = fun ff s -> Format.fprintf ff "%s" s };
-                   loc = no_location }) in
   let rec exp_of acc v =
     let open Value in
     let e_desc, acc = match v with
@@ -145,18 +148,18 @@ let rec exp_of loc funs acc v =
          let v = catch (Arrays.flat_of_map a) in
          let v, acc = Util.mapfold exp_of acc (Array.to_list v) in
          Eop(Earray(Earray_list), v), acc
-      (* none of the value below should appear *)
+      (* none of the value below are representable as an expression *)
       | Vpresent _ ->
-         unexpected_failure "present"
+         raise (Non_representable "present")
       | Vabsent ->
-         unexpected_failure "absent"
+         raise (Non_representable "absent")
       | Vstate0 _ | Vstate1 _ ->
-         unexpected_failure "state"
+         raise (Non_representable "state")
       | Vsizefun _ ->
-         unexpected_failure "sizefun"
+         raise (Non_representable "sizefun")
       | Vsizefix _ ->
-         unexpected_failure "sizefix"
-      | Vfun _  -> unexpected_failure "vfun" in
+         raise (Non_representable "sizefix")
+      | Vfun _  -> raise (Non_representable "vfun") in
     Aux.emake e_desc, acc in
   let e, acc = exp_of acc v in
   (* if [e] is not immediate, add a global definition to store it *)
@@ -175,7 +178,7 @@ and is_immediate { e_desc } =
   match e_desc with 
   | Econst _ | Econstr0 _ | Eglobal _ -> true | _ -> false
 
-let gvalue_texp_of_value loc funs acc ({ e_desc } as e) v =
+let gvalue_t loc funs acc ({ e_desc } as e) v =
   if is_immediate e then e, acc
   else exp_of loc funs acc v
 
@@ -259,13 +262,12 @@ let expression funs acc ({ e_desc; e_loc } as e) =
      else
        error { Error.kind = Eunbound_ident(x); loc = e_loc }
   | Eglobal { lname } -> 
-     let l_ = Genv.show acc.gvalues in
      (* either [lname] is a constant or not *)
      let e, acc =
        try 
          let { Genv.info = v } = Genv.find_value lname acc.gvalues in
          exp_of e_loc funs acc v
-       with Not_found -> e, acc in
+       with | Non_representable _ | Not_found -> e, acc in
      e, acc
   | Elet(l, e_let) ->
      let l_opt, acc = leq_opt_t funs acc l in
