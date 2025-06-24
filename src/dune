@@ -87,7 +87,7 @@
     global ; definition of entries in the global type environment
     modules ; global symbol table for typing
   )
-  (libraries zelus.global_lib)
+  (libraries zelus.global_lib zelus.zrun_lib)
 )
 
 ; useful functions
