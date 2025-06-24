@@ -81,13 +81,13 @@ and 'a map =
 and ('info, 'ienv) sizefun = 
   { s_params: Ident.t list; 
     s_body: ('info, 'ienv) Zelus.exp; 
-    s_genv: ('info, 'ienv) pvalue Genv.genv; 
+    s_genv: (('info, 'ienv) pvalue, unit, unit, unit) Genv.genv; 
     s_env: ('info, 'ienv) pvalue star ientry Ident.Env.t }
                                    
 (* a functional value - [fun|node] x1 ... xn -> e *)
 and ('info, 'ienv) closure =
   { c_funexp : ('info, 'ienv) Zelus.funexp;
-    c_genv: ('info, 'ienv) pvalue Genv.genv;
+    c_genv: (('info, 'ienv) pvalue, unit, unit, unit) Genv.genv;
     c_env: ('info, 'ienv) pvalue star ientry Ident.Env.t }
                                      
 (* instance of a node *)

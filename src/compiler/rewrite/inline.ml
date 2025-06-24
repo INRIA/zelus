@@ -33,7 +33,7 @@ let _ = inlining_level := -100000
 
 (* the type of the accumulator *)
 type 'a acc =
-  { genv : 'a Genv.genv;
+  { genv : ('a, unit, unit, unit) Genv.genv;
     (* the global environment *)
     renaming : Ident.t Env.t;
     (* name to name environment *)
