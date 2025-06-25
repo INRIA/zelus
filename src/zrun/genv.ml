@@ -29,23 +29,19 @@ exception Cannot_find_file of string
 exception Already_defined of string
 
 (* The current global environment *)
-type ('v, 't, 'c, 'l)  env =
+type 'v  env =
   { name: string; (* the name of the module *)
     values: 'v E.t; (* the symbol table [name, entry] - values *)
-    types: 't E.t;
-    constr: 'c E.t;
-    label: 'l E.t;
   }
       
 (* The current global environment and list of already opened modules *)
-type ('v, 't, 'c, 'l) genv =
-    { current: ('v, 't, 'c, 'l) env;      (* associated symbol table *)
-      opened: ('v, 't, 'c, 'l) env list;  (* opened tables *)
-      modules: ('v, 't, 'c, 'l) env E.t;  (* tables loaded in memory *)
+type 'v genv =
+    { current: 'v env;      (* associated symbol table *)
+      opened: 'v env list;  (* opened tables *)
+      modules: 'v env E.t;  (* tables loaded in memory *)
     }
 
-let current_empty = { name = ""; values = E.empty; types = E.empty;
-                      constr = E.empty; label = E.empty }
+let current_empty = { name = ""; values = E.empty }
 let empty = { current = current_empty; opened = []; modules = E.empty }
 
 (* debug info *)
@@ -151,12 +147,6 @@ let add f pvalue ({ current } as genv) =
 
 let find_value qualname genv =
   let v, _ = find (fun ident m -> E.find ident m.values) qualname genv in v
-let find_type qualname genv =
-  let v, _ = find (fun ident m -> E.find ident m.types) qualname genv in v
-let find_constr qualname genv =
-  let v, _ = find (fun ident m -> E.find ident m.constr) qualname genv in v
-let find_label qualname genv =
-  let v, _ = find (fun ident m -> E.find ident m.label) qualname genv in v
 
 let write { current } oc = Marshal.to_channel oc current [Marshal.Closures]
     

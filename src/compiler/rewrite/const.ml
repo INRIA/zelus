@@ -36,7 +36,7 @@ type ('info, 'ienv, 'value) env =
     (* environment of constant values *)
     values: 'value Ident.Env.t;
     (* the global environment of constant values *)
-    gvalues: ('value, unit, unit, unit) Genv.genv;
+    gvalues: 'value Genv.genv;
     (* global definitions of constant values introduced during the reduction *)
     (* the head of the list is the last added value *)
     defs: ('info, 'ienv) Zelus.implementation list;
