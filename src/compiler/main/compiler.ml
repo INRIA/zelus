@@ -173,9 +173,11 @@ let compile modname filename =
 
     (* compile-time evaluation of definitions *)
     let otc = open_out_bin obj_name in
-    let p = do_optional_step !Misc.no_reduce
+    (*
+      let p = do_optional_step !Misc.no_reduce
               is_print "Evaluate compile-time expressions. See below:"
               Printer.program (Const.program otc genv0) p in
+    *)
     
     let p = Rewrite.main is_print print_message genv0 p !Misc.n_steps in
 
