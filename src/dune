@@ -80,12 +80,12 @@
     defcaus ; definition of causality types
     definit ; definition of initialisation types
     initial ; definition of general types, values
-    ptypes ; printing types
-    pcaus ; printing causality types
-    pinit ; printing initialization types
     typinfo ; type annotation for Zelus terms
     global ; definition of entries in the global type environment
     modules ; global symbol table for typing
+    ptypes ; printing types
+    pcaus ; printing causality types
+    pinit ; printing initialization types
   )
   (libraries zelus.global_lib zelus.zrun_lib)
 )
