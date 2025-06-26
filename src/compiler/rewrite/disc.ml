@@ -17,8 +17,8 @@
 (* [disc(x)] is translated into *)
 (* [local cx init x, z do cx = x and z = major && (x <> last* cx) in z] *)
 
-(* After this step, every hybrid node is supposed to have an implicit state variable *)
-(* major of kind Major. The lower level code generation step will set it *)
+(* After this step, every hybrid node have an implicit state variable *)
+(* major of kind Major. The code generation step will set it *)
 
 open Ident
 open Zelus
@@ -53,14 +53,14 @@ let expression funs acc e =
      e, acc
   | _ -> e, acc
 
-let funexp funs acc ({ f_kind; f_env } as f) =
-  let acc, f_env = 
+let funexp funs acc ({ f_kind; f_hidden_env } as f) =
+  let acc, f_hidden_env = 
     match f_kind with 
     (* a hybrid node have an implicit state variable of kind "Major" *)
     | Knode(Kcont) -> 
-       let major, f_env = Aux.major f_env in Some(major), f_env
-    | _ -> None, f_env in
-  Mapfold.funexp funs acc f
+       let major, f_env = Aux.major f_hidden_env in Some(major), f_hidden_env
+    | _ -> None, f_hidden_env in
+  Mapfold.funexp funs acc { f with f_hidden_env }
 
 let set_index funs acc n =
   let _ = Ident.set n in n, acc

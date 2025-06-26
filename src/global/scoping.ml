@@ -899,7 +899,8 @@ module Make (Info: INFO) =
       { Zelus.f_vkind = vkind f_vkind;
         Zelus.f_kind = kind f_kind; Zelus.f_atomic = f_atomic;
         Zelus.f_args = f_args; Zelus.f_body = f_body; Zelus.f_loc = loc;
-        Zelus.f_env = Ident.Env.empty }
+        Zelus.f_env = Ident.Env.empty;
+        Zelus.f_hidden_env = Ident.Env.empty }
     
     and arg env v_list =
       let v_list, env_v_list = vardec_list env v_list in

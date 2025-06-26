@@ -286,26 +286,34 @@ let record_access arg label = emake (Erecord_access { arg; label })
 (* find the major step in the current environment *)
 (* If it already exist in the environment *)
 (* returns it. Otherwise, create one *)
-let new_major env =
-  let m = Ident.fresh "major" in
+let new_hidden_state_variable name (t_sort, t_typ) env =
+  let m = Ident.fresh name in
   let env =
     Env.add m { t_path = Pkind(Tnode(Tcont));
-                t_sort = Deftypes.major ();
-                t_tys = Deftypes.scheme Initial.typ_bool } env in
-  let major = var m in
-  major, env
-	 
-let major env =
-  let exception Return of (Typinfo.info, Typinfo.ienv) Zelus.exp in
+                t_sort;
+                t_tys = Deftypes.scheme t_typ } env in
+  var m, env
+
+let new_major env =
+  new_hidden_state_variable "major" (Deftypes.major (), Initial.typ_bool) env
+let new_time env =
+  new_hidden_state_variable "time" (Deftypes.time (), Initial.typ_float) env
+
+exception Return of (Typinfo.info, Typinfo.ienv) Zelus.exp
+
+let get_hidden_state_variable sort new_variable env =
   let find x t =
     match t with
-    | { t_sort = Sort_mem { m_mkind = Some(Major) } } ->
+    | { t_sort = Sort_mem { m_mkind = Some(s) } } when s = sort ->
        raise (Return(var x))
     | _ -> () in
   try
     Env.iter find env;
-    new_major env
+    new_variable env
   with
   | Return(x) -> x, env
+
+let major env = get_hidden_state_variable Major new_major env
+let time env = get_hidden_state_variable Time new_time env
 
 

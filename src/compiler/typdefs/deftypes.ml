@@ -111,6 +111,7 @@ and mkind =
   | Period (* an event defined as a period *)
   | Encore (* a cascade event *)
   | Major (* true in discrete mode; could we use Encore instead? *)
+  | Time (* the current time of the simulation *)
 
 (* making types *)
 let make ty =
@@ -132,6 +133,7 @@ let previous mem = { mem with m_last = true }
 let zero mem = Sort_mem { mem with m_mkind = Some Zero }
 let horizon mem = Sort_mem { mem with m_mkind = Some Horizon }
 let major () = Sort_mem { empty_mem with m_mkind = Some Major }
+let time () = Sort_mem { empty_mem with m_mkind = Some Time }
 let imem = initialized empty_mem
 let mem = previous imem
 let memory = Sort_mem mem

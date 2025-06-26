@@ -98,7 +98,7 @@ let state is_read n k =
 	Eleft_state_primitive_access
 	  (Eleft_state_name(n), if is_read then Ezero_in else Ezero_out)
      | Deftypes.Horizon | Deftypes.Period
-     | Deftypes.Encore | Deftypes.Major -> Eleft_state_name(n)
+     | Deftypes.Encore | Deftypes.Major | Deftypes.Time -> Eleft_state_name(n)
 
 (* index in an array *)
 let rec index e =

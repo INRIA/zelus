@@ -1234,7 +1234,8 @@ and array_operator expected_k h loc op e_list =
      Types.vec ty (Sizes.mult si1 si2), actual_k
   | _ -> assert false
 
-and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc } as body) =
+and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc;
+                           f_hidden_env } as body) =
   (* typing the argument of a function *)
   let arg_list expected_k h f_args =
     (* typing an argument. An argument is a list of vardec declarations *)
@@ -1256,6 +1257,7 @@ and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc } as body) =
   let name_ty_arg_list, (h, h_args) = arg_list expected_body_k h f_args in
   body.f_env <- h_args;
   (* type the body *)
+  let h = Env.append f_hidden_env h in
   let ty_res, _ = result expected_body_k h f_body in
   (* returns a type *)
   arrow_type f_loc expected_body_k name_ty_arg_list ty_res,

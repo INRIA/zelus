@@ -435,7 +435,10 @@ and ('info, 'ienv) funexp =
     f_args: ('info, 'ienv) arg list; (* list of arguments *)
     f_body: ('info, 'ienv) result;
     f_loc: Location.t;
-    mutable f_env: 'ienv Ident.Env.t;
+    mutable f_env: 'ienv Ident.Env.t; (* the environment for input variables *)
+    mutable f_hidden_env: 'ienv Ident.Env.t;
+    (* an auxiliary environment of hidden state variables; it is empty *)
+    (* in the surface language Zelus *)
   }
 
 and ('info, 'ienv) sizefun =

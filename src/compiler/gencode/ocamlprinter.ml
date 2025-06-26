@@ -351,7 +351,7 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
           Printer.name m_name (array_of m_value m_typ) m_size
           (* the default value of a derivative must be zero *)
           (array_of (Some(Econst(Efloat(0.0)))) m_typ) m_size
-     | Horizon | Major | Period | Encore ->
+     | Horizon | Major | Period | Encore | Time ->
         fprintf ff "%a = %a" Printer.name m_name (array_of m_value m_typ) m_size
      
     

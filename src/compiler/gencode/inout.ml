@@ -239,7 +239,7 @@ let build_index m_list =
     | Some(k) ->
        match k with
        | Horizon -> ctable, ztable, add_opt n h_opt, major_opt
-       | Period | Encore -> ctable, ztable, h_opt, major_opt
+       | Period | Encore | Time -> ctable, ztable, h_opt, major_opt
        | Zero ->
 	  let s_list = Types.sizes_per_dimension typ in
           ctable, Env.add n (List.map size s_list, e_list) ztable,
