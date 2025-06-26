@@ -969,7 +969,7 @@ and sexp genv env { e_desc; e_loc } s =
         return
           (Value(Vbool(zin)),
            Speriod { p with horizon })
-     | Ehorizon, [e], Slist [Shorizon ({ zin; horizon } as h); s] ->
+     | Ehorizon _, [e], Slist [Shorizon ({ zin; horizon } as h); s] ->
         if zin then
           let* horizon, s = sexp genv env e s in
           match horizon with

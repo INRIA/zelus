@@ -157,7 +157,7 @@ module Make (Info: INFO) =
       | Einitial -> Zelus.Einitial
       | Edisc -> Zelus.Edisc
       | Eperiod -> Zelus.Eperiod
-      | Ehorizon -> Zelus.Ehorizon
+      | Ehorizon -> Zelus.Ehorizon { is_zero = true }
       | Earray(op) -> Zelus.Earray(array_operator op)
     
     and array_operator op =

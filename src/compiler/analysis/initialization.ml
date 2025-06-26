@@ -414,7 +414,7 @@ and operator env op ty e_list =
      Tinit.skeleton_on_i izero ty
   | Einitial, [] ->
      Tinit.skeleton_on_i izero ty
-  | (Edisc | Ehorizon), [e] ->
+  | (Edisc | Ehorizon _), [e] ->
      exp_less_than_on_i env e izero;
      Tinit.skeleton_on_i izero ty
   | Eperiod, [e1; e2] ->

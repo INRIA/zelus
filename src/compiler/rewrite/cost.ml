@@ -33,7 +33,7 @@ let rec operator acc op =
     | Eup _ -> acc - 2
     | Einitial -> acc - 2
     | Eperiod -> acc - 2
-    | Ehorizon -> acc - 2
+    | Ehorizon _ -> acc - 2
     | Edisc -> acc - 2
     | Earray(op) -> array_operator acc op in
   if acc <= 0 then raise Exit else acc

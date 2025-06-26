@@ -80,7 +80,7 @@ let period_t major time phase period =
   Aux.e_local_vardec [Aux.id_vardec h; Aux.id_vardec z]
     [Aux.par
        [Aux.eq_init h (Aux.plus time phase);
-        Aux.id_eq h (Aux.horizon
+        Aux.id_eq h (Aux.horizon_f
                        (Aux.ifthenelse (Aux.var z)
                           (Aux.plus (Aux.last_star h) period)
                           (Aux.last_star h)));

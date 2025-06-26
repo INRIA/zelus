@@ -527,7 +527,7 @@ and operator env op c_free ty e_list =
      Tcausal.skeleton_on_c c_res ty
   | Einitial, [] ->
      Tcausal.skeleton_on_c c_res ty
-  | (Edisc | Ehorizon), [e] ->
+  | (Edisc | Ehorizon _), [e] ->
      exp_less_than_on_c env c_free e c_res;
      Tcausal.skeleton_on_c c_res ty
   | Eperiod, [e1; e2] ->

@@ -212,6 +212,17 @@ module Make (Info: INFO) =
         fprintf ff "@[<v 0>(* %a *)@]"
           (Ident.Env.fprint_t Info.pienv) env
     
+    (* print a hidden environment *)
+    let print_hidden_env ff env =
+      if not (Ident.Env.is_empty env) then 
+        if !verbose then
+          fprintf ff "@[<v 0>(* %a *)@]"
+          (Ident.Env.fprint_t Info.pienv) env
+        else 
+          Pp_tools.print_list_r
+            (fun ff (x, _) -> Ident.fprint_t ff x) "(* {" "," "} *)" ff 
+            (Ident.Env.to_list env)
+
     let print_eq_info ff { eq_write } =
       print_writes ff eq_write
     
@@ -414,13 +425,12 @@ module Make (Info: INFO) =
         | Kconst -> "const" | Kstatic -> "static" | Kany -> "" in
       fprintf ff "@[<hov 2>%s %s %a %a@ %a@]"
         (kind f_kind) vkind arg_list f_args print_env f_env result f_body;
-      fprintf ff "@[<hov0>{%a}@]" print_env f_hidden_env
+      fprintf ff "@[<hov0>%a@]" print_hidden_env f_hidden_env
     
     and arg_list ff a_list =
       print_list_r arg "" "" "" ff a_list
     
     and arg ff a = fprintf ff "(%a)" (vardec_list expression) a
-    
     
     and operator ff op e_list =
       match op, e_list with
@@ -433,21 +443,23 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov2>(if@ %a then@ %a@ else@ %a)@]"
            expression e1 expression e2 expression e3
       | Eup { is_zero }, [e] ->
-         fprintf ff "@[up%s %a@]" (if is_zero then "z" else "b") expression e
-      | Einitial, [] -> fprintf ff "init" 
+         fprintf ff "@[up%s %a@]" (if is_zero then "" else "b") expression e
+      | Einitial, [] -> fprintf ff "init"  
       | Etest, [e] ->
          fprintf ff "@[? %a@]" expression e
       | Eatomic, [e] ->
          fprintf ff "@[<hov2>atomic@ %a@]" expression e
       | Eperiod, [e1; e2] ->
-         fprintf ff "@[<hov2>period@ %a(%a)@]" expression e1 expression e2
+         fprintf ff 
+           "@[<hov2>period@ %a(%a)@]" expression e1 expression e2
       | Eseq, [e1; e2] ->
          fprintf ff "@[<hov0>%a;@,%a@]" expression e1 expression e2
       | Erun(is_inline), [e1; e2] ->
          fprintf ff "@[<hov2>%srun@ %a@ %a@]"
            (if is_inline then "inline " else "") expression e1 expression e2
-      | Ehorizon, [e] ->
-         fprintf ff "@[<hov2>horizon@ %a@]" expression e
+      | Ehorizon { is_zero }, [e] ->
+         fprintf ff "@[<hov2>horizon%s@ %a@]" 
+           (if is_zero then "" else "f") expression e
       | Edisc, [e] ->
          fprintf ff "@[<hov2>disc@ %a@]" expression e
       | Earray(op), l ->

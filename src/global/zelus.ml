@@ -95,18 +95,20 @@ type operator =
   (* the argument is atomic - arity = 1 *)
   | Etest 
   (* testing the presence of a signal - arity = 1 *)
-  | Eup of { is_zero: bool} (* when [is_zero], [up: _ -> zero], [up: _ -> bool] otherwise *)
+  | Eup of is_zero (* when [is_zero], [up: _ -> zero], [up: _ -> bool] otherwise *)
   (* zero-crossing detection - arity = 1 *)
   | Eperiod 
   (* period - arity = 2 *)
-  | Ehorizon 
+  | Ehorizon of is_zero 
   (* generate an event at a given horizon - arity = 1 *)
-  | Einitial
+  | Einitial 
   (* true at the very first instant - arity = 0 *)
   | Edisc 
   (* generate an event whenever x <> last x outside of integration *)
   | Earray of array_operator
 
+and is_zero = { is_zero: bool}
+ 
 and array_operator =
   | Earray_list 
   (* [| e1;...;en |] *)

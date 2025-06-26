@@ -1153,13 +1153,14 @@ and operator expected_k h loc op e_list =
        | Eup { is_zero } ->
           Tnode(Tcont), [Initial.typ_float], 
           if is_zero then Initial.typ_zero else Initial.typ_bool
+       | Ehorizon { is_zero } ->
+          Tnode(Tcont), [Initial.typ_float], 
+          if is_zero then Initial.typ_zero else Initial.typ_float
        | Einitial ->
           Tnode(Tcont), [], Initial.typ_zero    
        | Eperiod ->
           Tfun(Tconst), [Initial.typ_float; Initial.typ_float],
           Types.zero_type expected_k
-       | Ehorizon ->
-          Tnode(Tcont), [Initial.typ_float], Initial.typ_zero
        | Earray _ -> assert false in
      less_than loc actual_k expected_k;
      let actual_k_list =

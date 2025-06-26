@@ -461,7 +461,7 @@ let rec expression env loop_path context { Zelus.e_desc } =
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
      let e = if !Misc.zsign then Aux.sgn e else e in 
      expression env loop_path context e
-  | Zelus.Eop(Zelus.Ehorizon, [e]) ->
+  | Zelus.Eop(Zelus.Ehorizon _, [e]) ->
      expression env loop_path context e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->
      let e1, context = expression env loop_path context e1 in
@@ -521,9 +521,10 @@ let rec expression env loop_path context { Zelus.e_desc } =
 	      apply k env loop_path context e_fun ne_list in
      e_fun, context
   | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = arg_list;
-		 Zelus.f_body = r; Zelus.f_env = f_env } ->
+		 Zelus.f_body = r; Zelus.f_env = f_env; Zelus.f_hidden_env } ->
      let ty = Typinfo.get_type r.r_info in
      let pat_list = List.map arg arg_list in
+     let f_env = Env.append f_hidden_env f_env in
      let env, mem_acc, var_acc = append empty_path f_env Env.empty in
      let e, context_body = result env r in
      let e, context_body =

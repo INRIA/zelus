@@ -270,14 +270,15 @@ let on_op e1 e2 = binop "on" e1 e2
 let min_op e1 e2 = binop "min" e1 e2
 let greater_or_equal e1 e2 = binop ">=" e1 e2
 let greater e1 e2 = binop ">" e1 e2
-let upz e = emake (Eop(Eup { is_zero = true }, [e]))
-let upb e = emake (Eop(Eup { is_zero = false }, [e]))
+let up e = emake (Eop(Eup { is_zero = true }, [e]))
+let up_b e = emake (Eop(Eup { is_zero = false }, [e]))
 let pre e = emake (Eop(Eunarypre, [e]))
 let minusgreater e1 e2 = emake (Eop(Eminusgreater, [e1;e2]))
 let fby e1 e2 = emake (Eop(Efby, [e1;e2]))
 let ifthenelse e1 e2 e3 =
   emake (Eop(Eifthenelse, [e1;e2;e3]))
-let horizon e = emake (Eop(Ehorizon, [e]))
+let horizon e = emake (Eop(Ehorizon { is_zero = true }, [e]))
+let horizon_f e = emake (Eop(Ehorizon { is_zero = false }, [e]))
 
 let sgn e =
   ifthenelse (greater e zero) one minus_one
