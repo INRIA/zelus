@@ -1,3 +1,8 @@
+let hybrid ball x = 1.0
+
+let hybrid double_ball() =
+  ball()
+
 (* let f_4 =
     hybrid  (major_6, time_7) 
        ->
@@ -13,20 +18,12 @@
 	 
 (* globally defined name *)
 
+(*
 let hybrid f() =
   let m = period(0.1|2.0) in
   m
 
-
-(*
 let g = 9.81
-
-let hybrid ball() =
-  let rec der y = y' init 10.0
-  and der y' = -. g init 0.0 reset z -> 0.8 *. last y'
-  and z = up(-. y) in
-  let o = present z -> 1.0 else 0.0 in
-  ()
 *)
 
 (*

@@ -65,11 +65,12 @@ type cstate =
     mutable zmax : int; (* the maximum number of zero-crossings *)
     mutable horizon : float; (* the next horizon *)
     mutable major : bool; (* integration iff [major = false] *)
+    mutable time : float; (* current time *)
   }
 
 (* A hybrid node is a node that is parameterised by a continuous state *)
 (* all instances points to this global parameter and read/write on it *)
-type ('a, 'b) hnode = cstate -> (time * 'a, 'b) node
+type ('a, 'b) hnode = cstate -> ('a, 'b) node
 
 type 'b hsimu =
     Hsim:
@@ -121,8 +122,7 @@ type ('a, 'b) hsnode =
       } -> ('a, 'b) hsnode
 
  (* An idea suggested by Adrien Guatto, 26/04/2021 *)
- (* provide a means to the type for input/outputs of nodes *)
- (* express them with GADT to ensure type safety *)
+ (* provide a way to give types for input/outputs of nodes *)
  (* type ('a, 'b) node =
   |  Fun : { step : 'a -> 'b;
              typ_arg: 'a typ;

@@ -125,7 +125,11 @@ let set_horizon cstate h =
 let set_major cstate m =
   Eassign_state(Eleft_state_name(m),
                 Erecord_access { arg = varmut cstate; label = Name "major" })
-	       
+
+let set_time cstate m =
+  Eassign_state(Eleft_state_name(m),
+                Erecord_access { arg = varmut cstate; label = Name "time" })
+
 (* [x := !x + 1] *)
 let incr_pos x = Eassign(Eleft_name x, Oaux.plus_opt (varmut x) one)
 let set_pos x e = Eassign(Eleft_name x, e)
@@ -226,32 +230,36 @@ let build_index m_list =
    *- ([m1]...[mk], [e1]...[en]) to every continuous state variable; 
    *- [ztable] do the same for zero-crossings
    *- the variable [h_opt] which defines the next horizon
-   *- the variable [major_opt] which is true in a discrete mode *)
+   *- the variable [major_opt] which is true in a discrete mode
+   *- the variable [time_opt] defines the current time *)
   let size s = Translate.exp_of_sizetype s in
-  let build (ctable, ztable, h_opt, major_opt)
+  let build ((ctable, ztable, h_opt, major_opt, time_opt) as acc)
 	    { m_typ = typ; m_name = n; m_kind = m; m_size = e_list } = 
     let add_opt v opt =
       match opt with
       | None -> Some(v)
       | Some(w) -> Misc.internal_error "Inout" Ident.fprint_t w in
     match m with
-    | None -> ctable, ztable, h_opt, major_opt
+    | None -> acc
     | Some(k) ->
        match k with
-       | Horizon -> ctable, ztable, add_opt n h_opt, major_opt
-       | Period | Encore | Time -> ctable, ztable, h_opt, major_opt
+       | Horizon -> ctable, ztable, add_opt n h_opt, major_opt, time_opt
+       | Major -> ctable, ztable, h_opt, add_opt n major_opt, time_opt
+       | Time ->
+          ctable, ztable, h_opt, major_opt, add_opt n time_opt
+       | Period | Encore -> acc
        | Zero ->
 	  let s_list = Types.sizes_per_dimension typ in
           ctable, Env.add n (List.map size s_list, e_list) ztable,
-	  h_opt, major_opt
+	  h_opt, major_opt, time_opt
        | Cont ->
 	  let s_list = Types.sizes_per_dimension typ in
-	  Env.add n (List.map size s_list, e_list) ctable, ztable,
-	  h_opt, major_opt
-       | Major -> ctable, ztable, h_opt, add_opt n major_opt in
-  let ctable, ztable, h_opt, major_opt =
-    List.fold_left build (Env.empty, Env.empty, None, None) m_list in
-  ctable, ztable, h_opt, major_opt
+	  let ctable = Env.add n (List.map size s_list, e_list) ctable in
+          ctable, ztable, h_opt, major_opt, time_opt in
+       
+  let ctable, ztable, h_opt, major_opt, time_opt =
+    List.fold_left build (Env.empty, Env.empty, None, None, None) m_list in
+  ctable, ztable, h_opt, major_opt, time_opt
 
 (* Compute the size of a table *)
 let size_of table =
@@ -339,6 +347,11 @@ let set_major cstate major_opt =
   match major_opt with
   | None -> Econst(Evoid) | Some(m) -> set_major cstate m
 
+(* If the current block contains a reference to time *)
+let set_time cstate time_opt =
+  match time_opt with
+  | None -> Econst(Evoid) | Some(m) -> set_time cstate m
+
 (* Translate a continuous-time machine *)
 let hybrid_machine 
     ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list;
@@ -363,7 +376,7 @@ let hybrid_machine
       find_step method_list in
     (* associate an integer index to every continuous state *)
     (* variable and zero-crossing *)
-    let ctable, ztable, h_opt, major_opt = build_index m_list in
+    let ctable, ztable, h_opt, major_opt, time_opt = build_index m_list in
 
     let csize = size_of ctable in
     let zsize = size_of ztable in
@@ -372,6 +385,7 @@ let hybrid_machine
     let z_is_not_zero = not (is_zero zsize) in
     let h_is_not_zero = not (h_opt = None) in
     let major_is_not_zero = not (major_opt = None) in
+    let time_is_not_zero = not (time_opt = None) in
     
     (* add initialization code to [e_opt] *)
     let i_opt =
@@ -411,6 +425,7 @@ let hybrid_machine
 		    [only c_is_not_zero (incr cstate "cindex" csize);
                      only z_is_not_zero (incr cstate "zindex" zsize);
 		     only major_is_not_zero (set_major cstate major_opt);
+		     only time_is_not_zero (set_time cstate time_opt);
 		     ifthenelse
                        (major cstate) (set_dvec_to_zero cstate c_start csize)
 		       (only c_is_not_zero (cin ctable cstate cpos));
