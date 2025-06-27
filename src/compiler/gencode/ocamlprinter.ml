@@ -416,7 +416,7 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
      fprintf ff
        "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
        k Printer.name i_name list_of_methods m_name_list
-       (exp 0) i_machine (print_list_r (exp 1) "" " " "") i_size
+       (exp 0) i_machine (print_list_r (exp 1) "" " " "") i_params
 
 (* Print a machine as pieces with a type definition for the state *)
 (* and a collection of functions *)
