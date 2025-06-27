@@ -1,4 +1,4 @@
-let hybrid ball x = 1.0
+let hybrid ball x = period(1.0|2.0)
 
 let hybrid double_ball() =
   ball()
