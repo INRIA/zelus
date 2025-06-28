@@ -70,7 +70,7 @@ let seq { mem = m1; init = i1; instances = j1; reset = r1 }
 
 let empty_path = []
 
-(** Look for an entry in the environment *)
+(* Look for an entry in the environment *)
 let entry_of n env =
   try
     Env.find n env
