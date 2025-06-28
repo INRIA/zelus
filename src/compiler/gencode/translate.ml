@@ -227,9 +227,9 @@ let choose env ty =
   let efalse = Econst(Ebool(false)) in
   let echar0 = Econst(Echar('a')) in
   (* on purpose, take an initial value different from zero *)
-  let ezero = Econst(Eint(42)) in
-  let efzero = Econst(Efloat(42.0)) in
-  let estring0 = Econst(Estring("aaaaaaa")) in
+  let ezero = Econst(Eint(-1)) in
+  let efzero = Econst(Efloat(-1.0)) in
+  let estring0 = Econst(Estring("")) in
   let evoid = Econst(Evoid) in
   let eany = Econst(Eany) in
   let vec e size = Evec { e; size } in
@@ -587,6 +587,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
   | Zelus.EQder { id; e; e_opt = None; handlers = [] } ->
      let e, context = expression env loop_path context e in
      der id (entry_of id env) e step, context
+  | Zelus.EQder _ -> assert false
   | Zelus.EQmatch { e; handlers } ->
      let e, context = expression env loop_path context e in
      let handlers, context =
@@ -619,6 +620,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
   | Zelus.EQempty -> step, context
   | Zelus.EQand { ordered = true; eq_list } ->
      equation_list env loop_path eq_list (step, context)
+  | Zelus.EQand _ -> assert false
   | Zelus.EQlocal(b) ->
      block env loop_path b (step, context)
   | Zelus.EQlet(l, eq_let) -> 
@@ -630,8 +632,7 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      let e_false, context =
        equation env loop_path eq_false (Oaux.void, context) in
      Oaux.seq (Oaux.ifthenelse e e_true e_false) step, context
-  | Zelus.EQand _  | Zelus.EQder _
-    | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
+  | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQassert(e) ->
      let e, context = expression env loop_path context e in
      Oaux.seq (Eassert(e)) step, context

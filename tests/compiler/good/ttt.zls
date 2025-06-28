@@ -1,7 +1,14 @@
-let hybrid ball x = period(1.0|2.0)
+let hybrid f x = period(1.0|2.0)
 
-let hybrid double_ball() =
-  ball()
+let hybrid g x = 
+  let rec der o = o +. 1.0 init 0.0 in
+  o, up(x +. 1.0)
+
+let hybrid ff() = f()
+
+(* horizon m = 2.0
+
+horizon m = 1.0 *)
 
 (* let f_4 =
     hybrid  (major_6, time_7) 
