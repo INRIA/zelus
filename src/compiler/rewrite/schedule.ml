@@ -85,6 +85,7 @@ let schedule eq =
          (fun ff index -> Format.fprintf ff "%d" index) "{" "," "}") n_list;
     raise Misc.Error  
 
+(* Only mutually recursive size function definitions are allowed *)
 let is_sizefun loc eq =
   try
     Typing.is_sizefun loc eq

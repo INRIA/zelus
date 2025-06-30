@@ -1,7 +1,12 @@
-let get<<n, k>>(x:[n]'a) =
-  match size k with
-  | 0 -> 42
-  | _ -> x.(k)
+let rec f<<n>>(x) =
+  match size n with
+  | 0 -> x
+  | _ -> x + f<<n-1>>(x)
+and g<<m>>(x) =
+  f<<m-1>>(x+1)
+  
+let main(x) = f<<4>>(x)
+
 
 (*
 let hybrid f x = period(1.0|2.0)
