@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -33,10 +33,11 @@ let _ = inlining_level := -100000
 
 (* the type of the accumulator *)
 type 'a acc =
-  { genv : 'a Genv.genv;
-    (* the global environment *)
+  { (* the global environment *)
+    genv : 'a Genv.genv;
+    (* the renaming environment; all names must be renamed to ensure *)
+    (* that the same name is never defined twice in a file *)
     renaming : Ident.t Env.t;
-    (* name to name environment *)
   }
 
 let empty = { genv = Genv.empty; renaming = Env.empty }
@@ -72,21 +73,14 @@ let build global_funs ({ renaming } as acc) env =
   let env, renaming = Env.fold buildrec env (Env.empty, renaming) in
   env, { acc with renaming }
 
-let intro_ident global_funs ({ renaming } as acc) n =
-  let m = Ident.fresh (Ident.source n) in
-  m, { acc with renaming = Env.add n m renaming }
-
 let var_ident global_funs ({ renaming } as acc) x =
-  try Env.find x renaming, acc with Not_found ->
-    Format.eprintf 
-      "Inline error: unbound local variable %s\n" (Ident.name x);
-    raise Error
+ Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc
 
 (* Main transformation *)
 (* [(\a1...an. e) e1 ... en] 
  *- rewrites to:
- *- [local a1',...,an' do a1' = e1 ... an' = en in e[ai\ai']]
- *- [(\(a1 ... an. v_ret eq) e1 ... en
+ *- [local a1',...,an' do a1' = e1 ... an' = en in r[ai\ai']]
+ *- [(\(a1 ... an returns p eq) e1 ... en
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
@@ -95,13 +89,16 @@ let local_in funs f_env f_args arg_list acc r =
   let arg acc v_list =
     Util.mapfold (Mapfold.vardec_it funs) acc v_list in
   (* build a renaming for arguments *)
-  let f_env, acc = build funs.global_funs acc f_env in
+  let f_env, acc = Mapfold.build_it funs.global_funs acc f_env in
   (* rename the list of arguments *)
   let f_args, acc = Util.mapfold arg acc f_args in  
+
   (* build a list of equations *)
   let eq_list = List.map2 Aux.eq_of_f_arg_arg_make f_args arg_list in
-  let vardec_list =
-    List.fold_left (fun acc vardec_list -> vardec_list @ acc) [] f_args in
+
+  (* flatten the list of arguments *)
+  let vardec_list = List.flatten f_args in
+
   let { r_desc } as r, acc = Mapfold.result_it funs acc r in
   match r_desc with
   | Exp(e_r) ->
@@ -114,7 +111,7 @@ let local_in funs f_env f_args arg_list acc r =
                Aux.returns_of_vardec_list_make b_vars)), acc
 
 (* Expressions *)
-let expression funs ({ genv } as acc) e = 
+let expression funs ({ genv; renaming } as acc) e = 
   let { e_desc } as e, acc = Mapfold.expression funs acc e in
   match e_desc with
   | Eapp { is_inline; f = { e_desc = Eglobal { lname } }; arg_list } ->
@@ -125,6 +122,8 @@ let expression funs ({ genv } as acc) e =
          local_in
            funs f_env f_args arg_list { acc with genv = c_genv } f_body
        with No_inline -> e, acc in
+     e, acc
+  | Eapp _ ->
      e, acc
   | _ -> e, acc
 
