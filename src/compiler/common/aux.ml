@@ -105,16 +105,29 @@ let eq_der id e =
   let w = { Defnames.empty with der = S.singleton id } in
   eqmake w (EQder { id; e; e_opt = None; handlers = [] })
 
-let eq_and eq1 eq2 =
+let eq_and ordered eq1 eq2 =
   let w = Defnames.union eq1.eq_write eq2.eq_write in
-  eqmake w (EQand { ordered = false; eq_list = [eq1; eq2] })
+  match eq1.eq_desc, eq2.eq_desc with
+  | (EQempty, _) -> eq2 | (_, EQempty) -> eq1
+  | EQand { ordered = ord1; eq_list = eq_list1 },
+    EQand { ordered = ord2; eq_list = eq_list2 }
+       when (ord1 = ord2) && (ord1 = ordered) ->
+     eqmake w (EQand { ordered = ord1; eq_list = eq_list1 @ eq_list2 })
+  | (EQand { ordered = ord; eq_list = eq_list1 }, _)
+       when ord = ordered ->
+     eqmake w (EQand { ordered = ord; eq_list = eq2 :: eq_list1 })
+  | _, EQand { ordered = ord; eq_list = eq_list2 }
+    when ord = ordered ->
+     eqmake w (EQand { ordered = ord; eq_list = eq1 :: eq_list2 })
+  | _ -> eqmake w (EQand { ordered = ordered; eq_list = [eq1; eq2] })
 
-let par ordered eq_list =
+let rec par ordered eq_list =
   match eq_list with
   | [] -> eqmake Defnames.empty EQempty
-  | [eq] -> eq
-  | _ -> eqmake (defnames eq_list) (EQand { ordered; eq_list })
+  | eq :: eq_list ->
+     eq_and ordered eq (par ordered eq_list)
 
+let eq_and eq1 eq2 = eq_and false eq1 eq2
 let seq eq_list = par true eq_list
 let par eq_list = par false eq_list
 
