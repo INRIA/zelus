@@ -1,3 +1,9 @@
+let get<<n, k>>(x:[n]'a) =
+  match size k with
+  | 0 -> 42
+  | _ -> x.(k)
+
+(*
 let hybrid f x = period(1.0|2.0)
 
 let hybrid g x = 
@@ -5,8 +11,9 @@ let hybrid g x =
   o, up(x +. 1.0)
 
 let hybrid ff() = f()
+*)
 
-(* horizon m = 2.0
+(* horizon m = 2.0 up x = ...
 
 horizon m = 1.0 *)
 

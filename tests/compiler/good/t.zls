@@ -130,9 +130,9 @@ let rec or_log<<n>>(x:[n]bool) returns (y)
 let or_n_42(x) = or_n<<42>>(x)
 
 let half_adder(a, b) returns (s, carry)
-  s = if a then not b else b
+  do s = if a then not b else b
   and
-  carry = a && b
+  carry = a && b done
 
 let xor(a, b) = if a then not b else b
 
