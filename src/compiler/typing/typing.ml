@@ -489,7 +489,8 @@ let eq_or_sizefun loc l_eq =
   | _ -> error loc (Esizefun_and_equations_are_mixed)
 
 let is_sizefun loc l_eq =
-  match eq_or_sizefun loc l_eq with | Either.Left _ -> false | Either.Right _ -> true
+  match eq_or_sizefun loc l_eq with 
+  | Either.Left _ -> false | Either.Right _ -> true
 
 (* Typing a pateq *)
 let pateq h { desc; loc } ty_e =

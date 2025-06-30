@@ -632,10 +632,10 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      let e_false, context =
        equation env loop_path eq_false (Oaux.void, context) in
      Oaux.seq (Oaux.ifthenelse e e_true e_false) step, context
-  | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQassert(e) ->
      let e, context = expression env loop_path context e in
      Oaux.seq (Eassert(e)) step, context
+  | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQsizefun _ -> Misc.not_yet_implemented "sizefun"
 

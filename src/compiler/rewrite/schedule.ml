@@ -77,26 +77,42 @@ let schedule eq =
   with
     Graph.Error(Cycle(n_list)) ->
     Format.eprintf 
-      "@[Scheduling: unexpected cycle (equations cannot be scheduled)@]@.";
+      "@[Error in pass Schedule: \
+       equations cannot be scheduled (unexpected cycle)@]@.";
     Format.eprintf "@[%a@]" Dependences.print g;
     Format.eprintf "@[Cycle: %a@.@]"
       (Pp_tools.print_list_r
          (fun ff index -> Format.fprintf ff "%d" index) "{" "," "}") n_list;
     raise Misc.Error  
 
+let is_sizefun loc eq =
+  try
+    Typing.is_sizefun loc eq
+  with
+    Typerrors.Error _ ->
+    Format.eprintf
+      "@[Error in pass Schedule: \
+       is_sizefun (equations and size functions are mixed)@]@.";
+    Format.eprintf "@[%a\n@]" Printer.equation eq; 
+    raise Misc.Error
+
+
 let leq_t funs acc leq =
-  let { l_eq } as leq, acc = Mapfold.leq_t funs acc leq in
-  let l_eq = Aux.seq (schedule l_eq) in
+  let { l_eq; l_loc } as leq, acc = Mapfold.leq_t funs acc leq in
+  let l_eq = if is_sizefun l_loc l_eq then l_eq
+             else Aux.seq (schedule l_eq) in
   { leq with l_eq }, acc
 
 let block funs acc b =
-  let { b_body } as b, acc = Mapfold.block funs acc b in
-  let b_body = Aux.seq (schedule b_body) in
+  let { b_body; b_loc } as b, acc = Mapfold.block funs acc b in
+  let b_body = if is_sizefun b_loc b_body then b_body
+               else Aux.seq (schedule b_body) in
   { b with b_body }, acc
 
 let match_handler_eq funs acc m =
-  let { m_body } as m, acc = Mapfold.match_handler_eq funs acc m in
-  let m_body = Aux.seq (schedule m_body) in
+  let { m_body; m_loc } as m, acc = Mapfold.match_handler_eq funs acc m in
+  let m_body = if is_sizefun m_loc m_body then m_body 
+               else Aux.seq (schedule m_body) in
   { m with m_body }, acc
 
 let program genv0 p =

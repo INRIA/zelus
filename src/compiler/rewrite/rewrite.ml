@@ -64,9 +64,6 @@ let default_list =
    "default",
    "Propagate default/initialisation into equations. See below:", nothing,
    Default.program;
-   "shared",
-   "Normalise equations to shared variables in [x = ...]. See below:", nothing,
-   Shared.program;
    "period", "Translation of periods done. See below:", nothing,
    Period.program;
    "encore", "Add an extra step for zero-crossings on a weak transitions 
@@ -80,6 +77,9 @@ let default_list =
    Pre.program;
    "init", "Compilation of initializations. See below:", nothing,
    Init.program;
+   "setsharedvariable",
+   "Normalise equations to shared variables in [x = ...]. See below:", nothing,
+   Shared.program;
    "letin", "Un-nest let/in and blocks. See below:", nothing,
    Letin.program;
    (* Warning: this step does not work for the moment. The renaming *)
@@ -90,8 +90,12 @@ let default_list =
        Aform.program; *)
    ] @ optim_list @ [
    "schedule", "Static scheduling. See below:", nothing, Schedule.program;
-    "typing", "New typing step: See below:", nothing,
-   type_check]
+    "typing", "New typing step: See below:", nothing, type_check;
+    "set_sorts",
+   "Set the sort for variables in the environment (value/shared/state variable). 
+   See below:", nothing,
+   Set_sorts.program;
+   ]
 
 let number_of_passes = List.length default_list + List.length optim_list 
 
@@ -110,7 +114,7 @@ let set_steps w =
     | "auto" | "present"
     | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 
     | "schedule" | "aform" | "deadcode" | "copy" | "exp2seq" | "default"
-    | "returns" ->
+    | "returns" | "set_sorts" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()
     | _ -> raise (Arg.Bad ("unknown pass " ^ s)) in

@@ -61,6 +61,14 @@ module Env =
           Format.fprintf ff "@[%a = %a,@]@ " M.fprint k fprint_v v) 
         env;
       Format.fprintf ff "}@]"
+
+    let find_stop_if_unbound message x env =
+      try
+        find x env
+      with | Not_found -> 
+              Format.eprintf "%s: unbound variable %s\n"
+                message (name x);
+              raise Misc.Error
   end
 
 module S = struct

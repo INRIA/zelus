@@ -188,6 +188,7 @@
     dependences ; data-dependences between equations
     control ; fusion of control dependences
     schedule ; static scheduling
+    set_sorts ; sets the sort for variables in the environment
     rewrite ; compose rewriting steps
   )
   (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib

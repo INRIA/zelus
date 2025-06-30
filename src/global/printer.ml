@@ -341,7 +341,7 @@ module Make (Info: INFO) =
       | Eapp { is_inline; f; arg_list } ->
          fprintf ff "@[(";
          let s = if is_inline then "inline " else "" in
-         fprintf ff "@[%s%a %a@]"
+         fprintf ff "@[<hov2>%s%a@ %a@]"
            s expression f (print_list_r expression "" "" "") arg_list;
          fprintf ff ")@]"
       | Esizeapp { f; size_list } ->

@@ -152,11 +152,15 @@ let init t_sort =
   | Sort_mem m -> Sort_mem { m with m_init = Eq }
   | Sort_val | Sort_var -> Sort_mem imem
 
-let cont t_sort =
-  match t_sort with
-  | Sort_mem m -> Sort_mem { m with m_mkind = Some(Cont) }
-  | Sort_val | Sort_var -> Sort_mem { empty_mem with m_mkind = Some(Cont) }
+let sort_mem mkind t_sort =
+ let m = match t_sort with | Sort_mem m -> m | Sort_val | Sort_var -> empty_mem in
+ Sort_mem { m with m_mkind = Some(mkind) }
  
+let is_val = function | Sort_val -> true | _ -> false
+
+let cont t_sort = sort_mem Cont t_sort
+let zero t_sort = sort_mem Zero t_sort
+let horizon t_sort = sort_mem Horizon t_sort
 
 let desc ty = ty.t_desc
 let index ty = ty.t_index
