@@ -667,7 +667,7 @@ and expression funs acc ({ e_desc; e_loc } as e) =
   | Esizeapp { f; size_list } -> 
      let size_list, acc = 
        Util.mapfold (size_it funs.global_funs) acc size_list in
-     let v, acc = expression_it funs acc f in
+     let f, acc = expression_it funs acc f in
      { e with e_desc = Esizeapp { f; size_list } }, acc
   | Efun f ->
      let f, acc = funexp_it funs acc f in
