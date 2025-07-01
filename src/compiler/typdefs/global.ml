@@ -44,6 +44,34 @@ and value =
   (* a closure: the function body; the environment of values *)
   | Vabstract of Lident.qualident (* no implementation is given *)
 
+(* functional value *)
+                   (*
+                     and 'a fvalue =
+  | Vclosure of ('info, 'ienv) closure
+  (* function parameterized by sizes *)
+  | Vsizefun of ('info, 'ienv) sizefun
+  (* a representation for mutually recursive functions over sizes *)
+  (* f where rec [f1<s,...> = e1 and ... fk<s,...> = ek] *)
+  | Vsizefix of 
+      { bound: int list option; (* the maximum number of iterations *)
+        name: Ident.t; (* name of the defined function *)
+        defs: ('info, 'ienv) sizefun Ident.Env.t;
+        (* the set of mutually recursive function definitions *) 
+      }
+
+and ('info, 'ienv) sizefun = 
+  { s_params: Ident.t list; 
+    s_body: ('info, 'ienv) Zelus.exp; 
+    s_genv: ('info, 'ienv) pvalue Genv.genv; 
+    s_env: ('info, 'ienv) pvalue star ientry Ident.Env.t }
+                                   
+(* a functional value - [fun|node] x1 ... xn -> e *)
+and ('info, 'ienv) closure =
+  { c_funexp : ('info, 'ienv) Zelus.funexp;
+    c_genv: ('info, 'ienv) pvalue Genv.genv;
+    c_env: ('info, 'ienv) pvalue star ientry Ident.Env.t }
+                    *)
+
 (* Value constructors *)
 type constr_desc =
   { constr_arg: Deftypes.typ list;

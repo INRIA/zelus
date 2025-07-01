@@ -196,6 +196,9 @@ and exp prio ff e =
   | Eapp { f; arg_list } ->
       fprintf ff "@[<hov2>%a %a@]"
         (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""") arg_list
+  | Esizeapp { f; size_list } ->
+      fprintf ff "@[<hov2>%a %a@]"
+        (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""") size_list
   | Emethodcall m -> method_call ff m
   | Erecord(label_e_list) ->
      print_list_r
@@ -225,6 +228,10 @@ and exp prio ff e =
      fprintf ff
        "@[<v 0>let %a in@ %a@]"
         (print_list_r print_instance "" "and" "") i_list (exp 0) e
+  | Eletsizefun(is_rec, sizefun_list, e) ->
+     fprintf ff
+       "@[<v 0>let %s%a in@ %a@]" (if is_rec then "rec " else "")
+       (print_list_r sizefun "" "" "") sizefun_list (exp 0) e
   | Ematch(e, match_handler_l) ->
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
@@ -293,6 +300,12 @@ and exp prio ff e =
        (Oprinter.pattern_list ptype) pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
+
+and sizefun ff { sf_id; sf_id_list; sf_e } =
+  (* [id<<...>> = e] *)
+  fprintf ff
+    "@[%a%a =@ %a@]" Printer.name sf_id
+    (print_list_r Printer.name "<<" "," ">>") sf_id_list (exp 0) sf_e
 
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" (Oprinter.pattern ptype) p (exp 0) e
@@ -468,6 +481,8 @@ let def_types acc impl =
        List.fold_left def_types acc arg_list
     | Eapp { f; arg_list } ->
        List.fold_left def_types (def_types acc f) arg_list
+    | Esizeapp { f; size_list } ->
+       List.fold_left def_types (def_types acc f) size_list
     | Erecord(label_e_list) ->
        List.fold_left (fun acc { arg } -> def_types acc arg) acc label_e_list
     | Erecord_access { arg } -> def_types acc arg
@@ -480,6 +495,9 @@ let def_types acc impl =
        def_types (def_types (def_types acc e) e1) e2
     | Elet(_, e1, e2) -> def_types (def_types acc e1) e2
     | Eletvar { e } | Eletmem(_, e) | Eletinstance(_, e) -> def_types acc e
+    | Eletsizefun(_, sizefun_list, e) ->
+       let sizefun acc { sf_e } = def_types acc e in
+       def_types (List.fold_left sizefun acc sizefun_list) e
     | Ematch(e, m_h) ->
        List.fold_left (fun acc { m_body } -> def_types acc m_body) acc m_h
     | Efor { left; right; e } | Eupdate { e; index = left; arg = right }

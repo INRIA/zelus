@@ -33,10 +33,10 @@ let priority_exp = function
     | Estate _ | Eget _ | Eupdate _ | Eslice _
     | Econcat _ | Evec _ | Erecord _ | Erecord_access _ | Erecord_with _
   | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
-  | Econstr1 _ | Eapp _ | Emethodcall _ | Eassert _ -> 2
+  | Econstr1 _ | Eapp _ | Esizeapp _ | Emethodcall _ | Eassert _ -> 2
   | Eassign _ | Eassign_state _  -> 1
   | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Eletmem _ | Eletinstance _
-    | Esequence _ -> 0
+    | Eletsizefun _ | Esequence _ -> 0
   | Efun _ | Emachine _ -> 0
 
 let p_internal_type ff ty = Ptypes.output_type ff ty
@@ -175,6 +175,10 @@ and exp prio ff e =
      fprintf ff "@[<hov2>%a %a@]"
        (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""")
        arg_list
+  | Esizeapp { f; size_list } ->
+     fprintf ff "@[<hov2>%a<<%a>>@]"
+       (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) "" "," "")
+       size_list
   | Emethodcall m -> method_call ff m
   | Erecord(label_e_list) ->
      print_list_r
@@ -204,6 +208,11 @@ and exp prio ff e =
      fprintf ff "@[<v 0>let @[<v 2>instances@,@[%a@]@] in@ %a@]"
        (print_list_r instance "" ";" "") i_list
        (exp 0) e
+  | Eletsizefun(is_rec, sizefun_list, e) ->
+     fprintf ff "@[<v0>let %s%a in@ %a@]"
+       (if is_rec then "rec " else "")
+       (print_list_r sizefun "" "and" "") sizefun_list
+        (exp 0) e
   | Ematch(e, match_handler_l) ->
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
@@ -241,9 +250,16 @@ and exp prio ff e =
   | Emachine(ma) -> machine ff ma
   | Efun { pat_list; e } ->
      fprintf ff
-       "@[<hov2>(fun@ %a ->@ %a)@]" (pattern_list Printer.ptype) pat_list (exp 0) e
+       "@[<hov2>(fun@ %a ->@ %a)@]"
+       (pattern_list Printer.ptype) pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
+
+and sizefun ff { sf_id; sf_id_list; sf_e } =
+  (* [id<<...>> = e] *)
+  fprintf ff
+    "@[%a%a =@ %a@]" var sf_id
+    (print_list_r var "<<" "," ">>") sf_id_list (exp 0) sf_e
 
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" (pattern Printer.ptype) p (exp 0) e

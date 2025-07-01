@@ -83,17 +83,20 @@ and exp =
   (* [let mem m1...mk in e] *)
   | Eletinstance of ientry list * exp 
   (* [let instances i1...ik in e] *)
+  | Eletsizefun of is_rec * sizefun list * exp
+  (* [let [rec] f<<n,...>> = e and ... in e] *)
   | Eassign of left_value * exp (* [x.v <- ...] *)
   | Eassign_state of left_state_value * exp (* [x.v <- ...] *)
   | Esequence of exp list
   | Eapp of { f: exp; arg_list: exp list }
+  | Esizeapp of { f: exp; size_list: exp list }
   | Emethodcall of methodcall
   | Etypeconstraint of exp * Zelus.type_expression
   | Efor of { index: Ident.t; dir: bool; left: exp; right: exp; e: exp }
   | Ewhile of { cond: exp; e: exp }
   | Eassert of exp
   | Emachine of machine
-  | Efun of { pat_list: pattern list; e: exp }
+  | Efun of funexp
   (* array operations *)
   | Eget of { e: exp; index: exp } (* access in an array *)
   | Eupdate of { e: exp; size: exp; index: exp; arg: exp }
@@ -110,6 +113,11 @@ and exp =
 (* x <- ... and ...x... are valid expression; otherwise a ref will be *)
 (* added when translated into OCaml **)
 and is_mutable = bool
+
+and is_rec = bool
+
+and sizefun = { sf_id: Ident.t; sf_id_list: Ident.t list; sf_e: exp }
+and funexp = { pat_list: pattern list; e: exp }
 
 and left_value = 
   | Eleft_name of Ident.t
