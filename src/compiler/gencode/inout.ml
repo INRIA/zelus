@@ -516,6 +516,12 @@ let rec exp e = match e with
      Econcat { left = exp left; left_size = exp left_size;
                right = exp right; right_size = exp right_size }
   | Evec { e; size } -> Evec { e = exp e; size = exp size }
+  | Eletsizefun(is_rec, sizefun_list, e) ->
+     Eletsizefun(is_rec, List.map sizefun sizefun_list, exp e)
+  | Esizeapp { f; size_list } ->
+     Esizeapp { f = exp f; size_list = List.map exp size_list }
+
+and sizefun ({ sf_e } as f) = { f with sf_e = exp sf_e }
 
 (* The main entry. Add new methods to copy the continuous state vector *)
 (* back and forth into the internal state *)

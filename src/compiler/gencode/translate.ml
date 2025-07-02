@@ -637,7 +637,14 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
      Oaux.seq (Eassert(e)) step, context
   | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
-  | Zelus.EQsizefun _ -> Misc.not_yet_implemented "sizefun"
+  | Zelus.EQsizefun _ -> assert false
+  
+and sizefun_list env s_list =
+  List.map (sizefun env) s_list
+
+and sizefun env { Zelus.sf_id; Zelus.sf_id_list; Zelus.sf_e } =
+  let sf_e, context = expression env empty_path empty_context sf_e in
+  { sf_id; sf_id_list; sf_e }
 
 and equation_list env loop_path eq_list (step, context) =
   List.fold_right
@@ -645,13 +652,6 @@ and equation_list env loop_path eq_list (step, context) =
       equation env loop_path eq (step, context)
     ) eq_list
     (step, context)
-
-and letin env loop_path { Zelus.l_eq = l_eq; Zelus.l_env = l_env } e =
-  let env, mem_acc, var_acc = append loop_path l_env env in
-  let e, context = expression env loop_path empty_context e in
-  let e, context =
-    equation env loop_path l_eq (e, context) in
-  add_mem_vars_to_context mem_acc var_acc (e, context)
 
 and leq_in_eq env loop_path { Zelus.l_eq; Zelus.l_env } eq_let (step, context) =
   let env, mem_acc, var_acc = append loop_path l_env env in
