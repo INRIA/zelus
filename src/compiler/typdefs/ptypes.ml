@@ -259,10 +259,11 @@ let output_tentry ff { t_path; t_sort; t_tys } =
   let sort ff t_sort = match t_sort with
     | Sort_val -> fprintf ff "val/"
     | Sort_var -> fprintf ff "var/"
-    | Sort_mem { m_mkind = mk; m_last; m_init; m_default } ->
-       fprintf ff "@[<hov2>%s%s%s%s@]"
+    | Sort_mem { m_mkind = mk; m_last; m_init; m_default; m_shared } ->
+       fprintf ff "@[<hov2>%s%s%s%s%s@]"
          ((match mk with | None -> "mem" | Some(mk) -> mkind mk) ^ "/")
          (if m_last then "last/" else "")
+         (if m_shared then "shared/" else "")
          (init "init" m_init)
          (init "default" m_default) in
   fprintf ff "@[<hov2>%a/%a%a@]"

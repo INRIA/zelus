@@ -198,7 +198,7 @@ and exp prio ff e =
         (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""") arg_list
   | Esizeapp { f; size_list } ->
       fprintf ff "@[<hov2>%a %a@]"
-        (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""") size_list
+        (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) "" " " "") size_list
   | Emethodcall m -> method_call ff m
   | Erecord(label_e_list) ->
      print_list_r
@@ -223,15 +223,15 @@ and exp prio ff e =
      letvar ff id is_mutable ty e_opt e
   | Eletmem(m_list, e) ->
      fprintf ff "@[<v 0>let %a in@ %a@]"
-       (print_list_r print_memory "" "and" "") m_list (exp 0) e
+       (print_list_l print_memory "" "and " "") m_list (exp 0) e
   | Eletinstance(i_list, e) ->
      fprintf ff
        "@[<v 0>let %a in@ %a@]"
-        (print_list_r print_instance "" "and" "") i_list (exp 0) e
+        (print_list_l print_instance "" "and " "") i_list (exp 0) e
   | Eletsizefun(is_rec, sizefun_list, e) ->
      fprintf ff
        "@[<v 0>let %s%a in@ %a@]" (if is_rec then "rec " else "")
-       (print_list_r sizefun "" "" "") sizefun_list (exp 0) e
+       (print_list_l sizefun "" "and " "") sizefun_list (exp 0) e
   | Ematch(e, match_handler_l) ->
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
@@ -302,10 +302,10 @@ and exp prio ff e =
   if prio_e < prio then fprintf ff ")"
 
 and sizefun ff { sf_id; sf_id_list; sf_e } =
-  (* [id<<...>> = e] *)
+  (* [id ... = e] *)
   fprintf ff
-    "@[%a%a =@ %a@]" Printer.name sf_id
-    (print_list_r Printer.name "<<" "," ">>") sf_id_list (exp 0) sf_e
+    "@[%a %a =@ %a@]" Printer.name sf_id
+    (print_list_r Printer.name "" " " "") sf_id_list (exp 0) sf_e
 
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" (Oprinter.pattern ptype) p (exp 0) e

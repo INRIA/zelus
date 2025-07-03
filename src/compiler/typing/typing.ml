@@ -279,7 +279,7 @@ let init loc h n =
     | Sort_mem { m_init = Decl _ } ->
        (* it is already initialized at declaration point *)
        error loc (Ealready(Initial, n))
-    | _ -> Deftypes.init t_sort in
+    | _ -> Deftypes.init_in_eq t_sort in
   entry.t_sort <- t_sort;
   Types.instance t_tys
 

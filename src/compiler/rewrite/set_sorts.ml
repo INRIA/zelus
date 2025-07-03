@@ -29,14 +29,14 @@ let set_sort mkind x acc =
 let set_init x acc =
   let { t_sort } as tentry = 
     Env.find_stop_if_unbound "Error in pass Set_sorts" x acc in
-  tentry.t_sort <- Deftypes.init t_sort
+  tentry.t_sort <- Deftypes.init_in_eq t_sort
 
 let set_shared_variables acc names =
   S.iter
     (fun x -> 
       let { t_sort } as tentry = 
         Env.find_stop_if_unbound "Error in pass Set_sorts" x acc in
-      if is_val t_sort then tentry.t_sort <- Sort_var) names
+      if Deftypes.is_val t_sort then tentry.t_sort <- Deftypes.Sort_var) names
 
 let build global_funs acc p_env =
   let acc = Env.append p_env acc in p_env, acc
@@ -47,19 +47,20 @@ let equation funs acc eq =
   match eq_desc with
   (* [x = up(e)] *)
   | EQeq({ pat_desc = Evarpat(x) }, { e_desc = Eop(Eup _, _) }) ->
-     set_sort Zero x acc;
+     set_sort Deftypes.Zero x acc;
      eq, acc
   (* [x = horizon(e)] *)
   | EQeq({ pat_desc = Evarpat(x) }, { e_desc = Eop(Ehorizon _, _) }) ->
-     set_sort Horizon x acc;
+     set_sort Deftypes.Horizon x acc;
      eq, acc
   (* [init x = e] *)
   | EQinit(x, e) -> set_init x acc; eq, acc
   (* [der x = e] *)
-  | EQder { id } -> set_sort Cont id acc; eq, acc
+  | EQder { id } -> set_sort Deftypes.Cont id acc; eq, acc
   | EQif _ | EQmatch _ ->
      (* variables in [eq_write] are shared *)
-     set_shared_variables acc (Defnames.names S.empty eq_write);
+     let w_names = (Defnames.names S.empty eq_write) in
+     set_shared_variables acc w_names;
      eq, acc
   | _ -> eq, acc
 

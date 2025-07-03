@@ -205,7 +205,7 @@ let out_of n env =
      Misc.internal_error "Translate: out_of" Printer.name n
   | Out(x, sort) -> x, ty, sort, ix_list
 
-(* Translate size expressions *)
+(* Translate the size type expression *)
 let rec exp_of_sizetype si =
   let open Defsizes in
   match si with
@@ -220,6 +220,21 @@ let rec exp_of_sizetype si =
      | Splus -> Oaux.plus e1 e2
      | Sminus -> Oaux.minus e1 e2
      | Smult -> Oaux.mult e1 e2
+
+(* translate a size expression *)
+let rec size env { Zelus.desc; Zelus.loc } =
+  match desc with
+  | Zelus.Size_int(i) -> Oaux.int_const i
+  | Zelus.Size_var(n) -> var (entry_of n env)
+  | Zelus.Size_frac { num; denom } ->
+     Oaux.div (size env num) (Oaux.int_const denom)
+  | Zelus.Size_op(op, s1, s2) ->
+     let e1 = size env s1 in
+     let e2 = size env s2 in
+     match op with
+     | Zelus.Size_plus -> Oaux.plus e1 e2
+     | Zelus.Size_minus -> Oaux.minus e1 e2
+     | Zelus.Size_mult -> Oaux.mult e1 e2
 
 (* makes an initial value from a type. returns None when it fails *)
 let choose env ty =
@@ -296,16 +311,20 @@ let default env ty v_opt =
 (* The access to a state variable [x] is turned into the access on an *)
 (* array access x.(i1)...(in) if loop_path = [i1;...;in] *)
 let append loop_path l_env env =
+  (* according to the sort of [id], it is represented as a state variable *)
+  (* (an access of the form self.id), a shared variable (a reference), *)
+  (* or a local variable (defined by a let/in) *)
   (* add a memory variable for every state variable in [l_env] *)
   (* and a [letvar] declaration for every shared variable *)
   let addrec n { t_sort; t_tys = { typ_body } } (env_acc, mem_acc, var_acc) =
     match t_sort with
-      | Sort_val | Sort_mem { m_mkind = None; m_last = false; m_init = No } ->
-	 (* if [n] is a memory but no [last] nor [init] is defined *)
-         (* it is treated as a local variable *)
-         Env.add n { e_typ = typ_body; e_sort = Out(n, Sort_val); e_size = [] }
-           env_acc,
-	 mem_acc, var_acc
+    | Sort_val | Sort_mem { m_mkind = None; m_last = false;
+                            m_init = No; m_shared = false } ->
+       (* if [n] is a memory but no [last] nor [init] is defined *)
+       (* it is treated as a local variable *)
+       Env.add n { e_typ = typ_body; e_sort = Out(n, Sort_val); e_size = [] }
+         env_acc,
+       mem_acc, var_acc
       | Sort_var ->
 	 Env.add n { e_typ = typ_body; e_sort = Out(n, Sort_var); e_size = [] }
            env_acc,
@@ -351,6 +370,7 @@ let apply k env loop_path context e e_list =
      step,
      { context with instances = Parseq.cons j_context context.instances;
                  reset = Oaux.seq reset_context context.reset }
+
 
 (* Define a function or a machine according to a kind [k] *)
 let machine f k pat_list { mem; instances; reset } e ty_res =
@@ -520,12 +540,17 @@ let rec expression env loop_path context { Zelus.e_desc } =
        | _ -> let k = Types.kind_of_funtype ty_res in
 	      apply k env loop_path context e_fun ne_list in
      e_fun, context
+  | Zelus.Esizeapp { f; size_list } ->
+     (* for the moment only combinatorial size functions are treated *)
+     let f, context = expression env loop_path context f in
+     let size_list = List.map (size env) size_list in
+     Esizeapp { f; size_list }, context
   | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = arg_list;
 		 Zelus.f_body = r; Zelus.f_env = f_env; Zelus.f_hidden_env } ->
      let ty = Typinfo.get_type r.r_info in
      let pat_list = List.map arg arg_list in
      let f_env = Env.append f_hidden_env f_env in
-     let env, mem_acc, var_acc = append empty_path f_env Env.empty in
+     let env, mem_acc, var_acc = append empty_path f_env env in
      let e, context_body = result env r in
      let e, context_body =
        add_mem_vars_to_context mem_acc var_acc (e, context_body) in
@@ -537,7 +562,6 @@ let rec expression env loop_path context { Zelus.e_desc } =
      (* execute the initialization context when [r_e] is true *)
      Oaux.seq (ifthen r_e init) e,
      seq context context_e    
-  | Esizeapp _ -> Misc.not_yet_implemented "sizeapp"
   | Eforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.Eassert(e) ->
      let e, context = expression env loop_path context e in
@@ -573,9 +597,8 @@ and result env { Zelus.r_desc } =
 
 (* Translation of equations. They are traversed in reverse order *)
 (* from the last one to the first one *)
-(* [step,context] is the already generated context. The generated *)
-(* context for [eq] is *)
-(* executed before [step] *)
+(* [step,context] is the already generated context. The computations in *)
+(* [context] are executed before [step] *)
 and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
   match desc with
   | Zelus.EQeq({ Zelus.pat_desc = Zelus.Evarpat(n) }, e) ->
@@ -639,13 +662,17 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, context) =
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQsizefun _ -> assert false
   
-and sizefun_list env s_list =
-  List.map (sizefun env) s_list
+and sizefun_list env is_rec s_list (step, context) =
+  let sizefun env { Zelus.sf_id; Zelus.sf_id_list; Zelus.sf_e; sf_env } =
+    let env, _, _ = append empty_path sf_env env in
+     let sf_e, context = expression env empty_path empty_context sf_e in
+    { sf_id; sf_id_list; sf_e } in
+  let s_list = List.map (sizefun env) s_list in
+  Eletsizefun(is_rec, s_list, step), context
 
-and sizefun env { Zelus.sf_id; Zelus.sf_id_list; Zelus.sf_e } =
-  let sf_e, context = expression env empty_path empty_context sf_e in
-  { sf_id; sf_id_list; sf_e }
-
+(* translate a list of equations [eq_list]; done from the last equation *)
+(* to the first, that is *)
+(* [equation_list [eq1;...;eqn] = equation eq1 (equation_list [eq2;...;eqn]) *)
 and equation_list env loop_path eq_list (step, context) =
   List.fold_right
     (fun eq (step, context) ->
@@ -653,18 +680,32 @@ and equation_list env loop_path eq_list (step, context) =
     ) eq_list
     (step, context)
 
-and leq_in_eq env loop_path { Zelus.l_eq; Zelus.l_env } eq_let (step, context) =
+and leq_in_eq env loop_path
+  { Zelus.l_rec; Zelus.l_eq; Zelus.l_env; Zelus.l_loc } eq_let (step, context) =
   let env, mem_acc, var_acc = append loop_path l_env env in
   let e, context = equation env loop_path eq_let (step, context) in
   let e, context =
-    equation env loop_path l_eq (e, context) in
+    match Typing.eq_or_sizefun l_loc l_eq with
+    | Left(eq_list) ->
+    (* mutually recursive definition of streams *)
+       equation_list env loop_path eq_list (e, context)
+    | Right(s_list) ->
+       (* mutually recursive definition of size functions *)
+       sizefun_list env l_rec s_list (e, context) in
   add_mem_vars_to_context mem_acc var_acc (e, context)
 
-and leq_in_e env loop_path { Zelus.l_eq; Zelus.l_env } context e =
+and leq_in_e env loop_path
+  { Zelus.l_rec; Zelus.l_eq; Zelus.l_env; Zelus.l_loc } context e =
   let env, mem_acc, var_acc = append loop_path l_env env in
   let e, context = expression env loop_path context e in
   let e, context =
-    equation env loop_path l_eq (e, context) in
+    match Typing.eq_or_sizefun l_loc l_eq with
+    | Left(eq_list) ->
+    (* mutually recursive definition of streams *)
+       equation_list env loop_path eq_list (e, context)
+    | Right(s_list) ->
+       (* mutually recursive definition of size functions *)
+       sizefun_list env l_rec s_list (e, context) in
   add_mem_vars_to_context mem_acc var_acc (e, context)
 
 and block env loop_path { Zelus.b_body; Zelus.b_env } (step, context) =

@@ -30,8 +30,7 @@ let union def1 def2 = Defnames.union def1 def2
 
 (* add two sets of names provided they are distinct *)
 let add loc 
-	{ dv = dv1; di = di1; der = der1 }
-        { dv = dv2; di = di2; der = der2 } =
+	{ dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
   let add k set1 set2 =
     S.fold 
       (fun elt set -> 
@@ -42,10 +41,10 @@ let add loc
 
 (* checks that every partial name defined at this level *)
 (* has a last value or a default value *)
-let all_last loc h set =
-  let check elt =
+let all_vars_have_a_last_or_default_value loc h set =
+  let check id =
     let ({ t_sort; t_tys } as tentry) =
-      try Env.find elt h with | Not_found -> assert false in
+      try Env.find id h with | Not_found -> assert false in
     let t_typ = Types.instance t_tys in
     match t_sort with
     | Sort_mem ({ m_init = Eq | Decl _ } | { m_default = Eq | Decl _ }) -> ()
@@ -53,8 +52,19 @@ let all_last loc h set =
        try
 	 ignore (Types.filter_signal t_typ);
 	 tentry.t_sort <- Sort_var
-       with Types.Unify -> error loc (Eshould_be_a_signal(elt, t_typ)) in
+       with Types.Unify -> error loc (Eshould_be_a_signal(id, t_typ)) in
   S.iter check set
+
+(* variables in [set] are shared *)
+let all_vars_are_shared h set =
+  let shared id =
+    let ({ t_sort; t_tys } as tentry) =
+      try Env.find id h with | Not_found -> assert false in
+    match t_sort with
+    | Sort_mem m -> tentry.t_sort <- Sort_mem { m with m_shared = true }
+    | Sort_val -> tentry.t_sort <- Sort_var
+    | Sort_var -> () in
+  S.iter shared set
 
 (* [merge [set1;...;setn]] returns a set of names defined in every seti *)
 (* and the set of names only defined partially *)
@@ -91,7 +101,10 @@ let merge loc h defnames_list =
     merge_defnames_list defnames_list in
   (* every partial variable must be defined as a memory or declared with *)
   (* a default value *)
-  all_last loc h (S.diff dv_partial di_total);
+  all_vars_have_a_last_or_default_value loc h (S.diff dv_partial di_total);
+  (* all names are shared, a variable [x] is defined by case *)
+  List.iter (all_vars_are_shared h)
+    [dv_total; dv_partial; di_total; di_partial; der_total; der_partial];
   (* for initialized values, all branches must give a definition *)
   if not (S.is_empty di_partial) 
   then error loc (Einit_undefined(S.choose(di_partial)));
