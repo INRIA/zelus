@@ -92,6 +92,7 @@ and mem =
     m_last: bool; (* [last x] is used *)
     m_init: init; (* is-it initialized? *)
     m_default: init; (* default value *)
+    m_shared: bool; (* [x] can be defined by more than one equations *)
   }
 
 and init =
@@ -127,7 +128,9 @@ let scheme ty = { typ_vars = []; typ_body = ty }
 let no_abbrev () = ref Tnil
 
 (* basic entries for variables *)
-let empty_mem = { m_mkind = None; m_last = false; m_init = No; m_default = No }
+let empty_mem =
+  { m_mkind = None; m_last = false; m_init = No; m_default = No;
+    m_shared = false }
 let initialized mem = { mem with m_init = Eq }
 let previous mem = { mem with m_last = true }
 let zero mem = Sort_mem { mem with m_mkind = Some Zero }
@@ -147,7 +150,7 @@ let last t_sort =
   | Sort_mem m -> Sort_mem { m with m_last = true }
   | Sort_val | Sort_var -> Sort_mem mem
 
-let init t_sort =
+let init_in_eq t_sort =
   match t_sort with
   | Sort_mem m -> Sort_mem { m with m_init = Eq }
   | Sort_val | Sort_var -> Sort_mem imem
