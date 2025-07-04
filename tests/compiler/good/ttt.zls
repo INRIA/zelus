@@ -1,13 +1,11 @@
-let rec f<<n>>(x) =
-  match size n with
-  | 0 -> x
-  | _ -> x + f<<n-1>>(x)
-and g<<m>>(x) =
-  f<<m-1>>(x+1)
+let node f(x) returns (o)
+  let rec cpt = 0 -> pre cpt + 1 in
+  do o = cpt done
+
+let node ff() =
+  print_int (f(f(0)));
+  print_newline ()
   
-let main(x) = f<<4>>(x)
-
-
 (*
 let hybrid f x = period(1.0|2.0)
 

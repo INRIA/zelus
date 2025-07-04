@@ -204,6 +204,11 @@ let e_letrec eq_list e = emake (Elet(leq eq_list, e))
 let opt_letdesc l_opt e =
   match l_opt with | None -> e.e_desc | Some(l) -> Elet(l, e)
 
+let let_eq_list_in_e eq_list e =
+  match eq_list with [] -> e | _ -> e_let (leq eq_list) e
+let let_eq_list_in_eq eq_list eq =
+  match eq_list with [] -> eq | _ -> eq_let (leq eq_list) eq
+
 let pat_of_vardec_make { var_name } = pat_make var_name
 
 let pat_of_vardec_list_make vardec_list =

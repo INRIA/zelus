@@ -77,7 +77,7 @@ let default_list =
    Pre.program;
    "init", "Compilation of initializations. See below:", nothing,
    Init.program;
-   "setsharedvariable",
+   "shared",
    "Normalise equations to shared variables in [x = ...]. See below:", nothing,
    Shared.program;
    "letin", "Un-nest let/in and blocks. See below:", nothing,
