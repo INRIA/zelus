@@ -19,7 +19,9 @@ open Obc
 open Format
 open Pp_tools
 module Printer = Printer.Make(Typinfo)
-                 
+
+let longname ln = Oprinter.longname ln
+
 (* Printing types. *)
 (* [t1 -D-> t2] is [(t1, t2) node] *)
 (* [t1 -C-> t2] is [(t1, t2) hnode] *)
@@ -51,10 +53,10 @@ let ptype ff typ_exp =
     | Etypeconstr(ln, ty_list) ->
        fprintf ff "@[<hov2>%a@]%a"
                (print_list_r_empty (ptype 2) "("","")") ty_list 
-               Printer.type_longname ln
+               longname ln
     | Etypevec(ty_arg, _) ->
        fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
-               Printer.longname (Lident.Modname Initial.array_ident)
+               longname (Lident.Modname Initial.array_ident)
     end;
     if prio_ty < prio then fprintf ff ")" in
   ptype 0 ff typ_exp
@@ -145,10 +147,10 @@ and left_state_value ff left =
   match left with
   | Eself -> fprintf ff "self."
   | Eleft_instance_name(n) -> fprintf ff "self.%a" Printer.name n
-  | Eleft_state_global(ln) -> Printer.longname ff ln
+  | Eleft_state_global(ln) -> longname ff ln
   | Eleft_state_name(n) -> fprintf ff "self.%a" Printer.name n
   | Eleft_state_record_access { label; arg } ->
-     fprintf ff "@[%a.%a@]" left_state_value arg Printer.longname label
+     fprintf ff "@[%a.%a@]" left_state_value arg longname label
   | Eleft_state_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
@@ -165,7 +167,7 @@ and assign ff left e =
 and assign_state ff left e =
   match left with
   | Eleft_state_global(gname) ->
-     fprintf ff "@[<v 2>%a := %a@]" Printer.longname gname (exp 2) e
+     fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
   | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
 and letvar ff n is_mutable ty e_opt e =
@@ -183,11 +185,11 @@ and exp prio ff e =
   if prio_e < prio then fprintf ff "(";
   begin match e with
   | Econst(i) -> immediate ff i
-  | Econstr0 { lname } -> Printer.longname ff lname
+  | Econstr0 { lname } -> longname ff lname
   | Econstr1 { lname; arg_list } ->
       fprintf ff "@[%a%a@]"
-        Printer.longname lname (print_list_r (exp prio_e) "("","")") arg_list
-  | Eglobal { lname } -> Printer.longname ff lname
+        longname lname (print_list_r (exp prio_e) "("","")") arg_list
+  | Eglobal { lname } -> longname ff lname
   | Evar { is_mutable; id } ->
      fprintf ff "@[%s%a@]" (if is_mutable then "!" else "") Printer.name id
   | Estate(l) -> left_state_value ff l
@@ -198,19 +200,20 @@ and exp prio ff e =
         (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""") arg_list
   | Esizeapp { f; size_list } ->
       fprintf ff "@[<hov2>%a %a@]"
-        (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) "" " " "") size_list
+        (exp (prio_e + 1)) f
+        (print_list_r (exp (prio_e + 1)) "" " " "") size_list
   | Emethodcall m -> method_call ff m
   | Erecord(label_e_list) ->
      print_list_r
-       (Oprinter.print_record Printer.longname
+       (Oprinter.print_record longname
           (exp 0) "" " =" "") "{" ";" "}" ff label_e_list
   | Erecord_access { label; arg } ->
-     fprintf ff "%a.%a" (exp prio_e) arg Printer.longname label
+     fprintf ff "%a.%a" (exp prio_e) arg longname label
   | Erecord_with(e_record, label_e_list) ->
      fprintf ff "@[{ %a with %a }@]"
        (exp prio_e) e_record
        (print_list_r
-          (Oprinter.print_record Printer.longname (exp 0)
+          (Oprinter.print_record longname (exp 0)
              "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
       fprintf ff "@[(%a : %a)@]" (exp prio_e) e ptype ty_e
