@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -59,8 +59,8 @@ let absentpat = Aux.pmake (Econstr0pat(absent_name))
 (* implementation of the presence test ? of a signal *)
 (* match e with P _ -> true | A -> false *)
 let test e =
-  Aux.e_match true e [match_handler (presentpat wildpat) etrue;
-                      match_handler absentpat efalse]
+  Aux.e_match true e [Aux.match_handler (presentpat wildpat) etrue;
+                      Aux.match_handler absentpat efalse]
     
 (* Equality between expressions. for efficiency reasons *)
 (* we restrict to simple cases *)
@@ -139,6 +139,7 @@ let pattern exps { p_cond; p_body; p_env } =
   let spat_list = norm p_cond [] in
   let pat_list = List.map pattern spat_list in
   let pat = orpat pat_list in
+  (* the flag [zero] is true when [is_cont] is true *)
   { m_pat = pat; m_body = p_body; m_env = Env.empty; m_loc = no_location; 
     m_reset = false; m_zero = true }
 
@@ -163,8 +164,8 @@ let generic_present_handlers e_match handlers default_opt =
     match default_opt with
     | NoDefault -> false, []
     | Init(e) ->
-       true, [match_handler wildpat e]
-    | Else(e) -> true, [match_handler wildpat e] in
+       true, [Aux.match_handler wildpat e]
+    | Else(e) -> true, [Aux.match_handler wildpat e] in
   e_match is_total e (pat_e_list @ default_handler)
 
 let present_handlers handlers default_opt =

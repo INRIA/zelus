@@ -41,7 +41,7 @@ let default_list =
    Inline.program;
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
-   "automata", "Translation of automata. See below:", nothing,
+   "auto", "Translation of automata. See below:", nothing,
    Automata.program;
    "present", "Translation of present. See below:", nothing,
    Present.program;

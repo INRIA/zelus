@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -13,14 +13,20 @@
 (* *********************************************************************)
 
 (* When an event (zero-crossing or time horizon) occurs and changes *)
-(* a non local discrete state variable [x] (a variable for which *)
-(* [last x] exists), an extra step must be done *)
-(* [match e with | P1 -> (* zero *) x = ... | Pn -> ...] *)
+(* a discrete state variable [x] then an extra discrete-time step must *)
+(* be done *)
+(* [match e with | P1 -> (* zero *) ... | Pn -> ...] *)
 (* is rewritten: *)
 (* [local horizon h default +infinity do
-     match e with | P1 -> do h = 0.0 and x = ... | ... *)
+     match e with | P1 -> do h = 0.0 and ... | ... *)
+(* this transformation only modify hybrid nodes. It relies on the *)
+(* field [zero] in match handlers *)
 
-(* not finished; it is better to  *)
+(* Example (an extra discrete-time step is necessary below:
+ *- [init x = 0 and y = last x + 1 and present z -> x = 42 end] *)
+
+(* This is a temporary solution. It tends to produce useless extra steps. *)
+(* A better way should rely on a causality analysis for hybrid signals *)
 
 open Ident
 open Zelus
