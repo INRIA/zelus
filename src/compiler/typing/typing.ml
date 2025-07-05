@@ -1939,7 +1939,9 @@ let implementation ff is_first impl =
   try
     match desc with
     | Eopen(modname) ->
-       if is_first then Modules.open_module modname; impl
+       let l_ = if is_first then true else false in
+       (* if is_first then *)
+       Modules.open_module modname; impl
     | Eletdecl { d_names; d_leq } ->
        (* type the set of equations. Top level values are, at most, *)
        (* static ones *)
@@ -1965,8 +1967,9 @@ let implementation ff is_first impl =
        List.iter setenv d_names;
        impl
     | Etypedecl { name; ty_params; ty_decl } ->
-       if is_first then
-         Interface.typedecl ff loc name ty_params ty_decl;
+       let l_ = if is_first then true else false in
+       (* if is_first then *)
+       Interface.typedecl ff loc name ty_params ty_decl;
        impl
   with
   | Typerrors.Error(loc, err) ->
