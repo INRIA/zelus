@@ -94,7 +94,7 @@ let local_in funs f_env f_args arg_list acc r =
   let f_args, acc = Util.mapfold arg acc f_args in  
 
   (* build a list of equations *)
-  let eq_list = List.map2 Aux.eq_of_f_arg_arg_make f_args arg_list in
+  let eq_list = List.map2 Aux.match_f_arg_with_arg f_args arg_list in
 
   (* flatten the list of arguments *)
   let vardec_list = List.flatten f_args in

@@ -1,3 +1,8 @@
+let node ff() =
+  print_int 1;
+  print_int 2
+
+(*
 let node f(x) returns (o)
   let rec cpt = 0 -> pre cpt + 1 in
   do o = cpt done
@@ -5,7 +10,8 @@ let node f(x) returns (o)
 let node ff() =
   print_int (f(f(0)));
   print_newline ()
-  
+*)
+
 (*
 let hybrid f x = period(1.0|2.0)
 
