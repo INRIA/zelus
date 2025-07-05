@@ -35,17 +35,27 @@ open Parseq
 
 (* a structure to represent nested equations before they are turned into *)
 (* Zelus equations *)
-type acc = { c_env: Typinfo.ienv Parseq.t; c_eq: Typinfo.eq Parseq.t }
+type ('info, 'env) acc =
+  { c_vardec: ('info, ('info, 'env) exp) vardec list Parseq.t;
+    c_eq: ('info, 'env) eq Parseq.t }
 
-let empty = { c_env = Parseq.Empty; c_eq = Parseq.Empty }
+let empty = { c_vardec = Parseq.Empty; c_eq = Parseq.Empty }
 
 let empty_eq = eqmake Defnames.empty EQempty
 
-let par { c_env = env1; c_eq = c_eq1 } { c_env = env2; c_eq = c_eq2 } =
-  { c_env = Parseq.par env1 env2; c_eq = Parseq.par c_eq1 c_eq2 }
-let seq c_eq1 c_eq2 = Parseq.seq c_eq1 c_eq2
-let add_seq eq c_eq = Parseq.seq (Parseq.singleton eq) c_eq
-let add_par eq c_eq = Parseq.par (Parseq.singleton eq) c_eq
+let par { c_vardec = v1; c_eq = c_eq1 } { c_vardec = v2; c_eq = c_eq2 } =
+  { c_vardec = Parseq.par v1 v2; c_eq = Parseq.par c_eq1 c_eq2 }
+let seq { c_vardec = v1; c_eq = c_eq1 } { c_vardec = v2; c_eq = c_eq2 } =
+  { c_vardec = Parseq.seq v1 v2; c_eq = Parseq.seq c_eq1 c_eq2 }
+let add_seq eq ({ c_eq } as ctx) =
+  { ctx with c_eq = Parseq.seq (Parseq.singleton eq) c_eq }
+let add_par eq ({ c_eq } as ctx) =
+  { ctx with c_eq = Parseq.par (Parseq.singleton eq) c_eq }
+let add_vardec vardec_list ({ c_vardec } as ctx) =
+  { ctx with c_vardec = Parseq.Cons(vardec_list, c_vardec) }
+let add_names n_names ctx =
+  let vardec_list = S.fold (fun id acc -> Aux.id_vardec id :: acc) n_names [] in
+  add_vardec vardec_list ctx
 				   				      
 (* translate a context [acc] into an environment and an equation *)
 let equations eqs =
@@ -73,15 +83,16 @@ let equations eqs =
        par (par eq_list eqs1) eqs2 in
   par [] eqs
 
-(* build a local definition [let l_eq in e] *)
-let e_let c_eq e =
+(* build an equation [local vardec_list do eq done] from [acc] *)
+let eq_local { c_vardec; c_eq } =
+  let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
-  Aux.let_eq_list_in_e eq_list e
+  Aux.eq_local_vardec vardec_list eq_list     
 
-(* makes a local definition [let l_eq in eq] *)
-let eq_let c_eq eq =
+let e_local { c_vardec; c_eq } e =
+  let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
-  Aux.let_eq_list_in_eq eq_list eq
+  Aux.e_local_vardec vardec_list eq_list e
 
 let pattern funs acc p = p, acc
 
@@ -114,11 +125,11 @@ let expression funs acc ({ e_desc } as e) =
 
 let atomic_expression funs acc e =
   let e, acc = Mapfold.expression_it funs acc e in
-  e_let acc e
+  e_local acc e
 
 let atomic_equation funs acc eq =
   let eq, acc = Mapfold.equation_it funs acc eq in
-  eq_let acc eq
+  eq_local acc
 
 (* Translate an equation. *)
 (* [equation funs { c_vardec; c_eq } eq = empty_eq, [{ c_vardec'; c_eq'}] *)
@@ -148,13 +159,13 @@ let equation funs acc ({ eq_desc } as eq) =
 
 let leq_t funs acc ({ l_eq = { eq_write } as l_eq } as l) =
   let l_eq, acc = Mapfold.equation_it funs acc l_eq in
-  { l with l_eq }, acc
-
+  let n_names = Defnames.names S.empty eq_write in
+  { l with l_eq }, add_names n_names acc
 
 let block funs acc ({ b_vars; b_body } as b) =
   (* assume that [b_vars] does not contain expressions (default/init) anymore *)
   let b_body, acc = Mapfold.equation_it funs acc b_body in
-  b, acc
+  b, add_vardec b_vars acc
     
 let if_eq funs acc (eq_true, eq_false) =
   let eq_true = atomic_equation funs empty eq_true in
@@ -222,8 +233,8 @@ let for_out_t funs acc ({ desc = ({ for_init; for_default } as desc) } as f) =
   { f with desc = { desc with for_init; for_default } }, acc
 
 let letdecl funs acc (d_names, ({ l_eq } as leq)) =
-  let eq = atomic_equation funs acc l_eq in
-  (d_names, { leq with l_eq = eq }), empty
+  let _, acc_local = Mapfold.equation_it funs empty l_eq in
+  (d_names, { leq with l_eq = eq_local acc_local }), acc
 
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
