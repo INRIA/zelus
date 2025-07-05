@@ -217,7 +217,7 @@ let pat_of_vardec_list_make vardec_list =
   | [v] -> pat_of_vardec_make v
   | _ -> pmake (Etuplepat(List.map pat_of_vardec_make vardec_list))
 
-let eq_of_f_arg_arg_make f_arg arg =
+let match_f_arg_with_arg f_arg arg =
   let p = pat_of_vardec_list_make f_arg in
   eq_make p arg
 
@@ -245,7 +245,8 @@ let e_local b e = emake (Elocal(b, e))
 
 let e_local_vardec vardec_list eq_list e =
   match vardec_list, eq_list with
-  | ([], _) | (_, []) -> e
+  | [], _ -> e_letrec eq_list e
+  | (_, []) -> e
   | _ -> e_local (block_make vardec_list eq_list) e
 
 let eq_ifthen e eq_true =
