@@ -20,6 +20,13 @@ open Format
 open Pp_tools
 module Printer = Printer.Make(Typinfo)
     
+(* A qualified name [M.x] is print [x] when the current module is [M] *)
+let longname ff ln =
+  let ln = Initial.short (Modules.currentname ln) in
+  match ln with
+  | Lident.Name(m) -> Printer.shortname ff m
+  | Lident.Modname(qual) -> Printer.qualident ff qual
+
 let kind = function
   | Deftypes.Tfun _ -> "any"
   | Deftypes.Tnode(k) ->
@@ -64,10 +71,10 @@ let rec pattern ptype ff pat =
   let rec pattern ff pat = match pat with
     | Ewildpat -> fprintf ff "_"
     | Econstpat(i) -> immediate ff i
-    | Econstr0pat(lname) -> Printer.longname ff lname
+    | Econstr0pat(lname) -> longname ff lname
     | Econstr1pat(lname, pat_list) ->
        fprintf ff "@[%a%a@]"
-         Printer.longname lname (print_list_r pattern "("","")") pat_list
+         longname lname (print_list_r pattern "("","")") pat_list
     | Evarpat { id; ty } ->
        fprintf ff "@[(%a:%a)@]" Printer.name id ptype ty
     | Etuplepat(pat_list) ->
@@ -78,7 +85,7 @@ let rec pattern ptype ff pat =
        fprintf ff "@[(%a: %a)@]" pattern p Printer.ptype ty_exp
     | Erecordpat(n_pat_list) ->
        print_list_r
-         (print_record Printer.longname pattern
+         (print_record longname pattern
             "" " =" "") "{" ";" "}" ff n_pat_list in
   pattern ff pat
 
@@ -111,7 +118,7 @@ and left_value ff left =
   match left with
   | Eleft_name(n) -> Printer.name ff n
   | Eleft_record_access { label; arg } ->
-     fprintf ff "@[%a.%a@]" left_value arg Printer.longname label
+     fprintf ff "@[%a.%a@]" left_value arg longname label
   | Eleft_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_value left (exp 0) idx
 
@@ -119,10 +126,10 @@ and left_state_value ff left =
   match left with
   | Eself -> fprintf ff "self."
   | Eleft_instance_name(n) -> Printer.name ff n
-  | Eleft_state_global(ln) -> Printer.longname ff ln
+  | Eleft_state_global(ln) -> longname ff ln
   | Eleft_state_name(n) -> Printer.name ff n
   | Eleft_state_record_access { label; arg } ->
-     fprintf ff "@[%a.%a@]" left_state_value arg Printer.longname label
+     fprintf ff "@[%a.%a@]" left_state_value arg longname label
   | Eleft_state_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
@@ -138,7 +145,7 @@ and assign ff left e =
 and assign_state ff left e =
   match left with
   | Eleft_state_global(gname) ->
-     fprintf ff "@[<v 2>%a := %a@]" Printer.longname gname (exp 2) e
+     fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
   | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
 and state_primitive_access a =
@@ -162,11 +169,11 @@ and exp prio ff e =
   if prio_e < prio then fprintf ff "(";
   begin match e with
   | Econst(i) -> immediate ff i
-  | Econstr0 { lname } -> Printer.longname ff lname
+  | Econstr0 { lname } -> longname ff lname
   | Econstr1 { lname; arg_list } ->
      fprintf ff "@[%a%a@]"
-       Printer.longname lname (print_list_r (exp prio_e) "("","")") arg_list
-  | Eglobal { lname } -> Printer.longname ff lname
+       longname lname (print_list_r (exp prio_e) "("","")") arg_list
+  | Eglobal { lname } -> longname ff lname
   | Evar { id } -> var ff id
   | Estate(l) -> left_state_value ff l
   | Etuple(e_list) ->
@@ -183,14 +190,14 @@ and exp prio ff e =
   | Erecord(label_e_list) ->
      print_list_r
        (print_record
-          Printer.longname (exp 0) "" " =" "") "{" ";" "}" ff label_e_list
+          longname (exp 0) "" " =" "") "{" ";" "}" ff label_e_list
   | Erecord_access { label; arg } ->
-     fprintf ff "%a.%a" (exp prio_e) arg Printer.longname label
+     fprintf ff "%a.%a" (exp prio_e) arg longname label
   | Erecord_with(e_record, label_e_list) ->
      fprintf ff "@[{ %a with %a }@]"
        (exp prio_e) e_record
        (print_list_r
-          (print_record Printer.longname (exp 0) "" " =" "") "{" ";" "}") label_e_list
+          (print_record longname (exp 0) "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
      fprintf ff "@[(%a : %a)@]" (exp prio_e) e Printer.ptype ty_e
   | Eifthenelse(e, e1, e2) ->
