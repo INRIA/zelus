@@ -97,7 +97,6 @@ let is_sizefun loc eq =
     Format.eprintf "@[%a\n@]" Printer.equation eq; 
     raise Misc.Error
 
-
 let leq_t funs acc leq =
   let { l_eq; l_loc } as leq, acc = Mapfold.leq_t funs acc leq in
   let l_eq = if is_sizefun l_loc l_eq then l_eq
@@ -116,9 +115,14 @@ let match_handler_eq funs acc m =
                else Aux.seq (schedule m_body) in
   { m with m_body }, acc
 
+let reset_eq funs acc eq =
+  let eq, acc = Mapfold.reset_eq funs acc eq in
+  Aux.seq (schedule eq), acc
+
 let program genv0 p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with leq_t; block; match_handler_eq; global_funs } in
+    { Mapfold.defaults with leq_t; block; match_handler_eq; reset_eq;
+                            global_funs } in
   let p, _ = Mapfold.program_it funs genv0 p in
   p
