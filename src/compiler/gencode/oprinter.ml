@@ -46,7 +46,8 @@ let priority_exp = function
     | Eletsizefun _ | Esequence _ -> 0
   | Efun _ | Emachine _ -> 0
 
-let p_internal_type ff ty = Ptypes.output_type ff ty
+let p_internal_type ff ty =
+  if !Misc.verbose then fprintf ff ": %a" Ptypes.output_type ty
 
 let immediate ff = function
   | Eint i ->
@@ -76,7 +77,10 @@ let rec pattern ptype ff pat =
        fprintf ff "@[%a%a@]"
          longname lname (print_list_r pattern "("","")") pat_list
     | Evarpat { id; ty } ->
-       fprintf ff "@[(%a:%a)@]" Printer.name id ptype ty
+       (* print the type in verbose mode only *)
+       if !Misc.verbose then
+         fprintf ff "@[(%a:%a)@]" Printer.name id ptype ty
+       else Printer.name ff id
     | Etuplepat(pat_list) ->
        pattern_comma_list ptype ff pat_list
     | Ealiaspat(p, n) -> fprintf ff "@[%a as %a@]" pattern p Printer.name n
@@ -159,9 +163,9 @@ and letvar ff n ty e_opt e =
   match e_opt with
   | None ->
      fprintf ff
-       "@[<v 0>var %a: %a in@ %a@]" Printer.name n p_internal_type ty (exp 0) e
+       "@[<v 0>var %a%a in@ %a@]" Printer.name n p_internal_type ty (exp 0) e
   | Some(e0) ->
-     fprintf ff "@[<v 0>var %a: %a = %a in@ %a@]"
+     fprintf ff "@[<v 0>var %a%a = %a in@ %a@]"
        Printer.name n p_internal_type ty (exp 0) e0 (exp 0) e
 
 and exp prio ff e =
@@ -272,7 +276,7 @@ and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" (pattern Printer.ptype) p (exp 0) e
 
 and exp_with_typ ff (e, ty) =
-  fprintf ff "(%a:%a)" (exp 2) e p_internal_type ty
+  fprintf ff "(%a%a)" (exp 2) e p_internal_type ty
 
 and expression ff e = exp 0 ff e
 
@@ -294,7 +298,7 @@ and mkind mk =
 and memory ff { m_name; m_value; m_typ; m_kind; m_size } =
   let mem = function
     | None -> "" | Some(k) -> (Ptypes.mkind k) ^ " " in
-  fprintf ff "%s%a%a : %a = %a" (mem m_kind) Printer.name m_name
+  fprintf ff "%s%a%a%a = %a" (mem m_kind) Printer.name m_name
     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
     m_size p_internal_type m_typ (print_opt (exp 0)) m_value
 
@@ -309,7 +313,7 @@ and instance ff { i_name; i_machine; i_kind; i_params; i_size } =
     i_size
 
 and pmethod ff { me_name; me_params; me_body; me_typ } =
-  fprintf ff "@[<hov 2>method %s %a@ =@ (%a:%a)@]"
+  fprintf ff "@[<hov 2>method %s %a@ =@ (%a%a)@]"
     (method_name me_name) (pattern_list Printer.ptype) me_params (exp 2) me_body
     p_internal_type me_typ
 
