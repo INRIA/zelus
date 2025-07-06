@@ -893,11 +893,13 @@ module Make (Info: INFO) =
       recordrec S.empty label_e_list
     
     and funexp env
-          { desc = { f_vkind; f_kind; f_atomic; f_args; f_body }; loc } =
+           { desc = { f_vkind; f_kind; f_atomic; f_inline; f_args; f_body };
+             loc } =
       let f_args, env = Util.mapfold arg env f_args in
       let f_body = result env f_body in
       { Zelus.f_vkind = vkind f_vkind;
-        Zelus.f_kind = kind f_kind; Zelus.f_atomic = f_atomic;
+        Zelus.f_kind = kind f_kind;
+        Zelus.f_inline = f_inline; Zelus.f_atomic = f_atomic;
         Zelus.f_args = f_args; Zelus.f_body = f_body; Zelus.f_loc = loc;
         Zelus.f_env = Ident.Env.empty;
         Zelus.f_hidden_env = Ident.Env.empty }

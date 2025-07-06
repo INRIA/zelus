@@ -98,26 +98,29 @@ let scond_true start_pos end_pos =
                    node m1... mk -> e ...] *)
 (* [fun (const x_...) (static y_...) a1 ... am -> e] is represented *)
 (* [fun (const x_...) -> fun (static y_...) -> node a1 ... am -> e] *)
-let fun_one_desc is_atomic kind vkind p_list result startpos endpos =
-  Efun(make { f_atomic = is_atomic; f_vkind = vkind;
+let fun_one_desc is_inline is_atomic kind vkind p_list result startpos endpos =
+  Efun(make { f_atomic = is_atomic; f_inline = is_inline; f_vkind = vkind;
               f_kind = kind; f_args = p_list;
 	      f_body = result }
 	    startpos endpos)
 
-let rec funexp_desc is_atomic kind v_p_list_list result startpos endpos =
+let rec funexp_desc
+	  is_inline is_atomic kind v_p_list_list result startpos endpos =
   match v_p_list_list with
   | [] -> assert false
   | [vkind, p_list] ->
-       fun_one_desc is_atomic kind vkind p_list result startpos endpos
+       fun_one_desc is_inline is_atomic kind vkind p_list result startpos endpos
   | (vkind, p_list) :: v_p_list_list ->
-       fun_one_desc is_atomic (Kfun(Kany)) vkind p_list
-		    (make (Exp (funexp is_atomic kind v_p_list_list result
-				       startpos endpos))
-		     startpos endpos)
-               startpos endpos
-and funexp is_atomic kind v_p_list_list result startpos endpos =
-  make (funexp_desc is_atomic kind v_p_list_list result startpos endpos)
-       startpos endpos
+       fun_one_desc is_atomic is_inline (Kfun(Kany)) vkind p_list
+		    (make (Exp
+			     (funexp is_inline is_atomic kind v_p_list_list
+				     result startpos endpos))
+			  startpos endpos)
+		    startpos endpos
+and funexp is_inline is_atomic kind v_p_list_list result startpos endpos =
+  make
+    (funexp_desc is_inline is_atomic kind v_p_list_list result startpos endpos)
+    startpos endpos
 
 
 (* building a for loop *)
@@ -652,10 +655,10 @@ sizefun_definition_desc:
   | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
         e = seq_expression
     { EQsizefun(ide, ide_list, e) }
-  | a = is_atomic k = fun_kind_opt ide = ide 
-       LLESSER ide_list = list_of(COMMA, ide) GGREATER 
+  | i = is_inline a = is_atomic k = fun_kind_opt ide = ide 
+        LLESSER ide_list = list_of(COMMA, ide) GGREATER 
        v_p_list_list = param_list_list r = result
-    { EQsizefun(ide, ide_list, funexp a k v_p_list_list r 
+    { EQsizefun(ide, ide_list, funexp i a k v_p_list_list r 
 			       $startpos(v_p_list_list) $endpos) }
 ;
 
@@ -664,10 +667,11 @@ fun_definition:
 ;
 
 fun_definition_desc:
-  | a = is_atomic k = fun_kind_opt ide = ide v_p_list_list = param_list_list 
+  | i = is_inline a = is_atomic k = fun_kind_opt ide = ide
+       v_p_list_list = param_list_list 
     r = result
     { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
-	   funexp a k v_p_list_list r $startpos $endpos) }
+	   funexp i a k v_p_list_list r $startpos $endpos) }
 ;
 
 /* states of an automaton in an equation*/
@@ -1090,13 +1094,13 @@ expression_desc:
       { Eop(Erun(i), [f; e]) }
   | i = is_inline f = simple_expression arg_list = simple_expression_list
       { app i f arg_list }
-  | a = is_atomic k = fun_kind p_list_list = param_list_list
+  | i = is_inline a = is_atomic k = fun_kind p_list_list = param_list_list
     MINUSGREATER e = expression
-    { funexp_desc a k p_list_list (make (Exp(e)) $startpos(e) $endpos)
+    { funexp_desc i a k p_list_list (make (Exp(e)) $startpos(e) $endpos)
       $startpos(p_list_list) $endpos }
-  | a = is_atomic k = fun_kind p_list_list = param_list_list
+  | i = is_inline a = is_atomic k = fun_kind p_list_list = param_list_list
     RETURNS p = param eq = equation
-    { funexp_desc a k p_list_list (make (Returns(p, eq)) $startpos(p) $endpos)
+    { funexp_desc i a k p_list_list (make (Returns(p, eq)) $startpos(p) $endpos)
          $startpos(p_list_list) $endpos }
   | ATOMIC e = simple_expression
     { Eop(Eatomic, [e]) }

@@ -366,6 +366,7 @@ and funexp_desc =
   { f_vkind: vkind; (* the kind for the arguments *)
     f_kind: kind; (* the kind for the body *)
     f_atomic: is_atomic;
+    f_inline: is_inline;
     f_args: arg list;
     f_body: result
   }

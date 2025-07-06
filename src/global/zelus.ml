@@ -434,6 +434,7 @@ and ('info, 'ienv) funexp =
   { f_vkind: vkind; (* the kind of arguments *)
     f_kind: kind; (* the kind of the body *)
     f_atomic: is_atomic; (* when true, outputs depend strictly on all inputs *)
+    f_inline: is_inline; (* when true, the function application is inlined *)
     f_args: ('info, 'ienv) arg list; (* list of arguments *)
     f_body: ('info, 'ienv) result;
     f_loc: Location.t;
