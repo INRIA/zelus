@@ -152,6 +152,13 @@ let equation funs acc ({ eq_desc } as eq) =
     | EQlocal(b) ->
        let _, acc_b = Mapfold.block_it funs empty b in
        acc_b
+    | EQreset(eq_reset, e_reset) ->
+       (* [reset local x1,... in eq every e] =
+             [local x1,... in reset eq every e] *)
+       let e_reset, acc_e_reset = Mapfold.expression_it funs empty e_reset in
+       let _, { c_vardec; c_eq } = Mapfold.equation_it funs empty eq_reset in
+       add_par { eq with eq_desc = EQreset(Aux.par (equations c_eq), e_reset) }
+         (par acc_e_reset { c_vardec; c_eq = Parseq.Empty })
     | _ ->
        let eq, acc_eq = Mapfold.equation funs empty eq in
        seq acc_eq (add_seq eq empty) in
