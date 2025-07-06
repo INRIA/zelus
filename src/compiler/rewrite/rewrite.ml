@@ -82,17 +82,22 @@ let default_list =
    Shared.program;
    "letin", "Un-nest let/in and blocks. See below:", nothing,
    Letin.program;
-   (* Warning: this step does not work for the moment. The renaming *)
+   "reset", "Distribute resets. See below:", nothing,
+   Reset.program;
+   (* Warning: the following step does not work for the moment. The renaming *)
     (* of variables does not work. See [aform.ml] *)
     (* "aform", "A-normal form. See below:",
        (* type checks before computing A-normal form *)
        type_check,
-       Aform.program; *)
-   ] @ optim_list @ [
-   "schedule", "Static scheduling. See below:", nothing, Schedule.program;
-    "typing", "New typing step: See below:", nothing, type_check;
-    "set_sorts",
-   "Set the sort for variables in the environment (value/shared/state variable). 
+       Aform.program; *)] @ optim_list @ [
+   "schedule", "Static scheduling. See below:",
+   nothing,
+   Schedule.program;
+   "typing",
+   "New typing step: See below:", nothing, type_check;
+   "set_sorts",
+   "Set the sort for variables in the environment \
+    (value/shared/state variable). 
    See below:", nothing,
    Set_sorts.program;
    ]
@@ -114,7 +119,7 @@ let set_steps w =
     | "auto" | "present"
     | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 
     | "schedule" | "aform" | "deadcode" | "copy" | "exp2seq" | "default"
-    | "returns" | "set_sorts" ->
+    | "returns" | "reset" | "set_sorts" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()
     | _ -> raise (Arg.Bad ("unknown pass " ^ s)) in

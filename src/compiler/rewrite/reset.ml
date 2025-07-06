@@ -20,7 +20,9 @@ open Ident
 open Zelus
 open Mapfold
 
-type acc = { res_list: Typinfo.exp list; stateful: bool }
+type acc =
+  { res_list: Typinfo.exp list;
+    stateful: bool }
 
 let empty = { res_list = []; stateful = false }
 
@@ -29,6 +31,11 @@ let rec reset res_list eq =
   match res_list with
   | [] -> eq | r :: res_list -> reset res_list (Aux.eq_reset eq r)
 
+(* [res_list = [r1;...;rn]]; [stateful] is a boolean *)
+(* [equation funs acc eq = eq', acc']. if [acc'.stateful = true] *)
+(* and [acc = false], then [eq] is stateful *)
+(* [r1;...;rn] is the reset condition that stateful equations in [eq] *)
+(* must be surrended by *)
 let equation funs ({ res_list; stateful } as acc) ({ eq_desc } as eq) =
   match eq_desc with
   | EQinit(x, e) ->
@@ -38,7 +45,7 @@ let equation funs ({ res_list; stateful } as acc) ({ eq_desc } as eq) =
   | EQeq(p, e) ->
      let e, { stateful = stateful_e } = Mapfold.expression_it funs empty e in
      if stateful_e then reset res_list eq, { acc with stateful = true }
-     else eq, acc
+     else { eq with eq_desc = EQeq(p, e) }, acc
   | EQand({ eq_list } as a) ->
      let eq_list, acc = Util.mapfold (equation_it funs) acc eq_list in
      { eq with eq_desc = EQand { a with eq_list } }, acc
@@ -48,7 +55,16 @@ let equation funs ({ res_list; stateful } as acc) ({ eq_desc } as eq) =
      let eq, { stateful = stateful_e } = Mapfold.equation funs empty eq in
      if stateful_e then reset res_list eq, { acc with stateful = true }
      else eq, acc
-  
+
+let expression funs ({ stateful } as acc) e =
+  let { e_desc } as e, acc = Mapfold.expression funs acc e in
+  match e_desc with
+  | Eapp { f; arg_list } ->
+     let ty = Typinfo.get_type f.e_info in
+     if Types.is_combinatorial (List.length arg_list) ty then e, acc
+     else e, { acc with stateful = true }
+  | _ -> e, acc
+	      
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
@@ -56,7 +72,8 @@ let get_index funs acc n = Ident.get (), acc
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with equation; set_index; get_index; global_funs } in
+    { Mapfold.defaults with
+      expression; equation; set_index; get_index; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

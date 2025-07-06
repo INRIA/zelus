@@ -100,6 +100,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t change a discrete-time state variable \n\
     \t\t\t letin: fuse blocks \n\
     \t\t\t schedule: static scheduling \n\
+    \t\t\t reset: distribute the reset over equations \n\
     \t\t\t aform: translation into A-normal form \n\
     \t\t\t copy: remove copy variables \n\
     \t\t\t Example: -step -a+step+inline+static. Default is +a."
