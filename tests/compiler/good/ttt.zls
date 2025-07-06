@@ -1,16 +1,15 @@
-let node f(x) returns (o)
-  let rec h = false fby false fby not h in
-  match h with
-  | true ->
-      let rec cpt = 0 -> pre cpt + 1 in
-      do o = cpt done
-  | false ->
-      let rec cpt = 0 -> pre cpt + 1 in
-      do o = cpt done
+let node f() returns (o init 0)
+  automaton
+  | Up ->
+     do o = last o + 1 until (o >= 10) then Down
+  | Down ->
+     do o = last o - 1 until (o <= 0) then Up
+  end
 
 let node ff() =
-  print_int (f 0);
+  print_int (f ());
   print_newline ()
+
 
 (*
 let hybrid f x = period(1.0|2.0)
