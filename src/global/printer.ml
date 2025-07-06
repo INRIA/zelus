@@ -382,7 +382,8 @@ module Make (Info: INFO) =
 	      """""") handlers
            (with_default expression) default_opt
       | Ereset(e_body, e) ->
-         fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
+         fprintf ff "@[<hov>reset@  @[%a@]@ every %a@]"
+           expression e_body expression e
       | Efun(fe) ->
          fprintf ff "@[(%a)@]" funexp fe
       | Eassert(e_body) ->
