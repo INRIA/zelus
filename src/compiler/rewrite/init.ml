@@ -15,7 +15,7 @@
 (* removes the initialization operator [e1 -> e2] and normalize *)
 (* initialization equations [init x = e] *)
 (* Requires that all initializations of blocks declarations *)
-(* have been moved into the body *)
+(* [local x init e,... do eq] have been moved into the body [eq] *)
 
 open Misc
 open Location
