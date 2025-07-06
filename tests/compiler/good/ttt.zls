@@ -3,13 +3,12 @@ let node f() returns (o init 0)
   | Up ->
      do o = last o + 1 until (o >= 10) then Down
   | Down ->
-     do o = last o - 1 until (o <= 0) then Up
+     do o = last o - 1 until (o <= 1) then Up
   end
 
 let node ff() =
   print_int (f ());
   print_newline ()
-
 
 (*
 let hybrid f x = period(1.0|2.0)
