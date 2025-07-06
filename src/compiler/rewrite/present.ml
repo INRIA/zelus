@@ -128,7 +128,7 @@ let pat spat se cont =
     Not_found -> Aux.wildpat :: cont
 
 (* build the pattern *)
-let pattern exps { p_cond; p_body; p_env } =
+let pattern exps { p_cond; p_body; p_env; p_zero } =
   let pattern spat =
     let pat_list = List.fold_right (pat spat) exps [] in
     match pat_list with
@@ -141,7 +141,7 @@ let pattern exps { p_cond; p_body; p_env } =
   let pat = orpat pat_list in
   (* the flag [zero] is true when [is_cont] is true *)
   { m_pat = pat; m_body = p_body; m_env = Env.empty; m_loc = no_location; 
-    m_reset = false; m_zero = true }
+    m_reset = false; m_zero = p_zero }
 
 (* add a default value for signals. *)
 (* [local ..., x, ...] becomes [local ..., x default A, ...] *)
