@@ -172,8 +172,8 @@ let compile modname filename =
     let genv0 = Genv.add_module genv0 (Primitives.stdlib_env ()) in
 
     (* compile-time evaluation of definitions *)
-    let otc = open_out_bin obj_name in
     (*
+      let otc = open_out_bin obj_name in
       let p = do_optional_step !Misc.no_reduce
               is_print "Evaluate compile-time expressions. See below:"
               Printer.program (Const.program otc genv0) p in
