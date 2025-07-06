@@ -182,6 +182,9 @@ type ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs =
     funexp :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
       'a -> ('info1, 'ienv1) funexp -> ('info2, 'ienv2) funexp * 'a;
+    sizefun :
+      ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
+      'a -> ('info1, 'ienv1) sizefun -> ('info2, 'ienv2) sizefun * 'a;
     match_handler_eq :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
       'a -> ('ienv1, 'info1 pattern, ('info1, 'ienv1) eq) match_handler
@@ -573,7 +576,9 @@ and result funs acc ({ r_desc } as r) =
        let b_eq, acc = block_it funs acc b_eq in Returns(b_eq), acc in
   { r with r_desc }, acc
 
-and funexp_it funs acc f = funs.funexp funs acc f
+and funexp_it funs acc f =
+  try funs.funexp funs acc f
+  with Fallback -> funexp funs acc f
 
 and funexp funs acc ({ f_args; f_body; f_env } as f) =
   let arg acc v_list = vardec_list_it funs acc v_list in
@@ -581,6 +586,19 @@ and funexp funs acc ({ f_args; f_body; f_env } as f) =
   let f_args, acc = Util.mapfold arg acc f_args in
   let f_body, acc = result_it funs acc f_body in
   { f with f_args; f_body; f_env }, acc
+
+and sizefun_it funs acc f =
+  try funs.sizefun funs acc f
+  with Fallback -> sizefun funs acc f
+
+and sizefun funs acc ({ sf_id; sf_id_list; sf_e; sf_env } as sf) =
+  let sf_env, acc = build_it funs.global_funs acc sf_env in
+  let sf_id, acc = var_ident_it funs.global_funs acc sf_id in
+  let sf_id_list, acc =
+    Util.mapfold (var_ident_it funs.global_funs) acc sf_id_list in
+  let sf_e, acc = expression_it funs acc sf_e in
+  { sf with sf_id; sf_id_list; sf_e; sf_env },
+  acc
 
 (* Expressions *)
 and expression_it funs acc e =
@@ -828,15 +846,9 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
        let leq, acc = leq_it funs acc leq in
        let eq, acc = equation_it funs acc eq in
        { eq with eq_desc = EQlet(leq, eq) }, acc
-    | EQsizefun({ sf_id; sf_id_list; sf_e; sf_env } as sf) ->
-       let sf_env, acc = build_it funs.global_funs acc sf_env in
-       let sf_id, acc = var_ident_it funs.global_funs acc sf_id in
-       let sf_id_list, acc =
-         Util.mapfold (var_ident_it funs.global_funs) acc sf_id_list in
-       let sf_e, acc = expression_it funs acc sf_e in
-       { eq with eq_desc =
-                   EQsizefun { sf with sf_id; sf_id_list; sf_e; sf_env } },
-       acc in
+    | EQsizefun f ->
+       let f, acc = sizefun_it funs acc f in
+       { eq with eq_desc = EQsizefun f }, acc in
   let eq_write, acc = write_t funs acc eq_write in
   { eq with eq_write }, acc
 
@@ -1028,6 +1040,7 @@ let defaults =
     block;
     result;
     funexp;
+    sizefun;
     match_handler_eq;
     match_handler_e;
     if_eq;
@@ -1085,6 +1098,7 @@ let defaults_stop =
     block = stop;
     result = stop;
     funexp = stop;
+    sizefun = stop;
     match_handler_eq = stop;
     match_handler_e = stop;
     if_eq = stop;
