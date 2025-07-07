@@ -117,6 +117,7 @@ and is_mutable = bool
 and is_rec = bool
 
 and sizefun = { sf_id: Ident.t; sf_id_list: Ident.t list; sf_e: exp }
+
 and funexp = { pat_list: pattern list; e: exp }
 
 and left_value = 
