@@ -1,3 +1,11 @@
+let f1 =
+  let (* h = 1 and *) g = inline fun x -> x + 1 in g 1 (* + h *)
+
+(*
+let f2 =
+  let g = fun x -> x + 1 in g 1
+*)
+
 (*
 let node f() returns (o init 0)
   automaton
@@ -12,13 +20,11 @@ let node ff() =
   print_newline ()
 *)
 
-let hybrid f x = period(1.0|2.0)
+(*
+let hybrid f x = 1.0
 
-let hybrid g x = 
-  let rec der o = o +. 1.0 init 0.0 in
-  o, up(x +. 1.0)
-
-let hybrid ff() = g()
+let hybrid g () = f (0.0)
+*)
 
 (* horizon m = 2.0 up x = ...
 
