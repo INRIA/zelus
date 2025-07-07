@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -472,7 +472,9 @@ and slet_it funs acc leq_list = funs.slet_t funs acc leq_list
 
 and slet_t funs acc leq_list = Util.mapfold (leq_it funs) acc leq_list
 
-and leq_it funs acc leq = funs.leq_t funs acc leq
+and leq_it funs acc leq =
+  try funs.leq_t funs acc leq
+with Fallback -> leq_t funs acc leq
 
 and leq_t funs acc ({ l_eq; l_env } as leq) =
   let l_env, acc = build_it funs.global_funs acc l_env in
