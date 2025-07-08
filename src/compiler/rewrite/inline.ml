@@ -48,22 +48,15 @@ let rec is_a_value { e_desc } =
      List.for_all (fun { arg } -> is_a_value arg) l_e_list
   | _ -> false
 
-(* Build a renaming from an environment *)
-let build global_funs ({ renaming } as acc) env =
-  let buildrec n entry (env, renaming) =
-    let m = Ident.fresh (Ident.source n) in
-    Env.add m entry env,
-    Env.add n m renaming in
-  let env, renaming = Env.fold buildrec env (Env.empty, renaming) in
-  env, { acc with renaming }
-
-let var_ident global_funs ({ renaming } as acc) x =
- Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc
-
 let make_equation ({ subst } as acc) x { e_desc } =
   match e_desc with
     Efun({ f_inline = true; f_args; f_body; f_env }) ->
      { acc with subst = Env.add x { f_args; f_body; f_env; f_acc = acc } subst }
+  | Evar(y) ->
+     let acc = 
+       try { acc with subst = Env.add x (Env.find y subst) subst }
+       with Not_found -> acc in
+     acc
   | _ -> raise Cannot_inline
 
 (* given [f_arg1;...;f_arg_n] and [arg1;...;arg_n] *)
@@ -117,16 +110,31 @@ let match_f_arg_with_arg acc f_args arg_list =
                 Aux.returns_of_vardec_list_make b_vars)), acc
 
 (* application *)
-let apply funs { subst } { e_desc } arg_list =
+let apply funs ({ subst } as acc) { e_desc } arg_list =
   match e_desc with
   | Evar(x) ->
-     begin try
-       let { f_args; f_body; f_env; f_acc } = Env.find x subst in
-       local_in funs f_acc f_args arg_list f_env f_body
-     with
-     | Not_found -> raise Cannot_inline
-     end
+     let e, acc =
+       try
+         let { f_args; f_body; f_env; f_acc } = Env.find x subst in
+         local_in funs f_acc f_args arg_list f_env f_body
+       with
+       | Not_found -> raise Cannot_inline in
+     e, acc
+  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
+     local_in funs acc f_args arg_list f_env f_body
   | _ -> raise Cannot_inline
+
+(* Build a renaming from an environment *)
+let build global_funs ({ renaming } as acc) env =
+  let buildrec n entry (env, renaming) =
+    let m = Ident.fresh (Ident.source n) in
+    Env.add m entry env,
+    Env.add n m renaming in
+  let env, renaming = Env.fold buildrec env (Env.empty, renaming) in
+  env, { acc with renaming }
+
+let var_ident global_funs ({ renaming } as acc) x =
+ Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc
 
 (* expressions *)
 let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) = 
