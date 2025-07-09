@@ -117,7 +117,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
    e, append f_acc acc
 
 (* application *)
-let apply funs ({ subst } as acc) { e_desc } arg_list =
+let rec apply funs ({ subst } as acc) { e_desc } arg_list =
   match e_desc with
   | Evar(x) ->
      let e, acc =
@@ -127,6 +127,7 @@ let apply funs ({ subst } as acc) { e_desc } arg_list =
        with
        | Not_found -> raise Cannot_inline in
      e, acc
+  | Eop((Erun _ | Eatomic), [e]) -> apply funs acc e arg_list
   | _ -> raise Cannot_inline
 
 (* Build a renaming from an environment *)
@@ -157,6 +158,15 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
          apply funs acc f arg_list
        with
          Cannot_inline -> { e with e_desc = Eapp({ app with f; arg_list }) }, acc in
+     e, acc
+  | Eop(Erun i, [f; arg]) ->
+     let f, acc = Mapfold.expression_it funs acc f in
+     let arg, acc = Mapfold.expression_it funs acc arg in
+     let e, acc =
+       try
+         apply funs acc f [arg]
+       with
+         Cannot_inline -> { e with e_desc = Eop(Erun i, [f; arg]) }, acc in
      e, acc
   | _ -> raise Mapfold.Fallback
 
