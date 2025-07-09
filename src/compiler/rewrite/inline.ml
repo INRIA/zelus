@@ -57,20 +57,31 @@ let make_equation ({ subst } as acc) x { e_desc } =
      acc
   | _ -> raise Cannot_inline
 
+let value ({ subst } as acc) { e_desc } =
+  match e_desc with
+  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
+     { f_args; f_body; f_env; f_acc = acc }
+  | Evar(y) ->
+     let v = try Env.find y subst with Not_found -> raise Cannot_inline in v
+| _ -> raise Cannot_inline
+
 (* given [f_arg1;...;f_arg_n] and [arg1;...;arg_n] *)
 (* define [f_arg1 = arg1;...; f_arg_n = arg_n] *)
-(* if [arg_i] is a value, the pair [f_arg_i = arg_i] is added to [subst] *)
-let match_f_arg_with_arg acc f_args arg_list =
-  let match_t (acc, eq_list) f_arg arg =
+(* if [arg_i] is a value, the binding [f_arg_i\arg_i] is added to [subst] *)
+(* [acc] is the current environment in which [e] is evaluated. [f_acc] *)
+(* is the environment augmented with new bindings *)
+let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
+  let match_t (eq_list, ({ subst } as f_acc)) f_arg arg =
     try
       match f_arg, arg with
-      | [{ var_name = x }], e -> make_equation acc x e, eq_list
+      | [{ var_name = x }], e ->
+         eq_list, { f_acc with subst = Env.add x (value acc e) subst }
       | _ -> raise Cannot_inline
     with
     | Cannot_inline ->
-        let eq_list = Aux.match_f_arg_with_arg f_arg arg :: eq_list in
-        acc, eq_list in
-  List.fold_left2 match_t (acc, []) f_args arg_list
+        let eq_list = (Aux.match_f_arg_with_arg f_arg arg) :: eq_list in
+        eq_list, f_acc in
+  List.fold_left2 match_t ([], f_acc) f_args arg_list
 
 (* Main Transformation *)
 (* [(\a1...an. e) e1 ... en] 
@@ -80,32 +91,35 @@ let match_f_arg_with_arg acc f_args arg_list =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let local_in funs f_acc f_args arg_list f_env r =
+ let local_in funs acc (f_args, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
-   let arg acc v_list =
-     Util.mapfold (Mapfold.vardec_it funs) acc v_list in
+   let params f_acc v_list =
+     Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
 
-   (* build a renaming for the arguments *)
-   let f_env, acc = Mapfold.build_it funs.global_funs f_acc f_env in
-   (* rename the list of arguments *)
-   let f_args, acc = Util.mapfold arg acc f_args in  
+   (* build a renaming for the formal parameters *)
+   let f_env, f_acc = Mapfold.build_it funs.global_funs f_acc f_env in
+   (* rename the list of parameters *)
+   let f_args, f_acc = Util.mapfold params f_acc f_args in  
      
    (* build a list of equations *)
-   let acc, eq_list = match_f_arg_with_arg f_acc f_args arg_list in
+   let eq_list, f_acc = match_f_arg_with_arg acc f_acc (f_args, arg_list) in
 
    (* flatten the list of arguments *)
    let vardec_list = List.flatten f_args in
-   
-   let { r_desc } as r, acc = Mapfold.result_it funs acc r in
+   (* keeps those whose name [x] not bound in [f_acc] *)
+   let vardec_list =
+     List.filter (fun { var_name } -> Env.mem var_name acc.subst) vardec_list in 
+
+   (* inlining is done recursively on the body [f_body] *)
+   let { r_desc } as r, f_acc = Mapfold.result_it funs f_acc result in
    match r_desc with
    | Exp(e_r) ->
-      Aux.emake (Elocal(Aux.block_make vardec_list eq_list, e_r)), acc
+      Aux.e_local_vardec vardec_list eq_list e_r, f_acc
    | Returns { b_vars; b_body } ->
       let vardec_list = b_vars @ vardec_list in
       let eq_list = b_body :: eq_list in
-      Aux.emake
-        (Elocal(Aux.block_make vardec_list eq_list,
-                Aux.returns_of_vardec_list_make b_vars)), acc
+      Aux.e_local_vardec vardec_list eq_list
+        (Aux.returns_of_vardec_list_make b_vars), f_acc
 
 (* application *)
 let apply funs ({ subst } as acc) { e_desc } arg_list =
@@ -114,12 +128,12 @@ let apply funs ({ subst } as acc) { e_desc } arg_list =
      let e, acc =
        try
          let { f_args; f_body; f_env; f_acc } = Env.find x subst in
-         local_in funs f_acc f_args arg_list f_env f_body
+         local_in funs acc (f_args, arg_list, f_env, f_acc) f_body
        with
        | Not_found -> raise Cannot_inline in
      e, acc
   | Efun({ f_inline = true; f_args; f_body; f_env }) ->
-     local_in funs acc f_args arg_list f_env f_body
+     local_in funs acc (f_args, arg_list, f_env, acc) f_body
   | _ -> raise Cannot_inline
 
 (* Build a renaming from an environment *)
@@ -173,5 +187,15 @@ let program genv p =
   let funs =
     { Mapfold.defaults with
       global_funs; expression; equation; set_index; get_index; } in
-  let p, _ = Mapfold.program_it funs empty p in
+  let p, { renaming; subst } = Mapfold.program_it funs empty p in
+  (* finally check that the program does not need any value from [acc] *)
+  let { Vars.lv; Vars.v } = Vars.program p in
+  if (S.exists (fun x -> (Env.mem x renaming) || (Env.mem x subst)) lv)
+     || (S.exists (fun x -> (Env.mem x renaming) || (Env.mem x subst)) v)
+  then begin
+      Format.eprintf
+        "@[Inline error: a function marked to be inlined could not.@ \
+         It does not appear as the left argument of a function call.@.@]";
+    raise Misc.Error
+    end;
   p

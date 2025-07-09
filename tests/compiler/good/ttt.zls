@@ -1,16 +1,33 @@
 let f1 =
-  let (* h = 1 and *) g = inline fun x -> x + 1 in g 1 (* + h *)
+  let h = 1 and g = inline fun x -> x + 1 in
+  g 1 + h
 
-(*
-let f2 =
-  let g = fun x -> x + 1 in g 1
+(* 
+let inline app f x = f x
+
+let inline f x = x + 1
+
+let g x = app f x
 *)
 
 (*
 let node f() returns (o init 0)
   automaton
   | Up ->
-     do o = last o + 1 until (o >= 10) then Down
+     local cpt in
+     do cpt = (0 fby cpt) + 1
+     and o = last o + cpt until (o >= 10) then Down
+  | Down ->
+     do o = last o - 1 until (o <= 1) then Up
+  end
+*)
+
+(*
+let node f2() returns (o init 0)
+  automaton
+  | Up ->
+     let rec cpt = (0 fby cpt) + 1 in
+     do o = last o + cpt until (o >= 10) then Down
   | Down ->
      do o = last o - 1 until (o <= 1) then Up
   end

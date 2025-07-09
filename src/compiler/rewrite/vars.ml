@@ -70,3 +70,8 @@ let equation eq =
   let _, { last; current } =
     Mapfold.equation_it funs empty eq in
   { lv = last; v = current }
+
+let program p =
+  let _, { last; current } =
+    Mapfold.program_it funs empty p in
+  { lv = last; v = current }

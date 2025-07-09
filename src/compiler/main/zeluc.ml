@@ -84,6 +84,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t -<s> turn off step s\n\
     \t\t\t +a: takes all; -a: takes none\n\
     \t\t\t s can be one of the following values\n\
+    \t\t\t inline: all annotated functions to be inlined are inlined\n\
     \t\t\t der: normalize derivative \n\
     \t\t\t period: remove periods \n\
     \t\t\t disc: remove discrete zero-crossings \n\
@@ -103,7 +104,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t reset: distribute the reset over equations \n\
     \t\t\t aform: translation into A-normal form \n\
     \t\t\t copy: remove copy variables \n\
-    \t\t\t Example: -step -a+step+inline+static. Default is +a."
+    \t\t\t Example: -step -a+inline+static. Default is +a."
 and doc_join_der_dv = "\t (undocumented)"
 let errmsg = "Options are:"
 
