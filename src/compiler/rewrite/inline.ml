@@ -123,7 +123,9 @@ let rec apply funs ({ subst } as acc) { e_desc } arg_list =
      let e, acc =
        try
          let { f_args; f_body; f_env; f_acc } = Env.find x subst in
-         local_in funs acc (f_args, arg_list, f_env, f_acc) f_body
+         if List.length f_args = List.length arg_list
+         then local_in funs acc (f_args, arg_list, f_env, f_acc) f_body
+         else raise Cannot_inline
        with
        | Not_found -> raise Cannot_inline in
      e, acc
@@ -195,6 +197,8 @@ let program genv p =
     { Mapfold.defaults with
       global_funs; expression; equation; set_index; get_index; } in
   let p, { renaming; subst } = Mapfold.program_it funs empty p in
+
+(*
   (* finally check that the program does not need any value from [acc] *)
   let { Vars.lv; Vars.v } = Vars.program p in
   if (S.exists (fun x -> (Env.mem x renaming) || (Env.mem x subst)) lv)
@@ -206,4 +210,5 @@ let program genv p =
          It does not appear as the left argument of a function application.@.@]";
     raise Misc.Error
     end;
+*)
   p
