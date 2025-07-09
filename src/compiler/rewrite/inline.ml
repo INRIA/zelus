@@ -38,8 +38,6 @@ let empty = { renaming = Env.empty; subst = Env.empty }
 
 let eq_empty = Aux.eqmake Defnames.empty EQempty
     
-let fresh () = Ident.fresh "inline"
-
 let rec is_a_value { e_desc } =
   match e_desc with
   | Evar _ | Eglobal _ | Econst _ | Efun _ -> true
