@@ -24,7 +24,8 @@ exception Cannot_inline
 
 let _ = inlining_level := -100000
 
-(* a value is a closure: inline fun x1... -> e paired with an environment *)
+(* a value is a closure: <inline fun x1... -> e, acc> where [acc] *)
+(* is a pair of environments; one for renaming variables; one for values *)
 type value =
   { f_args: Typinfo.arg list; f_body: Typinfo.result;
     f_env: Typinfo.ienv Env.t; f_acc: acc }
@@ -38,18 +39,13 @@ let empty = { renaming = Env.empty; subst = Env.empty }
 
 let eq_empty = Aux.eqmake Defnames.empty EQempty
     
-let rec is_a_value { e_desc } =
-  match e_desc with
-  | Evar _ | Eglobal _ | Econst _ | Efun _ -> true
-  | Etuple(e_list) -> List.for_all is_a_value e_list
-  | Erecord(l_e_list) ->
-     List.for_all (fun { arg } -> is_a_value arg) l_e_list
-  | _ -> false
+let append { subst = s } ({ subst } as acc) = { acc with subst = Env.append subst s }
 
-let make_equation ({ subst } as acc) x { e_desc } =
+let fresh () = Ident.fresh "inline"
+
+(* when [e] has value [v], add an entry [x\v] to [subst] *)
+let make_subst ({ subst } as acc) x { e_desc } =
   match e_desc with
-  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
-     { acc with subst = Env.add x { f_args; f_body; f_env; f_acc = acc } subst }
   | Evar(y) ->
      let acc = 
        try { acc with subst = Env.add x (Env.find y subst) subst }
@@ -57,13 +53,11 @@ let make_equation ({ subst } as acc) x { e_desc } =
      acc
   | _ -> raise Cannot_inline
 
-let value ({ subst } as acc) { e_desc } =
+let value { subst } { e_desc } =
   match e_desc with
-  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
-     { f_args; f_body; f_env; f_acc = acc }
   | Evar(y) ->
      let v = try Env.find y subst with Not_found -> raise Cannot_inline in v
-| _ -> raise Cannot_inline
+  | _ -> raise Cannot_inline
 
 (* given [f_arg1;...;f_arg_n] and [arg1;...;arg_n] *)
 (* define [f_arg1 = arg1;...; f_arg_n = arg_n] *)
@@ -106,20 +100,21 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
 
    (* flatten the list of arguments *)
    let vardec_list = List.flatten f_args in
-   (* keeps those whose name [x] not bound in [f_acc] *)
+   (* keeps those whose name [x] is not bound in [f_acc] *)
    let vardec_list =
      List.filter (fun { var_name } -> Env.mem var_name acc.subst) vardec_list in 
 
    (* inlining is done recursively on the body [f_body] *)
    let { r_desc } as r, f_acc = Mapfold.result_it funs f_acc result in
-   match r_desc with
-   | Exp(e_r) ->
-      Aux.e_local_vardec vardec_list eq_list e_r, f_acc
-   | Returns { b_vars; b_body } ->
-      let vardec_list = b_vars @ vardec_list in
-      let eq_list = b_body :: eq_list in
-      Aux.e_local_vardec vardec_list eq_list
-        (Aux.returns_of_vardec_list_make b_vars), f_acc
+   let e = match r_desc with
+     | Exp(e_r) ->
+        Aux.e_local_vardec vardec_list eq_list e_r
+     | Returns { b_vars; b_body } ->
+        let vardec_list = b_vars @ vardec_list in
+        let eq_list = b_body :: eq_list in
+        Aux.e_local_vardec vardec_list eq_list
+        (Aux.returns_of_vardec_list_make b_vars) in
+   e, append f_acc acc
 
 (* application *)
 let apply funs ({ subst } as acc) { e_desc } arg_list =
@@ -132,8 +127,6 @@ let apply funs ({ subst } as acc) { e_desc } arg_list =
        with
        | Not_found -> raise Cannot_inline in
      e, acc
-  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
-     local_in funs acc (f_args, arg_list, f_env, acc) f_body
   | _ -> raise Cannot_inline
 
 (* Build a renaming from an environment *)
@@ -151,6 +144,10 @@ let var_ident global_funs ({ renaming } as acc) x =
 (* expressions *)
 let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) = 
   match e_desc with
+  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
+     let m = fresh () in
+     { e with e_desc = Evar(m) },
+     { acc with subst = Env.add m { f_args; f_body; f_env; f_acc = acc } subst }
   | Eapp({ f; arg_list } as app) ->
      let f, acc = Mapfold.expression_it funs acc f in
      let arg_list, acc =
@@ -159,8 +156,7 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
        try
          apply funs acc f arg_list
        with
-         Cannot_inline ->
-         { e with e_desc = Eapp({ app with f; arg_list }) }, acc in
+         Cannot_inline -> { e with e_desc = Eapp({ app with f; arg_list }) }, acc in
      e, acc
   | _ -> raise Mapfold.Fallback
 
@@ -171,8 +167,9 @@ let equation funs acc ({ eq_desc } as eq) =
      let e, acc = Mapfold.expression_it funs acc e in
      let eq, acc =
        try
-         let acc = make_equation acc x e in eq_empty, acc
-       with Cannot_inline -> { eq with eq_desc = EQeq(p, e) }, acc in
+         let acc = make_subst acc x e in eq_empty, acc
+       with Cannot_inline -> 
+         { eq with eq_desc = EQeq({ p with pat_desc = Evarpat(x) }, e) }, acc in
      eq, acc
   | _ -> raise Mapfold.Fallback
 
@@ -194,8 +191,9 @@ let program genv p =
      || (S.exists (fun x -> (Env.mem x renaming) || (Env.mem x subst)) v)
   then begin
       Format.eprintf
-        "@[Inline error: a function marked to be inlined could not.@ \
-         It does not appear as the left argument of a function call.@.@]";
+        "@[Inline error: a function marked to be inlined could not \
+         be inlined.@ \
+         It does not appear as the left argument of a function application.@.@]";
     raise Misc.Error
     end;
   p

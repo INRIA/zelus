@@ -912,8 +912,9 @@ let open_it funs acc name = funs.open_t funs acc name
 
 let open_t funs acc name = name, acc
 
-let letdecl_it funs acc (d_names, d_leq) =
-  funs.letdecl funs acc (d_names, d_leq)
+let rec letdecl_it funs acc (d_names, d_leq) =
+  try funs.letdecl funs acc (d_names, d_leq)
+  with Fallback -> letdecl funs acc (d_names, d_leq)
 
 and letdecl funs acc (d_names, d_leq) =
   let d_leq, acc = leq_it funs acc d_leq in
@@ -989,7 +990,9 @@ let get_index_it funs acc n = funs.get_index funs acc n
 
 and get_index funs acc n = n, acc
 
-let program_it funs acc p = funs.program funs acc p
+let rec program_it funs acc p = 
+  try funs.program funs acc p
+  with Fallback -> program funs acc p
 
 and program funs acc { p_impl_list; p_index } =
   let n, acc = set_index_it funs acc p_index in
