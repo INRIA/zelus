@@ -474,7 +474,7 @@ and slet_t funs acc leq_list = Util.mapfold (leq_it funs) acc leq_list
 
 and leq_it funs acc leq =
   try funs.leq_t funs acc leq
-with Fallback -> leq_t funs acc leq
+  with Fallback -> leq_t funs acc leq
 
 and leq_t funs acc ({ l_eq; l_env } as leq) =
   let l_env, acc = build_it funs.global_funs acc l_env in
