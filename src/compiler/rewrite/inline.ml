@@ -85,36 +85,57 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let local_in funs acc (f_args, arg_list, f_env, f_acc) result =
+ let local_in funs acc (f_param_list, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
 
+   let match_f_param_with_arg acc f_acc (f_param_list, arg_list) =
+     (* build a list of equations *)
+     let eq_list, f_acc = match_f_arg_with_arg acc f_acc (f_param_list, arg_list) in
+     
+     (* flatten the list of arguments *)
+     let vardec_list = List.flatten f_param_list in
+     (* keeps those whose name [x] is not bound in [f_acc] *)
+     let vardec_list =
+       List.filter
+         (fun { var_name } -> Env.mem var_name acc.subst) vardec_list in 
+     
+     (* inlining is done recursively on the body [f_body] *)
+     let { r_desc } as r, f_acc = Mapfold.result_it funs f_acc result in
+     let e = match r_desc with
+       | Exp(e_r) ->
+          Aux.e_local_vardec vardec_list eq_list e_r
+       | Returns { b_vars; b_body } ->
+          let vardec_list = b_vars @ vardec_list in
+          let eq_list = b_body :: eq_list in
+          Aux.e_local_vardec vardec_list eq_list
+            (Aux.returns_of_vardec_list_make b_vars) in
+     e, append f_acc acc in
+
+   (* test the arity *)
+   let l_f_param_list = List.length f_param_list in
+   let l_arg_list = List.length arg_list in
+   
    (* build a renaming for the formal parameters *)
    let f_env, f_acc = Mapfold.build_it funs.global_funs f_acc f_env in
    (* rename the list of parameters *)
-   let f_args, f_acc = Util.mapfold params f_acc f_args in  
-     
-   (* build a list of equations *)
-   let eq_list, f_acc = match_f_arg_with_arg acc f_acc (f_args, arg_list) in
-
-   (* flatten the list of arguments *)
-   let vardec_list = List.flatten f_args in
-   (* keeps those whose name [x] is not bound in [f_acc] *)
-   let vardec_list =
-     List.filter (fun { var_name } -> Env.mem var_name acc.subst) vardec_list in 
-
-   (* inlining is done recursively on the body [f_body] *)
-   let { r_desc } as r, f_acc = Mapfold.result_it funs f_acc result in
-   let e = match r_desc with
-     | Exp(e_r) ->
-        Aux.e_local_vardec vardec_list eq_list e_r
-     | Returns { b_vars; b_body } ->
-        let vardec_list = b_vars @ vardec_list in
-        let eq_list = b_body :: eq_list in
-        Aux.e_local_vardec vardec_list eq_list
-        (Aux.returns_of_vardec_list_make b_vars) in
-   e, append f_acc acc
+   let f_param_list, f_acc = Util.mapfold params f_acc f_param_list in  
+   
+   if l_f_param_list = l_arg_list
+   then
+     match_f_param_with_arg acc f_acc (f_param_list, arg_list) 
+   else
+     if l_f_param_list < l_arg_list then
+       let arg_list, arg_rest_list =
+         Util.firsts_n l_f_param_list arg_list in
+       let e, f_acc = match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+       e, f_acc
+     else
+       let f_param_list, f_param_rest_list =
+         Util.firsts_n l_f_param_list f_param_list in
+       let e, f_acc = match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+       e, f_acc
 
 (* application *)
 let rec apply funs ({ subst } as acc) { e_desc } arg_list =
@@ -123,13 +144,10 @@ let rec apply funs ({ subst } as acc) { e_desc } arg_list =
      let e, acc =
        try
          let { f_args; f_body; f_env; f_acc } = Env.find x subst in
-         if List.length f_args = List.length arg_list
-         then local_in funs acc (f_args, arg_list, f_env, f_acc) f_body
-         else raise Cannot_inline
+         local_in funs acc (f_args, arg_list, f_env, f_acc) f_body
        with
        | Not_found -> raise Cannot_inline in
      e, acc
-  | Eop((Erun _ | Eatomic), [e]) -> apply funs acc e arg_list
   | _ -> raise Cannot_inline
 
 (* Build a renaming from an environment *)
