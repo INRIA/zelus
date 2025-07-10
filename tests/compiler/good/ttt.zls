@@ -4,8 +4,14 @@ let f1 x =
 
 let f2 x =
   let h = 1 and g = inline fun x y -> x + 1 in
-  let h = g 1 in
+  let h = g h in
   h 2 + g 2 3
+
+let f3 x =
+  let h = inline fun x -> x + 1
+  and g = inline fun h y -> h y + 1 in
+  let h = g h in
+  h 2 + 1
 
 (*
 let node f3 x =

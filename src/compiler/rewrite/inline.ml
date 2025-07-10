@@ -191,24 +191,44 @@ let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
+(* a post-pass verification checking that all *)
+(* [inline fun x1...xn -> e] have been removed *)
+let check_no_inline_letdecl subst l_decl =
+  let expression funs subst ({ e_desc; e_loc } as e) =
+    match e_desc with
+    | Evar(x) ->
+       let e, subst =
+         try
+           let _ = Env.find x subst in
+           Format.eprintf
+             "@[%aInline error: this expression should be replaced by \
+              an inlined function.@ \
+              The inlining cannot be done because \
+              it is not on the left of an application@ \
+              or the application is partial.@.@]"
+             Location.output_location e_loc;
+           raise Misc.Error
+         with | Not_found -> e, subst in
+       e, subst
+    | _ -> raise Mapfold.Fallback in
+
+  let global_funs = Mapfold.default_global_funs in
+  let funs =
+    { Mapfold.defaults with global_funs; expression } in
+  
+  Mapfold.letdecl_it funs subst l_decl
+
+let letdecl funs acc l_decl =
+  let l_decl, ({ subst } as acc) = Mapfold.letdecl funs acc l_decl in
+  let _ = check_no_inline_letdecl subst l_decl in
+  l_decl, acc
+
 let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
     { Mapfold.defaults with
-      global_funs; expression; equation; set_index; get_index; } in
+      global_funs; expression; equation; letdecl; set_index; get_index; } in
   let p, { renaming; subst } = Mapfold.program_it funs empty p in
-
-(*
-  (* finally check that the program does not need any value from [acc] *)
-  let { Vars.lv; Vars.v } = Vars.program p in
-  if (S.exists (fun x -> (Env.mem x renaming) || (Env.mem x subst)) lv)
-     || (S.exists (fun x -> (Env.mem x renaming) || (Env.mem x subst)) v)
-  then begin
-      Format.eprintf
-        "@[Inline error: a function marked to be inlined could not \
-         be inlined.@ \
-         It does not appear as the left argument of a function application.@.@]";
-    raise Misc.Error
-    end;
-*)
   p
+
+
