@@ -85,7 +85,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let local_in funs acc (f_param_list, arg_list, f_env, f_acc) result =
+ let rec local_in funs acc (f_param_list, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
@@ -138,7 +138,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
        e, f_acc
 
 (* application *)
-let rec apply funs ({ subst } as acc) { e_desc } arg_list =
+and apply funs ({ subst } as acc) { e_desc } arg_list =
   match e_desc with
   | Evar(x) ->
      let e, acc =
