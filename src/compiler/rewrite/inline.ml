@@ -101,11 +101,14 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
        List.filter
          (fun { var_name } -> Env.mem var_name acc.subst) vardec_list in 
      
-     (* inlining is done recursively on the body [f_body] *)
-     let { r_desc } as r, f_acc = Mapfold.result_it funs f_acc result in
+     (vardec_list, eq_list), f_acc in
+
+   let result_t f_acc (vardec_list, eq_list) result =
+     (* inlining is done recursively on the body [r] *)
+     let { r_desc } as result, f_acc = Mapfold.result_it funs f_acc result in
      let e = match r_desc with
-       | Exp(e_r) ->
-          Aux.e_local_vardec vardec_list eq_list e_r
+       | Exp(r_e) ->
+          Aux.e_local_vardec vardec_list eq_list r_e
        | Returns { b_vars; b_body } ->
           let vardec_list = b_vars @ vardec_list in
           let eq_list = b_body :: eq_list in
@@ -113,7 +116,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
             (Aux.returns_of_vardec_list_make b_vars) in
      e, append f_acc acc in
 
-   (* test the arity *)
+   (* compute the arity *)
    let n_f_param_list = List.length f_param_list in
    let n_arg_list = List.length arg_list in
    
@@ -124,21 +127,31 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
    
    if n_f_param_list = n_arg_list
    then
-     match_f_param_with_arg acc f_acc (f_param_list, arg_list) 
+     let (vardec_list, eq_list), f_acc =
+       match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+     result_t f_acc (vardec_list, eq_list) result
    else
      if n_f_param_list < n_arg_list then
+       (* [(inline fun x1..xn -> result) e1..en en+1...em] *)
        let arg_list, arg_rest_list =
          Util.firsts_n n_f_param_list arg_list in
-       let e, f_acc = match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
-       apply funs f_acc e arg_rest_list
+       let (vardec_list, eq_list), f_acc =
+         match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+       let e, f_acc = result_t f_acc ([], []) result in
+       let e, f_acc = apply funs f_acc e arg_rest_list in
+       Aux.e_local_vardec vardec_list eq_list e, f_acc
      else
+       (* [n_f_param_list > n_arg_list] *)
+       (* [(inline fun x1..xn xn+1..xm -> result) e1..en] *)
        let f_param_list, f_param_rest_list =
-         Util.firsts_n n_f_param_list f_param_list in
-       let e, f_acc = match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+         Util.firsts_n n_arg_list f_param_list in
+       let (vardec_list, eq_list), f_acc =
+         match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
        let m = fresh () in
-       let entry = { f_args = f_param_rest_list; f_body = Aux.result_e e;
+       let entry = { f_args = f_param_rest_list; f_body = result;
                      f_env; f_acc } in
-       { e with e_desc = Evar(m) }, { acc with subst = Env.add m entry f_acc.subst }
+       Aux.e_local_vardec vardec_list eq_list (Aux.var m),
+       { acc with subst = Env.add m entry f_acc.subst }
 
 (* application *)
 and apply funs ({ subst } as acc) ({ e_desc } as e) arg_list =
@@ -168,7 +181,8 @@ let build global_funs ({ renaming } as acc) env =
   env, { acc with renaming }
 
 let var_ident global_funs ({ renaming } as acc) x =
- Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc
+  (try Env.find x renaming with Not_found -> x), acc
+(* Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc *)
 
 (* expressions *)
 let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) = 
