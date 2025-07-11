@@ -76,6 +76,8 @@ let record l_list e_list =
 let ifthenelse e e_true e_false =
   emake (Eop(Eifthenelse, [e_true; e_false]))
 
+let result_e e = { r_desc = Exp(e); r_loc = no_location; r_info = Typinfo.no_info }
+
 let is_empty { eq_desc } =
   match eq_desc with | EQempty -> true | _ -> false
 
