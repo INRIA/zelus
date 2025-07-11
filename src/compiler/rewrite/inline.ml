@@ -151,7 +151,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
        let entry = { f_args = f_param_rest_list; f_body = result;
                      f_env; f_acc } in
        Aux.e_local_vardec vardec_list eq_list { (Aux.var m) with e_loc = loc },
-       { acc with subst = Env.add m entry f_acc.subst }
+       append { acc with subst = Env.add m entry f_acc.subst } acc
 
 (* application *)
 and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
