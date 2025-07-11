@@ -152,7 +152,8 @@ and apply funs ({ subst } as acc) ({ e_desc } as e) arg_list =
        | Not_found -> raise Cannot_inline in
      e, acc
   | Elet(l_eq, e_let) ->
-     (* TODO: should we add the environment of [l_eq] to acc? *)
+     (* when the function apply is called, [e] has already been traversed *)
+     (* so it is useless to pass again on [l_eq] *)
      let e_let, acc = apply funs acc e_let arg_list in
      { e with e_desc = Elet(l_eq, e_let) }, acc
   | _ -> raise Cannot_inline
