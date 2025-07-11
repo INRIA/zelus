@@ -85,7 +85,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let rec local_in funs acc (f_param_list, arg_list, f_env, f_acc) result =
+ let rec local_in funs acc loc (f_param_list, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
@@ -150,17 +150,17 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
        let m = fresh () in
        let entry = { f_args = f_param_rest_list; f_body = result;
                      f_env; f_acc } in
-       Aux.e_local_vardec vardec_list eq_list (Aux.var m),
+       Aux.e_local_vardec vardec_list eq_list { (Aux.var m) with e_loc = loc },
        { acc with subst = Env.add m entry f_acc.subst }
 
 (* application *)
-and apply funs ({ subst } as acc) ({ e_desc } as e) arg_list =
+and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
   match e_desc with
   | Evar(x) ->
      let e, acc =
        try
          let { f_args; f_body; f_env; f_acc } = Env.find x subst in
-         local_in funs acc (f_args, arg_list, f_env, f_acc) f_body
+         local_in funs acc e_loc (f_args, arg_list, f_env, f_acc) f_body
        with
        | Not_found -> raise Cannot_inline in
      e, acc
