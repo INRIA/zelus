@@ -114,31 +114,34 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
      e, append f_acc acc in
 
    (* test the arity *)
-   let l_f_param_list = List.length f_param_list in
-   let l_arg_list = List.length arg_list in
+   let n_f_param_list = List.length f_param_list in
+   let n_arg_list = List.length arg_list in
    
    (* build a renaming for the formal parameters *)
    let f_env, f_acc = Mapfold.build_it funs.global_funs f_acc f_env in
    (* rename the list of parameters *)
    let f_param_list, f_acc = Util.mapfold params f_acc f_param_list in  
    
-   if l_f_param_list = l_arg_list
+   if n_f_param_list = n_arg_list
    then
      match_f_param_with_arg acc f_acc (f_param_list, arg_list) 
    else
-     if l_f_param_list < l_arg_list then
+     if n_f_param_list < n_arg_list then
        let arg_list, arg_rest_list =
-         Util.firsts_n l_f_param_list arg_list in
+         Util.firsts_n n_f_param_list arg_list in
        let e, f_acc = match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
-       e, f_acc
+       apply funs f_acc e arg_rest_list
      else
        let f_param_list, f_param_rest_list =
-         Util.firsts_n l_f_param_list f_param_list in
+         Util.firsts_n n_f_param_list f_param_list in
        let e, f_acc = match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
-       e, f_acc
+       let m = fresh () in
+       let entry = { f_args = f_param_rest_list; f_body = Aux.result_e e;
+                     f_env; f_acc } in
+       { e with e_desc = Evar(m) }, { acc with subst = Env.add m entry f_acc.subst }
 
 (* application *)
-and apply funs ({ subst } as acc) { e_desc } arg_list =
+and apply funs ({ subst } as acc) ({ e_desc } as e) arg_list =
   match e_desc with
   | Evar(x) ->
      let e, acc =
@@ -148,6 +151,10 @@ and apply funs ({ subst } as acc) { e_desc } arg_list =
        with
        | Not_found -> raise Cannot_inline in
      e, acc
+  | Elet(l_eq, e_let) ->
+     (* TODO: should we add the environment of [l_eq] to acc? *)
+     let e_let, acc = apply funs acc e_let arg_list in
+     { e with e_desc = Elet(l_eq, e_let) }, acc
   | _ -> raise Cannot_inline
 
 (* Build a renaming from an environment *)
@@ -179,6 +186,7 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
        with
          Cannot_inline -> { e with e_desc = Eapp({ app with f; arg_list }) }, acc in
      e, acc
+  (* TODO: remove the operator Erun; mark function calls instead *)
   | Eop(Erun i, [f; arg]) ->
      let f, acc = Mapfold.expression_it funs acc f in
      let arg, acc = Mapfold.expression_it funs acc arg in
