@@ -12,7 +12,8 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* Inlining of function calls. Only global function names are inlined *)
+(* Inlining of function calls. Expressions [inline fun x1... -> e] *)
+(* are eliminated. If one cannot, the inlining step fails *)
 
 open Misc
 open Location
