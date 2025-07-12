@@ -1,6 +1,15 @@
-let node f x returns (o)
-  match true with
-  | true -> do emit o = 1 done
+let node f() returns (o init 0)
+  automaton
+  | Up ->
+     let rec cpt = (0 fby cpt) + 1 in
+     do o = last o + cpt until (o >= 10) then Down
+  | Down ->
+     do o = last o - 1 until (o <= 1) then Up
+  end
+
+let node ff() =
+  print_int (f ());
+  print_newline ()
 
 (*
 

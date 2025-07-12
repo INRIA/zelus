@@ -657,7 +657,7 @@ module Make (Info: INFO) =
       fprintf ff "@[<v0>@[<hov2>let%a%s@ %a@ %a@]@]" 
         vkind l_kind s equation l_eq print_env l_env 
     
-    and leqs ff l =  print_if_not_empty (print_list_l leq "" " in" "in") ff l
+    and leqs ff l = print_list_r_empty leq "" "in" "in " ff l
     
     let constr_decl ff { desc = desc } =
       match desc with
