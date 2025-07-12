@@ -128,7 +128,7 @@ let eq_and ordered eq1 eq2 =
 
 let rec par ordered eq_list =
   match eq_list with
-  | [] -> eqmake Defnames.empty EQempty
+  | [] -> eq_empty ()
   | eq :: eq_list ->
      eq_and ordered eq (par ordered eq_list)
 
@@ -151,7 +151,7 @@ let env_of s = S.fold (fun n acc -> Env.add n Typinfo.no_ienv acc) s Env.empty
 let block_make vardec_list eq_list =
   let b_body =
     match eq_list with
-    | [] -> eqmake Defnames.empty EQempty
+    | [] -> eq_empty ()
     | [eq] -> eq
     | _ -> par eq_list in
   let b = { b_vars = vardec_list; b_env = Env.empty; b_loc = no_location;
@@ -162,6 +162,8 @@ let block_make vardec_list eq_list =
   let w = Defnames.diff w def in
   let b_env = env_of def in
   { b with b_write = w; b_env }
+
+let block_empty () = block_make [] []
 
 let eq_reset eq e = eqmake eq.eq_write (EQreset(eq, e))
 let eq_match is_total e handlers =
@@ -187,8 +189,7 @@ let eq_ifthenelse e eq_true eq_false =
   eqmake w (EQif { e; eq_true; eq_false })
 
 let eq_ifthen e eq_true =
-  let eq_empty = eqmake Defnames.empty EQempty in
-  eq_ifthenelse e eq_true eq_empty
+  eq_ifthenelse e eq_true (eq_empty ())
     
 let rec eq_let_list leq_list eq =
   match leq_list with
@@ -230,7 +231,7 @@ let eq_local b = eqmake b.b_write (EQlocal(b))
 
 let eq_local_vardec vardec_list eq_list =
   match vardec_list, eq_list with
-  | _, [] -> eqmake Defnames.empty EQempty
+  | _, [] -> eq_empty ()
   | [], _ -> par eq_list
   | _ -> eq_local (block_make vardec_list eq_list)
 
@@ -255,8 +256,7 @@ let e_local_vardec vardec_list eq_list e =
   | _ -> e_local (block_make vardec_list eq_list) e
 
 let eq_ifthen e eq_true =
-  let eq_empty = eqmake Defnames.empty EQempty in
-  eq_ifthenelse e eq_true eq_empty
+  eq_ifthenelse e eq_true (eq_empty ())
 
 let rec orpat pat_list =
   match pat_list with
