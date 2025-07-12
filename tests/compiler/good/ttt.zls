@@ -1,3 +1,10 @@
+let node f x returns (o)
+  match true with
+  | true -> do emit o = 1 done
+
+(*
+
+
 let f1 x =
   let h = 1 and g = inline fun x -> x + 1 in
   g 1 + g 2
@@ -12,6 +19,7 @@ let f3 x =
   and g = inline fun h y -> h y + 1 in
   let h = g h in
   h 2 + 1
+*)
 
 (*
 let node f3 x =
