@@ -76,7 +76,8 @@ let record l_list e_list =
 let ifthenelse e e_true e_false =
   emake (Eop(Eifthenelse, [e_true; e_false]))
 
-let result_e e = { r_desc = Exp(e); r_loc = no_location; r_info = Typinfo.no_info }
+let result_e e = 
+  { r_desc = Exp(e); r_loc = no_location; r_info = Typinfo.no_info }
 
 let is_empty { eq_desc } =
   match eq_desc with | EQempty -> true | _ -> false
@@ -95,6 +96,8 @@ let eq_make p e : Typinfo.eq =
 let id_eq id e =
   let w = Defnames.singleton id in
   eqmake w (EQeq(pat_make id, e))
+
+let eq_empty () = eqmake Defnames.empty EQempty
 
 let wildpat_eq e =
   eqmake Defnames.empty (EQeq(wildpat, e))

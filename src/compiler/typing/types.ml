@@ -545,13 +545,13 @@ let rec split_arguments ty_fun e_list =
 (* representation of types. This is mandatory for them to be used once *)
 (* static typing is performed *)
 
-(* A function which returns either the type argument of a signal *)
-(* or nothing. *)
-let rec is_a_signal { t_desc = desc } =
-  match desc with
-    | Tconstr(id, [ty], _) when id = Initial.sig_ident -> Some(ty)
-    | Tlink(link) -> is_a_signal link
-    | _ -> None
+(* A function which test that a type is a signal *)
+let rec is_a_signal_scheme { typ_body } = is_a_signal_type typ_body
+and is_a_signal_type { t_desc } =
+  match t_desc with
+  | Tconstr(id, [ty], _) when id = Initial.sig_ident -> true
+  | Tlink(link) -> is_a_signal_type link
+  | _ -> false
 
 (* A function is combinatorial if its type is *)
 (* that of a combinatorial function *)

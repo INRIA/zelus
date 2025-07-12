@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -14,14 +14,17 @@
 
 (* propagate the default value and initialisation into the body of a block *)
 (* E.g., [local x default e,... do eq] and [local x init e,... do eq *)
-(* replace [local ... do eq in e] by [let rec eq in e] *)
+(* match e with P1 -> x = ... | P2 -> y = ...] is rewritten *)
+(* match e with P1 -> x = ... and y = def_y | P2 -> y = ... and x = def_x] *)
+(* [def_y] is the default value if defined; last y otherwise *)
+(* this step also replace [local ... do eq in e] by [let rec eq in e] *)
 open Zelus
 open Ident
 open Defnames
 open Aux
 open Mapfold
 
-(* The accumulator is an environment of default values [name -> exp] *)
+(* The accumulator [acc] is an environment of default values [name -> exp] *)
 let block funs acc ({ b_vars; b_body; b_write; b_env } as b) =
   let vardec
         (init_list, acc)
@@ -73,12 +76,24 @@ let equation funs acc eq =
      let eq_true = complete acc eq_write eq_true in
      let eq_false = complete acc eq_write eq_false in
      { eq with eq_desc = EQif { e; eq_true; eq_false } }, acc
-  | EQmatch({ e; handlers } as m) ->
+  | EQmatch({ is_size; is_total; e; handlers } as m) ->
      let handler ({ m_body } as m_h) =
        let m_body = complete acc eq_write m_body in
        { m_h with m_body } in
      let handlers = List.map handler handlers in
-     { eq with eq_desc = EQmatch { m with e; handlers } }, acc
+     if is_total then
+       { eq with eq_desc = EQmatch { m with e; handlers } }, acc
+     else
+        (* add a handler [_ -> default_eq] when the pattern matching is partial *)
+       (* [default_eq] is a list of  default equations for *)
+       (* variables in [eq_write] *)
+        let m_body = complete acc eq_write (Aux.eq_empty ()) in
+        let m_h =
+          { m_pat = Aux.wildpat; m_loc = Location.no_location;
+            m_reset = false; m_zero = false; m_env = Env.empty;
+            m_body } in
+        { eq with eq_desc = EQmatch { is_size; is_total = true; e;
+                                      handlers = handlers @ [m_h] } }, acc
   | _ -> eq, acc
 
 let program _ p =

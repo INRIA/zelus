@@ -953,7 +953,7 @@ and vardec expected_k h (acc_h, acc_k)
   (* the initialization must appear in a statefull function *)
   let actual_k_init =
     Util.optional_with_default
-      (fun e -> stateful e.e_loc expected_k;
+      (fun e -> stateful var_loc expected_k;
                 expect (Tnode(Tdiscrete)) h e expected_ty)
       (Tfun(Tconst)) var_init in
   let actual_k = Kind.sup actual_k_default actual_k_init in

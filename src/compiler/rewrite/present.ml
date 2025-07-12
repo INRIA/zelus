@@ -42,14 +42,14 @@ open Mapfold
 (*   | P(p3), ..., _,  true -> (* zero = true *) ...                    *)
 (*   end                                                                *)
 (* the bit [zero] indicates that the branch corresponds to a *)
-(* zero-crossing. It is set to [true] only when the context is continuous *)
+(* zero-crossing. It is set to [true] when the context is continuous    *)
 (*                                                                      *)
 (*                                                                      *)
 (* a signal x is represented by a P(v) (present) or A (absent)          *)
 
 (* representation of signals. A [signal] is represented as an optional value *)
-let present_name = Lident.Modname(Initial.stdlib_name "P")
-let absent_name = Lident.Modname(Initial.stdlib_name "A")
+let present_name = Lident.Modname(Initial.stdlib_name "Some")
+let absent_name = Lident.Modname(Initial.stdlib_name "None")
 let emit e = Aux.constr1 present_name [e]
 let absent = Aux.constr0 absent_name
 
@@ -146,6 +146,7 @@ let pattern exps { p_cond; p_body; p_env; p_zero } =
 (* add a default value for signals. *)
 (* [local ..., x, ...] becomes [local ..., x default A, ...] *)
 let add_absent_vardec acc ({ var_name } as v) =
+  let l = S.to_list acc in
   if S.mem var_name acc then
     { v with var_default = Some(absent) }, S.remove var_name acc
   else v, acc
@@ -174,10 +175,20 @@ let present_handlers handlers default_opt =
 let eq_present_handlers handlers default_opt =
   generic_present_handlers Aux.eq_match handlers default_opt
 
-(* [acc] is the set of variables [id] in [eq] that contains an *)
+(* [acc] is the set of variables [id] in [eq] that contain an *)
 (* equation [emit id = ...] *)
+let build global_funs acc env =
+  (* every [x] defined in [env] whose type is a signal type *)
+  (* has a default value [A] *)
+  let acc = 
+    Env.fold 
+      (fun x { Deftypes.t_tys } acc -> 
+        if Types.is_a_signal_scheme t_tys then S.add x acc else acc)
+      env acc in
+  env, acc
+
 let equation funs acc eq =
-  let { eq_desc }, acc = Mapfold.equation funs acc eq in
+  let { eq_desc } as eq, acc = Mapfold.equation funs acc eq in
   match eq_desc with
   | EQpresent { handlers; default_opt } ->
      eq_present_handlers handlers default_opt, acc
@@ -185,16 +196,16 @@ let equation funs acc eq =
   (* [emit id = e] is replaced by [id = P(e)] *)
      let e = match e_opt with | None -> Aux.evoid | Some(e) -> e in
      Aux.id_eq id (emit e), S.add id acc
-  | _ -> raise Mapfold.Fallback
+  | _ -> eq, acc
 
-and expression funs acc e =
-  let { e_desc }, acc = Mapfold.expression funs acc e in
+let expression funs acc e =
+  let { e_desc } as e, acc = Mapfold.expression funs acc e in
   match e_desc with
   | Epresent { handlers; default_opt } ->
      present_handlers handlers default_opt, acc
   | Eop(Etest, [e]) ->
      test e, acc
-  | _ -> raise Mapfold.Fallback
+  | _ -> e, acc
 
 and block funs acc b =
   let ({ b_vars } as b), acc = Mapfold.block funs acc b in
@@ -202,9 +213,9 @@ and block funs acc b =
   { b with b_vars }, acc
 
 let program _ p =
-  let global_funs = Mapfold.default_global_funs in
+  let global_funs = { Mapfold.default_global_funs with build } in
   let funs =
-    { Mapfold.defaults with equation; expression; global_funs } in
+    { Mapfold.defaults with equation; expression; block; global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs S.empty p in
   { p with p_impl_list = p_impl_list }
 
