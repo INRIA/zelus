@@ -184,12 +184,13 @@ let automaton acc is_weak handlers state_opt =
                     eq_local e_body]) } in
   
   (* Translation of strong transitions *)
-  let strong { s_state; s_body; s_trans } =
+  let strong { s_state; s_let; s_body; s_trans } =
     let pat = statepat s_state in
     (* translate the escape expression *)
     let p_h_list = List.map escape s_trans in
     let handler_to_compute_current_state =
-      eq_reset (eq_present p_h_list (id_eq reset_name efalse))
+      eq_reset (Aux.eq_let_list s_let
+                  (eq_present p_h_list (id_eq reset_name efalse)))
         (reset_last reset_name) in
     let handler_for_current_active_state =
       eq_reset (eq_local s_body) (reset_var reset_name) in
@@ -198,13 +199,13 @@ let automaton acc is_weak handlers state_opt =
   
   (* This function computes what to do with a automaton with weak transitions *)
   (* a single match/with is generated *)
-  let weak { s_state; s_body; s_trans } =
+  let weak { s_state; s_let; s_body; s_trans } =
     let pat = statepat s_state in
     let p_h_list = List.map escape s_trans in
     let eq_next_state =
       eq_present p_h_list (id_eq reset_name efalse) in
     let eq = Aux.eq_and eq_next_state (eq_local s_body) in
-    pat, eq_reset eq (reset_last reset_name) in
+    pat, eq_reset (Aux.eq_let_list s_let eq) (reset_last reset_name) in
   
   (* the code generated for automata with strong transitions *)
   let strong_automaton handlers =
@@ -246,7 +247,7 @@ let equation funs acc eq =
   match eq.eq_desc with
   | EQautomaton { is_weak; handlers; state_opt } ->
      automaton acc is_weak handlers state_opt
-  | _ -> raise Mapfold.Fallback
+  | _ -> eq, acc
          
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
