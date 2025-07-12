@@ -83,15 +83,18 @@ let equations eqs =
        par (par eq_list eqs1) eqs2 in
   par [] eqs
 
-(* build an equation [local vardec_list do eq done] from [acc] *)
-let eq_local { c_vardec; c_eq } =
+let vardec_list_eq { c_vardec; c_eq } =
   let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
+  vardec_list, eq_list
+
+(* build an equation [local vardec_list do eq done] from [acc] *)
+let eq_local acc =
+  let vardec_list, eq_list = vardec_list_eq acc in
   Aux.eq_local_vardec vardec_list eq_list     
 
-let e_local { c_vardec; c_eq } e =
-  let vardec_list = Parseq.fold (@) c_vardec [] in
-  let eq_list = equations c_eq in
+let e_local acc e =
+  let vardec_list, eq_list = vardec_list_eq acc in
   Aux.e_local_vardec vardec_list eq_list e
 
 let pattern funs acc p = p, acc
@@ -169,10 +172,10 @@ let leq_t funs acc ({ l_eq = { eq_write } as l_eq } as l) =
   let n_names = Defnames.names S.empty eq_write in
   { l with l_eq }, add_names n_names acc
 
-let block funs acc ({ b_vars; b_body } as b) =
+let block funs acc { b_vars; b_body } =
   (* assume that [b_vars] does not contain expressions (default/init) anymore *)
-  let b_body, acc = Mapfold.equation_it funs acc b_body in
-  b, add_vardec b_vars acc
+  let _, acc = Mapfold.equation_it funs acc b_body in
+  Aux.block_empty (), add_vardec b_vars acc
     
 let if_eq funs acc (eq_true, eq_false) =
   let eq_true = atomic_equation funs empty eq_true in
@@ -206,13 +209,14 @@ let reset_eq funs acc eq =
   eq, acc
 
 let result funs acc ({ r_desc } as r) =
-  let r_desc, acc = match r_desc with
+  let r_desc = match r_desc with
   | Exp(e) ->
      let e = atomic_expression funs empty e in
-     Exp(e), acc
-  | Returns(b) ->
-     let b, acc = Mapfold.block_it funs acc b in
-     Returns(b), acc in
+     Exp(e)
+  | Returns({ b_body } as b) ->
+     (* assume that [b_vars] does not contain expressions (default/init) anymore *)
+     let _, acc = Mapfold.equation_it funs empty b_body in
+     Returns { b with b_body = eq_local acc } in
   { r with r_desc }, acc
 
 let for_exp_t funs acc for_body =
