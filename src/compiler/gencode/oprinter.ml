@@ -304,7 +304,8 @@ and memory ff { m_name; m_value; m_typ; m_kind; m_size } =
 
 and instance ff { i_name; i_machine; i_kind; i_params; i_size } =
   fprintf ff
-    "@[%a : %s(%a)%a%a@]" Printer.name i_name (kind i_kind) (exp 0) i_machine
+    "@[%s %a@ %a%a%a@]" 
+    (kind i_kind) Printer.name i_name (exp 0) i_machine
     (print_list_no_space
        (print_with_braces (exp 0) "(" ")") "" "" "")
     i_params
@@ -326,9 +327,9 @@ and pinitialize ff i_opt =
 and machine ff { ma_name; ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods } =
   fprintf ff
-    "@[<hov 2>machine(%s)(%a)%a@ \
+    "@[<hov 2>%s machine@ %a@ (%a)@ \
      {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]}@]"
-    (kind ma_kind) Ident.fprint_t ma_name 
+    (kind ma_kind) Ident.fprint_t ma_name  
     (pattern_list Printer.ptype) ma_params
     pinitialize ma_initialize
     (print_list_r_empty memory """;""") ma_memories
