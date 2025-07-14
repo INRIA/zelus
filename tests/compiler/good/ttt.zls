@@ -1,7 +1,7 @@
 let node f0() returns (o)
   let rec cpt = 0 fby cpt + 1 in
   let rec cpt2 = 0 fby cpt2 + cpt in
-  do o = cpt + cpt2 done
+  do o = cpt + 1 done
 
 let node f() returns (o init 0)
   automaton
@@ -15,7 +15,6 @@ let node f() returns (o init 0)
 let node ff() =
   print_int (f ());
   print_newline ()
-
 
 (*
 
