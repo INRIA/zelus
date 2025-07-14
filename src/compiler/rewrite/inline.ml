@@ -40,19 +40,20 @@ let empty = { renaming = Env.empty; subst = Env.empty }
 
 let eq_empty = Aux.eqmake Defnames.empty EQempty
     
-let append { subst = s } ({ subst } as acc) = { acc with subst = Env.append subst s }
+let append { subst = s } ({ subst } as acc) = 
+  { acc with subst = Env.append subst s }
 
 let fresh () = Ident.fresh "inline"
 
 (* when [e] has value [v], add an entry [x\v] to [subst] *)
 let make_subst ({ subst } as acc) x { e_desc } =
-  match e_desc with
-  | Evar(y) ->
-     let acc = 
-       try { acc with subst = Env.add x (Env.find y subst) subst }
-       with Not_found -> acc in
-     acc
-  | _ -> raise Cannot_inline
+  try
+    let acc = match e_desc with
+      | Evar(y) -> { acc with subst = Env.add x (Env.find y subst) subst }
+      | _ -> raise Cannot_inline in
+    acc
+  with
+  | Not_found -> raise Cannot_inline
 
 let value { subst } { e_desc } =
   match e_desc with
@@ -93,7 +94,8 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
 
    let match_f_param_with_arg acc f_acc (f_param_list, arg_list) =
      (* build a list of equations *)
-     let eq_list, f_acc = match_f_arg_with_arg acc f_acc (f_param_list, arg_list) in
+     let eq_list, f_acc = 
+       match_f_arg_with_arg acc f_acc (f_param_list, arg_list) in
      
      (* flatten the list of arguments *)
      let vardec_list = List.flatten f_param_list in
@@ -182,8 +184,7 @@ let build global_funs ({ renaming } as acc) env =
   env, { acc with renaming }
 
 let var_ident global_funs ({ renaming } as acc) x =
-  (try Env.find x renaming with Not_found -> x), acc
-(* Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc *)
+  Env.find_stop_if_unbound "Error in pass Inline" x renaming, acc
 
 (* expressions *)
 let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) = 
@@ -200,7 +201,8 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
        try
          apply funs acc f arg_list
        with
-         Cannot_inline -> { e with e_desc = Eapp({ app with f; arg_list }) }, acc in
+         Cannot_inline -> 
+         { e with e_desc = Eapp({ app with f; arg_list }) }, acc in
      e, acc
   (* TODO: remove the operator Erun; mark function calls instead *)
   | Eop(Erun i, [f; arg]) ->
@@ -214,18 +216,18 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
      e, acc
   | _ -> raise Mapfold.Fallback
 
-let equation funs acc ({ eq_desc } as eq) =
-  match eq_desc with
-  | EQeq({ pat_desc = Evarpat(x) } as p, e) ->
-     let x, acc = Mapfold.var_ident_it funs.global_funs acc x in
-     let e, acc = Mapfold.expression_it funs acc e in
-     let eq, acc =
-       try
-         let acc = make_subst acc x e in eq_empty, acc
-       with Cannot_inline -> 
-         { eq with eq_desc = EQeq({ p with pat_desc = Evarpat(x) }, e) }, acc in
+let equation funs acc eq =
+  let { eq_desc } as eq, acc = Mapfold.equation funs acc eq in
+    match eq_desc with
+    | EQeq({ pat_desc = Evarpat(x) } as p, e) ->
+       let eq, acc =
+         try
+           let acc = make_subst acc x e in eq_empty, acc
+         with Cannot_inline -> 
+           { eq with eq_desc = EQeq({ p with pat_desc = Evarpat(x) }, e) }, acc in
+       eq, acc
+  | _ -> 
      eq, acc
-  | _ -> raise Mapfold.Fallback
 
 (* all local names can restart from 0 *)
 (* to be done later; for the moment, starts from the current value *)
