@@ -44,7 +44,7 @@ let equation funs acc eq =
   | EQder { id; e; e_opt; handlers } -> 
      let eq = present_der id e_opt handlers (Aux.eq_der id e) in
        eq, acc
-  | _ -> raise Mapfold.Fallback
+  | _ -> eq, acc
 
 let program genv0 p =
   let global_funs = Mapfold.default_global_funs in
