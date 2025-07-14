@@ -138,11 +138,6 @@ let rec method_call ff { met_name; met_instance; met_args } =
 	  instance_name met_instance m instance met_instance
 	  (print_list_r (exp 3) "" "" "") met_args
 
-and var ff left =
-  match left with
-  | Eleft_name(n) -> fprintf ff "@[!%a@]" Printer.name n
-  | _ -> Oprinter.left_value ff left
-
 and left_state_value ff left =
   match left with
   | Eself -> fprintf ff "self."
