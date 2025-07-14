@@ -113,39 +113,38 @@ let typ_cstate =
 
 let varpat id ty = Evarpat { id; ty }
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
-				     
-let i = Ident.fresh "i"
-
-let set_horizon cstate h =
-  Eassign(Eleft_record_access
-            { arg = Eleft_name(cstate); label = Name "horizon" },
-          min (Erecord_access { arg = varmut cstate; label = Name "horizon" })
-            (Estate(Eleft_state_name h)))
-
-let set_major cstate m =
-  Eassign_state(Eleft_state_name(m),
-                Erecord_access { arg = varmut cstate; label = Name "major" })
-
-let set_time cstate m =
-  Eassign_state(Eleft_state_name(m),
-                Erecord_access { arg = varmut cstate; label = Name "time" })
+let access x label = Erecord_access { arg = local x; label = Name label }
 
 (* [x := !x + 1] *)
 let incr_pos x = Eassign(Eleft_name x, Oaux.plus_opt (varmut x) one)
-let set_pos x e = Eassign(Eleft_name x, e)
+let set x e = Eassign(Eleft_name x, e)
+
+let i = Ident.fresh "i"
+
+(* cstate.horizon <- min cstate.horizon h *)
+let set_horizon cstate h =
+  Eassign(Eleft_record_access
+            { arg = Eleft_name(cstate); label = Name "horizon" },
+          min (access cstate "horizon") (Estate(Eleft_state_name h)))
+
+(* m <- cstate.major *)
+let set_major cstate m =
+  Eassign_state(Eleft_state_name(m), access cstate "major")
+
+let set_time cstate m =
+  Eassign_state(Eleft_state_name(m), access cstate "time")
 
 (* [cstate.field <- cstate.field + i] *)
 let incr cstate field ie =
   Eassign(Eleft_record_access { arg = Eleft_name cstate; label = Name(field) },
-          Oaux.plus_opt(Erecord_access { arg = local cstate;
-                                         label = Name(field)} ) ie)
+          Oaux.plus_opt (access cstate field) ie)
              
 let cmax cstate ie = incr cstate "cmax" ie
 let zmax cstate ie = incr cstate "zmax" ie
 let cincr cstate ie = incr cstate "cindex" ie
 let zincr cstate ie = incr cstate "zindex" ie
 
-let major cstate = Erecord_access { arg = varmut cstate; label = Name("major") }
+let major cstate = access cstate "major"
 			
 (* [x.cont.(i1)....(in).(j1)...(jk) <- cstate.cvec.(pos)] *)
 (* [x.zero_in.(i1)...(in).(j1)...(jk) <- cstate.zin.(pos)] *)
@@ -159,19 +158,15 @@ let write_into_internal_state (x, cont) i_list j_list get pos =
     
 let app f arg_list = Eapp { f = global(modname f); arg_list }
 let getc cstate pos =
-  app "get" [Erecord_access { arg = varmut cstate; label = Name("cvec") }; pos]
+  app "get" [access cstate "cvec"; pos]
 let get_zin cstate pos =
-  app "get_zin"
-    [Erecord_access { arg = varmut cstate; label = Name("zinvec") }; pos]
+  app "get_zin" [access cstate "zinvec"; pos]
 let setc cstate pos e =
-  app "set" [Erecord_access { arg = varmut cstate; label = Name("cvec") };
-             pos; e]
+  app "set" [access cstate "cvec"; pos; e]
 let setd cstate pos e =
-  app "set" [Erecord_access { arg = varmut cstate; label = Name("dvec") };
-             pos; e]
+  app "set" [access cstate "dvec"; pos; e]
 let set_zout cstate pos e =
-  app "set" [Erecord_access { arg = varmut cstate; label = Name("zoutvec") };
-             pos; e]
+  app "set" [access cstate "zoutvec"; pos; e]
 
 (* sets the continuous state vector - from the csolver to the internal state *)
 let cin cstate x i_list j_list pos =
@@ -369,7 +364,7 @@ let hybrid_machine
   (* pass the extra argument [cstate] *)
   let add_extra_param ({ i_kind = k; i_params = params } as ientry) =
     match k with
-    | Tnode(Tcont) -> { ientry with i_params = (varmut cstate) :: params }
+    | Tnode(Tcont) -> { ientry with i_params = (local cstate) :: params }
     | _ -> ientry in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
@@ -393,10 +388,8 @@ let hybrid_machine
           
     let c_start = Ident.fresh "cindex" in
     let z_start = Ident.fresh "zindex" in
-    let cstate_cpos =
-      Erecord_access { arg = varmut cstate; label = Name("cindex") } in
-    let cstate_zpos =
-      Erecord_access { arg = varmut cstate; label = Name("zindex") } in
+    let cstate_cpos = access cstate "cindex" in
+    let cstate_zpos = access cstate "zindex" in
     
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
@@ -437,7 +430,7 @@ let hybrid_machine
 		           (sequence
 			      [set_horizon cstate h_opt;
                                only
-                                 c_is_not_zero (set_pos cpos (local c_start));
+                                 c_is_not_zero (set cpos (local c_start));
 	                       ifthenelse
                                  (major cstate)
 				 (sequence
@@ -451,7 +444,7 @@ let hybrid_machine
                                        z_is_not_zero (zin ztable cstate zpos);
                                      only
                                        z_is_not_zero
-                                       (set_pos zpos (local z_start));
+                                       (set zpos (local z_start));
 	                             only
                                        z_is_not_zero (zout ztable cstate zpos);
 	                             only
