@@ -308,37 +308,27 @@ let sgn e =
   ifthenelse (greater e zero) one minus_one
 let record_access arg label = emake (Erecord_access { arg; label })
     
-(* find the major step in the current environment *)
-(* If it already exist in the environment *)
-(* returns it. Otherwise, create one *)
-let new_hidden_state_variable name (t_sort, t_typ) env =
-  let m = Ident.fresh name in
-  let env =
-    Env.add m { t_path = Pkind(Tnode(Tcont));
-                t_sort;
-                t_tys = Deftypes.scheme t_typ } env in
-  var m, env
+(* introduce a hidden state variable *)
+let new_hidden_state_variable m (t_sort, t_typ) env =
+  Env.add m { t_path = Pkind(Tnode(Tcont));
+              t_sort;
+              t_tys = Deftypes.scheme t_typ } env
 
-let new_major env =
-  new_hidden_state_variable "major" (Deftypes.major (), Initial.typ_bool) env
-let new_time env =
-  new_hidden_state_variable "time" (Deftypes.time (), Initial.typ_float) env
+let major_entry m env =
+  new_hidden_state_variable m (Deftypes.major (), Initial.typ_bool) env
+let time_entry m env =
+  new_hidden_state_variable m (Deftypes.time (), Initial.typ_float) env
 
-exception Return of (Typinfo.info, Typinfo.ienv) Zelus.exp
+exception Return of Ident.t
 
-let get_hidden_state_variable sort new_variable env =
-  let find x t =
-    match t with
+let get_hidden_state_variable sort hidden_env =
+  let find x entry =
+    match entry with
     | { t_sort = Sort_mem { m_mkind = Some(s) } } when s = sort ->
-       raise (Return(var x))
+       raise (Return(x))
     | _ -> () in
   try
-    Env.iter find env;
-    new_variable env
+    Env.iter find hidden_env; None
   with
-  | Return(x) -> x, env
-
-let major env = get_hidden_state_variable Major new_major env
-let time env = get_hidden_state_variable Time new_time env
-
+  | Return(x) -> Some(x)
 
