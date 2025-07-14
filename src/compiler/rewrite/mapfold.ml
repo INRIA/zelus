@@ -401,7 +401,9 @@ and size_t global_funs acc ({ desc } as si) =
      Size_op(op, si1, si2), acc in
   { si with desc }, acc
 
-let write_it funs acc w = funs.write_t funs acc w
+let rec write_it funs acc w = 
+  try funs.write_t funs acc w
+  with Fallback -> write_t funs acc w
 
 and write_t funs acc { dv; di; der } =
   let rename n = let m, _ = var_ident_it funs.global_funs acc n in m in
@@ -768,6 +770,7 @@ and equation_it funs acc eq =
   with Fallback -> equation funs acc eq
 
 and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) = 
+  let eq_write, acc = write_t funs acc eq_write in
   let eq, acc = match eq_desc with
     | EQeq(p, e) ->
        let p, acc = pattern_it funs acc p in
@@ -851,7 +854,6 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
     | EQsizefun f ->
        let f, acc = sizefun_it funs acc f in
        { eq with eq_desc = EQsizefun f }, acc in
-  let eq_write, acc = write_t funs acc eq_write in
   { eq with eq_write }, acc
 
 (* automata *)
