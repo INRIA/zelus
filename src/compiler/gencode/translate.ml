@@ -105,21 +105,18 @@ let rec index e =
   function
   | [] -> e
   | ei :: ei_list ->
-     Eget { e = index e ei_list; index = Evar { is_mutable = false;
-                                                id = ei } }
+     Eget { e = index e ei_list; index = Oaux.local ei }
 
 let rec left_value_index lv =
   function
   | [] -> lv
   | ei :: ei_list ->
-     Eleft_index(left_value_index lv ei_list,
-                 Evar { is_mutable = false; id = ei })
+     Eleft_index(left_value_index lv ei_list, Oaux.local ei)
 
 let rec left_state_value_index lv = function
   | [] -> lv
   | ei :: ei_list ->
-     Eleft_state_index(left_state_value_index lv ei_list,
-                       Evar { is_mutable = false; id = ei })
+     Eleft_state_index(left_state_value_index lv ei_list, Oaux.local ei)
 						      
 (* read of a variable *)
 let var { e_sort; e_typ; e_size = ei_list } =
@@ -127,7 +124,7 @@ let var { e_sort; e_typ; e_size = ei_list } =
   | In(e) -> index e ei_list
   | Out(n, sort) ->
      match sort with
-     | Sort_val -> index (Evar { is_mutable = false; id = n }) ei_list
+     | Sort_val -> index (Oaux.local n) ei_list
      | Sort_var ->
         let i = is_mutable e_typ in
         index (Evar { is_mutable = i; id = n }) ei_list
@@ -210,7 +207,7 @@ let rec exp_of_sizetype si =
   let open Defsizes in
   match si with
   | Sint(i) -> Oaux.int_const i
-  | Svar(n) -> Evar { is_mutable = false; id = n }
+  | Svar(n) -> Oaux.local n
   | Sfrac { num; denom } ->
      Oaux.div (exp_of_sizetype num) (Oaux.int_const denom)
   | Sop(op, s1, s2) ->
@@ -356,7 +353,7 @@ let apply k env loop_path context e e_list =
      let se_list, arg = Util.firsts e_list in
      let f_opt = match e with | Eglobal { lname } -> Some lname | _ -> None in
      let loop_path =
-       List.map (fun ix -> Evar { is_mutable = false; id = ix }) loop_path in
+       List.map (fun ix -> Oaux.local ix) loop_path in
      (* create an instance *)
      let o = Ident.fresh "i" in
      let j_context = { i_name = o; i_machine = e; i_kind = k;
