@@ -62,9 +62,8 @@ let mult_opt e1 e2 =
   | _ -> mult e1 e2
 
 let global lname = Eglobal { lname }
-let var is_mutable id = Evar { is_mutable; id }
 let local id = Evar { is_mutable = false; id }
-let varmut x = var true x
+let varmut id = Evar { is_mutable = true; id }
 
 let ifthenelse c e1 e2 = Eifthenelse(c, e1, e2)
 
