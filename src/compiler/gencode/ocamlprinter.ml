@@ -214,7 +214,7 @@ and exp prio ff e =
       fprintf ff "@[(%a : %a)@]" (exp prio_e) e ptype ty_e
   | Eifthenelse(e, e1, e2) ->
       fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
-        (exp 0) e (exp prio_e) e1 (exp prio_e) e2
+        (exp 0) e (exp 1) e1 (exp 1) e2
   | Elet(p, e1, e2) ->
      fprintf ff "@[<v 0>let %a in@ %a@]" pat_exp (p, e1) (exp (prio_e - 1)) e2
   | Eletvar { id; is_mutable; ty; e_opt; e } ->
