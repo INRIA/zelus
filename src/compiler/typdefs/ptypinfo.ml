@@ -14,33 +14,7 @@
 
 (* type annotations for terms *)
 
-type info =
-  { t_typ: Deftypes.typ;
-    t_caus: Defcaus.tc;
-    t_init: Definit.ti }
+include Typinfo
 
-type ienv = Deftypes.typentry
-
-type pattern = info Zelus.pattern
-type exp = (info, ienv) Zelus.exp
-type eq = (info, ienv) Zelus.eq
-type arg = (info, ienv) Zelus.arg
-type result = (info, ienv) Zelus.result
-type funexp = (info, ienv) Zelus.funexp
-type sizefun = (info, ienv) Zelus.sizefun
-
-let no_info =
-  { t_typ = Deftypes.no_typ;
-    t_caus = Defcaus.no_typ;
-    t_init = Definit.no_typ }
-
-let no_ienv =
-  Deftypes.entry (Deftypes.Tfun(Tany))
-    Deftypes.Sort_val (Deftypes.scheme Deftypes.no_typ)
-
-let set_type typinfo ty = { typinfo with t_typ = ty }
-let set_caus typinfo tc = { typinfo with t_caus = tc }
-let set_init typinfo ti = { typinfo with t_init = ti }
-
-let get_type { t_typ } = t_typ
-let get_caus { t_caus } = t_caus
+let print ff { t_typ } = Ptypes.output_type ff t_typ
+let pienv ff tentry = Ptypes.output_tentry ff tentry

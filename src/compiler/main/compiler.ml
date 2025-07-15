@@ -68,7 +68,7 @@ let compile_interface parse modname filename suffix =
     (* Parsing of the file *)
     let l = parse source_name in
     (* Scoping *)
-    let module Scoping = Scoping.Make(Typinfo) in
+    let module Scoping = Scoping.Make(Ptypinfo) in
     let l = Scoping.interface_list l in
     Interface.interface_list info_ff l;
     (* Write the symbol table into the interface file *)
@@ -136,8 +136,8 @@ let compile modname filename =
 
   try
     (* Associate unique index to variables *)
-    let module Printer = Printer.Make(Typinfo) in
-    let module Scoping = Scoping.Make(Typinfo) in
+    let module Printer = Printer.Make(Ptypinfo) in
+    let module Scoping = Scoping.Make(Ptypinfo) in
     let p = do_step is_print "Scoping done. See below:" Printer.program
               Scoping.program p in
     (* Write defined variables for equations *)

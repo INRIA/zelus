@@ -17,8 +17,8 @@
 
 open Misc
 open Location
-module Printer = Printer.Make(Typinfo) 
-module Write = Write.Make(Typinfo)
+module Printer = Printer.Make(Ptypinfo) 
+module Write = Write.Make(Ptypinfo)
 
 let nothing p = p
 let type_check _ p = Typing.program Format.std_formatter false p

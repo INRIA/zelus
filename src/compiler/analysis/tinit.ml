@@ -19,7 +19,7 @@ open Deftypes
 open Definit
 open Global
 open Genames
-module Printer = Printer.Make(Typinfo)
+module Printer = Printer.Make(Ptypinfo)
 
 (** a set of initialization names *)
 module S = struct

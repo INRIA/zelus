@@ -18,7 +18,7 @@ open Misc
 open Obc
 open Format
 open Pp_tools
-module Printer = Printer.Make(Typinfo)
+module Printer = Printer.Make(Ptypinfo)
 
 let longname ln = Oprinter.longname ln
 

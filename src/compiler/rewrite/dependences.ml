@@ -19,7 +19,7 @@ open Defnames
 open Graph
 open Vars
 
-module Printer = Printer.Make(Typinfo)
+module Printer = Printer.Make(Ptypinfo)
 
 type 'a collection =
   | And of 'a collection list (* parallel set of equations *)

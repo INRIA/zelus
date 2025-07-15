@@ -19,7 +19,7 @@ open Ident
 open Global
 open Deftypes
 open Obc
-module Printer = Printer.Make(Typinfo)
+module Printer = Printer.Make(Ptypinfo)
 
 (* is-it a mutable value? Only vectors are considered at the moment *)
 let rec is_mutable { t_desc = desc } =

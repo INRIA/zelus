@@ -18,7 +18,7 @@ open Misc
 open Obc
 open Format
 open Pp_tools
-module Printer = Printer.Make(Typinfo)
+module Printer = Printer.Make(Ptypinfo)
     
 (* A qualified name [M.x] is print [x] when the current module is [M] *)
 let longname ff ln =

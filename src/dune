@@ -86,6 +86,7 @@
     ptypes ; printing types
     pcaus ; printing causality types
     pinit ; printing initialization types
+    ptypinfo ; type annotation for Zelus terms with printing functions    
   )
   (libraries zelus.global_lib zelus.zrun_lib)
 )

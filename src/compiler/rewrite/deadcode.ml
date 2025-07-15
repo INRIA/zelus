@@ -42,7 +42,7 @@ let empty = Env.empty
 
 (* Useful function. For debugging purpose. *)
 let print ff table =
-  let module Printer = Printer.Make(Typinfo) in
+  let module Printer = Printer.Make(Ptypinfo) in
   let names ff l =
     Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
   let entry x { c_vars = l; c_useful = u } =

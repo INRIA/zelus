@@ -183,9 +183,9 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
         let t1, t2, inp_patt =
           begin match typ_body.t_desc with
             | Tarrow { ty_arg; ty_res } ->
-                begin match info.info.value_code with
-                  | Some(Global.Vclosure (fexp, _)) ->
-                      let inp_patt = List.hd fexp.f_args in
+                begin match info.info.value_exp with
+                  | Some(Global.Vfun { f_args }) ->
+                      let inp_patt = List.hd f_args in
                       ty_arg, ty_res, inp_patt
                   | _ -> assert false
                 end

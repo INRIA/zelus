@@ -28,49 +28,28 @@ type value_desc =
       (* is-it a value available at compile time? *)
       mutable value_caus: Defcaus.tc_scheme option; (* its causality scheme *)
       mutable value_init: Definit.ti_scheme option; (* its init. scheme *)
-      mutable value_code: value option;
+      mutable value_exp: vexp option;
     (* the value is either opaque (None) or transparent (Some(v) *)
 }
 
 and is_const = bool
 
-and value =
-  | Vconst of immediate (* constant *)
-  | Vconstr0 of Lident.qualident (* constructor *)
-  | Vconstr1 of Lident.qualident * value list (* constructor *)
-  | Vtuple of value list (* tuple *)
-  | Vrecord of (Lident.qualident * value) list (* record *)
-  | Vclosure of (no_info, no_info) funexp * value Env.t
-  (* a closure: the function body; the environment of values *)
-  | Vabstract of Lident.qualident (* no implementation is given *)
-
-(* functional value *)
-                   (*
-                     and 'a fvalue =
-  | Vclosure of ('info, 'ienv) closure
-  (* function parameterized by sizes *)
-  | Vsizefun of ('info, 'ienv) sizefun
+and vexp =
+  | Vfun of funexp
+  | Vsizefun of Typinfo.sizefun
   (* a representation for mutually recursive functions over sizes *)
   (* f where rec [f1<s,...> = e1 and ... fk<s,...> = ek] *)
   | Vsizefix of 
-      { bound: int list option; (* the maximum number of iterations *)
-        name: Ident.t; (* name of the defined function *)
-        defs: ('info, 'ienv) sizefun Ident.Env.t;
-        (* the set of mutually recursive function definitions *) 
+      { (* the maximum number of iterations *)
+        bound: int list option; 
+        (* name of the defined function *)
+        name: Ident.t; 
+        (* the set of mutually recursive function definitions *)
+        defs: Typinfo.sizefun Ident.Env.t;
       }
 
-and ('info, 'ienv) sizefun = 
-  { s_params: Ident.t list; 
-    s_body: ('info, 'ienv) Zelus.exp; 
-    s_genv: ('info, 'ienv) pvalue Genv.genv; 
-    s_env: ('info, 'ienv) pvalue star ientry Ident.Env.t }
-                                   
-(* a functional value - [fun|node] x1 ... xn -> e *)
-and ('info, 'ienv) closure =
-  { c_funexp : ('info, 'ienv) Zelus.funexp;
-    c_genv: ('info, 'ienv) pvalue Genv.genv;
-    c_env: ('info, 'ienv) pvalue star ientry Ident.Env.t }
-                    *)
+and funexp =
+  { f_args: Typinfo.arg list; f_body: Typinfo.result; f_env: Typinfo.ienv Env.t }
 
 (* Value constructors *)
 type constr_desc =
@@ -96,12 +75,12 @@ and type_components =
 
 let value_desc is_const typs qualident = 
   { value_typ = typs; value_const = is_const; value_caus = None; 
-    value_init = None; value_code = None }
+    value_init = None; value_exp = None }
 let set_type { info = ({ value_typ } as v) } tys = 
   v.value_typ <- tys
 let set_causality { info = ({ value_caus } as v) } tys = 
   v.value_caus <- Some(tys)
 let set_init { info = ({ value_init } as v) } tys = 
   v.value_init <- Some(tys)
-let set_value_code { info =({ value_code } as v) } value_code =
-  v.value_code <- value_code
+let set_value_exp { info = ({ value_exp } as v) } value_exp' =
+  v.value_exp <- Some(value_exp')

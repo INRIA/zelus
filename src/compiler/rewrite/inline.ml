@@ -159,6 +159,18 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
 (* application *)
 and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
   match e_desc with
+  | Eglobal { lname } ->
+     let e, acc =
+       try
+         let open Global in
+         let { info = { value_exp } } = Modules.find_value lname in
+         match value_exp with
+         | Some(Vfun { f_args; f_body; f_env }) ->
+            local_in funs acc e_loc (f_args, arg_list, f_env, empty) f_body
+         | _ -> raise Cannot_inline         
+       with
+       | Not_found -> raise Cannot_inline in
+     e, acc
   | Evar(x) ->
      let e, acc =
        try
@@ -267,6 +279,21 @@ let letdecl funs acc l_decl =
   let _ = check_no_inline_letdecl subst l_decl in
   l_decl, acc
 
+let letdecl funs acc (d_names, d_leq) =
+  let d_leq, { subst; renaming } = Mapfold.leq_it funs empty d_leq in
+  (* every entry in [subst] is added to the global symbol table *)
+  Env.iter
+    (fun x { f_args; f_body; f_env } ->
+      let entry = Modules.find_value (Name "x") in
+      Global.set_value_exp entry
+        (Global.Vfun { Global.f_args = f_args;
+                       Global.f_body = f_body;
+                       Global.f_env = f_env }))
+    subst;
+  let d_names = List.map (fun (x, m) -> (x, Env.find m renaming)) d_names in
+  let _ = check_no_inline_letdecl subst (d_names, d_leq) in
+  (d_names, d_leq), acc
+
 let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
@@ -274,5 +301,3 @@ let program genv p =
       global_funs; expression; equation; letdecl; set_index; get_index; } in
   let p, { renaming; subst } = Mapfold.program_it funs empty p in
   p
-
-

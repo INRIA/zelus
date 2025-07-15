@@ -286,7 +286,7 @@ let message loc kind =
        (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env
        output_location_list f_loc_list
  | Econstr_arity(ln, expected_arity, actual_arity) ->
-     let module Printer = Printer.Make(Typinfo) in
+     let module Printer = Printer.Make(Ptypinfo) in
      eprintf
        "@[%aType error: the type constructor %a expects %d argument(s),@ \
         but is here given %d arguments(s).@.@]"
@@ -304,7 +304,7 @@ let message loc kind =
 
     
 let warning loc w =
-  let module Printer = Printer.Make(Typinfo) in
+  let module Printer = Printer.Make(Ptypinfo) in
   if not !Misc.no_warning then
   match w with
   | Wpartial_matching(p) ->
