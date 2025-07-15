@@ -31,8 +31,7 @@ let present_der id e0_opt handlers der_id_eq =
   let eq =
     match handlers with
     | [] -> der_id_eq
-    | _ -> Aux.eqmake (Defnames.singleton id)
-             (EQpresent { handlers; default_opt = NoDefault }) in
+    | _ -> Aux.eq_and (Aux.eq_present handlers NoDefault) der_id_eq in
   match e0_opt with
   | None -> eq | Some(e0) -> Aux.eq_and eq (Aux.eq_init id e0)
 
@@ -52,3 +51,5 @@ let program genv0 p =
     { Mapfold.defaults with equation; global_funs } in
   let p, _ = Mapfold.program_it funs genv0 p in
   p
+
+
