@@ -1,0 +1,5 @@
+let hybrid ball () = (y, y', z) where
+  rec der y = y' init 50.0
+  and der y' = -9.81 init 0.0 reset z -> -0.8 *. last y'
+  and z = up(-. y)
+  
