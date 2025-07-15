@@ -182,7 +182,7 @@ let zin cstate x i_list j_list pos =
 (* [cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
 let write_from_internal_state set (x, cont) i_list j_list pos =
-  set (local pos)
+  set (varmut pos)
     (Estate
        (left_state_access
           (left_state_access
