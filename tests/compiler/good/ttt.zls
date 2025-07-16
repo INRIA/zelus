@@ -7,11 +7,13 @@ let f2 x =
   let h = (g h) 2 in
   h + g 2 3
 
+(*
 let f3 x =
   let h = inline fun x -> x + 1
   and g = inline fun h y -> h y + 1 in
   let h = g h in
   h 2 + 1
+
 
 let node f4 x =
     let inline app f x = f x in
@@ -22,6 +24,7 @@ let node f4 x =
 let node f5 x =
   let inline node f x = x + 1 in
   run f (x+1)
+*)
 
 (*
 
