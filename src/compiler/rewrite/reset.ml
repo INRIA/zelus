@@ -119,7 +119,8 @@ let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
     { Mapfold.defaults with
-      funexp; expression; equation; set_index; get_index; global_funs } in
+      funexp; sizefun; expression; equation;
+      set_index; get_index; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 let f1 x =
   let h = 1 and g = inline fun x -> x + 1 in
   g 1 + g 2
@@ -63,6 +64,8 @@ let hybrid g () =
 *)
 
 
+=======
+>>>>>>> Stashed changes
 (*
 let node f() returns (o init 0)
   automaton
@@ -89,11 +92,23 @@ let node ff() =
   print_int (f ());
   print_newline ()
 *)
+<<<<<<< Updated upstream
 
 (*
 let hybrid f x = 1.0
 
 let hybrid g () = f (0.0)
+=======
+
+let hybrid f0 x = period(1.0|2.0)
+
+(*
+let hybrid f1 x = 
+  let rec der o = o +. 1.0 init 0.0 in
+  o, up(x +. 1.0)
+
+let hybrid f2() = f1(0.0)
+>>>>>>> Stashed changes
 *)
 
 (* horizon m = 2.0 up x = ...
