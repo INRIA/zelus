@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* Inlining of function calls. Expressions [inline fun x1... -> e] *)
-(* are eliminated. If one cannot, the inlining step fails *)
+(* are eliminated. If an [inline fun x1... -> e] remains, inlining fails *)
 
 open Misc
 open Location
@@ -28,7 +28,7 @@ let _ = inlining_level := -100000
 (* a value is a closure: <inline fun x1... -> e, acc> where [acc] *)
 (* is a pair of environments; one for renaming variables; one for values *)
 type value =
-  { f_args: Typinfo.arg list; f_body: Typinfo.result;
+  { f_inline: is_inline; f_args: Typinfo.arg list; f_body: Typinfo.result;
     f_env: Typinfo.ienv Env.t; f_acc: acc }
     
 and acc =
@@ -41,7 +41,7 @@ let empty = { renaming = Env.empty; subst = Env.empty }
 let eq_empty = Aux.eqmake Defnames.empty EQempty
     
 let append { subst = s } ({ subst } as acc) = 
-  { acc with subst = Env.append subst s }
+  { acc with subst = Env.append s subst }
 
 let fresh () = Ident.fresh "inline"
 
@@ -55,29 +55,22 @@ let make_subst ({ subst } as acc) x { e_desc } =
   with
   | Not_found -> raise Cannot_inline
 
-let value { subst } { e_desc } =
-  match e_desc with
-  | Evar(y) ->
-     let v = try Env.find y subst with Not_found -> raise Cannot_inline in v
-  | _ -> raise Cannot_inline
-
-(* given [f_arg1;...;f_arg_n] and [arg1;...;arg_n] *)
-(* define [f_arg1 = arg1;...; f_arg_n = arg_n] *)
-(* if [arg_i] is a value, the binding [f_arg_i\arg_i] is added to [subst] *)
+(* given [f_param_1;...;f_param_n] and [arg1;...;arg_n] *)
+(* define [f_param_1 = arg1;...; f_param_n = arg_n] *)
+(* if [arg_i] is a value, the binding [f_param_i\arg_i] is added to [subst] *)
 (* [acc] is the current environment in which [e] is evaluated. [f_acc] *)
 (* is the environment augmented with new bindings *)
-let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
+let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
   let match_t (eq_list, ({ subst } as f_acc)) f_arg arg =
     try
       match f_arg, arg with
-      | [{ var_name = x }], e ->
-         eq_list, { f_acc with subst = Env.add x (value acc e) subst }
+      | [{ var_name = x }], e -> eq_list, make_subst f_acc x e
       | _ -> raise Cannot_inline
     with
     | Cannot_inline ->
         let eq_list = (Aux.match_f_arg_with_arg f_arg arg) :: eq_list in
         eq_list, f_acc in
-  List.fold_left2 match_t ([], f_acc) f_args arg_list
+  List.fold_left2 match_t ([], f_acc) f_param_list arg_list
 
 (* Main Transformation *)
 (* [(\a1...an. e) e1 ... en] 
@@ -92,10 +85,10 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
 
-   let match_f_param_with_arg acc f_acc (f_param_list, arg_list) =
+   let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
      (* build a list of equations *)
      let eq_list, f_acc = 
-       match_f_arg_with_arg acc f_acc (f_param_list, arg_list) in
+       match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      
      (* flatten the list of arguments *)
      let vardec_list = List.flatten f_param_list in
@@ -131,7 +124,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
    if n_f_param_list = n_arg_list
    then
      let (vardec_list, eq_list), f_acc =
-       match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+       match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      result_t f_acc (vardec_list, eq_list) result
    else
      if n_f_param_list < n_arg_list then
@@ -139,7 +132,7 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
        let arg_list, arg_rest_list =
          Util.firsts_n n_f_param_list arg_list in
        let (vardec_list, eq_list), f_acc =
-         match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+         match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
        let e, f_acc = result_t f_acc ([], []) result in
        let e, f_acc = apply funs f_acc e arg_rest_list in
        Aux.e_local_vardec vardec_list eq_list e, f_acc
@@ -149,9 +142,17 @@ let match_f_arg_with_arg acc f_acc (f_args, arg_list) =
        let f_param_list, f_param_rest_list =
          Util.firsts_n n_arg_list f_param_list in
        let (vardec_list, eq_list), f_acc =
-         match_f_param_with_arg acc f_acc (f_param_list, arg_list) in
+         match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
+       (* keeps only entries in [f_env] for names in [f_param_rest_list] *)
+       let f_env =
+         List.fold_left
+           (fun acc f_param ->
+             List.fold_left
+               (fun acc { var_name } ->
+                 try Env.add var_name (Env.find var_name f_env) acc
+                 with Not_found -> acc) acc f_param) Env.empty f_param_rest_list in
        let m = fresh () in
-       let entry = { f_args = f_param_rest_list; f_body = result;
+       let entry = { f_inline = true; f_args = f_param_rest_list; f_body = result;
                      f_env; f_acc } in
        Aux.e_local_vardec vardec_list eq_list { (Aux.var m) with e_loc = loc },
        append { acc with subst = Env.add m entry f_acc.subst } acc
@@ -204,7 +205,8 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
   | Efun({ f_inline = true; f_args; f_body; f_env }) ->
      let m = fresh () in
      { e with e_desc = Evar(m) },
-     { acc with subst = Env.add m { f_args; f_body; f_env; f_acc = acc } subst }
+     { acc with subst = Env.add m { f_inline = true;
+                                    f_args; f_body; f_env; f_acc = acc } subst }
   | Eapp({ f; arg_list } as app) ->
      let f, acc = Mapfold.expression_it funs acc f in
      let arg_list, acc =
@@ -255,8 +257,9 @@ let check_no_inline_letdecl subst l_decl =
     | Evar(x) ->
        let e, subst =
          try
-           let _ = Env.find x subst in
-           Format.eprintf
+           let { f_inline } = Env.find x subst in
+           if f_inline then
+             Format.eprintf
              "@[%aInline error: this expression should be replaced by \
               an inlined function.@ \
               The inlining cannot be done because \
@@ -280,24 +283,33 @@ let letdecl funs acc l_decl =
   l_decl, acc
 
 let letdecl funs acc (d_names, d_leq) =
-  let d_leq, { subst; renaming } = Mapfold.leq_it funs empty d_leq in
+  let d_leq, ({ subst; renaming } as acc) = Mapfold.leq_it funs empty d_leq in
   (* every entry in [subst] is added to the global symbol table *)
-  Env.iter
-    (fun x { f_args; f_body; f_env } ->
-      let entry = Modules.find_value (Name "x") in
+  let update_module_table d_names (name, m) =
+    let m_copy, _ = var_ident funs.global_funs acc m in
+    try
+      let { f_args; f_body; f_env } = Env.find m_copy subst in
+      let entry = Modules.find_value (Name name) in
       Global.set_value_exp entry
-        (Global.Vfun { Global.f_args = f_args;
-                       Global.f_body = f_body;
-                       Global.f_env = f_env }))
-    subst;
-  let d_names = List.map (fun (x, m) -> (x, Env.find m renaming)) d_names in
+        (Global.Vfun { Global.f_args = f_args; Global.f_body = f_body;
+                       Global.f_env = f_env });
+      (* entry [name, m] is removed from the list of defined names *)
+      d_names
+    with
+      Not_found -> (name, m_copy) :: d_names in
+  let d_names = List.fold_left update_module_table [] d_names in
+  
   let _ = check_no_inline_letdecl subst (d_names, d_leq) in
   (d_names, d_leq), acc
+
+let open_t funs acc modname =
+  Modules.open_module modname;
+  modname, acc
 
 let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
     { Mapfold.defaults with
-      global_funs; expression; equation; letdecl; set_index; get_index; } in
+      global_funs; expression; equation; letdecl; open_t; set_index; get_index; } in
   let p, { renaming; subst } = Mapfold.program_it funs empty p in
   p
