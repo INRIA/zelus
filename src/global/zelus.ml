@@ -15,8 +15,8 @@
 
 (* The mais ast. types are parameterized by two types variables *)
 (* ['info] and ['env]; the first is the information attached to expressions *)
-(* the second is the containt of an environment (an environment associate *)
-(* a value to a name *)
+(* the second is the containt of an environment (a map from *)
+(* names to values *)
 
 type 'a localized = { desc: 'a; loc: Location.t }
 
