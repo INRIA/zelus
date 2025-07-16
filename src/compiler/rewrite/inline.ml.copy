@@ -58,19 +58,19 @@ let make_subst ({ subst } as acc) x { e_desc } =
 (* given [f_param_1;...;f_param_n] and [arg1;...;arg_n] *)
 (* define [f_param_1 = arg1;...; f_param_n = arg_n] *)
 (* if [arg_i] is a value, the binding [f_param_i\arg_i] is added to [subst] *)
-(* [acc] is the current environment in which [e] is evaluated. [acc] *)
+(* [acc] is the current environment in which [e] is evaluated. [f_acc] *)
 (* is the environment augmented with new bindings *)
-let match_f_param_with_arg_list acc (f_param_list, arg_list) =
-  let match_t (eq_list, ({ subst } as acc)) f_arg arg =
+let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
+  let match_t (eq_list, ({ subst } as f_acc)) f_arg arg =
     try
       match f_arg, arg with
-      | [{ var_name = x }], e -> eq_list, make_subst acc x e
+      | [{ var_name = x }], e -> eq_list, make_subst f_acc x e
       | _ -> raise Cannot_inline
     with
     | Cannot_inline ->
         let eq_list = (Aux.match_f_arg_with_arg f_arg arg) :: eq_list in
-        eq_list, acc in
-  List.fold_left2 match_t ([], acc) f_param_list arg_list
+        eq_list, f_acc in
+  List.fold_left2 match_t ([], f_acc) f_param_list arg_list
 
 (* Main Transformation *)
 (* [(\a1...an. e) e1 ... en] 
@@ -85,32 +85,19 @@ let match_f_param_with_arg_list acc (f_param_list, arg_list) =
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
 
-   (* keeps entries in [f_env] and in [vardec_list] for names *)
-   (* which do not belong to [f_acc.subst] *)
-   let keep { subst } f_env f_param_list =
-     let keep (new_env, new_vardec_list) ({ var_name } as v) =
-       try
-         let entry = Env.find var_name f_env in
-         if Env.mem var_name subst then
-           new_env, new_vardec_list
-         else Env.add var_name entry new_env, v :: new_vardec_list
-       with Not_found -> new_env, new_vardec_list in
-     let f_env, f_param_list =
-       List.fold_left
-         (fun acc vardec_list ->
-           List.fold_left keep acc vardec_list)
-         (Env.empty, []) f_param_list in
-     f_env, f_param_list  in
-   
-   let match_f_param_with_arg_list acc f_acc (f_env, f_param_list, arg_list) =
+   let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
      (* build a list of equations *)
      let eq_list, f_acc = 
-       match_f_param_with_arg_list f_acc (f_param_list, arg_list) in
+       match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      
      (* flatten the list of arguments *)
-     let f_env, vardec_list = keep f_acc f_env f_param_list in
-          
-     (f_env, vardec_list, eq_list), f_acc in
+     let vardec_list = List.flatten f_param_list in
+     (* keeps those whose name [x] is not bound in [f_acc] *)
+     let vardec_list =
+       List.filter
+         (fun { var_name } -> Env.mem var_name acc.subst) vardec_list in 
+     
+     (vardec_list, eq_list), f_acc in
 
    let result_t f_acc (vardec_list, eq_list) result =
      (* inlining is done recursively on the body [r] *)
@@ -136,16 +123,16 @@ let match_f_param_with_arg_list acc (f_param_list, arg_list) =
    
    if n_f_param_list = n_arg_list
    then
-     let (f_env, vardec_list, eq_list), f_acc =
-       match_f_param_with_arg_list acc f_acc (f_env, f_param_list, arg_list) in
+     let (vardec_list, eq_list), f_acc =
+       match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      result_t f_acc (vardec_list, eq_list) result
    else
      if n_f_param_list < n_arg_list then
        (* [(inline fun x1..xn -> result) e1..en en+1...em] *)
        let arg_list, arg_rest_list =
          Util.firsts_n n_f_param_list arg_list in
-       let (f_env, vardec_list, eq_list), f_acc =
-         match_f_param_with_arg_list acc f_acc (f_env, f_param_list, arg_list) in
+       let (vardec_list, eq_list), f_acc =
+         match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
        let e, f_acc = result_t f_acc ([], []) result in
        let e, f_acc = apply funs f_acc e arg_rest_list in
        Aux.e_local_vardec vardec_list eq_list e, f_acc
@@ -154,8 +141,8 @@ let match_f_param_with_arg_list acc (f_param_list, arg_list) =
        (* [(inline fun x1..xn xn+1..xm -> result) e1..en] *)
        let f_param_list, f_param_rest_list =
          Util.firsts_n n_arg_list f_param_list in
-       let (f_env, vardec_list, eq_list), f_acc =
-         match_f_param_with_arg_list acc f_acc (f_env, f_param_list, arg_list) in
+       let (vardec_list, eq_list), f_acc =
+         match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
        (* keeps only entries in [f_env] for names in [f_param_rest_list] *)
        let f_env =
          List.fold_left
@@ -253,8 +240,8 @@ let equation funs acc eq =
          with Cannot_inline -> 
            { eq with eq_desc = EQeq({ p with pat_desc = Evarpat(x) }, e) }, acc in
        eq, acc
-    | _ -> 
-       eq, acc
+  | _ -> 
+     eq, acc
 
 (* all local names can restart from 0 *)
 (* to be done later; for the moment, starts from the current value *)
