@@ -46,25 +46,26 @@ let append { subst = s } ({ subst } as acc) =
 let fresh () = Ident.fresh "inline"
 
 (* when [e] has value [v], add an entry [x\v] to [subst] *)
-let make_subst ({ subst } as acc) x { e_desc } =
-  try
-    let acc = match e_desc with
-      | Evar(y) -> { acc with subst = Env.add x (Env.find y subst) subst }
-      | _ -> raise Cannot_inline in
-    acc
-  with
-  | Not_found -> raise Cannot_inline
+let value { subst } { e_desc } =
+  match e_desc with
+  | Evar(y) ->
+     let v = try Env.find y subst with Not_found -> raise Cannot_inline in v
+  | _ -> raise Cannot_inline
+
+let make_subst ({ subst } as acc) x e =
+  { acc with subst = Env.add x (value acc e) subst }
 
 (* given [f_param_1;...;f_param_n] and [arg1;...;arg_n] *)
 (* define [f_param_1 = arg1;...; f_param_n = arg_n] *)
 (* if [arg_i] is a value, the binding [f_param_i\arg_i] is added to [subst] *)
 (* [acc] is the current environment in which [e] is evaluated. [acc] *)
 (* is the environment augmented with new bindings *)
-let match_f_param_with_arg_list acc (f_param_list, arg_list) =
-  let match_t (eq_list, ({ subst } as acc)) f_arg arg =
+let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
+  let match_t (eq_list, ({ subst } as f_acc)) f_arg arg =
     try
       match f_arg, arg with
-      | [{ var_name = x }], e -> eq_list, make_subst acc x e
+      | [{ var_name = x }], e ->
+         eq_list, { f_acc with subst = Env.add x (value acc e) subst }
       | _ -> raise Cannot_inline
     with
     | Cannot_inline ->
@@ -85,7 +86,7 @@ let match_f_param_with_arg_list acc (f_param_list, arg_list) =
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
 
-   (* keeps entries in [f_env] and in [vardec_list] for names *)
+   (* keeps entries in [f_env] and [vardec_list] for names *)
    (* which do not belong to [f_acc.subst] *)
    let keep { subst } f_env f_param_list =
      let keep (new_env, new_vardec_list) ({ var_name } as v) =
@@ -96,16 +97,13 @@ let match_f_param_with_arg_list acc (f_param_list, arg_list) =
          else Env.add var_name entry new_env, v :: new_vardec_list
        with Not_found -> new_env, new_vardec_list in
      let f_env, f_param_list =
-       List.fold_left
-         (fun acc vardec_list ->
-           List.fold_left keep acc vardec_list)
-         (Env.empty, []) f_param_list in
+       List.fold_left (List.fold_left keep) (Env.empty, []) f_param_list in
      f_env, f_param_list  in
    
    let match_f_param_with_arg_list acc f_acc (f_env, f_param_list, arg_list) =
      (* build a list of equations *)
      let eq_list, f_acc = 
-       match_f_param_with_arg_list f_acc (f_param_list, arg_list) in
+       match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      
      (* flatten the list of arguments *)
      let f_env, vardec_list = keep f_acc f_env f_param_list in
