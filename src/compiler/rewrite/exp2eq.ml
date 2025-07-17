@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -35,20 +35,21 @@ let expression funs acc e =
   | Ematch { is_size; is_total; e; handlers } ->
      let result = fresh () in
      let handler { m_pat; m_body; m_env; m_loc; m_reset; m_zero } =
-       { m_pat; m_body = Aux.id_eq result m_body; m_env; m_loc; m_reset; m_zero } in
+       { m_pat; m_body = Aux.id_eq result m_body; m_env; m_loc;
+         m_reset; m_zero } in
      let eq =
        { eq_desc = EQmatch { is_size; is_total; e;
                              handlers = List.map handler handlers };
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
-     Aux.e_let (Aux.leq [eq]) (Aux.var result), acc
+     Aux.e_let (Aux.leq false [eq]) (Aux.var result), acc
   | Ereset(e, e_r) ->
      let result = fresh () in
      let eq =
        { eq_desc = EQreset(Aux.id_eq result e, e_r);
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
-     Aux.e_let (Aux.leq [eq]) (Aux.var result), acc
+     Aux.e_let (Aux.leq false [eq]) (Aux.var result), acc
   | _ -> e, acc
 
 let set_index funs acc n =
