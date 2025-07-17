@@ -1,20 +1,31 @@
+let inline f0 x = x + 1
+
+let f00 x = f0 (x+2)
+
+let f x =
+  let g = inline fun x y -> x + 1 in
+  let h = (g 1) 2 in
+  h
+
+
 let f1 x =
   let h = 1 and g = inline fun x -> x + 1 in
   g 1 + g 2
+
 
 let f2 x =
   let h = 1 and g = inline fun x y -> x + 1 in
   let h = (g h) 2 in
   h + g 2 3
 
-(*
+
 let f3 x =
   let h = inline fun x -> x + 1
   and g = inline fun h y -> h y + 1 in
   let h = g h in
   h 2 + 1
 
-
+(*
 let node f4 x =
     let inline app f x = f x in
     let inline f x = x + 1 in
@@ -24,10 +35,6 @@ let node f4 x =
 let node f5 x =
   let inline node f x = x + 1 in
   run f (x+1)
-*)
-
-(*
-
 
 let node controller h (p, i, d) u =
   let inline node prop h u = u in
@@ -42,7 +49,6 @@ let node controller h (p, i, d) u =
 
   pid h prop int derivative (p, i, d) u
 *)
-
 
 (*
 let hybrid sin_cos () =
@@ -95,16 +101,6 @@ let hybrid g () = f (0.0)
 
 let hybrid f0 x = period(1.0|2.0)
 
-(*
-
-
-let hybrid f0 x = period(1.0|2.0)
-
-(*
-
-let hybrid f0 x = period(1.0|2.0)
-
-(*
 
 let hybrid f1 x = 
   let rec der o = o +. 1.0 init 0.0 in
