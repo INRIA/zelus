@@ -28,8 +28,8 @@ let _ = inlining_level := -100000
 (* a value is a closure: <inline fun x1... -> e, acc> where [acc] *)
 (* is a pair of environments; one for renaming variables; one for values *)
 type value =
-  { f_inline: is_inline; f_args: Typinfo.arg list; f_body: Typinfo.result;
-    f_env: Typinfo.ienv Env.t; f_acc: acc }
+  { f_inline: is_inline; f_kind: kind; f_args: Typinfo.arg list;
+    f_body: Typinfo.result; f_env: Typinfo.ienv Env.t; f_acc: acc }
     
 and acc =
   { renaming: Ident.t Env.t; (* renaming *)
@@ -42,6 +42,9 @@ let eq_empty = Aux.eqmake Defnames.empty EQempty
     
 let append { subst = s } ({ subst } as acc) = 
   { acc with subst = Env.append s subst }
+
+(* keep entries in [f_env] for names in [dv] *)
+let keep f_env dv = Env.filter (fun x _ -> S.mem x dv) f_env
 
 let fresh () = Ident.fresh "inline"
 
@@ -61,18 +64,17 @@ let make_subst ({ subst } as acc) x e =
 (* [acc] is the current environment in which [e] is evaluated. [acc] *)
 (* is the environment augmented with new bindings *)
 let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
-  let match_t (vardec_list, eq_list, ({ subst } as f_acc)) f_arg arg =
+  let match_t (eq_list, ({ subst } as f_acc)) f_arg arg =
     try
       match f_arg, arg with
       | [{ var_name = x }], e ->
-         vardec_list, eq_list,
-         { f_acc with subst = Env.add x (value acc e) subst }
+         eq_list, { f_acc with subst = Env.add x (value acc e) subst }
       | _ -> raise Cannot_inline
     with
     | Cannot_inline ->
         let eq_list = (Aux.match_f_arg_with_arg f_arg arg) :: eq_list in
-        f_arg @ vardec_list, eq_list, acc in
-  List.fold_left2 match_t ([], [], f_acc) f_param_list arg_list
+        eq_list, f_acc in
+  List.fold_left2 match_t ([], f_acc) f_param_list arg_list
 
 (* Main Transformation *)
 (* [(\a1...an. e) e1 ... en] 
@@ -82,37 +84,28 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let rec local_in funs acc loc (f_param_list, arg_list, f_env, f_acc) result =
+ let rec local_in funs acc loc (f_kind, f_param_list, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
 
-   (* keeps entries in [f_env] that appear in [f_param_list] *)
-   let keep f_env acc_env { var_name } =
-     try
-       let entry = Env.find var_name f_env in
-       Env.add var_name entry acc_env
-     with
-       Not_found -> acc_env in
-      
    let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
      (* build a list of equations *)
-     let vardec_list, eq_list, f_acc = 
+     let eq_list, f_acc = 
        match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      
-     (vardec_list, eq_list), f_acc in
+     eq_list, f_acc in
 
-   let result_t f_acc (vardec_list, eq_list) result =
-     (* inlining is done recursively on the body [r] *)
+   let result_t f_acc eq_list result =
+     (* inlining is done recursively on the body [result] *)
      let { r_desc } as result, f_acc = Mapfold.result_it funs f_acc result in
      let e = match r_desc with
        | Exp(r_e) ->
-          Aux.e_local_vardec vardec_list eq_list r_e
+          Aux.e_let_list false eq_list r_e
        | Returns { b_vars; b_body } ->
-          let vardec_list = b_vars @ vardec_list in
-          let eq_list = b_body :: eq_list in
-          Aux.e_local_vardec vardec_list eq_list
-            (Aux.returns_of_vardec_list_make b_vars) in
+          Aux.e_let_list false eq_list
+            (Aux.e_let_list false [b_body]
+               (Aux.returns_of_vardec_list_make b_vars)) in
      e, append f_acc acc in
 
    (* compute the arity *)
@@ -126,36 +119,38 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
    
    if n_f_param_list = n_arg_list
    then
-     let (vardec_list, eq_list), f_acc =
+     let eq_list, f_acc =
        match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
-     result_t f_acc (vardec_list, eq_list) result
+     result_t f_acc eq_list result
    else
      if n_f_param_list < n_arg_list then
        (* [(inline fun x1..xn -> result) e1..en en+1...em] *)
        let arg_list, arg_rest_list =
          Util.firsts_n n_f_param_list arg_list in
-       let (vardec_list, eq_list), f_acc =
+       let eq_list, f_acc =
          match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
-       let e, f_acc = result_t f_acc ([], []) result in
+       let e, f_acc = result_t f_acc [] result in
        let e, f_acc = apply funs f_acc e arg_rest_list in
-       Aux.e_local_vardec vardec_list eq_list e, f_acc
+       Aux.e_let_list false eq_list e, f_acc
      else
        (* [n_f_param_list > n_arg_list] *)
        (* [(inline fun x1..xn xn+1..xm -> result) e1..en] *)
        let f_param_list, f_param_rest_list =
          Util.firsts_n n_arg_list f_param_list in
-       let (vardec_list, eq_list), f_acc =
+       let eq_list, f_acc =
          match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
-       (* keeps only entries in [f_env] for names in [f_param_rest_list] *)
-       let f_env =
-         List.fold_left (List.fold_left (keep f_env))
-           Env.empty f_param_rest_list in
+       (* keeps entries in [f_env] for names in [f_param_rest_list] *)
+       let dv =
+         List.fold_left
+           (List.fold_left (fun acc { var_name } -> S.add var_name acc))
+           S.empty f_param_rest_list in
+       let f_env = keep f_env dv in
        let m = fresh () in
        let entry =
-         { f_inline = true; f_args = f_param_rest_list; f_body = result;
+         { f_inline = true; f_kind; f_args = f_param_rest_list; f_body = result;
            f_env; f_acc } in
-       Aux.e_local_vardec vardec_list eq_list { (Aux.var m) with e_loc = loc },
-       append { acc with subst = Env.add m entry f_acc.subst } acc
+       Aux.e_let_list false eq_list { (Aux.var m) with e_loc = loc },
+       append { f_acc with subst = Env.add m entry f_acc.subst } acc
 
 (* application *)
 and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
@@ -166,8 +161,9 @@ and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
          let open Global in
          let { info = { value_exp } } = Modules.find_value lname in
          match value_exp with
-         | Some(Vfun { f_args; f_body; f_env }) ->
-            local_in funs acc e_loc (f_args, arg_list, f_env, empty) f_body
+         | Some(Vfun { f_kind; f_args; f_body; f_env }) ->
+            local_in funs acc e_loc (f_kind, f_args, arg_list, f_env, empty)
+              f_body
          | _ -> raise Cannot_inline         
        with
        | Not_found -> raise Cannot_inline in
@@ -175,8 +171,9 @@ and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
   | Evar(x) ->
      let e, acc =
        try
-         let { f_args; f_body; f_env; f_acc } = Env.find x subst in
-         local_in funs acc e_loc (f_args, arg_list, f_env, f_acc) f_body
+         let { f_args; f_kind; f_body; f_env; f_acc } = Env.find x subst in
+         local_in funs acc e_loc (f_kind, f_args, arg_list, f_env, f_acc)
+           f_body
        with
        | Not_found -> raise Cannot_inline in
      e, acc
@@ -185,6 +182,11 @@ and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
      (* so it is useless to pass again on [l_eq] *)
      let e_let, acc = apply funs acc e_let arg_list in
      { e with e_desc = Elet(l_eq, e_let) }, acc
+  (* | Elocal(b, e_let) ->
+     (* when the function apply is called, [e] has already been traversed *)
+     (* so it is useless to pass again on [b] *)
+     let e_let, acc = apply funs acc e_let arg_list in
+     { e with e_desc = Elocal(b, e_let) }, acc *)
   | _ -> raise Cannot_inline
 
 (* Build a renaming from an environment *)
@@ -202,11 +204,12 @@ let var_ident global_funs ({ renaming } as acc) x =
 (* expressions *)
 let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) = 
   match e_desc with
-  | Efun({ f_inline = true; f_args; f_body; f_env }) ->
+  | Efun({ f_inline = true; f_kind; f_args; f_body; f_env }) ->
      let m = fresh () in
      { e with e_desc = Evar(m) },
-     { acc with subst = Env.add m { f_inline = true;
-                                    f_args; f_body; f_env; f_acc = acc } subst }
+     { acc with subst =
+                  Env.add m { f_inline = true;
+                              f_kind; f_args; f_body; f_env; f_acc = acc } subst }
   | Eapp({ f; arg_list } as app) ->
      let f, acc = Mapfold.expression_it funs acc f in
      let arg_list, acc =
@@ -257,16 +260,23 @@ let check_no_inline_letdecl subst l_decl =
     | Evar(x) ->
        let e, subst =
          try
-           let { f_inline } = Env.find x subst in
+           let { f_inline; f_kind; f_args } = Env.find x subst in
            if f_inline then
+             let module Printer = Printer.Make(Ptypinfo) in
+             let fun_arg_list ff (kind, f_args) =
+               Format.eprintf
+                 "@[inline %s %a -> ...@]" (Printer.kind f_kind)
+                 Printer.arg_list f_args in
              Format.eprintf
              "@[%aInline error: this expression should be replaced by \
-              an inlined function.@ \
-              The inlining cannot be done because \
+              an inlined function@ \
+              [%a]@ The inlining cannot be done because \
               it is not on the left of an application@ \
               or the application is partial.@.@]"
-             Location.output_location e_loc;
-           raise Misc.Error
+             Location.output_location e_loc
+             fun_arg_list (f_kind, f_args);
+             raise Misc.Error
+           else e, subst
          with | Not_found -> e, subst in
        e, subst
     | _ -> raise Mapfold.Fallback in
@@ -277,10 +287,10 @@ let check_no_inline_letdecl subst l_decl =
   
   Mapfold.letdecl_it funs subst l_decl
 
-let letdecl funs acc l_decl =
-  let l_decl, ({ subst } as acc) = Mapfold.letdecl funs acc l_decl in
-  let _ = check_no_inline_letdecl subst l_decl in
-  l_decl, acc
+let leq_t funs acc leq =
+  let ({ l_eq; l_env } as leq), acc = Mapfold.leq_t funs acc leq in
+  (* update [l_env] *)
+  { leq with l_env = keep l_env (Defnames.names S.empty l_eq.eq_write) }, acc
 
 let letdecl funs acc (d_names, d_leq) =
   let d_leq, ({ subst; renaming } as acc) = Mapfold.leq_it funs empty d_leq in
@@ -288,11 +298,11 @@ let letdecl funs acc (d_names, d_leq) =
   let update_module_table d_names (name, m) =
     let m_copy, _ = var_ident funs.global_funs acc m in
     try
-      let { f_args; f_body; f_env } = Env.find m_copy subst in
+      let { f_args; f_kind; f_body; f_env } = Env.find m_copy subst in
       let entry = Modules.find_value (Name name) in
       Global.set_value_exp entry
-        (Global.Vfun { Global.f_args = f_args; Global.f_body = f_body;
-                       Global.f_env = f_env });
+        (Global.Vfun { Global.f_args = f_args; Global.f_kind = f_kind;
+                       Global.f_body = f_body; Global.f_env = f_env });
       (* entry [name, m] is removed from the list of defined names *)
       d_names
     with
@@ -310,6 +320,7 @@ let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
     { Mapfold.defaults with
-      global_funs; expression; equation; letdecl; open_t; set_index; get_index; } in
+      global_funs; expression; equation; leq_t; letdecl; open_t;
+      set_index; get_index; } in
   let p, { renaming; subst } = Mapfold.program_it funs empty p in
   p
