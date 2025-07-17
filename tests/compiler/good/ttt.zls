@@ -1,17 +1,51 @@
-let inline f0 x = x + 1
+let node controller h (p, i, d) u =
+  let inline node prop h u = u in
 
-let f00 x = f0 (x+2)
+  let inline node int h u =
+    let rec o = 0.0 -> pre o +. h *. u in o in
 
-let f x =
+  let inline node derivative h u = 0.0 -> (u -. pre(u)) /. h in
+
+  let inline node pid h prop int derivative (p, i, d) u =
+   run (int h)(i *. u) +. run (derivative h)(d *. u) +. run (prop h)(u) in
+
+  pid h prop int derivative (p, i, d) u
+
+(*
+let f1 x =
   let g = inline fun x y -> x + 1 in
   let h = (g 1) 2 in
   h
+
+let f2 x =
+  let g = inline fun x y -> x + y in
+  let h = (g 1) in
+  h 2
+
+let f2 x =
+  let h = (let x = 1 in (inline fun y -> x + y)) in
+  h 2
+
+let f2 x =
+  let x = 1 in
+  let h = inline fun y -> x + y in
+  h 2
+
+let f2 x =
+  let x = 1 in
+  let y = 2 in
+  x + y
+ *)
+ 
+(*
+let inline f0 x = x + 1
+
+let f00 x = f0 (x+2)
 
 
 let f1 x =
   let h = 1 and g = inline fun x -> x + 1 in
   g 1 + g 2
-
 
 let f2 x =
   let h = 1 and g = inline fun x y -> x + 1 in
@@ -19,11 +53,13 @@ let f2 x =
   h + g 2 3
 
 
+
 let f3 x =
   let h = inline fun x -> x + 1
   and g = inline fun h y -> h y + 1 in
   let h = g h in
   h 2 + 1
+*)
 
 (*
 let node f4 x =
