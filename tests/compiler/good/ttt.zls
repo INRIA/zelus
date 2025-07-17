@@ -1,3 +1,14 @@
+let f1 x =
+  let g = inline fun x y -> x + 1 in
+  let h = (g 1) 2 in
+  h
+
+let f2 x =
+  let g = inline fun x y -> x + y in
+  let h = (g 1) in
+  h 2
+
+(*
 let node controller h (p, i, d) u =
   let inline node prop h u = u in
 
@@ -11,16 +22,6 @@ let node controller h (p, i, d) u =
 
   pid h prop int derivative (p, i, d) u
 
-(*
-let f1 x =
-  let g = inline fun x y -> x + 1 in
-  let h = (g 1) 2 in
-  h
-
-let f2 x =
-  let g = inline fun x y -> x + y in
-  let h = (g 1) in
-  h 2
 
 let f2 x =
   let h = (let x = 1 in (inline fun y -> x + y)) in
