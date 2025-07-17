@@ -66,7 +66,7 @@ let expression funs acc e =
   let ({ e_desc } as e), _ = Mapfold.expression funs acc e in
   match e_desc with
   | Elocal({ b_body; b_loc }, e_local) ->
-     { e with e_desc = Elet(Aux.leq [b_body], e_local) }, acc
+     { e with e_desc = Elet(Aux.leq false [b_body], e_local) }, acc
   | _ -> e, acc
 
 let equation funs acc eq =
@@ -84,7 +84,8 @@ let equation funs acc eq =
      if is_total then
        { eq with eq_desc = EQmatch { m with e; handlers } }, acc
      else
-        (* add a handler [_ -> default_eq] when the pattern matching is partial *)
+       (* add a handler [_ -> default_eq] when the pattern matching is *)
+       (* partial *)
        (* [default_eq] is a list of  default equations for *)
        (* variables in [eq_write] *)
         let m_body = complete acc eq_write (Aux.eq_empty ()) in

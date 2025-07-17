@@ -36,20 +36,21 @@ let fresh name = fresh name
 (* Defines a value [let x = e in e_let] *)
 let let_value name e =
   let x = fresh name in
-  Aux.e_letrec [Aux.id_eq x e] (var x)
+  Aux.e_let_list false [Aux.id_eq x e] (var x)
 
 (* two options - generates let/rec or local/in *)
 (* [let rec m = e and x = last* m in x] *)
 let let_mem_value e =
   let x = fresh_pre () in
   let m = fresh_m () in
-  Aux.e_letrec [Aux.id_eq m e; Aux.id_eq x (Aux.last_star m)] (var x)
+  Aux.e_let_list false [Aux.id_eq m e; Aux.id_eq x (Aux.last_star m)] (var x)
     
 (* [let rec init m = e1 and m = e2 and x = last* m in x] *)
 let let_init_mem_value e1 e2 =
   let x = fresh_fby () in
   let m = fresh_m () in
-  Aux.e_letrec [Aux.eq_init m e1; Aux.id_eq m e2; Aux.id_eq x (Aux.last_star m)]
+  Aux.e_let_list false
+    [Aux.eq_init m e1; Aux.id_eq m e2; Aux.id_eq x (Aux.last_star m)]
     (var x)
 
 (* Defines a value [local x, (last m) do m = e and x = last* m in x] *)

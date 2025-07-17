@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -83,7 +83,7 @@ let local_init_in_eq { i } eq =
 (* [let rec init id = true and id = false in e] *)
 let let_init_in_exp { i } e =
   match i with
-  | None -> e | Some(id) -> Aux.e_letrec (init id) e
+  | None -> e | Some(id) -> Aux.e_let_list false (init id) e
 
 (* all the constructs below are atomic blocks, that is, *)
 (* a fresh initialization variable is necessary *)

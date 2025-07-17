@@ -146,7 +146,6 @@ let pattern exps { p_cond; p_body; p_env; p_zero } =
 (* add a default value for signals. *)
 (* [local ..., x, ...] becomes [local ..., x default A, ...] *)
 let add_absent_vardec acc ({ var_name } as v) =
-  let l = S.to_list acc in
   if S.mem var_name acc then
     { v with var_default = Some(absent) }, S.remove var_name acc
   else v, acc

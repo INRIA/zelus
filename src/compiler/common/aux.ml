@@ -196,24 +196,24 @@ let rec eq_let_list leq_list eq =
   | [] -> eq
   | leq :: leq_list -> eq_let leq (eq_let_list leq_list eq)
 
-and eq_let leq eq =
-  eqmake eq.eq_write (EQlet(leq, eq))
+and eq_let leq eq = eqmake eq.eq_write (EQlet(leq, eq))
 let opt_eq_letdesc l_opt eq =
   match l_opt with | None -> eq.eq_desc | Some(l) -> EQlet(l, eq)
 
-let leq eq_list =
-  { l_kind = Kany; l_rec = true; l_eq = par eq_list; l_loc = no_location;
+let leq l_rec eq_list =
+  { l_kind = Kany; l_rec; l_eq = par eq_list; l_loc = no_location;
     l_env = env_of (Defnames.names S.empty (defnames eq_list)); }
 
 let e_let leq e = emake (Elet(leq, e))
-let e_letrec eq_list e = emake (Elet(leq eq_list, e))
+let e_let_list l_rec eq_list e =
+  match eq_list with | [] -> e | _ -> emake (Elet(leq l_rec eq_list, e))
 let opt_letdesc l_opt e =
   match l_opt with | None -> e.e_desc | Some(l) -> Elet(l, e)
 
-let let_eq_list_in_e eq_list e =
-  match eq_list with [] -> e | _ -> e_let (leq eq_list) e
-let let_eq_list_in_eq eq_list eq =
-  match eq_list with [] -> eq | _ -> eq_let (leq eq_list) eq
+let let_eq_list_in_e l_rec eq_list e =
+  match eq_list with [] -> e | _ -> e_let (leq l_rec eq_list) e
+let let_eq_list_in_eq l_rec eq_list eq =
+  match eq_list with [] -> eq | _ -> eq_let (leq l_rec eq_list) eq
 
 let pat_of_vardec_make { var_name } = pat_make var_name
 
@@ -252,7 +252,7 @@ let e_local b e = emake (Elocal(b, e))
 let e_local_vardec vardec_list eq_list e =
   match vardec_list, eq_list with
   | (_, []) -> e
-  | [], _ -> e_letrec eq_list e
+  | [], _ -> e_let_list true eq_list e
   | _ -> e_local (block_make vardec_list eq_list) e
 
 let eq_ifthen e eq_true =
