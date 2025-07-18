@@ -308,8 +308,6 @@ let letdecl funs acc (d_names, d_leq) =
   let d_leq, ({ subst; renaming } as acc) = Mapfold.leq_it funs empty d_leq in
   (* every entry in [subst] is added to the global symbol table *)
   let update_module_table d_names (name, m) =
-    let l_1 = Env.to_list acc.subst in
-    let l_2 = Env.to_list acc.renaming in
     let m_copy, _ = Mapfold.var_ident_it funs.global_funs acc m in
     try
       let { f_inline; f_args; f_kind; f_body; f_env } =
@@ -332,11 +330,16 @@ let open_t funs acc modname =
   Modules.open_module modname;
   modname, acc
 
+(* useful function; remove empty declarations [let ()] *)
+let not_empty { desc } = match desc with
+  | Eletdecl { d_leq = { l_eq } } when Aux.is_empty l_eq -> false | _ -> true
+  
 let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
     { Mapfold.defaults with
       global_funs; expression; equation; leq_t; letdecl; open_t;
       set_index; get_index; } in
-  let p, { renaming; subst } = Mapfold.program_it funs empty p in
-  p
+  let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
+  let p_impl_list = List.filter not_empty p_impl_list in
+  { p with p_impl_list }
