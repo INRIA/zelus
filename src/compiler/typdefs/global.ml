@@ -49,7 +49,7 @@ and vexp =
       }
 
 and funexp =
-  { f_args: Typinfo.arg list; f_kind: Zelus.kind;
+  { f_inline: bool; f_args: Typinfo.arg list; f_kind: Zelus.kind;
     f_body: Typinfo.result; f_env: Typinfo.ienv Env.t }
 
 (* Value constructors *)
