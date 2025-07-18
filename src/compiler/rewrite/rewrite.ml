@@ -24,9 +24,7 @@ let nothing p = p
 let type_check _ p = Typing.program Format.std_formatter false p
     
 let optim_list =
-  [(* "copy", "Remove of copy variables. See below:", nothing,
-   Copy.program;
-   "deadcode", "Dead-code removal. See below:", nothing,
+  [(* "deadcode", "Dead-code removal. See below:", nothing,
    Deadcode.program; *)
    (* "cse", "Common sub-expression elimination. See below:", nothing,
    Cse.program; *)
@@ -39,6 +37,8 @@ let default_list =
   ["inline", "Inlining of annotated and small function calls. See below:", 
    nothing,
    Inline.program;
+   "copy", "Remove of copy variables. See below:", nothing,
+   Copy.program;
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
    "auto", "Translation of automata. See below:", nothing,

@@ -401,9 +401,7 @@ and size_t global_funs acc ({ desc } as si) =
      Size_op(op, si1, si2), acc in
   { si with desc }, acc
 
-let rec write_it funs acc w = 
-  try funs.write_t funs acc w
-  with Fallback -> write_t funs acc w
+let write_it funs acc w = funs.write_t funs acc w
 
 and write_t funs acc { dv; di; der } =
   let rename n = let m, _ = var_ident_it funs.global_funs acc n in m in
@@ -580,9 +578,7 @@ and result funs acc ({ r_desc } as r) =
        let b_eq, acc = block_it funs acc b_eq in Returns(b_eq), acc in
   { r with r_desc }, acc
 
-and funexp_it funs acc f =
-  try funs.funexp funs acc f
-  with Fallback -> funexp funs acc f
+and funexp_it funs acc f = funs.funexp funs acc f
 
 and funexp funs acc ({ f_args; f_body; f_env } as f) =
   let arg acc v_list = vardec_list_it funs acc v_list in
@@ -591,9 +587,7 @@ and funexp funs acc ({ f_args; f_body; f_env } as f) =
   let f_body, acc = result_it funs acc f_body in
   { f with f_args; f_body; f_env }, acc
 
-and sizefun_it funs acc f =
-  try funs.sizefun funs acc f
-  with Fallback -> sizefun funs acc f
+and sizefun_it funs acc f = funs.sizefun funs acc f
 
 and sizefun funs acc ({ sf_id; sf_id_list; sf_e; sf_env } as sf) =
   let sf_env, acc = build_it funs.global_funs acc sf_env in
@@ -910,14 +904,12 @@ let typedecl_it funs acc ty_decl = funs.typedecl funs acc ty_decl
 
 and typedecl funs acc ty_decl = ty_decl, acc
 
-let rec open_it funs acc name =
-  try funs.open_t funs acc name with Fallback -> open_t funs acc name
+let open_it funs acc name = funs.open_t funs acc name
 
 and open_t funs acc name = name, acc
 
-let rec letdecl_it funs acc (d_names, d_leq) =
-  try funs.letdecl funs acc (d_names, d_leq)
-  with Fallback -> letdecl funs acc (d_names, d_leq)
+let letdecl_it funs acc (d_names, d_leq) =
+  funs.letdecl funs acc (d_names, d_leq)
 
 and letdecl funs acc (d_names, d_leq) =
   let d_leq, acc = leq_it funs acc d_leq in
@@ -993,9 +985,7 @@ let get_index_it funs acc n = funs.get_index funs acc n
 
 and get_index funs acc n = n, acc
 
-let rec program_it funs acc p = 
-  try funs.program funs acc p
-  with Fallback -> program funs acc p
+let program_it funs acc p = funs.program funs acc p
 
 and program funs acc { p_impl_list; p_index } =
   let n, acc = set_index_it funs acc p_index in

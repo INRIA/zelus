@@ -126,15 +126,18 @@ let eq_and ordered eq1 eq2 =
      eqmake w (EQand { ordered = ord; eq_list = eq1 :: eq_list2 })
   | _ -> eqmake w (EQand { ordered = ordered; eq_list = [eq1; eq2] })
 
-let rec par ordered eq_list =
+let rec par_t ordered eq_list =
   match eq_list with
   | [] -> eq_empty ()
   | eq :: eq_list ->
-     eq_and ordered eq (par ordered eq_list)
+     eq_and ordered eq (par_t ordered eq_list)
 
 let eq_and eq1 eq2 = eq_and false eq1 eq2
-let seq eq_list = par true eq_list
-let par eq_list = par false eq_list
+let seq eq_list = par_t true eq_list
+let par eq_list = par_t false eq_list
+
+let set_loc_if_not_empty loc eq = 
+  if is_empty eq then { eq with eq_loc = loc } else eq
 
 let init_vardec id var_is_last var_init var_default var_init_in_eq = 
   { var_name = id; var_is_last; var_init; var_default; var_clock = false;
@@ -198,6 +201,11 @@ let rec eq_let_list leq_list eq =
 
 and eq_let ({ l_eq } as leq) eq =
   if is_empty l_eq then eq else eqmake eq.eq_write (EQlet(leq, eq))
+
+let eq_let_loc eq_loc ({ l_eq } as leq) eq =
+  if is_empty l_eq then eq 
+  else { (eqmake eq.eq_write (EQlet(leq, eq))) with eq_loc }
+
 let opt_eq_letdesc l_opt eq =
   match l_opt with | None -> eq.eq_desc | Some(l) -> EQlet(l, eq)
 
@@ -209,6 +217,10 @@ let e_let ({ l_eq } as leq) e =
   if is_empty l_eq then e else emake (Elet(leq, e))
 let e_let_list l_rec eq_list e =
   match eq_list with | [] -> e | _ -> emake (Elet(leq l_rec eq_list, e))
+
+let e_let_loc e_loc ({ l_eq } as leq) e =
+  if is_empty l_eq then e else { (emake (Elet(leq, e))) with e_loc }
+
 let opt_letdesc l_opt e =
   match l_opt with | None -> e.e_desc | Some(l) -> Elet(l, e)
 

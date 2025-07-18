@@ -213,7 +213,8 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc; e_loc } as e) =
      { e with e_desc = Evar(m) },
      { acc with subst =
                   Env.add m { f_inline = true; f_partial = false;
-                              f_kind; f_args; f_body; f_env; f_acc = acc } subst }
+                              f_kind; f_args; f_body; f_env; f_acc = acc } 
+                    subst }
   | Eapp({ f; arg_list } as app) ->
      let f, acc = Mapfold.expression_it funs acc f in
      let arg_list, acc =
@@ -228,7 +229,7 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc; e_loc } as e) =
   | Elet(leq, e_let) ->
      let leq, acc = Mapfold.leq_it funs acc leq in
      let e_let, acc = Mapfold.expression_it funs acc e_let in
-     { (Aux.e_let leq e_let) with e_loc }, acc
+     Aux.e_let_loc e_loc leq e_let, acc
   (* TODO: remove the operator Erun; mark function calls instead *)
   | Eop(Erun i, [f; arg]) ->
      let f, acc = Mapfold.expression_it funs acc f in
@@ -249,12 +250,13 @@ let equation funs acc eq =
          try
            let acc = make_subst acc x e in eq_empty, acc
          with Cannot_inline -> 
-           { eq with eq_desc = EQeq({ p with pat_desc = Evarpat(x) }, e) }, acc in
+           { eq with eq_desc = EQeq({ p with pat_desc = Evarpat(x) }, e) }, 
+           acc in
        eq, acc
     | EQlet(leq, eq_let) ->
        let leq, acc = Mapfold.leq_it funs acc leq in
        let eq_let, acc = Mapfold.equation_it funs acc eq_let in
-       { (Aux.eq_let leq eq_let) with eq_loc }, acc
+       Aux.eq_let_loc eq_loc leq eq_let, acc
   | _ -> 
        eq, acc
 
@@ -264,7 +266,6 @@ let leq_t funs acc leq =
   { leq with l_env = keep l_env (Defnames.names S.empty l_eq.eq_write) }, acc
 
 (* all local names can restart from 0 *)
-(* to be done later; for the moment, starts from the current value *)
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
@@ -272,30 +273,43 @@ let get_index funs acc n = Ident.get (), acc
 (* a post-pass verification checking that all *)
 (* [inline fun x1...xn -> e] have been removed *)
 let check_no_inline_letdecl subst l_decl =
+  let error loc f_kind f_args =
+    let module Printer = Printer.Make(Ptypinfo) in
+    let fun_arg_list ff (kind, f_args) =
+      Format.eprintf
+        "@[inline %s %a -> ...@]" (Printer.kind f_kind)
+        Printer.arg_list f_args in
+    Format.eprintf
+      "@[%aInline error: this expression should be replaced by \
+       an inlined function@ \
+       [%a]@ The inlining cannot be done because \
+       it is not on the left of an application@ \
+       or the application is partial.@.@]"
+      Location.output_location loc
+      fun_arg_list (f_kind, f_args);
+    raise Misc.Error in
+  
   let expression funs subst ({ e_desc; e_loc } as e) =
     match e_desc with
+    | Eglobal { lname } ->
+       let r =
+         let open Global in
+         try
+           let { info = { value_exp } } = Modules.find_value lname in
+           match value_exp with
+           | Some(Vfun { f_inline; f_kind; f_args }) ->
+              if f_inline then error e_loc f_kind f_args else e, subst
+           | _ -> e, subst
+         with
+         | Not_found -> e, subst in
+       r
     | Evar(x) ->
-       let e, subst =
+       let r = 
          try
            let { f_inline; f_kind; f_args } = Env.find x subst in
-           if f_inline then
-             let module Printer = Printer.Make(Ptypinfo) in
-             let fun_arg_list ff (kind, f_args) =
-               Format.eprintf
-                 "@[inline %s %a -> ...@]" (Printer.kind f_kind)
-                 Printer.arg_list f_args in
-             Format.eprintf
-             "@[%aInline error: this expression should be replaced by \
-              an inlined function@ \
-              [%a]@ The inlining cannot be done because \
-              it is not on the left of an application@ \
-              or the application is partial.@.@]"
-             Location.output_location e_loc
-             fun_arg_list (f_kind, f_args);
-             raise Misc.Error
-           else e, subst
+           if f_inline then error e_loc f_kind f_args else e, subst
          with | Not_found -> e, subst in
-       e, subst
+       r
     | _ -> raise Mapfold.Fallback in
 
   let global_funs = Mapfold.default_global_funs in
