@@ -57,9 +57,8 @@ let value { subst } { e_desc } =
        try
          let { info = { value_exp } } = Modules.find_value lname in
          match value_exp with
-         | Some(Vfun 
-                  { f_kind; f_args; f_body; f_env }) ->
-            { f_inline = true; f_kind; f_args; f_body; f_env; f_acc = empty }
+         | Some(Vfun { f_inline; f_kind; f_args; f_body; f_env }) ->
+            { f_inline; f_kind; f_args; f_body; f_env; f_acc = empty }
          | _ -> raise Cannot_inline 
        with
        | Not_found -> raise Cannot_inline in
@@ -97,7 +96,8 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let rec let_in funs acc loc (f_kind, f_param_list, arg_list, f_env, f_acc) result =
+ let rec let_in funs acc loc 
+           (f_kind, f_param_list, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
