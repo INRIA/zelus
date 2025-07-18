@@ -33,7 +33,7 @@ let rec remove_copies acc ({ eq_desc; eq_loc } as eq) =
      let eq_list, acc = 
        Util.mapfold remove_copies acc eq_list in
      Aux.set_loc_if_not_empty eq_loc (Aux.par_t ordered eq_list), acc
-  | _ -> raise Mapfold.Fallback
+  | _ -> eq, acc
      
 let expression funs acc ({ e_desc; e_loc } as e) =
   match e_desc with
