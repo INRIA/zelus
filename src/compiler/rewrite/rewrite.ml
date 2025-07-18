@@ -102,12 +102,14 @@ let default_list =
    Set_sorts.program;
    ]
 
+let rewrite_list = default_list
+
 let number_of_passes = List.length default_list + List.length optim_list 
 
 (* select the rewritting steps *)
 module S = Set.Make (String)
 let s_all =
-  List.fold_left (fun acc (s, _, _, _) -> S.add s acc) S.empty default_list
+  List.fold_left (fun acc (s, _, _, _) -> S.add s acc) S.empty rewrite_list
 let s_set = ref s_all
 let step_list = ref s_all
 let set_steps w =
@@ -129,7 +131,7 @@ let set_steps w =
     (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
     l_l
 let rewrite_list () =
-  List.filter (fun (w, _, _, _) -> S.mem w !s_set) default_list
+  List.filter (fun (w, _, _, _) -> S.mem w !s_set) rewrite_list
 
 (* Apply a sequence of source-to-source transformation *)
 (* do equivalence checking for every step if [n_steps <> 0] *)
@@ -146,13 +148,21 @@ let main is_print print_message genv0 p n_steps =
   let rewrite_and_compare genv p (name, comment, prepass, rewrite) =
     incr pass_number;
     let p = prepass p in
-    let p' = rewrite genv p in
+    let p_after = rewrite genv p in
     let name_of_the_pass = "Pass " ^ name ^ " (" ^
         (string_of_int !pass_number) ^ "/" ^ (string_of_int number_of_passes)
         ^ "):\n" in
     print_message is_print (name_of_the_pass ^ comment);
-    if is_print then Printer.program Format.std_formatter p';
-    if n_steps = 0 then p' else compare name n_steps genv p p' in
+    if is_print then Printer.program Format.std_formatter p_after;
+    let p_after =
+      (* if flag -typeall a postpass typing is made *)
+      if !Misc.typeall then
+        let p_after = type_check () p_after in
+        print_message is_print (name_of_the_pass ^ "(typed) " ^ comment);
+        if is_print then Printer.program Format.std_formatter p_after;
+        p_after
+        else p_after in
+    if n_steps = 0 then p_after else compare name n_steps genv p p_after in
     
   let iter genv p l = List.fold_left (rewrite_and_compare genv) p l in
   
