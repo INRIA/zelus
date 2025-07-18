@@ -51,6 +51,19 @@ let fresh () = Ident.fresh "inline"
 (* when [e] has value [v], add an entry [x\v] to [subst] *)
 let value { subst } { e_desc } =
   match e_desc with
+  | Eglobal { lname } ->
+     let v =
+       let open Global in
+       try
+         let { info = { value_exp } } = Modules.find_value lname in
+         match value_exp with
+         | Some(Vfun 
+                  { f_kind; f_args; f_body; f_env }) ->
+            { f_inline = true; f_kind; f_args; f_body; f_env; f_acc = empty }
+         | _ -> raise Cannot_inline 
+       with
+       | Not_found -> raise Cannot_inline in
+     v
   | Evar(y) ->
      let v = try Env.find y subst with Not_found -> raise Cannot_inline in v
   | _ -> raise Cannot_inline
@@ -84,7 +97,7 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
  *- rewrites to:
  *- [local a1',...,an', v_ret'
  *-  do a1' = e1 ... an' = en and eq[ai\ai'] in v_ret' *)
- let rec local_in funs acc loc (f_kind, f_param_list, arg_list, f_env, f_acc) result =
+ let rec let_in funs acc loc (f_kind, f_param_list, arg_list, f_env, f_acc) result =
    (* recursively treat the argument *)
    let params f_acc v_list =
      Util.mapfold (Mapfold.vardec_it funs) f_acc v_list in
@@ -114,17 +127,18 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
    
    (* build a renaming for the formal parameters *)
    let f_env, f_acc = Mapfold.build_it funs.global_funs f_acc f_env in
-   (* rename the list of parameters *)
-   let f_param_list, f_acc = Util.mapfold params f_acc f_param_list in  
-   
    if n_f_param_list = n_arg_list
    then
+     (* rename the list of parameters *)
+     let f_param_list, f_acc = Util.mapfold params f_acc f_param_list in  
      let eq_list, f_acc =
        match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
      result_t f_acc eq_list result
    else
      if n_f_param_list < n_arg_list then
        (* [(inline fun x1..xn -> result) e1..en en+1...em] *)
+       (* rename the list of parameters *)
+       let f_param_list, f_acc = Util.mapfold params f_acc f_param_list in  
        let arg_list, arg_rest_list =
          Util.firsts_n n_f_param_list arg_list in
        let eq_list, f_acc =
@@ -137,6 +151,8 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
        (* [(inline fun x1..xn xn+1..xm -> result) e1..en] *)
        let f_param_list, f_param_rest_list =
          Util.firsts_n n_arg_list f_param_list in
+       (* rename the list of parameters *)
+       let f_param_list, f_acc = Util.mapfold params f_acc f_param_list in  
        let eq_list, f_acc =
          match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
        (* keeps entries in [f_env] for names in [f_param_rest_list] *)
@@ -155,14 +171,15 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
 (* application *)
 and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
   match e_desc with
-  | Eglobal { lname } ->
+  (*
+| Eglobal { lname } ->
      let e, acc =
        try
          let open Global in
          let { info = { value_exp } } = Modules.find_value lname in
          match value_exp with
          | Some(Vfun { f_kind; f_args; f_body; f_env }) ->
-            local_in funs acc e_loc (f_kind, f_args, arg_list, f_env, empty)
+            let_in funs acc e_loc (f_kind, f_args, arg_list, f_env, empty)
               f_body
          | _ -> raise Cannot_inline         
        with
@@ -172,22 +189,27 @@ and apply funs ({ subst } as acc) ({ e_desc; e_loc } as e) arg_list =
      let e, acc =
        try
          let { f_args; f_kind; f_body; f_env; f_acc } = Env.find x subst in
-         local_in funs acc e_loc (f_kind, f_args, arg_list, f_env, f_acc)
+         let_in funs acc e_loc (f_kind, f_args, arg_list, f_env, f_acc)
            f_body
        with
        | Not_found -> raise Cannot_inline in
      e, acc
+*)
   | Elet(l_eq, e_let) ->
      (* when the function apply is called, [e] has already been traversed *)
      (* so it is useless to pass again on [l_eq] *)
      let e_let, acc = apply funs acc e_let arg_list in
      { e with e_desc = Elet(l_eq, e_let) }, acc
+  | _ ->
+     let { f_args; f_kind; f_body; f_env; f_acc } = value acc e in
+     let_in funs acc e_loc (f_kind, f_args, arg_list, f_env, f_acc) f_body
+
   (* | Elocal(b, e_let) ->
      (* when the function apply is called, [e] has already been traversed *)
      (* so it is useless to pass again on [b] *)
      let e_let, acc = apply funs acc e_let arg_list in
      { e with e_desc = Elocal(b, e_let) }, acc *)
-  | _ -> raise Cannot_inline
+(*   | _ -> raise Cannot_inline *)
 
 (* Build a renaming from an environment *)
 let build global_funs ({ renaming } as acc) env =
@@ -296,13 +318,13 @@ let letdecl funs acc (d_names, d_leq) =
   let d_leq, ({ subst; renaming } as acc) = Mapfold.leq_it funs empty d_leq in
   (* every entry in [subst] is added to the global symbol table *)
   let update_module_table d_names (name, m) =
-    let m_copy, _ = var_ident funs.global_funs acc m in
+    let m_copy, _ = Mapfold.var_ident funs.global_funs acc m in
     try
-      let { f_args; f_kind; f_body; f_env } = Env.find m_copy subst in
+      let { f_inline; f_args; f_kind; f_body; f_env } = Env.find m_copy subst in
       let entry = Modules.find_value (Name name) in
       Global.set_value_exp entry
-        (Global.Vfun { Global.f_args = f_args; Global.f_kind = f_kind;
-                       Global.f_body = f_body; Global.f_env = f_env });
+        (Global.Vfun { Global.f_inline; Global.f_args; Global.f_kind;
+                       Global.f_body; Global.f_env });
       (* entry [name, m] is removed from the list of defined names *)
       d_names
     with
