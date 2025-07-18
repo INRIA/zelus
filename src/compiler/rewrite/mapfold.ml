@@ -910,9 +910,10 @@ let typedecl_it funs acc ty_decl = funs.typedecl funs acc ty_decl
 
 and typedecl funs acc ty_decl = ty_decl, acc
 
-let open_it funs acc name = funs.open_t funs acc name
+let rec open_it funs acc name =
+  try funs.open_t funs acc name with Fallback -> open_t funs acc name
 
-let open_t funs acc name = name, acc
+and open_t funs acc name = name, acc
 
 let rec letdecl_it funs acc (d_names, d_leq) =
   try funs.letdecl funs acc (d_names, d_leq)

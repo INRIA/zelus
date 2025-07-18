@@ -5,15 +5,16 @@ let f = g
 let h x = f(x+1)
 
 let inline h' x =
+  let g = inline fun x -> x in
   let m = let f = g in f in
-  m(x+1)
+  f(x+1),1
 
 let h'' x = h' x
-
 
 let f1 x =
   let m = inline fun x -> x in
   let g = inline fun x y -> x + 1 in
+  let z = (g 1) 2 in
   let h = m (g (1+2) 2) in
   h
 
