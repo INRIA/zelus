@@ -1,3 +1,8 @@
+let f x =
+  let y = 1 and z = x and t = x in
+  let m = y in
+  m + y + z + t
+
 let f1 x =
   let m = inline fun x -> x in
   let g = inline fun x y -> x + 1 in
