@@ -117,6 +117,7 @@ let use_rif = ref false
 let zsign = ref false
 let with_copy = ref false
 let no_reduce = ref false
+let typeall = ref false
 
 (* two internal undocumented flags *)
 (* switch off some static verifications during typing *)
