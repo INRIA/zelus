@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -12,8 +12,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* dead-code removal. *)
-(* this is applied to normalized code *)
+(* dead-code removal. Applied to normalized code *)
 
 open Misc
 open Ident
@@ -24,20 +23,45 @@ open Deftypes
 
 (* Dead-code removal. First build a table [yn -> {x1,...,xk}] wich associate *)
 (* the list of read variables used to produce yn *)
-(* then recursively mark all useful variable according to *)
-(* read-in dependences *)
-(* An equation [eq] is marked useful when it may be unsafe, that *)
-(* is, it has side effets and/or is non total *)
-(* For the moment, only combinatorial functions *)
-(* are considered safe. *)
-(* finally, only keep equations and name defs. for useful variables *)
-(* horizons are considered to be useful *)
-type table = cont Env.t
+type acc =
+  { def_use: table; (* [y depends on x] *)
+    read: S.t }
+
+and table = cont Env.t
  and cont = 
    { mutable c_vars: S.t; (* set of variables *)
      mutable c_useful: bool; (* is-it a useful variable? *)
      mutable c_visited: bool; (* has it been visited already? *) }
      
+(* Visit the table: recursively mark all useful variables *)
+(* returns the set of useful variables *)
+(* [read] is a set of variables *)
+let visit var_set table =
+  let useful = ref S.empty in
+  (* recursively mark visited nodes which are useful *)
+  let rec visit x ({ c_vars; c_useful; c_visited } as entry) = 
+    if not c_visited then
+      begin
+        entry.c_visited <- true;
+        entry.c_useful <- true;
+        useful := S.add x !useful;
+	S.iter visit_fathers c_vars
+      end
+  and visit_fathers x =
+    useful := S.add x !useful;
+    try
+      let entry = Env.find x table in
+      visit x entry
+    with
+      Not_found -> ()
+  (* look for an entry in the table that is not marked but useful *)
+  and visit_table x ({ c_useful; c_visited } as entry) =
+    if not c_visited && c_useful then visit x entry in
+  (* recursively mark nodes and their predecessors *)
+  S.iter visit_fathers var_set;
+  Env.iter visit_table table;
+  !useful
+ 
 let empty = Env.empty
 
 (* Useful function. For debugging purpose. *)
@@ -53,10 +77,10 @@ let print ff table =
 
 (* Add the entries [x_j <- x1; ...; x_j <- xn] in the table. *)
 (* for any variable [x_j in w] *)
-(* if [x_j] already, extends the set of variables on which it depends. *)
-(* Otherwise, add the new entry *)
+(* if [x_j] is already in the table, extends the set of variables on *)
+(* which it depends. Otherwise, create a new entry *)
 (* when [is_useful = true], mark all read and write variables to be useful *)
-let add is_useful w r table =
+let add is_useful w_set r_set table =
   (* mark all names in [set] to be useful *)
   let mark_useful set table =
     let mark x table =
@@ -66,27 +90,69 @@ let add is_useful w r table =
 	table
       with
       | Not_found ->
-	 Env.add x
-		 { c_vars = S.empty; c_useful = true;
-		   c_visited = false } table in
+	 Env.add x { c_vars = S.empty; c_useful = true;  c_visited = false } 
+           table in
     S.fold mark set table in
   
   let add x table =
     try
       let { c_vars; c_useful } as cont = Env.find x table in
-      cont.c_vars <- S.union r c_vars;
+      cont.c_vars <- S.union r_set c_vars;
       cont.c_useful <- c_useful || is_useful;
       table
     with 
     | Not_found ->
        Env.add x
-	       { c_vars = r; c_useful = is_useful; c_visited = false } table in
+	       { c_vars = r_set; c_useful = is_useful; c_visited = false } 
+               table in
   (* mark all vars. in [r] to be useful *)
-  let table = if is_useful then mark_useful r table else table in
+  let table = if is_useful then mark_useful r_set table else table in
   (* add dependences *)
-  S.fold add w table
+  S.fold add w_set table
 
-	 
+(* Useful variables *)
+(* 1. the output variables of a function are useful. *)
+(* 2. if [x in write(eq) /\ useful(x) /\ y in read(eq)] then [useful(y)] *)
+(* 3. if [x in write(eq) and [unsafe(eq)] then [useful(x)] *)
+
+(* The algorithm is done in two passes. *)
+(* 1. compute the set of useful variables. *)
+(* 2. remove useless computations *)
+
+
+(* First pass. Compute the def-use chains *)
+let equation funs acc ({ eq_desc } as eq) =
+  let _, acc = match eq_desc with
+  | EQeq(p, e) ->
+     let _, { def_uses; read } = 
+       Mapfold.expression funs ({ acc with read = S.empty }) e in
+     let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
+     (* for every [x in w] and [y in read] add the link [x depends on y] *)
+     eq, { def_uses = add (Unsafe.expression e) w read def_uses; read }
+  | EQder { id; e; e_opt = None; handlers = [] } | EQinit(id, e) ->
+     let _, { def_uses; read } = 
+       Mapfold.expression funs ({ acc with read = S.empty }) e in
+     eq, { def_uses = add (Unsafe.expression e) (S.singleton id) read def_uses;
+           read }
+  | EQmatch { e; handlers } ->
+     let _, { read = r_e } as acc = 
+       expression_it funs { acc with read = S.empty } in
+     let _, { read } as acc =
+       Util.mapfold (match_handler_eq_it funs) acc handlers in
+     (* add control dependences *)
+     (* if [y in r_e /\ x in write(eq)] add [x depends on y] *)
+     let w = Defnames.names S.empty eq_write in
+     eq, { def_uses = add (Unsafe.expression e) w r_e def_uses; read }
+  | EQreset(res_eq, e) ->
+     let _, { read = r_e } as acc =
+       Mapfold.expression_it funs { acc with read = S.empty } in
+     let _, acc = Mapfold.equation_it funs acc res_eq in
+     (* add control dependencs *)
+     (* if [y in r_e /\ x in write(res_eq)] add [x depends on y] *)
+     let w = Defnames.names S.empty eq_write in
+     eq, { def_uses = add (Unsafe.expression e) w r_e def_uses; read }
+  | _ -> Mapfold.equation funs acc eq
+		
 (* Extend [table] where every entry [y -> {x1,...,xn}] *)
 (* is marked to also depend on names in [names] *)
 let extend table names =
@@ -125,34 +191,6 @@ let build_table_for_equation eq =
   let _, table = Mapfold.equation_it funs empty eq in
   table
 
-(* Visit the table: recursively mark all useful variables *)
-(* returns the set of useful variables *)
-(* [read] is a set of variables *)
-let visit read table =
-  let useful = ref S.empty in
-  (* recursively mark visited nodes which are useful *)
-  let rec visit x ({ c_vars; c_useful; c_visited } as entry) = 
-    if not c_visited then
-      begin
-        entry.c_visited <- true;
-        entry.c_useful <- true;
-        useful := S.add x !useful;
-	S.iter visit_fathers c_vars
-      end
-  and visit_fathers x =
-    useful := S.add x !useful;
-    try
-      let entry = Env.find x table in
-      visit x entry
-    with
-      Not_found -> ()
-  (* look for an entry in the table that is not marked but useful *)
-  and visit_table x ({ c_useful; c_visited } as entry) =
-    if not c_visited && c_useful then visit x entry in
-  (* recursively mark nodes and their predecessors *)
-  S.iter visit_fathers read;
-  Env.iter visit_table table;
-  !useful
 
 (* remove useless names in write names *)
 let writes funs useful { dv; di; der } =
