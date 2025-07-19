@@ -22,7 +22,7 @@ let inline node int h u =
 let inline node derivative h u = 0.0 -> (u -. pre(u)) /. h
 
 let inline node pid h prop int derivative (p, i, d) u =
-   run (int h)(i *. u) +. run (derivative h)(d *. u) +. run (prop h)(u)
+   run (int h)(i *. u) +. run (derivative h)(d *. u) +. run (prop h)(p *. u)
 
 let node my_pid h (p, i, d) u = run (pid h prop int derivative (p, i, d)) u
 
@@ -35,6 +35,6 @@ let node controller h (p, i, d) u =
   let inline node derivative h u = 0.0 -> (u -. pre(u)) /. h in
 
   let inline node pid h prop int derivative (p, i, d) u =
-   run (int h)(i *. u) +. run (derivative h)(d *. u) +. run (prop h)(u) in
+   run (int h)(i *. u) +. run (derivative h)(d *. u) +. run (prop h)(p *. u) in
 
   pid h prop int derivative (p, i, d) u

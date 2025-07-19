@@ -25,10 +25,22 @@ type acc = Ident.t Env.t
 
 let empty = Env.empty
 
+let rec match_t acc ({ pat_desc } as p) ({ e_desc } as e) =
+  match pat_desc, e_desc with
+  | Evarpat(x), Evar(y) -> 
+     (* [x = y] *)
+     Aux.eq_empty (), Env.add x y acc
+  | Etuplepat(p_list), Etuple(y_list) ->
+     (* [x1,...,xn = e1,...,en] *)
+     let eq_list, acc = Util.mapfold2 match_t acc p_list y_list in
+     Aux.par eq_list, acc 
+  | _ -> Aux.eq_make p e, acc
+
 let rec remove_copies acc ({ eq_desc; eq_loc } as eq) =
   match eq_desc with
-  | EQeq({ pat_desc = Evarpat(x) }, { e_desc = Evar(y) }) ->
-     { eq with eq_desc = EQempty }, Env.add x y acc
+  | EQeq(p, e) -> 
+     let eq, acc = match_t acc p e in
+     Aux.set_loc_if_not_empty eq_loc eq, acc
   | EQand { ordered; eq_list } ->
      let eq_list, acc = 
        Util.mapfold remove_copies acc eq_list in
