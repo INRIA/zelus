@@ -195,7 +195,10 @@ let funexp funs acc f =
          let { v } = Vars.expression { lv = S.empty; v = S.empty } e in
          (* variables in [e] are useful *)
          mark true v acc
-      | Returns _ -> assert false in
+      | Returns { b_env } -> 
+         (* returned variables are useful *)
+         let w = Env.fold (fun x _ acc -> S.add x acc) b_env S.empty in
+         mark true w acc in
   f, acc
   
 (* Pass 2. Remove useless computations *)
@@ -265,13 +268,15 @@ let letdecl funs acc l_decl =
   let l_decl, acc = Mapfold.letdecl funs acc l_decl in
   (* pass 2. compute useful variables; remove dead-code *)
   let useful = visit S.empty acc in
+  if !Misc.verbose then (print_int 1; print_newline ();
+                         Format.eprintf "@[<hov0>%a\n@]" print acc);
   let l_decl = clean_letdecl useful l_decl in
   l_decl, acc
 
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with equation; funexp; global_funs } in
+    { Mapfold.defaults with equation; funexp; letdecl; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }
