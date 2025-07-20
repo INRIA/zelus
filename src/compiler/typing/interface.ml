@@ -306,7 +306,9 @@ let make_initial_typ_environment loc typ_name typ_params =
       | Already_defined(name) ->
           error loc (Ealready_defined_type name)
 
-let type_one_typedecl loc gtype (typ_name, typ_params, typ) =
+let type_one_typedecl loc (typ_name, typ_params, typ) =
+  let gtype = make_initial_typ_environment loc typ_name typ_params in
+  
   let typ_vars =
     List.map (fun v -> (v, Types.new_generic_var ())) typ_params in
   let final_typ =
@@ -352,13 +354,19 @@ let type_one_typedecl loc gtype (typ_name, typ_params, typ) =
 (* the main functions *)
 let typedecl ff loc ty_name ty_params typ =
   try
-    let gtype = make_initial_typ_environment loc ty_name ty_params in
-    let gtype =
-      type_one_typedecl loc gtype (ty_name, ty_params, typ) in
+    let gtype = type_one_typedecl loc (ty_name, ty_params, typ) in
     if !Misc.print_types then
       Ptypes.output_type_declaration ff [gtype]
   with
     | Error(loc, k) -> message loc k
+
+let update_typedecl ff loc ty_name ty_params typ =
+  try
+    let gtype = Modules.find_type (Lident.Name(ty_name)) in
+    if !Misc.print_types then
+      Ptypes.output_type_declaration ff [gtype]
+  with
+  | Not_found -> typedecl ff loc ty_name ty_params typ
 
 (* analysing a value declaration *)
 let add_type_of_value ff loc name is_const ty_scheme =

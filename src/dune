@@ -181,7 +181,7 @@
     shared ; normalise equations to shared variables into [x = ...]
     letin ; un-nesting of let/in and blocks
     reset ; distribute the reset over equations
-    aform ; A-normal form
+    distribute ; distribution of tuples and records
     ; zopt ; sharing of zero-crossings
     copy ; remove of copy variables
     ; cse ; common sub-expression elimination

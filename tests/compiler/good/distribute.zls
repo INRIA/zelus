@@ -1,0 +1,14 @@
+let f x =
+  let y, z = 1, 2 in
+  let m1, m2 = y, z in
+  m1 + m2
+
+type t = { x: int; y: int }
+
+let g x =
+  let { x = x1; y = y1 } = { y = 1; x = 2 } in
+  x.x + x.y
+
+(* let g x =
+  let { x = x1; y = y1 } = { y = 1; x = 2 } in
+  x1 + y1 *)

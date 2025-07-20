@@ -24,9 +24,7 @@ let nothing p = p
 let type_check _ p = Typing.program Format.std_formatter false p
     
 let optim_list =
-  [(* "deadcode", "Dead-code removal. See below:", nothing,
-   Deadcode.program; *)
-   (* "cse", "Common sub-expression elimination. See below:", nothing,
+  [(* "cse", "Common sub-expression elimination. See below:", nothing,
    Cse.program; *)
   (* "zopt", "Sharing of zero-crossings. See below:", nothing,
    Zopt.program *)
@@ -80,25 +78,21 @@ let default_list =
    "shared",
    "Normalise equations to shared variables in [x = ...]. See below:", nothing,
    Shared.program;
+   "distribute", "Distribute tuples/records: See below:", nothing,
+   Distribute.program;
    "letin", "Un-nest let/in and blocks. See below:", nothing,
    Letin.program;
    "reset", "Distribute resets. See below:", nothing,
    Reset.program;
-   (* Warning: the following step does not work for the moment. The renaming *)
-    (* of variables does not work. See [aform.ml] *)
-    (* "aform", "A-normal form. See below:",
-       (* type checks before computing A-normal form *)
-       type_check,
-       Aform.program; *)] @ optim_list @ [
    "schedule", "Static scheduling. See below:",
    nothing,
    Schedule.program;
-   "typing",
-   "New typing step: See below:", nothing, type_check;
+   "deadcode", "Dead-code removal. See below:", nothing,
+   Deadcode.program;
+   "typing", "Final typing step: See below:", nothing, type_check;
    "set_sorts",
    "Set the sort for variables in the environment \
-    (value/shared/state variable). 
-   See below:", nothing,
+    (value/shared/state variable). See below:", nothing,
    Set_sorts.program;
    ]
 
@@ -120,7 +114,7 @@ let set_steps w =
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 
-    | "schedule" | "aform" | "deadcode" | "copy" | "exp2seq" | "default"
+    | "schedule" | "distribute" | "deadcode" | "copy" | "exp2seq" | "default"
     | "returns" | "reset" | "set_sorts" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()
