@@ -259,6 +259,7 @@ let clean_letdecl useful l_decl =
   let funs =
     { Mapfold.defaults with global_funs; equation; write_t; pattern; block } in
   
+  let l_ = S.to_list useful in
   let l_decl, _ = Mapfold.letdecl_it funs useful l_decl in
   l_decl
 
@@ -269,7 +270,7 @@ let letdecl funs acc l_decl =
   (* pass 2. compute useful variables; remove dead-code *)
   let useful = visit S.empty acc in
   if !Misc.verbose then 
-    Format.fprintf Format.std_formatter "@[<hov0>%a\n@]" print acc;
+    Format.fprintf Format.std_formatter "%a" print acc;
   let l_decl = clean_letdecl useful l_decl in
   l_decl, acc
 
