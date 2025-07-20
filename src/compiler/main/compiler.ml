@@ -163,7 +163,7 @@ let compile modname filename =
     (* computed during the causality analysis *)
     let p = do_step is_print "Mark functions calls to be inlined. See below:"
 	      Printer.program Markfunctions.program p in
-
+    
     (* source-to-source transformations *)
 
     (* defines the initial global environment for values *)
