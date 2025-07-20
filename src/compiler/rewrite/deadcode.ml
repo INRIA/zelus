@@ -128,10 +128,9 @@ let mark is_useful v_set table =
         table in
   S.fold add v_set table
 
-(* The algorithm is two passes. *)
+(* The algorithm is done in two passes. *)
 (* Pass 1. compute the set of useful variables. *)
 (* Pass 2. remove useless computations *)
-
 
 (* First pass. Compute the def-use chains and read variables *)
 let equation funs acc ({ eq_desc; eq_write } as eq) =
