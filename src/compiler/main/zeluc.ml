@@ -98,11 +98,11 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t init: remove initialization (->) \n\
     \t\t\t complete: complete branches \n\
     \t\t\t encore: add an extra step when a zero-crossing \n\
-    \t\t\t change a discrete-time state variable \n\
+    \t\t\t  changes a discrete-time state variable \n\
+    \t\t\t distribute: distribute tuples and records \n\
     \t\t\t letin: fuse blocks \n\
     \t\t\t schedule: static scheduling \n\
     \t\t\t reset: distribute the reset over equations \n\
-    \t\t\t aform: translation into A-normal form \n\
     \t\t\t copy: remove copy variables \n\
     \t\t\t Example: -step -a+inline+static. Default is +a."
 and doc_typeall = "\t Type check after every rewritting step\n"
