@@ -306,8 +306,8 @@ and pattern funs acc ({ pat_desc } as p) =
          Util.mapfold 
            (fun acc { label; arg } ->
              let label, acc = lident_it funs.global_funs acc label in
-             let p, acc = pattern_it funs acc p in
-             { label; arg = p}, acc) acc n_p_list in
+             let arg, acc = pattern_it funs acc arg in
+             { label; arg }, acc) acc n_p_list in
        Erecordpat(n_p_list), acc
     | Ealiaspat(p1, n) ->
        let p1, acc = pattern_it funs acc p1 in
