@@ -21,18 +21,24 @@ open Zelus
 open Defnames
 open Deftypes
 
-(* Dead-code removal. First build a table [yn -> {x1,...,xk}] wich associate *)
-(* the list of read variables used to produce yn *)
+(* Useful variables *)
+(* 1. the output variables of a function are useful. *)
+(* 2. if [x in write(eq) /\ useful(x) /\ y in read(eq)] then [useful(y)] *)
+(* 3. if [x in write(eq) and [unsafe(eq)] then [useful(x)] *)
+
 type acc =
-  { def_use: table; (* [y depends on x] *)
-    read: S.t }
+  { def_uses: table; (* [y depends on x] *)
+    read: S.t; (* the set of read variables *) }
 
 and table = cont Env.t
- and cont = 
+
+and cont = 
    { mutable c_vars: S.t; (* set of variables *)
      mutable c_useful: bool; (* is-it a useful variable? *)
      mutable c_visited: bool; (* has it been visited already? *) }
-     
+
+let empty = { def_uses = Env.empty; read = S.empty }
+
 (* Visit the table: recursively mark all useful variables *)
 (* returns the set of useful variables *)
 (* [read] is a set of variables *)
@@ -62,8 +68,6 @@ let visit var_set table =
   Env.iter visit_table table;
   !useful
  
-let empty = Env.empty
-
 (* Useful function. For debugging purpose. *)
 let print ff table =
   let module Printer = Printer.Make(Ptypinfo) in
@@ -110,19 +114,14 @@ let add is_useful w_set r_set table =
   (* add dependences *)
   S.fold add w_set table
 
-(* Useful variables *)
-(* 1. the output variables of a function are useful. *)
-(* 2. if [x in write(eq) /\ useful(x) /\ y in read(eq)] then [useful(y)] *)
-(* 3. if [x in write(eq) and [unsafe(eq)] then [useful(x)] *)
-
-(* The algorithm is done in two passes. *)
+(* The algorithm is two passes. *)
 (* 1. compute the set of useful variables. *)
 (* 2. remove useless computations *)
 
 
 (* First pass. Compute the def-use chains *)
-let equation funs acc ({ eq_desc } as eq) =
-  let _, acc = match eq_desc with
+let equation funs ({ read } as acc) ({ eq_desc; eq_write } as eq) =
+  let _, ({ read = read_eq } as acc) = match eq_desc with
   | EQeq(p, e) ->
      let _, { def_uses; read } = 
        Mapfold.expression funs ({ acc with read = S.empty }) e in
@@ -135,146 +134,106 @@ let equation funs acc ({ eq_desc } as eq) =
      eq, { def_uses = add (Unsafe.expression e) (S.singleton id) read def_uses;
            read }
   | EQmatch { e; handlers } ->
-     let _, { read = r_e } as acc = 
-       expression_it funs { acc with read = S.empty } in
-     let _, { read } as acc =
-       Util.mapfold (match_handler_eq_it funs) acc handlers in
+     let _, ({ read } as acc)= 
+       Mapfold.expression_it funs { acc with read = S.empty } e in
+     let _, ({ def_uses } as acc) =
+       Util.mapfold
+         (Mapfold.match_handler_eq_it funs) acc handlers in
      (* add control dependences *)
      (* if [y in r_e /\ x in write(eq)] add [x depends on y] *)
      let w = Defnames.names S.empty eq_write in
-     eq, { def_uses = add (Unsafe.expression e) w r_e def_uses; read }
+     eq, { acc with def_uses = add (Unsafe.expression e) w read def_uses }
   | EQreset(res_eq, e) ->
-     let _, { read = r_e } as acc =
-       Mapfold.expression_it funs { acc with read = S.empty } in
-     let _, acc = Mapfold.equation_it funs acc res_eq in
+     let _, ({ read } as acc) =
+       Mapfold.expression_it funs { acc with read = S.empty } e in
+     let _, ({ def_uses } as acc) =
+       Mapfold.equation_it funs acc res_eq in
      (* add control dependencs *)
      (* if [y in r_e /\ x in write(res_eq)] add [x depends on y] *)
      let w = Defnames.names S.empty eq_write in
-     eq, { def_uses = add (Unsafe.expression e) w r_e def_uses; read }
-  | _ -> Mapfold.equation funs acc eq
-		
-(* Extend [table] where every entry [y -> {x1,...,xn}] *)
-(* is marked to also depend on names in [names] *)
-let extend table names =
-  Env.map 
-    (fun ({ c_vars } as cont) -> { cont with c_vars = S.union c_vars names })
-    table
+     eq, { acc with def_uses = add (Unsafe.expression e) w read def_uses }
+  | _ -> Mapfold.equation funs acc eq in
+  eq, { acc with read = S.union read read_eq }
 
-(* Fusion of two tables *)
-let merge table1 table2 =
-  let add x ({ c_vars = l1; c_useful = u1 } as cont1) table =
-    try
-      let ({ c_vars = l2; c_useful = u2 } as cont2) = Env.find x table in
-      cont2.c_vars <- S.union l1 l2; cont2.c_useful <- u1 || u2;
-      table
-    with 
-    | Not_found -> Env.add x cont1 table in
-  Env.fold add table2 table1
-
-(* Build the association table [yk -> { x1,..., xn}] *)     
-let equation funs table eq =
-  let { eq_desc } as eq, table = Mapfold.equation_it funs table eq in
-  let eq, table =
-    match eq_desc with
-    | EQeq(p, e) ->
-       let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
-       let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
-       (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
-       eq, add (Unsafe.expression e) w r table
-    | _ -> eq, table in
-  eq, table
-
-let build_table_for_equation eq =
-  let global_funs = Mapfold.default_global_funs in
-  let funs =
-    { Mapfold.defaults with equation; global_funs } in
-  let _, table = Mapfold.equation_it funs empty eq in
-  table
-
-
-(* remove useless names in write names *)
-let writes funs useful { dv; di; der } =
-  let filter set = S.filter (fun x -> S.mem x useful) set in
-  { dv = filter dv; di = filter di; der = filter der }, useful
-			
-(* remove useless names in a pattern. [useful] is the set of useful names *)
-let pattern funs useful ({ pat_desc } as p) =
-  match pat_desc with
-  | Evarpat(x) ->
-     if S.mem x useful then p, useful else { p with pat_desc = Ewildpat }, useful
-  | Ealiaspat(p_alias, x) ->
-     let p_alias, acc = Mapfold.pattern_it funs useful p_alias in
-     if S.mem x useful then { p with pat_desc = Ealiaspat(p_alias, x) }, useful
-     else p_alias, useful
+let expression funs ({ read } as acc) ({ e_desc } as e) =
+  match e_desc with
+  | Evar(id) | Elast { id } -> e, { acc with read = S.add id read }
   | _ -> raise Mapfold.Fallback
 
-(* Remove useless equations. [useful] is the set of useful names *)
-let equation funs useful eq =
-  let eq_empty = Aux.eqmake Defnames.empty EQempty in
-  let { eq_desc; eq_write } as eq, useful = Mapfold.equation funs useful eq in
-  match eq_desc with
-  | EQeq(p, e) ->
-     let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
-     if Unsafe.expression e || S.exists (fun x -> S.mem x useful) w
-     then (* the equation is useful *)
-       { eq with eq_desc = EQeq(p, e) }, useful
-     else eq_empty, useful
-  | EQder { id; e; e_opt = None; handlers = [] } | EQinit(id, e) ->
-     if Unsafe.expression e || S.mem id useful then eq, useful
-     else eq_empty, useful
-  | EQmatch { e; handlers } ->
-     (* remove the equation if all handlers are empty *)
-     if not (Unsafe.expression e)
-	&& List.for_all (fun { m_body} -> Aux.is_empty m_body) handlers
-     then eq_empty, useful
-     else
-       let eq_write, useful = writes funs useful eq_write in
-       { eq with eq_desc; eq_write }, useful
-  | EQreset(res_eq, e) ->
-     (* remove the equation if the body is empty *)
-     if not (Unsafe.expression e) && Aux.is_empty res_eq then eq_empty, useful
-     else
-       let eq_write, useful = writes funs useful eq_write in
-       { eq with eq_desc; eq_write }, useful
-  | _ -> eq, useful
-				     
-let block funs useful ({ b_vars; b_body; b_write; b_env } as b) =
-  let b_body, useful = Mapfold.equation_it funs useful b_body in
-  let b_vars =
-    List.filter (fun { var_name = x } -> S.mem x useful) b_vars in
-  let b_env = Env.filter (fun x entry -> S.mem x useful) b_env in
-  let dv = S.filter (fun x -> S.mem x useful) b_write.dv in
-  { b with b_vars; b_body; b_write = { b_write with dv  }; b_env }
-
-let leq_t funs useful ({ l_eq; l_env } as l) =
-  let eq, useful = Mapfold.equation_it funs useful l_eq in
-  let l_env = Env.filter (fun x entry -> S.mem x useful) l_env in
-  { l with l_eq; l_env = l_env }
-
-let remove_useless_in_equation useful eq =
-  let global_funs = Mapfold.default_global_funs in
+(* Pass 2. Remove useless computations *)
+let clean_letdecl useful l_decl =
+  let equation funs acc eq =
+    let eq_empty = Aux.eqmake Defnames.empty EQempty in
+    let { eq_desc; eq_write } as eq, _ = Mapfold.equation funs acc eq in
+    match eq_desc with
+    | EQeq(p, e) ->
+       Aux.eq_make p e, acc
+    | EQder { id; e; e_opt = None; handlers = [] } ->
+       let eq = if S.mem id acc then Aux.eq_der id e else eq_empty in
+       eq, acc
+    | EQinit(id, e) ->
+       let eq = if S.mem id acc then Aux.eq_init id e else eq_empty in
+       eq, acc
+    | EQmatch { e; handlers } ->
+       (* remove the equation if all handlers are empty *)
+       let eq = if List.for_all (fun { m_body} -> Aux.is_empty m_body) handlers
+                then eq_empty
+                else eq in
+       eq, acc
+    | EQreset(res_eq, e) ->
+       (* remove the equation if the body is empty *)
+       let eq = if Aux.is_empty res_eq then eq_empty else eq in
+       eq, acc
+    | _ -> eq, acc in
+  
+  (* remove useless names in write names *)
+  let write_t funs acc { dv; di; der } =
+    let filter set = S.filter (fun x -> S.mem x acc) set in
+    { dv = filter dv; di = filter di; der = filter der }, acc in
+  
+  let build funs acc env =
+    let env = Env.filter (fun x _ -> S.mem x acc) env in
+    env, acc in
+  
+  (* remove useless names in a pattern. *)
+  let pattern funs acc ({ pat_desc } as p) =
+    match pat_desc with
+    | Evarpat(x) ->
+       if S.mem x acc then p, acc
+       else { p with pat_desc = Ewildpat }, acc
+    | Ealiaspat(p_alias, x) ->
+       let p_alias, acc = Mapfold.pattern_it funs acc p_alias in
+       if S.mem x acc then { p with pat_desc = Ealiaspat(p_alias, x) }, acc
+       else p_alias, acc
+    | _ -> raise Mapfold.Fallback in
+  
+  let block funs acc b =
+    let ({ b_vars } as b), acc = Mapfold.block funs acc b in
+    let b_vars =
+    List.filter (fun { var_name = x } -> S.mem x acc) b_vars in
+    { b with b_vars }, acc in
+  
+  let global_funs =
+    { Mapfold.default_global_funs with build } in
   let funs =
-    { Mapfold.defaults with equation; global_funs } in
-  let eq, _ = Mapfold.equation_it funs useful eq in
-  eq
+    { Mapfold.defaults with global_funs; equation; write_t; pattern; block } in
+  
+  let l_decl, _ = Mapfold.letdecl_it funs useful l_decl in
+  l_decl
 
-(* the main entry for expressions. Warning: [e] must be in normal form *)
-let expression funs acc e =
-  let { e_desc } as e, acc = Mapfold.expression funs acc e in
-  match e_desc with
-  | Elet({ l_eq } as l, e_let) ->
-     let { v } = Vars.expression { lv = S.empty; v = S.empty } e_let in
-     let table = build_table_for_equation l_eq in
-     let useful = visit v table in
-     let l_eq = remove_useless_in_equation useful l_eq in
-     if Aux.is_empty l_eq then e_let, acc
-     else { e with e_desc = Elet({ l with l_eq }, e_let) }, acc
-  | _ -> e, acc
-           
+(* Main. Combine the two passes *)
+let letdecl funs acc l_decl =
+  (* pass 1. build the def-use chains *)
+  let l_decl, { def_uses } = Mapfold.letdecl funs acc l_decl in
+  (* pass 2. compute useful variables; remove dead-code *)
+  let useful = visit S.empty def_uses in
+  let l_decl = clean_letdecl useful l_decl in
+  l_decl, acc
+
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with expression; global_funs } in
+    { Mapfold.defaults with equation; expression; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }
