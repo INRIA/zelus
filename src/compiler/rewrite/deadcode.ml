@@ -55,7 +55,6 @@ let visit var_set table =
 	S.iter visit_fathers c_vars
       end
   and visit_fathers x =
-    useful := S.add x !useful;
     try
       let entry = Env.find x table in
       visit x entry
@@ -65,7 +64,6 @@ let visit var_set table =
   and visit_table x ({ c_useful; c_visited } as entry) =
     if not c_visited && c_useful then visit x entry in
   (* recursively mark nodes and their predecessors *)
-  S.iter visit_fathers var_set;
   Env.iter visit_table table;
   !useful
  
@@ -74,11 +72,13 @@ let print ff table =
   let module Printer = Printer.Make(Ptypinfo) in
   let names ff l =
     Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
-  let entry x { c_vars = l; c_useful = u } =
-    Format.fprintf ff "@[%a -> {c_vars = %a; c_useful = %s}@]@ "
+  let entry ff (x, { c_vars; c_useful }) =
+    Format.fprintf ff "@[<hov 2>%a <--@ {c_vars = %a;@ c_useful = %s}@]@ "
 		   Printer.name x
-		   names l (if u then "true" else "false") in
-  Env.iter entry table 
+		   names c_vars (if c_useful then "true" else "false") in
+  Format.fprintf ff
+    "@[<hov 2>Def-use chains:@ %a@.@]"
+    (Pp_tools.print_list_r entry "" "" "") (Env.to_list table) 
 
 (* Add the entries [y_j <- x_1; ...; y_j <- x_n]_j in the table. *)
 (* for any variable [x_j in w] and r = { x_1,...,x_n } *)
@@ -268,8 +268,8 @@ let letdecl funs acc l_decl =
   let l_decl, acc = Mapfold.letdecl funs acc l_decl in
   (* pass 2. compute useful variables; remove dead-code *)
   let useful = visit S.empty acc in
-  if !Misc.verbose then (print_int 1; print_newline ();
-                         Format.eprintf "@[<hov0>%a\n@]" print acc);
+  if !Misc.verbose then 
+    Format.fprintf Format.std_formatter "@[<hov0>%a\n@]" print acc;
   let l_decl = clean_letdecl useful l_decl in
   l_decl, acc
 
