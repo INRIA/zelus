@@ -21,23 +21,24 @@ open Zelus
 open Defnames
 open Deftypes
 
-(* Useful variables *)
-(* 1. the output variables of a function are useful. *)
-(* 2. if [x in write(eq) /\ useful(x) /\ y in read(eq)] then [useful(y)] *)
-(* 3. if [x in write(eq) and [unsafe(eq)] then [useful(x)] *)
+(* def-use chains and useful variables *)
+(* - the output variables of a function are useful. *)
+(* - if [op] is an unsafe function (e.g., with side effects) *)
+(*   in equation [y,... = op(x,...)], then [y,...] are useful *)
+(* - if [x in write(eq) /\ useful(x) /\ y in read(eq)] then [useful(y)] *)
+(* - if [x in write(eq) and [unsafe(eq)] then [useful(x)] *)
+(* equations that define unreachable (non useful) variables are removed *)
 
-type acc =
-  { def_uses: table; (* [y depends on x] *)
-    read: S.t; (* the set of read variables *) }
+type acc = def_use_table (* [y depends on x] *)
 
-and table = cont Env.t
+and def_use_table = cont Env.t
 
 and cont = 
    { mutable c_vars: S.t; (* set of variables *)
      mutable c_useful: bool; (* is-it a useful variable? *)
      mutable c_visited: bool; (* has it been visited already? *) }
 
-let empty = { def_uses = Env.empty; read = S.empty }
+let empty = Env.empty
 
 (* Visit the table: recursively mark all useful variables *)
 (* returns the set of useful variables *)
@@ -79,12 +80,12 @@ let print ff table =
 		   names l (if u then "true" else "false") in
   Env.iter entry table 
 
-(* Add the entries [x_j <- x1; ...; x_j <- xn] in the table. *)
-(* for any variable [x_j in w] *)
-(* if [x_j] is already in the table, extends the set of variables on *)
+(* Add the entries [y_j <- x_1; ...; y_j <- x_n]_j in the table. *)
+(* for any variable [x_j in w] and r = { x_1,...,x_n } *)
+(* if [y_j] is already in the table, extends the set of variables on *)
 (* which it depends. Otherwise, create a new entry *)
 (* when [is_useful = true], mark all read and write variables to be useful *)
-let add is_useful w_set r_set table =
+let add_dep is_useful w_set r_set table =
   (* mark all names in [set] to be useful *)
   let mark_useful set table =
     let mark x table =
@@ -114,52 +115,89 @@ let add is_useful w_set r_set table =
   (* add dependences *)
   S.fold add w_set table
 
+(* add an entry for variables [v_set = { y_1,..., y_n }] *)
+let mark is_useful v_set table =
+  let add x table =
+    try
+      let { c_useful } as cont = Env.find x table in
+      if not c_useful then cont.c_useful <- is_useful;
+      table
+    with
+      Not_found ->
+      Env.add x { c_vars = S.empty; c_useful = is_useful; c_visited = false }
+        table in
+  S.fold add v_set table
+
 (* The algorithm is two passes. *)
-(* 1. compute the set of useful variables. *)
-(* 2. remove useless computations *)
+(* Pass 1. compute the set of useful variables. *)
+(* Pass 2. remove useless computations *)
 
 
-(* First pass. Compute the def-use chains *)
-let equation funs ({ read } as acc) ({ eq_desc; eq_write } as eq) =
-  let _, ({ read = read_eq } as acc) = match eq_desc with
+(* First pass. Compute the def-use chains and read variables *)
+let equation funs acc ({ eq_desc; eq_write } as eq) =
+  match eq_desc with
   | EQeq(p, e) ->
-     let _, { def_uses; read } = 
-       Mapfold.expression funs ({ acc with read = S.empty }) e in
+     let _, acc = 
+       Mapfold.expression funs acc e in
      let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
+     let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
      (* for every [x in w] and [y in read] add the link [x depends on y] *)
-     eq, { def_uses = add (Unsafe.expression e) w read def_uses; read }
+     let is_useful = Unsafe.expression e in
+     eq, add_dep is_useful w r acc
   | EQder { id; e; e_opt = None; handlers = [] } | EQinit(id, e) ->
-     let _, { def_uses; read } = 
-       Mapfold.expression funs ({ acc with read = S.empty }) e in
-     eq, { def_uses = add (Unsafe.expression e) (S.singleton id) read def_uses;
-           read }
+     let _, acc = 
+       Mapfold.expression funs acc e in
+     let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
+     let is_useful = Unsafe.expression e in
+     eq, add_dep is_useful (S.singleton id) r acc
   | EQmatch { e; handlers } ->
-     let _, ({ read } as acc)= 
-       Mapfold.expression_it funs { acc with read = S.empty } e in
-     let _, ({ def_uses } as acc) =
+     let _, acc = 
+       Mapfold.expression_it funs acc e in
+     let _, acc =
        Util.mapfold
          (Mapfold.match_handler_eq_it funs) acc handlers in
      (* add control dependences *)
      (* if [y in r_e /\ x in write(eq)] add [x depends on y] *)
+     let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
      let w = Defnames.names S.empty eq_write in
-     eq, { acc with def_uses = add (Unsafe.expression e) w read def_uses }
+     let is_useful = Unsafe.expression e in
+     eq, add_dep is_useful w r acc
+  | EQif { e; eq_true; eq_false } ->
+     let _, acc = 
+       Mapfold.expression_it funs acc e in
+     let _, acc = Mapfold.equation_it funs acc eq_true in
+     let _, acc = Mapfold.equation_it funs acc eq_false in
+     (* add control dependences *)
+     (* if [y in r_e /\ x in write(eq)] add [x depends on y] *)
+     let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
+     let w = Defnames.names S.empty eq_write in
+     let is_useful = Unsafe.expression e in
+     eq, add_dep is_useful w r acc
   | EQreset(res_eq, e) ->
-     let _, ({ read } as acc) =
-       Mapfold.expression_it funs { acc with read = S.empty } e in
-     let _, ({ def_uses } as acc) =
+     let _, acc =
+       Mapfold.expression_it funs acc e in
+     let _, acc =
        Mapfold.equation_it funs acc res_eq in
      (* add control dependencs *)
      (* if [y in r_e /\ x in write(res_eq)] add [x depends on y] *)
+     let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
      let w = Defnames.names S.empty eq_write in
-     eq, { acc with def_uses = add (Unsafe.expression e) w read def_uses }
-  | _ -> Mapfold.equation funs acc eq in
-  eq, { acc with read = S.union read read_eq }
+     let is_useful = Unsafe.expression e in
+     eq, add_dep is_useful w r acc
+  | _ -> Mapfold.equation funs acc eq
 
-let expression funs ({ read } as acc) ({ e_desc } as e) =
-  match e_desc with
-  | Evar(id) | Elast { id } -> e, { acc with read = S.add id read }
-  | _ -> raise Mapfold.Fallback
-
+(* free variables that appear in the output [e] of *)
+(* a function [fun x1... -> e where eq] are useful *)
+let funexp funs acc f =
+  let { f_body = { r_desc } }, acc = Mapfold.funexp funs acc f in
+  let acc = match r_desc with
+      | Exp(e) ->
+         let { v } = Vars.expression { lv = S.empty; v = S.empty } e in
+         (* variables in [e] are useful *)
+         mark true v acc
+      | Returns _ -> assert false in
+  f, acc
+  
 (* Pass 2. Remove useless computations *)
 let clean_letdecl useful l_decl =
   let equation funs acc eq =
@@ -224,16 +262,16 @@ let clean_letdecl useful l_decl =
 (* Main. Combine the two passes *)
 let letdecl funs acc l_decl =
   (* pass 1. build the def-use chains *)
-  let l_decl, { def_uses } = Mapfold.letdecl funs acc l_decl in
+  let l_decl, acc = Mapfold.letdecl funs acc l_decl in
   (* pass 2. compute useful variables; remove dead-code *)
-  let useful = visit S.empty def_uses in
+  let useful = visit S.empty acc in
   let l_decl = clean_letdecl useful l_decl in
   l_decl, acc
 
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with equation; expression; global_funs } in
+    { Mapfold.defaults with equation; funexp; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }
