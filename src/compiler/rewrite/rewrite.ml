@@ -80,6 +80,8 @@ let default_list =
    Shared.program;
    "distribute", "Distribute tuples/records: See below:", nothing,
    Distribute.program;
+   "copy", "Remove of copy variables. See below:", nothing,
+   Copy.program;
    "letin", "Un-nest let/in and blocks. See below:", nothing,
    Letin.program;
    "reset", "Distribute resets. See below:", nothing,

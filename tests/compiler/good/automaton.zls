@@ -1,0 +1,10 @@
+let node f() returns (o init 0)
+  automaton
+  | One -> do o = last o + 1 until (o >= 10) then Two
+  | Two -> do o = last o - 1 until (o <= 0) then One
+  end
+
+let node main () =
+  let o = f () in
+  print_int o;
+  print_newline ()
