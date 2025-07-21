@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* free variables, defined variables. Writes and env. must be correct *)
-(* The definition below considers that [x] and [y] are free in *)
+(* The definition below considers that [y] is free in *)
 (* equation [...x... = ... y...]. *)
 
 open Ident
@@ -38,17 +38,24 @@ let last_ident global_funs ({ bounded; last } as acc) ({ id } as l) =
              then last else S.add id last in
   l, { acc with last }
 
-let init_ident global_funs acc x = x, acc
+let equation funs acc ({ eq_desc } as eq) =
+  match eq_desc with
+  | EQeq(_, e) | EQinit(_, e) -> 
+     let _, acc = Mapfold.expression_it funs acc e in eq, acc
+  | EQder { handlers; e_opt } ->
+     let _, acc = Util.mapfold (Mapfold.present_handler_e_it funs) acc handlers in
+     let e_opt, acc = 
+       Util.optional_with_map (Mapfold.expression_it funs) acc e_opt in
+     eq, acc
+  | EQemit(_, e_opt) -> 
+     let _, acc = Util.optional_with_map (Mapfold.expression_it funs) acc e_opt in
+     eq, acc
+  | _ -> raise Mapfold.Fallback
 
-let der_ident global_funs acc x = x,acc
-
-let pattern funs acc pat = pat, acc
-
-let funs =
+let funs =   
   let global_funs =
-    { Mapfold.default_global_funs with build; var_ident; 
-                                       last_ident; init_ident; der_ident } in
-  { Mapfold.defaults with pattern; global_funs }
+    { Mapfold.default_global_funs with build; var_ident; last_ident } in
+  { Mapfold.defaults with global_funs; equation }
 
 type t =
   { lv: S.t; (* last variables *)
@@ -69,9 +76,4 @@ let expression { lv; v } e =
 let equation eq =
   let _, { last; current } =
     Mapfold.equation_it funs empty eq in
-  { lv = last; v = current }
-
-let program p =
-  let _, { last; current } =
-    Mapfold.program_it funs empty p in
   { lv = last; v = current }
