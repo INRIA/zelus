@@ -116,6 +116,7 @@ let equation funs ({ def_use } as acc) ({ eq_desc; eq_write } as eq) =
      let _, { def_use; read } = Mapfold.expression_it funs acc_in e in
      let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
      (* for every [x in w] and [y in read] add the link [x depends on y] *)
+     let l_w = S.to_list w in
      let is_useful = Unsafe.expression e in
      let l_ = Env.to_list def_use in
      eq, add_dep is_useful w read def_use
