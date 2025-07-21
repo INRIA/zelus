@@ -780,16 +780,12 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
          Util.optional_with_map (expression_it funs) acc e_opt in
        { eq with eq_desc = EQemit(x, e_opt) }, acc
     | EQder { id; e; e_opt; handlers } ->
-       let body acc ({ p_cond; p_body; p_env } as p_b) =
-         let p_env, acc = build_it funs.global_funs acc p_env in
-         let p_cond, acc = scondpat_it funs acc p_cond in
-         let p_body, acc = expression_it funs acc p_body in
-         { p_b with p_cond; p_body }, acc in
        let id, acc = der_ident_it funs.global_funs acc id in
        let e, acc = expression_it funs acc e in
        let e_opt, acc =
          Util.optional_with_map (expression_it funs) acc e_opt in
-       let handlers, acc = Util.mapfold body acc handlers in
+       let handlers, acc = 
+         Util.mapfold (present_handler_e_it funs) acc handlers in
        { eq with eq_desc = EQder { id; e; e_opt; handlers } }, acc
     | EQif { e; eq_true; eq_false } ->
        let e, acc = expression_it funs acc e in
