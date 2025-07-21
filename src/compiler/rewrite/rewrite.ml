@@ -89,8 +89,8 @@ let default_list =
    "schedule", "Static scheduling. See below:",
    nothing,
    Schedule.program;
-   (* "deadcode", "Dead-code removal. See below:", nothing,
-      Deadcode.program; *)
+   "deadcode", "Dead-code removal. See below:", nothing,
+      Deadcode.program;
    "typing", "Final typing step: See below:", nothing, type_check;
    "set_sorts",
    "Set the sort for variables in the environment \

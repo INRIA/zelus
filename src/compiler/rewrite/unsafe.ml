@@ -59,16 +59,17 @@ let env_of_primitives =
 (* An expression or equation is unsafe if it contains an unsafe operation. *)
 let rec expression { e_desc } =
   match e_desc with
-  | Econst _ | Econstr0 _ -> true
+  | Econst _ | Econstr0 _ | Efun _ -> false
   | Econstr1 { arg_list } | Etuple(arg_list) ->
-     List.for_all expression arg_list
+     List.exists expression arg_list
   | Eapp { f = { e_desc = Eglobal { lname = Modname { qual; id } } };
            arg_list } ->
      if qual = Misc.name_of_stdlib_module 
      then try
          let arity = Env.find id env_of_primitives in
-         (arity = List.length arg_list) && (List.for_all expression arg_list)
+         if arity = List.length arg_list then List.exists expression arg_list
+         else false
        with
-         Not_found -> false
-     else false
-  | _ -> false
+         Not_found -> true
+     else true
+  | _ -> true
