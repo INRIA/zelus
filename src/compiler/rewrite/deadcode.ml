@@ -224,12 +224,18 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
   
 (* Pass 2. Remove useless computations *)
 let clean_letdecl useful l_decl =
+  let eq_empty = Aux.eqmake Defnames.empty EQempty in
+  
+  let eq_make ({ pat_desc } as p) e =
+    match pat_desc with
+    | Ewildpat when not (Unsafe.expression e) -> eq_empty
+    | _ -> Aux.eq_make p e in
+  
   let equation funs acc eq =
-    let eq_empty = Aux.eqmake Defnames.empty EQempty in
     let { eq_desc; eq_write } as eq, _ = Mapfold.equation funs acc eq in
     match eq_desc with
     | EQeq(p, e) ->
-       Aux.eq_make p e, acc
+       eq_make p e, acc
     | EQder { id; e; e_opt = None; handlers = [] } ->
        let eq = if S.mem id acc then Aux.eq_der id e else eq_empty in
        eq, acc
