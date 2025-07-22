@@ -131,16 +131,13 @@ let equation funs ({ def_use } as acc) ({ eq_desc; eq_write } as eq) =
      let _, { def_use; read } = Mapfold.expression_it funs acc_in e in
      let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
      (* for every [x in w] and [y in read] add the link [x depends on y] *)
-     let l_w = S.to_list w in
      let is_useful = Unsafe.expression e in
-     let l_ = Env.to_list def_use in
      eq, add_dep is_useful w read def_use
   | EQder { id; e; e_opt = None; handlers = [] } | EQinit(id, e) ->
      let _, { def_use; read } = 
        Mapfold.expression_it funs acc_in e in
      let is_useful = Unsafe.expression e in
-     let l_ = Env.to_list def_use in
-     eq, add_dep is_useful (S.singleton id) read def_use
+      eq, add_dep is_useful (S.singleton id) read def_use
   | EQmatch { e; handlers } ->
      let _, { def_use; read } = 
        Mapfold.expression_it funs acc_in e in
@@ -151,7 +148,6 @@ let equation funs ({ def_use } as acc) ({ eq_desc; eq_write } as eq) =
      (* if [y in read /\ x in write(eq)] add [x depends on y] *)
      let w = Defnames.names S.empty eq_write in
      let is_useful = Unsafe.expression e in
-     let l_ = Env.to_list def_use in
      eq, add_dep is_useful w read def_use
   | EQif { e; eq_true; eq_false } ->
      let _, { def_use; read } = 
@@ -162,7 +158,6 @@ let equation funs ({ def_use } as acc) ({ eq_desc; eq_write } as eq) =
      (* if [y in r_e /\ x in write(eq)] add [x depends on y] *)
      let w = Defnames.names S.empty eq_write in
      let is_useful = Unsafe.expression e in
-     let l_ = Env.to_list def_use in
      eq, add_dep is_useful w read def_use
   | EQreset(res_eq, e) ->
      let _, { def_use; read } =
@@ -173,11 +168,10 @@ let equation funs ({ def_use } as acc) ({ eq_desc; eq_write } as eq) =
      (* if [y in r_e /\ x in write(res_eq)] add [x depends on y] *)
      let w = Defnames.names S.empty eq_write in
      let is_useful = Unsafe.expression e in
-     let l_ = Env.to_list def_use in
      eq, add_dep is_useful w read def_use
   | _ ->
      let eq, { def_use } = Mapfold.equation funs acc_in eq in
-     let l_ = Env.to_list def_use in eq, def_use in
+     eq, def_use in
   eq, { def_use; read = S.empty }
 
 and expression funs ({ read } as acc) ({ e_desc } as e) =
@@ -205,7 +199,6 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
     | Exp(e) ->
        let _, { def_use; read } = Mapfold.expression_it funs acc e in
        (* variables in [e] are useful *)
-       let v_ = Env.to_list def_use in
        if !Misc.verbose then 
          Format.fprintf Format.std_formatter "%a" print def_use;
        read, def_use
@@ -214,11 +207,9 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
          Mapfold.block_it funs { acc with read = S.empty } b in
        (* returned variables are useful *)
        let w = Env.fold (fun x _ acc -> S.add x acc) b_env S.empty in
-       let v_ = Env.to_list def_use in
        if !Misc.verbose then 
          Format.fprintf Format.std_formatter "%a" print def_use;
        w, def_use in
-  let v_ = S.to_list v in
   let def_use = mark true v def_use in
   f, { def_use; read = S.empty }
   
@@ -286,7 +277,6 @@ let clean_letdecl useful l_decl =
   let funs =
     { Mapfold.defaults with global_funs; equation; write_t; pattern; block } in
   
-  let l_ = S.to_list useful in
   let l_decl, _ = Mapfold.letdecl_it funs useful l_decl in
   l_decl
 
@@ -294,7 +284,8 @@ let clean_letdecl useful l_decl =
 let letdecl funs _ ((d_names, d_decl) as l_decl) =
   (* defined names in [d_names] are useful *)
   let acc =
-    let v_set = List.fold_left (fun v_set (_, x) -> S.add x v_set) S.empty d_names in
+    let v_set = 
+      List.fold_left (fun v_set (_, x) -> S.add x v_set) S.empty d_names in
     { def_use = mark true v_set Env.empty; read = S.empty } in
   if !Misc.verbose then 
     Format.fprintf Format.std_formatter "%a" print acc.def_use;
