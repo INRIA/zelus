@@ -551,7 +551,7 @@ and equation env { eq_desc; eq_loc; eq_write } =
      ignore (block_eq Ident.S.empty env b_eq)
   | EQlet(l_eq, eq) ->
      let env = leq env l_eq in equation env eq
-  | EQassert(e) -> exp_less_than_on_i env e izero 
+  | EQassert(e_assert) -> exp_less_than_on_i env e_assert izero 
   | EQempty -> ()
   | EQforloop(f_eq) -> forloop_eq eq_loc env f_eq
   | EQsizefun(f_size) -> sizefun_t env f_size

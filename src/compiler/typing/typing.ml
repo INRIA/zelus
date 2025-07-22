@@ -1063,7 +1063,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        let actual_k = expect expected_k h e_res Initial.typ_bool in
        ty, Kind.sup actual_k_body actual_k
     | Eassert(e_body) ->
-       let actual_k = expect expected_k h e Initial.typ_bool in
+       let actual_k = expect expected_k h e_body Initial.typ_bool in
        Initial.typ_unit, actual_k
     | Elocal(b, e_body) ->
        let _, new_h, _, actual_k = block_eq expected_k h b in
@@ -1398,8 +1398,8 @@ and equation expected_k h { eq_desc; eq_loc } =
      let h, actual_k = leq expected_k h l_eq in
      let defnames, actual_k_eq = equation expected_k h eq in
      defnames, Kind.sup actual_k actual_k_eq
-  | EQassert(e) ->
-     let actual_k = expect expected_k h e Initial.typ_bool in
+  | EQassert(e_body) ->
+     let actual_k = expect expected_k h e_body Initial.typ_bool in
      Defnames.empty, actual_k
   | EQforloop(f_eq) -> 
      forloop_eq eq_loc expected_k h f_eq

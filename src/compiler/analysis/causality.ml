@@ -683,9 +683,9 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
      ignore (block_eq Ident.S.empty env c_free b_eq)
   | EQlet(l_eq, eq) ->
      let env = leq env c_free l_eq in equation env c_free eq
-  | EQassert(e) ->
+  | EQassert(e_assert) ->
      let c_e = Tcausal.intro_less_c c_free in
-     exp_less_than_on_c env c_free e c_e
+     exp_less_than_on_c env c_free e_assert c_e
   | EQempty -> ()
   | EQforloop(f_eq) -> forloop_eq env c_free f_eq
   | EQsizefun(f_size) -> sizefun_t env c_free f_size

@@ -44,6 +44,19 @@ and cont =
 
 let empty = { def_use = Env.empty; read = S.empty }
 
+(* Useful function. For debugging purpose. *)
+let print ff table =
+  let module Printer = Printer.Make(Ptypinfo) in
+  let names ff l =
+    Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
+  let entry ff (x, { c_vars; c_useful }) =
+    Format.fprintf ff "@[<hov 2>%a <--@ {c_vars = %a;@ c_useful = %s}@]@ "
+		   Printer.name x
+		   names c_vars (if c_useful then "true" else "false") in
+  Format.fprintf ff
+    "@[<hov 2>Def-use chains:@ %a@.@]"
+    (Pp_tools.print_list_r entry "" "" "") (Env.to_list table) 
+
 (* Visit the table: recursively mark all useful variables *)
 (* returns the set of useful variables *)
 (* [read] is a set of variables *)
@@ -89,6 +102,8 @@ let add_dep is_useful w_set r_set table =
 	 { c_vars = r_set; c_useful = is_useful; c_visited = false } 
          table in
   (* add dependences *)
+  let l_ = S.to_list w_set in
+  let _ = l_ in
   S.fold add w_set table
 
 (* add an entry for variables [v_set = { y_1,..., y_n }] *)
@@ -178,6 +193,11 @@ and expression funs ({ read } as acc) ({ e_desc } as e) =
      e, acc
   | _ -> raise Mapfold.Fallback
 
+and assert_t funs ({ def_use } as acc) e =
+  let _, { def_use; read } =
+    Mapfold.expression_it funs { def_use; read = S.empty } e in
+  e, { acc with def_use = mark true read def_use }
+
 (* free variables that appear in the output [e] of *)
 (* a function [fun x1... -> e where eq] are useful *)
 let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
@@ -186,6 +206,8 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
        let _, { def_use; read } = Mapfold.expression_it funs acc e in
        (* variables in [e] are useful *)
        let v_ = Env.to_list def_use in
+       if !Misc.verbose then 
+         Format.fprintf Format.std_formatter "%a" print def_use;
        read, def_use
     | Returns({ b_env } as b) -> 
        let _, { def_use } =
@@ -193,6 +215,8 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
        (* returned variables are useful *)
        let w = Env.fold (fun x _ acc -> S.add x acc) b_env S.empty in
        let v_ = Env.to_list def_use in
+       if !Misc.verbose then 
+         Format.fprintf Format.std_formatter "%a" print def_use;
        w, def_use in
   let v_ = S.to_list v in
   let def_use = mark true v def_use in
@@ -260,21 +284,14 @@ let clean_letdecl useful l_decl =
   let l_decl, _ = Mapfold.letdecl_it funs useful l_decl in
   l_decl
 
-(* Useful function. For debugging purpose. *)
-let print ff table =
-  let module Printer = Printer.Make(Ptypinfo) in
-  let names ff l =
-    Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
-  let entry ff (x, { c_vars; c_useful }) =
-    Format.fprintf ff "@[<hov 2>%a <--@ {c_vars = %a;@ c_useful = %s}@]@ "
-		   Printer.name x
-		   names c_vars (if c_useful then "true" else "false") in
-  Format.fprintf ff
-    "@[<hov 2>Def-use chains:@ %a@.@]"
-    (Pp_tools.print_list_r entry "" "" "") (Env.to_list table) 
-
 (* Main. Combine the two passes *)
-let letdecl funs acc l_decl =
+let letdecl funs _ ((d_names, d_decl) as l_decl) =
+  (* defined names in [d_names] are useful *)
+  let acc =
+    let v_set = List.fold_left (fun v_set (_, x) -> S.add x v_set) S.empty d_names in
+    { def_use = mark true v_set Env.empty; read = S.empty } in
+  if !Misc.verbose then 
+    Format.fprintf Format.std_formatter "%a" print acc.def_use;
   (* pass 1. build the def-use chains *)
   let l_decl, { def_use } = Mapfold.letdecl funs acc l_decl in
   (* pass 2. compute useful variables; remove dead-code *)
@@ -282,14 +299,16 @@ let letdecl funs acc l_decl =
     Format.fprintf Format.std_formatter "%a" print def_use;
   let useful = visit S.empty def_use in
   if !Misc.verbose then 
-    Format.fprintf Format.std_formatter "%a" print def_use;
+    Format.fprintf Format.std_formatter "@[After visiting the def-use chains@ %a"
+      print def_use;
   let l_decl = clean_letdecl useful l_decl in
-  l_decl, acc
+  l_decl, empty
 
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with equation; expression; funexp; letdecl; global_funs } in
+    { Mapfold.defaults with equation; expression; funexp; letdecl; assert_t;
+                            global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

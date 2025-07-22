@@ -149,6 +149,9 @@ type ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs =
     expression :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
       'a -> ('info1, 'ienv1) exp -> ('info2, 'ienv2) exp * 'a;
+    assert_t :
+      ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
+      'a -> ('info1, 'ienv1) exp -> ('info2, 'ienv2) exp * 'a;
     vardec :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
       'a -> ('info1, ('info1, 'ienv1) exp) vardec ->
@@ -674,8 +677,9 @@ and expression funs acc ({ e_desc; e_loc } as e) =
      let handlers, acc =
        Util.mapfold (match_handler_e_it funs) acc handlers in
      { e with e_desc = Ematch { m with e; handlers } }, acc
-  | Eassert e -> let e, acc = expression_it funs acc e in
-                 { e with e_desc = Eassert(e) }, acc
+  | Eassert e ->
+     let e, acc = assert_it funs acc e in
+     { e with e_desc = Eassert(e) }, acc
   | Ereset(e_body, e_c) ->
      let e_body, acc = reset_e_it funs acc e_body in
      let e_c, acc = expression_it funs acc e_c in
@@ -704,6 +708,11 @@ and expression funs acc ({ e_desc; e_loc } as e) =
                 Eforloop
                   { f with for_size; for_kind; for_index; for_input;
                            for_body; for_env } }, acc
+
+(* Assert *)
+and assert_it funs acc e = funs.assert_t funs acc e
+
+and assert_t funs acc e = expression funs acc e
 
 (* match handler - equations and expressions *)
 and match_handler_eq_it funs acc m_handler =
@@ -815,7 +824,7 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
        { eq with eq_desc = EQautomaton({ a with handlers; state_opt }) }, acc
     | EQempty -> eq, acc
     | EQassert(e) ->
-       let e, acc = expression_it funs acc e in
+       let e, acc = assert_it funs acc e in
        { eq with eq_desc = EQassert(e) }, acc
     | EQforloop
        ({ for_size; for_kind; for_index; for_input; for_body; for_env } as f) ->
@@ -1024,6 +1033,7 @@ let defaults =
     equation;
     scondpat;
     expression;
+    assert_t;
     vardec;
     vardec_list;
     for_vardec;
@@ -1082,6 +1092,7 @@ let defaults_stop =
     equation = stop;
     scondpat = stop;
     expression = stop;
+    assert_t = stop;
     vardec = stop;
     vardec_list = stop;
     for_vardec = stop;

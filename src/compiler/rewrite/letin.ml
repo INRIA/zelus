@@ -238,10 +238,12 @@ let for_eq_t funs acc ({ for_out; for_block } as for_eq) =
 
 let for_out_t funs acc ({ desc = ({ for_init; for_default } as desc) } as f) =
   let for_init =
-    Util.optional_map (atomic_expression funs acc) for_init in
+    Util.optional_map (atomic_expression funs empty) for_init in
   let for_default =
-    Util.optional_map (atomic_expression funs acc) for_default in
+    Util.optional_map (atomic_expression funs empty) for_default in
   { f with desc = { desc with for_init; for_default } }, acc
+
+let assert_t funs acc e = atomic_expression funs empty e, acc 
 
 let letdecl funs acc (d_names, ({ l_eq } as leq)) =
   let _, acc_local = Mapfold.equation_it funs empty l_eq in
@@ -255,7 +257,7 @@ let program _ p =
                             present_handler_eq; present_handler_e;
                             reset_e; reset_eq; result;
                             for_exp_t; for_eq_t; for_out_t;
-                            letdecl; global_funs } in
+                            letdecl; assert_t; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

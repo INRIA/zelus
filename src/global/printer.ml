@@ -561,8 +561,8 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov0>%a@]"
            (and_equation ordered "do " " done") eq_list
       | EQempty -> fprintf ff "()"
-      | EQassert(e) ->
-         fprintf ff "@[<hov2>assert %a@]" expression e
+      | EQassert(e_assert) ->
+         fprintf ff "@[<hov2>assert@ %a@]" expression e_assert
       | EQforloop({ for_size; for_kind; for_index; for_input; for_env; for_resume;
                     for_body = { for_out; for_block; for_out_env } }) ->
          let size ff for_size =
