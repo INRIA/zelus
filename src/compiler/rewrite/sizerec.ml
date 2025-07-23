@@ -182,4 +182,4 @@ let program genv p =
     { Mapfold.defaults with
       global_funs; equation; expression; set_index; get_index; } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
-  { p with p_impl_list }
+  { p with p_impl_list } 
