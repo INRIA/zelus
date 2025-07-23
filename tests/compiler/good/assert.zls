@@ -4,4 +4,3 @@ let hybrid sin_cos epsilon =
   assert
     (let rec der s = c init 1.0 and der c = -. s init 0.0 in
      (abs_float (s -. s_ref) <= epsilon) && (abs_float (c -. c_ref) <= epsilon))
-
