@@ -23,7 +23,61 @@ open Location
 open Ident
 open Zelus
 
-let empty = ()
+(* memoization table; mapping [(id, s1,...,sn) -> id_j] *)
+module Memo = 
+  Map.Make 
+    (struct 
+      type t = Ident.t * int list 
+      let compare (id1, l1) (id2, l2) =
+        let v = Ident.compare id1 id2 in
+        if v = 0 then Stdlib.compare l1 l2 else v
+    end)
+
+type acc =
+  { memo: Ident.t Memo.t; (* memoization table *)
+    new_fundef: (Ident.t * Typinfo.funexp) list; 
+    (* list of new functions definitions *)
+    env_of_sizefun: Typinfo.sizefun Env.t; 
+    (* map of size functions [f -> <<n1,...>>.e] *)
+    env_of_sizes: int Env.t;
+  (* map of sizes [id -> v] with [v] a (positive) integer *)
+  }
+
+let empty = 
+  { memo = Memo.empty; new_fundef = []; 
+    env_of_sizefun = Env.empty; env_of_sizes = Env.empty }
+
+let add_sizefun funs ({ env_of_sizefun } as acc) ({ sf_id } as sizefun) =
+  { acc with env_of_sizefun  = Env.add sf_id sizefun env_of_sizefun  }
+
+let equation funs acc ({ eq_desc; eq_loc } as eq) =
+  match eq_desc with
+  | EQlet({ l_eq } as leq, eq_let) ->
+     let eq_list, acc = 
+       match Typing.eq_or_sizefun eq_loc l_eq with
+       | Either.Left(eq_list) -> eq_list, acc
+       | Either.Right(sizefun_list) ->
+          [], List.fold_left (add_sizefun funs) acc sizefun_list in
+     let eq_list, acc = Util.mapfold (Mapfold.equation_it funs) acc eq_list in
+     let eq_let, acc = Mapfold.equation_it funs acc eq_let in
+     { eq with eq_desc = EQlet({ leq with l_eq = Aux.par eq_list }, eq_let) }, acc
+  | _ -> raise Mapfold.Fallback
+
+let expression funs acc ({ e_desc; e_loc } as e) =
+  match e_desc with
+  | Elet({ l_eq } as leq, e_let) ->
+     let eq_list, acc = 
+       match Typing.eq_or_sizefun e_loc l_eq with
+       | Either.Left(eq_list) -> eq_list, acc
+       | Either.Right(sizefun_list) ->
+          [], List.fold_left (add_sizefun funs) acc sizefun_list in
+     let eq_list, acc = Util.mapfold (Mapfold.equation_it funs) acc eq_list in
+     let e_let, acc = Mapfold.expression_it funs acc e_let in
+     { e with e_desc = Elet({ leq with l_eq = Aux.par eq_list }, e_let) }, acc
+  | Esizeapp { f; size_list } ->
+     (* [f <<s1,...>>] where the [s_i] are immediate values] *)
+        e, acc
+  | _ -> raise Mapfold.Fallback
 
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
@@ -33,6 +87,6 @@ let program genv p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
     { Mapfold.defaults with
-      global_funs; set_index; get_index; } in
+      global_funs; equation; expression; set_index; get_index; } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list }
