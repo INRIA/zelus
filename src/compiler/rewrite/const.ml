@@ -272,7 +272,7 @@ let expression funs acc ({ e_desc; e_loc } as e) =
   | Elet(l, e_let) ->
      let l_opt, acc = leq_opt_t funs acc l in
      let e_let, acc = Mapfold.expression_it funs acc e_let in
-     { e with e_desc = Aux.opt_letdesc l_opt e_let }, acc
+     { e with e_desc = Aux.opt_e_let_desc l_opt e_let }, acc
   | Eapp ({ is_inline; f; arg_list } as a) ->
      (* if an application need to be inlined *)
      (* it must be a compile-time constant expression *)
@@ -350,7 +350,7 @@ let equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
   | EQlet(leq, eq) ->
      let leq_opt, acc = leq_opt_t funs acc leq in
      let eq, acc = Mapfold.equation_it funs acc eq in
-     { eq with eq_desc = Aux.opt_eq_letdesc leq_opt eq }, acc
+     { eq with eq_desc = Aux.opt_eq_let_desc leq_opt eq }, acc
   | EQsizefun _ ->
      error { Error.kind = Eshould_be_static; loc = eq_loc }
   | _ -> raise Mapfold.Fallback
@@ -408,15 +408,11 @@ let program otc gvalues { p_impl_list; p_index } =
   in
   let acc = { empty with gvalues } in
 
-  let l_ = Genv.show gvalues in
-
   let n, acc = Mapfold.set_index_it funs acc p_index in
   let _, { gvalues; defs } = 
     Util.mapfold (Mapfold.implementation_it funs) acc p_impl_list in
   let p_index, acc = Mapfold.get_index_it funs acc n in
   
-  let l_ = Genv.show gvalues in
-
   (* store the value into the table of values *)
   apply_with_close_out (Genv.write gvalues) otc;
   (* definitions in [defs] are in reverse order *)
