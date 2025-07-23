@@ -206,8 +206,8 @@ let eq_let_loc eq_loc ({ l_eq } as leq) eq =
   if is_empty l_eq then eq 
   else { (eqmake eq.eq_write (EQlet(leq, eq))) with eq_loc }
 
-let opt_eq_letdesc l_opt eq =
-  match l_opt with | None -> eq.eq_desc | Some(l) -> EQlet(l, eq)
+let opt_eq_let_desc leq_opt eq =
+  match leq_opt with | None -> eq.eq_desc | Some(leq) -> EQlet(leq, eq)
 
 let leq l_rec eq_list =
   { l_kind = Kany; l_rec; l_eq = par eq_list; l_loc = no_location;
@@ -221,7 +221,7 @@ let e_let_list l_rec eq_list e =
 let e_let_loc e_loc ({ l_eq } as leq) e =
   if is_empty l_eq then e else { (emake (Elet(leq, e))) with e_loc }
 
-let opt_letdesc l_opt e =
+let opt_e_let_desc l_opt e =
   match l_opt with | None -> e.e_desc | Some(l) -> Elet(l, e)
 
 let let_eq_list_in_e l_rec eq_list e =
