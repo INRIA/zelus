@@ -265,7 +265,8 @@ let leq_t funs acc leq =
   (* update [l_env] *)
   { leq with l_env = keep l_env (Defnames.names S.empty l_eq.eq_write) }, acc
 
-(* all local names can restart from 0 *)
+(* all local names can restart from 0. For the moment, we start from the *)
+(* current maximal value *)
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
