@@ -1,7 +1,14 @@
-let f x returns y
-  let f<<n>>(x) = x + 1 in
-  y = f<<42>>(x) + f<<44>>(x)
+let f1 x returns (o)
+  let f x = 1 in
+  do o = f (x+1) + f (x+2) done
 
+let f2 x returns (o)
+  let inline f<<n>>(x) = x + 1 in
+  do o = f<<42>>(x+1) + f<<44>>(x+2) done
+
+let f3 x =
+  let rec f3<<n>>() = match size n with | 0 -> 0 | n -> f3<<n-1>>() in
+  f3<<2>>()
 (*
 let hybrid sin_cos () =
   let der t = 1.0 init 0.0 in
