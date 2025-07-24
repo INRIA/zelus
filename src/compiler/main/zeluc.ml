@@ -63,6 +63,7 @@ and doc_simulation =
           \t\t\t has been set, or <node> otherwise"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_use_gtk = "\t Use lablgtk2 interface."
+and doc_sizerec = "\t Specialize size functions"
 and doc_inlining_level = "<n> \t Level of inlining"
 and doc_inline_all = "\t Inline all function calls"
 and doc_dzero = "\t Turn on discrete zero-crossing detection"
@@ -84,6 +85,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t -<s> turn off step s\n\
     \t\t\t +a: takes all; -a: takes none\n\
     \t\t\t s can be one of the following values\n\
+    \t\t\t sizerec: specialization of size functions (not done by default)\n\
     \t\t\t inline: all annotated functions to be inlined are inlined\n\
     \t\t\t der: normalize derivative \n\
     \t\t\t period: remove periods \n\
@@ -150,6 +152,7 @@ let main () =
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
           "-gtk2", Arg.Unit set_gtk, doc_use_gtk;
+          "-sizerec", Arg.Set sizerec, doc_sizerec;
           "-inline", Arg.Int set_inlining_level, doc_inlining_level;
           "-inlineall", Arg.Set inline_all, doc_inline_all;
           "-zsign", Arg.Set zsign, doc_zsign;

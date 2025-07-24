@@ -161,8 +161,8 @@
     mapfold ; generic mapfold
     markfunctions ; mark function calls to be inlined
     const ; compile time evaluation of constants
-    inline ; inlining of function calls
     sizerec ; specialize recursive size functions
+    inline ; inlining of function calls
     automata ; rewrite automata into match/reset
     present ; rewrite present into match
     lastinpatterns ; remove last in patterns
