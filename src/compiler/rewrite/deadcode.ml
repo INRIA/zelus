@@ -84,6 +84,19 @@ let visit var_set table =
   Env.iter visit_table table;
   !useful
  
+(* add an entry for variables [v_set = { y_1,..., y_n }] *)
+let mark is_useful v_set table =
+  let add x table =
+    try
+      let { c_useful } as cont = Env.find x table in
+      if not c_useful then cont.c_useful <- is_useful;
+      table
+    with
+      Not_found ->
+      Env.add x { c_vars = S.empty; c_useful = is_useful; c_visited = false }
+        table in
+  S.fold add v_set table
+
 (* Add the entries [y_j <- x_1; ...; y_j <- x_n]_j in the table. *)
 (* for any variable [x_j in w] and r = { x_1,...,x_n } *)
 (* if [y_j] is already in the table, extends the set of variables on *)
@@ -104,20 +117,11 @@ let add_dep is_useful w_set r_set table =
   (* add dependences *)
   let l_ = S.to_list w_set in
   let _ = l_ in
-  S.fold add w_set table
+  (* case of _ = op(x1,...,xn) with [op] an unsafe operation *)
+  (* in that case, [x1,...,xn] are marked useful *)
+  if S.is_empty w_set then mark is_useful r_set table
+  else S.fold add w_set table
 
-(* add an entry for variables [v_set = { y_1,..., y_n }] *)
-let mark is_useful v_set table =
-  let add x table =
-    try
-      let { c_useful } as cont = Env.find x table in
-      if not c_useful then cont.c_useful <- is_useful;
-      table
-    with
-      Not_found ->
-      Env.add x { c_vars = S.empty; c_useful = is_useful; c_visited = false }
-        table in
-  S.fold add v_set table
 
 (* The algorithm is done in two passes. *)
 (* Pass 1. compute the set of useful variables. *)
