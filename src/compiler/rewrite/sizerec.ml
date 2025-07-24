@@ -92,11 +92,11 @@ let get_specialized_sizefun acc sizefun_specialized_list sf_id =
   eq_list @ sizefun_specialized_list
 
 (* evaluation of size expressions *)
-let size env_of_sizes s =
+let size env s =
   let rec size { desc } =
     match desc with
     | Size_int(i) -> i
-    | Size_var(id) -> Env.find id env_of_sizes
+    | Size_var(id) -> Env.find id env
     | Size_frac { num; denom } -> size num / denom
     | Size_op(op, s1, s2) ->
        let v1 = size s1 and v2 = size s2 in
@@ -107,7 +107,29 @@ let size env_of_sizes s =
   with
     Not_found -> assert false
 
-(* A generic operator to treat [let leq in e] and [let leq in eq] *)
+let size_e env h e =
+  let rec size { e_desc; e_loc } = match e_desc with
+    | Econst(Eint(i)) -> i
+    | Evar(id) -> Env.find id env
+    | Eapp { f = { e_desc = Eglobal { lname = Lident.Modname(qualid) } };
+             arg_list = [e1; e2] } ->
+       let v1 = size e1 and v2 = size e2 in
+       if qualid = Initial.stdlib_name "+"
+       then v1 + v2
+       else if qualid = Initial.stdlib_name "-"
+       then v1 - v2
+       else if qualid = Initial.stdlib_name "*"
+       then v1 * v2
+       else if qualid = Initial.stdlib_name "/"
+       then v1 / v2
+       else assert false
+    | _ -> assert false in
+  try
+    size e
+  with
+    Not_found -> assert false
+
+(* a generic function to treat [let leq in e] and [let leq in eq] *)
 let let_in funs body_it acc ({ l_eq; l_loc } as leq) body =
   match Typing.eq_or_sizefun l_loc l_eq with
   | Either.Left _ ->
@@ -141,7 +163,31 @@ let let_in funs body_it acc ({ l_eq; l_loc } as leq) body =
        (* remove them *)
        (None, sizefun_specialized_list, b), acc
 
-let equation funs acc ({ eq_desc; eq_loc } as eq) =
+(* a generic function to treat [match size] constructs. *)
+(* [match size e with | (p_i -> eq_i)_i] and *)
+(* [match size e with | (p_i -> e_i)_i] *)
+let match_size_t funs body_it ({ env_of_sizes } as acc) v handlers =
+  (* match a value [v] against a pattern [p] *)
+  let pmatch v p = Match.pmatch (Value.Vint(v)) p in
+
+  acc, ()
+
+(* let rec match_rec handlers =
+    match handlers with
+    | [] -> assert false
+    | { m_pat; m_body } :: handlers ->
+       let r = pmatch v m_pat in
+       match r with
+       | None ->
+          (* this is not the good handler; try an other one *)
+          match_rec handlers
+       | Some(env_of_sizes_p) ->
+          body_it funs
+            { acc with env_of_sizes = Env.append env_of_sizes_p env_of_sizes }
+            m_body in
+  match_rec handlers *)
+
+let equation funs ({ env_of_sizes } as acc) ({ eq_desc; eq_loc } as eq) =
   match eq_desc with
   | EQlet({ l_eq } as leq, eq_let) ->
      let (leq_opt, sizefun_specialized_list, eq_let), acc =
@@ -150,6 +196,10 @@ let equation funs acc ({ eq_desc; eq_loc } as eq) =
                  Aux.opt_eq_let_desc leq_opt
                    (Aux.let_eq_list_in_eq false sizefun_specialized_list eq_let) },
      acc
+  | EQmatch { is_size = true; e; handlers } ->
+     let v = size_e env_of_sizes e in
+  (* match_size_t funs Mapfold.equation_it acc v handlers *)
+     eq, acc
   | _ -> raise Mapfold.Fallback
 
 (* add a new function definition [sf_id = sf_e[v1/id1,...,vn/idn]] *)
@@ -194,6 +244,10 @@ let expression funs ({ env_of_sizefun; env_of_sizes } as acc)
        with
          Not_found -> e, acc
      end
+  | Ematch { is_size = true; e; handlers } ->
+     let v = size_e env_of_sizes e in
+     e, acc
+  (* match_size_t funs Mapfold.expression_it acc v handlers *)
   | _ -> raise Mapfold.Fallback
 
 let set_index funs acc n =
