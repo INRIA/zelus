@@ -1,0 +1,50 @@
+(* The Van der Pol oscillator *)
+let mu = 5.0
+    
+(* The oscillator in continuous time *)
+let hybrid van_der_pol_continuous() = (x, y) where
+  rec
+      der x = y init 1.0
+  and
+      der y = (mu *. (1.0 -. (x *. x)) *. y) -. x init 1.0
+
+(* Euler forward and backward *)
+let node forward(h)(x0, xprime) = x where
+  rec x = x0 fby (x +. h *. xprime)
+
+let node backward(h)(x0, xprime) = x where
+  rec x = x0 -> pre x +. h *. xprime
+
+(* The oscillator in discrete time *)
+let node van_der_pol_discrete(h)() = (x, y) where
+  rec
+      x = backward(h)(1.0, y)
+  and
+      y = forward(h)(1.0, (mu *. (1.0 -. (x *. x)) *. y) -. x)
+
+		 
+(* let h_discrete = 0.1 *)
+let h_discrete = 0.15
+let stop_time = 50.0
+    (* 50 000 000 *)
+
+(* The main simulation loop in discrete-time *)
+let node main_discrete() =
+  let x, y = van_der_pol_discrete(h_discrete)() in
+  let rec time = 0.0 -> pre time +. h_discrete in
+  print_float time;
+  print_string "\t";
+  print_float x;
+  print_string "\t";
+  print_float y;
+  print_newline ()
+
+     
+let hybrid main_continuous() =
+  let x, y = van_der_pol () in
+  assert
+    present
+      period(0.0|h_discrete) ->
+        let x_d, y_d = van_der_pol_discrete(h_discrete)() in
+        (abs_float(x -. x_d) <= epsilon) && (abs_float(y -. y_d) <= epsilon)
+      else true
