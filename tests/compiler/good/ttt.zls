@@ -1,3 +1,12 @@
+let hybrid f() =
+  let rec der x = 1.0 init 0.0 and der x' = x init 0.0 in
+  x'
+
+let node ff () =
+  let o = run (Solve.solve f) (Some(Solve.make 100.0 ()) fby None) in
+  Solve.iter 10 (node v -> print_float v) o
+  
+(*
 let f1 x returns (o)
   let f x = 1 in
   do o = f (x+1) + f (x+2) done
@@ -9,7 +18,7 @@ let f2 x returns (o)
 let f3 x =
   let rec f3<<n>>() = match size n with | 0 -> 0 | n -> f3<<n-1>>() in
   f3<<2>>()
-(*
+
 let hybrid sin_cos () =
   let der t = 1.0 init 0.0 in
   let s_ref = sin t and c_ref = cos t in
