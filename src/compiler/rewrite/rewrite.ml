@@ -32,7 +32,11 @@ let optim_list =
 
 (* source-to-source transformations *)
 let default_list =
-  ["inline", "Inlining of annotated and small function calls. See below:", 
+  ["sizerec",
+   "Specialization of size functions (not done by default). See below:", 
+   nothing,
+   Sizerec.program;
+   "inline", "Inlining of annotated and small function calls. See below:", 
    nothing,
    Inline.program;
    "copy", "Remove of copy variables. See below:", nothing,
@@ -112,7 +116,7 @@ let set_steps w =
   let set p s =
     match s with
     | "a" -> s_set := if p then s_all else S.empty
-    | "inline" | "der" | "period" | "disc"
+    | "inline" | "sizerec" | "der" | "period" | "disc"
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 

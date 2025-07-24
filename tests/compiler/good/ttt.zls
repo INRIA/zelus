@@ -1,6 +1,6 @@
 let f x returns y
-  local m, r, s
-  do y = x + 1 and m = 2 and r = m and s = 2 done
+  let f<<n>>(x) = x + 1 in
+  y = f<<42>>(x) + f<<44>>(x)
 
 (*
 let hybrid sin_cos () =

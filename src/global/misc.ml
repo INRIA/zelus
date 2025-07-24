@@ -167,6 +167,9 @@ let static_reduction = ref false
 let n_steps = ref 0
 let set_check_equivalence_for_n_steps n = n_steps := n
 
+(* set on the specialization of size functions *)
+let sizerec = ref false
+
 (* sets the inline flags *)
 let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
