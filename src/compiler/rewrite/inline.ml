@@ -254,8 +254,6 @@ let equation funs acc eq =
            acc in
        eq, acc
     | EQlet(leq, eq_let) ->
-       let leq, acc = Mapfold.leq_it funs acc leq in
-       let eq_let, acc = Mapfold.equation_it funs acc eq_let in
        Aux.eq_let_loc eq_loc leq eq_let, acc
   | _ -> 
        eq, acc
