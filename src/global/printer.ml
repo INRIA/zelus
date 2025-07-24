@@ -416,19 +416,19 @@ module Make (Info: INFO) =
     
     and kind f_kind =
       match f_kind with
-      | Kfun _ -> "fun"
+      | Kfun _ -> "fun "
       | Knode(k) ->
-         (match k with | Kdiscrete -> "node" | Kcont -> "hybrid")
+         (match k with | Kdiscrete -> "node " | Kcont -> "hybrid ")
     
     and funexp ff
           { f_vkind; f_kind; f_args; f_body; f_env; f_atomic;
             f_inline; f_hidden_env } =
       let vkind =
         match f_vkind with
-        | Kconst -> "const" | Kstatic -> "static" | Kany -> "" in
+        | Kconst -> "const " | Kstatic -> "static " | Kany -> "" in
       let is_atomic = if f_atomic then "atomic " else "" in
       let is_inline = if f_inline then "inline " else "" in
-      fprintf ff "@[<hov 2>%s%s%s %s %a %a@ %a@]"
+      fprintf ff "@[<hov 2>%s%s%s%s%a %a@ %a@]"
         is_inline is_atomic (kind f_kind) vkind arg_list f_args
         print_env f_env result f_body;
       fprintf ff "@[<hov0>%a@]" print_hidden_env f_hidden_env
