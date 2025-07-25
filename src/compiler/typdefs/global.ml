@@ -37,16 +37,6 @@ and is_const = bool
 and vexp =
   | Vfun of funexp
   | Vsizefun of Typinfo.sizefun
-  (* a representation for mutually recursive functions over sizes *)
-  (* f where rec [f1<s,...> = e1 and ... fk<s,...> = ek] *)
-  | Vsizefix of 
-      { (* the maximum number of iterations *)
-        bound: int list option; 
-        (* name of the defined function *)
-        name: Ident.t; 
-        (* the set of mutually recursive function definitions *)
-        defs: Typinfo.sizefun Ident.Env.t;
-      }
 
 and funexp =
   { f_inline: bool; f_args: Typinfo.arg list; f_kind: Zelus.kind;

@@ -21,6 +21,7 @@
 open Misc
 open Location
 open Ident
+open Lident
 open Zelus
 
 (* unexpected error *)
@@ -55,6 +56,33 @@ and sizefun_entry =
     (* [sf_id] used or not in the code *)
     mutable sizefun_used: bool;
   }
+
+(* global table for size functions defined globally *)
+(* a map [modname -> (id -> { entry }] associating an entry *)
+(* to [modname.id] *)
+type global_table =
+  { mutable table: sizefun_entry Modules.E.t Modules.E.t }
+
+let global_table = { table = Modules.E.empty }
+
+(* add an extra specialized version for [sf_id] to the global table *)
+let add_global_specialized_sizefun { qual; id } (sf_fresh_id, e) =
+  try
+    let { sizefun_specialized } as entry =
+      Modules.E.find id (Modules.E.find qual global_table.table) in
+    entry.sizefun_specialized <-
+      (sf_fresh_id, e) :: sizefun_specialized
+  with
+    Not_found -> ()
+
+let get_global_specialized_sizefun sizefun_specialized_list { qual; id } =
+  try
+    let { sizefun_specialized } as entry =
+      Modules.E.find id (Modules.E.find qual global_table.table) in
+    let eq_list = List.map (fun (id, e) -> Aux.id_eq id e) sizefun_specialized in
+    eq_list
+  with
+    Not_found -> []
 
 let empty = { env_of_sizefun = Env.empty; env_of_sizes = Env.empty }
 
@@ -243,8 +271,14 @@ let expression funs ({ env_of_sizefun; env_of_sizes } as acc)
       ({ e_desc; e_loc } as e) =
   match e_desc with
   | Evar(x) ->
-     (* mark that the variable [x] is used *)
-     let acc = set_used x acc in e, acc     
+     (* either replace it by its value if it is a size *)
+     (* or mark [x] to be used *)
+     let e, acc =
+       try
+         { e with e_desc = Econst(Eint(Env.find x env_of_sizes)) }, acc
+       with Not_found ->
+         e, set_used x acc in
+     e, acc     
   | Elet({ l_eq } as leq, e_let) ->
      let (leq_opt, sizefun_specialized_list, e_let), acc =
        let_in funs Mapfold.expression_it acc leq e_let in
@@ -279,11 +313,37 @@ let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
+(*let letdecl funs acc (d_names, d_leq) =
+  let d_leq, acc = Mapfold.leq_it funs empty d_leq in
+  (* every entry in [subst] is added to the global symbol table *)
+  let update_module_table d_names (name, m) =
+    let m_copy, _ = Mapfold.var_ident_it funs.global_funs acc m in
+    try
+      let { f_inline; f_args; f_kind; f_body; f_env } =
+        Env.find m_copy subst in
+      let entry = Modules.find_value (Name name) in
+      Global.set_value_exp entry
+        (Global.Vfun { Global.f_inline; 
+                       Global.f_args; Global.f_kind;
+                       Global.f_body; Global.f_env });
+      (* entry [name, m] is removed from the list of defined names *)
+      d_names
+    with
+      Not_found -> (name, m_copy) :: d_names in
+  let d_names = List.fold_left update_module_table [] d_names in
+  
+  let _ = check_no_inline_letdecl subst (d_names, d_leq) in
+  (d_names, d_leq), acc*)
+
+let open_t funs acc modname =
+  Modules.open_module modname;
+  modname, acc
+
 let program genv p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
     { Mapfold.defaults with
-      global_funs; equation; expression; set_index; get_index; } in
+      global_funs; equation; expression; open_t; set_index; get_index; } in
   let { p_impl_list } as p, _ =
     if !Misc.sizerec then Mapfold.program_it funs empty p else p, empty in
   { p with p_impl_list } 
