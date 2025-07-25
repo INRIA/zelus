@@ -23,6 +23,12 @@ open Location
 open Ident
 open Zelus
 
+(* unexpected error *)
+let error loc message =
+  Format.eprintf "%aError in pass sizerec %s\n"
+    Location.output_location loc message;
+  raise Misc.Error
+  
 (* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
 (* where [s1,...,sn] are integer values *)
 module Memo = 
@@ -62,10 +68,7 @@ let add_sizefun ({ env_of_sizefun } as acc) ({ sf_id } as sizefun) =
 
 (* returns [{ sf_id; sf_id_list; sf_e }] associated [sf_id] in [acc] *)
 let find_sizefun sf_id { env_of_sizefun } =
-  try
-    Env.find sf_id env_of_sizefun
-  with
-    Not_found -> assert false
+  Env.find_stop_if_unbound "pass sizerec" sf_id env_of_sizefun
 
 (* [sf_id] is used or not *)
 let is_used sf_id env_of_sizefun =
@@ -92,7 +95,7 @@ let get_specialized_sizefun acc sizefun_specialized_list sf_id =
   eq_list @ sizefun_specialized_list
 
 (* evaluation of size expressions *)
-let size env s =
+let size env ({ loc } as s) =
   let rec size { desc } =
     match desc with
     | Size_int(i) -> i
@@ -105,10 +108,11 @@ let size env s =
   try
     size s
   with
-    Not_found -> assert false
+    Not_found -> error loc "evaluation of size expressions"
 
-let size_e env h e =
-  let rec size { e_desc; e_loc } = match e_desc with
+let size_e env ({ e_loc } as e) =
+  let rec size { e_desc; e_loc } =
+    match e_desc with
     | Econst(Eint(i)) -> i
     | Evar(id) -> Env.find id env
     | Eapp { f = { e_desc = Eglobal { lname = Lident.Modname(qualid) } };
@@ -122,12 +126,12 @@ let size_e env h e =
        then v1 * v2
        else if qualid = Initial.stdlib_name "/"
        then v1 / v2
-       else assert false
-    | _ -> assert false in
+       else raise Not_found
+    | _ -> raise Not_found in
   try
     size e
   with
-    Not_found -> assert false
+    Not_found -> error e_loc "evaluation of size expressions"
 
 (* a generic function to treat [let leq in e] and [let leq in eq] *)
 let let_in funs body_it acc ({ l_eq; l_loc } as leq) body =
@@ -166,15 +170,33 @@ let let_in funs body_it acc ({ l_eq; l_loc } as leq) body =
 (* a generic function to treat [match size] constructs. *)
 (* [match size e with | (p_i -> eq_i)_i] and *)
 (* [match size e with | (p_i -> e_i)_i] *)
-let match_size_t funs body_it ({ env_of_sizes } as acc) v handlers =
-  (* match a value [v] against a pattern [p] *)
-  let pmatch v p = Match.pmatch (Value.Vint(v)) p in
+let match_size_t loc funs body_it ({ env_of_sizes } as acc) v handlers =
+  (* match a constant size [v] against a pattern [p] *)
+  let pmatch v p =
+    let open Monad.Opt in
+    let rec pmatch env v { pat_desc } =
+      match v, pat_desc with
+      | _, Etypeconstraintpat(p, _) -> pmatch env v p
+      | _, Evarpat(x) ->
+         return (Env.add x v env)
+      | _, Ewildpat -> return env
+      | _, Ealiaspat(p, x) ->
+         let* acc = pmatch env v p in
+         return (Env.add x v env)
+      | _, Eorpat(p1, p2) ->
+         let env_opt = pmatch env v p1 in
+         let env =
+           match env_opt with
+           | None -> pmatch env v p2
+           | Some(env) -> return env in
+         env
+      | v1, Econstpat(Eint(v2)) when v1 = v2 -> return env
+      | _ -> none in
+    pmatch Env.empty v p in
 
-  acc, ()
-
-(* let rec match_rec handlers =
+  let rec match_rec handlers =
     match handlers with
-    | [] -> assert false
+    | [] -> error loc "pattern matching failure"
     | { m_pat; m_body } :: handlers ->
        let r = pmatch v m_pat in
        match r with
@@ -185,7 +207,9 @@ let match_size_t funs body_it ({ env_of_sizes } as acc) v handlers =
           body_it funs
             { acc with env_of_sizes = Env.append env_of_sizes_p env_of_sizes }
             m_body in
-  match_rec handlers *)
+  
+  let body, acc = match_rec handlers in
+  body, acc
 
 let equation funs ({ env_of_sizes } as acc) ({ eq_desc; eq_loc } as eq) =
   match eq_desc with
@@ -198,7 +222,7 @@ let equation funs ({ env_of_sizes } as acc) ({ eq_desc; eq_loc } as eq) =
      acc
   | EQmatch { is_size = true; e; handlers } ->
      let v = size_e env_of_sizes e in
-  (* match_size_t funs Mapfold.equation_it acc v handlers *)
+     let eq, acc = match_size_t eq_loc funs Mapfold.equation_it acc v handlers in
      eq, acc
   | _ -> raise Mapfold.Fallback
 
@@ -246,8 +270,9 @@ let expression funs ({ env_of_sizefun; env_of_sizes } as acc)
      end
   | Ematch { is_size = true; e; handlers } ->
      let v = size_e env_of_sizes e in
+     let e, acc =
+       match_size_t e_loc funs Mapfold.expression_it acc v handlers in
      e, acc
-  (* match_size_t funs Mapfold.expression_it acc v handlers *)
   | _ -> raise Mapfold.Fallback
 
 let set_index funs acc n =
