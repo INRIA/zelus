@@ -7,7 +7,7 @@ let f3 x =
   f3<<2>>()
 
 let f4 =
-  let rec or_<<n>> = fun (x) returns (o)
+  let rec or_<<n>> = inline fun (x) returns (o)
     match size n with
     | 0 -> o = false
     | 1 -> o = true

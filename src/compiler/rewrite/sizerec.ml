@@ -22,6 +22,7 @@ open Misc
 open Location
 open Ident
 open Lident
+open Global
 open Zelus
 
 (* unexpected error *)
@@ -30,33 +31,16 @@ let error loc message =
     Location.output_location loc message;
   raise Misc.Error
   
-(* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
-(* where [s1,...,sn] are integer values *)
-module Memo = 
-  Map.Make 
-    (struct 
-      type t = int list 
-      let compare = Stdlib.compare
-    end)
-
 type acc =
   { (* a map [f -> e] where [f] is the name of a size function definitions *)
-    env_of_sizefun: sizefun_entry Env.t;
+    env_of_sizefun: sizefun Env.t;
     (*  amap of sizes [id -> v] with [v] a positive integer *)
     env_of_sizes: int Env.t;
   }
 
-and sizefun_entry =
-  { (* size function: [sf_id <<n1,...>> = e] *)
-    sizefun: Typinfo.sizefun;
-    (* the list of specialized functions *)
-    mutable sizefun_specialized: (Ident.t * Typinfo.exp) list;
-    (* the memoization table which associate a fresh name [id] to (s1,...,sn) *)
-    sizefun_memo_table: Ident.t Memo.t;
-    (* [sf_id] used or not in the code *)
-    mutable sizefun_used: bool;
-  }
+and sizefun = Global.sizefun
 
+(*
 (* global table for size functions defined globally *)
 (* a map [modname -> (id -> { entry }] associating an entry *)
 (* to [modname.id] *)
@@ -64,25 +48,27 @@ type global_table =
   { mutable table: sizefun_entry Modules.E.t Modules.E.t }
 
 let global_table = { table = Modules.E.empty }
+*)
+
+let set_global_sizefun qualid sizefun =
+  let entry = Modules.find_value (Modname qualid) in
+  Global.set_value_exp
+    entry (Vsizefun { sizefun; sizefun_used = false;
+                      sizefun_specialized = [];
+                      sizefun_memo_table = Memo.empty })
 
 (* add an extra specialized version for [sf_id] to the global table *)
-let add_global_specialized_sizefun { qual; id } (sf_fresh_id, e) =
-  try
-    let { sizefun_specialized } as entry =
-      Modules.E.find id (Modules.E.find qual global_table.table) in
-    entry.sizefun_specialized <-
-      (sf_fresh_id, e) :: sizefun_specialized
-  with
-    Not_found -> ()
+let add_global_specialized_sizefun 
+      ({ sizefun_specialized } as entry) (sf_fresh_id, e) =
+  entry.sizefun_specialized <- (sf_fresh_id, e) :: sizefun_specialized
 
-let get_global_specialized_sizefun sizefun_specialized_list { qual; id } =
-  try
-    let { sizefun_specialized } as entry =
-      Modules.E.find id (Modules.E.find qual global_table.table) in
-    let eq_list = List.map (fun (id, e) -> Aux.id_eq id e) sizefun_specialized in
-    eq_list
-  with
-    Not_found -> []
+(*let flush_global_specialized_sizefun () =
+  let get_specialized_sizefun { qual; id } =
+  let { info = { value_exp } } = Modules.find_value (Name id) in
+  match value_exp with
+  | None | Some(Vfun _) -> sizefun_specialized_list
+  | Some(Vsizefun { sizefun_specialized }) ->
+     sizefun_specialized :: sizefun_specialized_list*)
 
 let empty = { env_of_sizefun = Env.empty; env_of_sizes = Env.empty }
 

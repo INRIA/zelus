@@ -17,6 +17,11 @@ open Misc
 open Ident
 open Zelus
 
+(* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
+(* where [s1,...,sn] are integer values *)
+module Memo = 
+  Map.Make (struct type t = int list let compare = Stdlib.compare end)
+
 type 'a info = { qualid : Lident.qualident; info : 'a }
 
 type no_info = unit
@@ -36,11 +41,26 @@ and is_const = bool
 
 and vexp =
   | Vfun of funexp
-  | Vsizefun of Typinfo.sizefun
+  | Vsizefun of sizefun
 
 and funexp =
-  { f_inline: bool; f_args: Typinfo.arg list; f_kind: Zelus.kind;
-    f_body: Typinfo.result; f_env: Typinfo.ienv Env.t }
+  { f_inline: bool; (* the function call must be inlined *)
+    f_args: Typinfo.arg list; (* list of arguments *)
+    f_kind: Zelus.kind; (* kind of the function *)
+    f_body: Typinfo.result; (* the body of the function *)
+    f_env: Typinfo.ienv Env.t; (* the environment for parameters *)
+ }
+
+and sizefun =
+{ (* size function: [sf_id <<n1,...>> = e] *)
+    sizefun: Typinfo.sizefun;
+    (* the list of specialized functions *)
+    mutable sizefun_specialized: (Ident.t * Typinfo.exp) list;
+    (* the memoization table which associate a fresh name [id] to (s1,...,sn) *)
+    sizefun_memo_table: Ident.t Memo.t;
+    (* [sf_id] used or not in the code *)
+    mutable sizefun_used: bool;
+  }
 
 (* Value constructors *)
 type constr_desc =
