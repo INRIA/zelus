@@ -1,3 +1,13 @@
+let node f(x) =
+  let y = model x in
+  assert
+    let z = p(x, y) in Async.exec gnuplot z; z
+
+Async.exec n f x x0
+
+let y = Async.exec read_input () in
+
+
 let f2 x returns (o)
   let inline f<<n>>(x) = x + n in
   do o = f<<42>>(x+1) + f<<44>>(x+2) done

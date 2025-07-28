@@ -31,6 +31,16 @@ let error loc message =
     Location.output_location loc message;
   raise Misc.Error
   
+(* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
+(* where [s1,...,sn] are integer values *)
+(* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
+(* where [s1,...,sn] are integer values *)
+module Memo = 
+  Map.Make (struct type t = int list let compare = Stdlib.compare end)
+
+module GlobalSizeFunTable =
+  Map.Make(struct type t = Lident.qualident let compare = Stdlib.compare end)
+
 type acc =
   { (* a map [f -> e] where [f] is the name of a size function definitions *)
     env_of_sizefun: sizefun Env.t;
@@ -38,7 +48,16 @@ type acc =
     env_of_sizes: int Env.t;
   }
 
-and sizefun = Global.sizefun
+and sizefun = 
+{ (* size function: [sf_id <<n1,...>> = e] *)
+    sizefun: Typinfo.sizefun;
+    (* the list of specialized functions *)
+    mutable sizefun_specialized: (Ident.t * Typinfo.exp) list;
+    (* the memoization table which associate a fresh name [id] to (s1,...,sn) *)
+    sizefun_memo_table: Ident.t Memo.t;
+    (* [sf_id] used or not in the code *)
+    mutable sizefun_used: bool;
+  }
 
 (*
 (* global table for size functions defined globally *)
@@ -50,17 +69,25 @@ type global_table =
 let global_table = { table = Modules.E.empty }
 *)
 
-let set_global_sizefun qualid sizefun =
-  let entry = Modules.find_value (Modname qualid) in
-  Global.set_value_exp
-    entry (Vsizefun { sizefun; sizefun_used = false;
-                      sizefun_specialized = [];
-                      sizefun_memo_table = Memo.empty })
+let global_table = GlobalSizeFunTable.empty
+
+(* store a size function in the global symbol table *)
+let set_global_sizefun loc qualid sizefun =
+  try
+    let entry = Modules.find_value (Modname qualid) in
+    Global.set_value_exp entry (Vsizefun sizefun)
+  with
+    Not_found -> error loc "Unbound global identifier"
 
 (* add an extra specialized version for [sf_id] to the global table *)
-let add_global_specialized_sizefun 
-      ({ sizefun_specialized } as entry) (sf_fresh_id, e) =
-  entry.sizefun_specialized <- (sf_fresh_id, e) :: sizefun_specialized
+let add_global_specialized_sizefun loc qualid (sf_fresh_id, e) =
+  try
+    let { sizefun_specialized } as entry =
+      GlobalSizeFunTable.find qualid global_table in
+    entry.sizefun_specialized <- (sf_fresh_id, e) :: sizefun_specialized
+  with
+    Not_found -> 
+      error loc "Unbound global identifier"
 
 (*let flush_global_specialized_sizefun () =
   let get_specialized_sizefun { qual; id } =
