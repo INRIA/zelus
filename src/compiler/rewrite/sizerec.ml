@@ -103,13 +103,16 @@ let add_global_specialized_sizefun loc qualid (sf_fresh_id, e) =
       error loc ("Unbound global identifier" ^ (Lident.qualidname qualid))
 
 (* flush the table and generate a list of new global functions *)
-let flush_global_specialized_sizefun () =
+let flush_global_specialized_sizefun p_impl_list =
   let get_specialized_sizefun
-        qualid { sizefun_specialized } sizefun_specialized_list =
-    let eq_list = List.map (fun (id, e) ->
-                      Aux.id_eq id e) sizefun_specialized in
-    eq_list @ sizefun_specialized_list in
-  GlobalSizeFunTable.fold get_specialized_sizefun !global_table []
+        qualid { sizefun_specialized } p_impl_list =
+    let eq_list =
+      List.map (fun (id, e) -> Aux.id_eq id e) sizefun_specialized in
+    let d_names =
+      List.map (fun (id, _) -> (Ident.name id, id)) sizefun_specialized in
+    let l_decl = Aux.letdecl d_names (Aux.leq false eq_list) in
+    l_decl :: p_impl_list in
+  GlobalSizeFunTable.fold get_specialized_sizefun !global_table p_impl_list
 
 let empty = { env_of_sizefun = Env.empty; env_of_sizes = Env.empty }
 
@@ -123,7 +126,7 @@ let add_sizefun ({ env_of_sizefun } as acc) ({ sf_id } as sizefun) =
 
 (* returns [{ sf_id; sf_id_list; sf_e }] associated [sf_id] in [acc] *)
 let find_sizefun sf_id { env_of_sizefun } =
-  Env.find_stop_if_unbound "pass sizerec" sf_id env_of_sizefun
+  Env.find_stop_if_unbound "Error in pass sizerec" sf_id env_of_sizefun
 
 (* [sf_id] is used or not *)
 let is_used sf_id env_of_sizefun =
@@ -139,8 +142,8 @@ let set_used sf_id ({ env_of_sizefun } as acc) =
     Not_found -> acc
 
 (* add an extra specialized version for [sf_id] *)
-let add_specialized_sizefun sf_id (sf_fresh_id, e) acc =
-  let { sizefun_specialized } as entry = find_sizefun sf_id acc in
+let add_specialized_sizefun ({ sizefun_specialized } as entry)
+      (sf_fresh_id, e) acc =
   entry.sizefun_specialized <- (sf_fresh_id, e) :: sizefun_specialized;
   acc
 
@@ -296,14 +299,12 @@ let sizefun funs
       (fun env_of_sizes sf_id v -> Env.add sf_id v env_of_sizes)
       env_of_sizes sf_id_list v_list in
   let sf_e, acc = Mapfold.expression_it funs { acc with env_of_sizes } sf_e in
-  (* add the new function definition to the list of specialized size *)
-  (* functions for [sf_id] *)
-  let acc = add_specialized_sizefun sf_id (sf_fresh_id, sf_e) acc in
-  sf_fresh_id, acc
+  (sf_fresh_id, sf_e), acc
 
 (* application [f<<s1,...,sn>>] where [s1,...] are integer constant *)
 let sizeapp funs ({ env_of_sizes } as acc)
-      { sizefun = { sf_id; sf_id_list; sf_e }; sizefun_memo_table } size_list =
+      ({ sizefun = { sf_id; sf_id_list; sf_e }; sizefun_memo_table } as entry)
+      size_list =
   let v_list = List.map (size env_of_sizes) size_list in
   let id, acc =
     try
@@ -311,7 +312,12 @@ let sizeapp funs ({ env_of_sizes } as acc)
     with
       Not_found ->
         (* add a new specialized version of [sf_id] *)
+      let (sf_fresh_id, sf_e), acc =
         sizefun funs acc (sf_id, sf_id_list, v_list, sf_e) in
+      (* add the new function definition to the list of specialized size *)
+      (* functions for [sf_id] *)
+      let acc = add_specialized_sizefun entry (sf_fresh_id, sf_e) acc in
+      sf_fresh_id, acc in
   Aux.var id, acc
 
 let expression funs ({ env_of_sizefun; env_of_sizes } as acc) 
@@ -380,9 +386,8 @@ let letdecl funs acc (d_names, ({ l_eq; l_loc } as d_leq)) =
          d_names
        with
          Not_found -> (name, m) :: d_names in
-  let d_names = List.fold_left update_module_table [] d_names in
-  
-  (d_names, d_leq), acc
+     let d_names = List.fold_left update_module_table [] d_names in
+     (d_names, Aux.leq false []), acc
 
 let open_t funs acc modname =
   Modules.open_module modname;
@@ -396,4 +401,9 @@ let program genv p =
       set_index; get_index; } in
   let { p_impl_list } as p, _ =
     if !Misc.sizerec then Mapfold.program_it funs empty p else p, empty in
-  { p with p_impl_list } 
+  (* flush specialized size function generated during the pass *)
+  let sizefun_specialized_impl_list =
+    flush_global_specialized_sizefun p_impl_list in
+  (* remove empty declarations [let ()] *)
+  let p_impl_list = List.filter Aux.not_empty_impl p_impl_list in
+  { p with p_impl_list = sizefun_specialized_impl_list @ p_impl_list } 
