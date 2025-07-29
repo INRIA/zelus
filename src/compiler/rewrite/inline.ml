@@ -343,10 +343,6 @@ let open_t funs acc modname =
   Modules.open_module modname;
   modname, acc
 
-(* useful function; remove empty declarations [let ()] *)
-let not_empty { desc } = match desc with
-  | Eletdecl { d_leq = { l_eq } } when Aux.is_empty l_eq -> false | _ -> true
-  
 let program genv p =
   let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
@@ -354,5 +350,6 @@ let program genv p =
       global_funs; expression; equation; leq_t; letdecl; open_t;
       set_index; get_index; } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
-  let p_impl_list = List.filter not_empty p_impl_list in
+  (* remove empty declarations [let ()] *)
+  let p_impl_list = List.filter Aux.not_empty_impl p_impl_list in
   { p with p_impl_list }
