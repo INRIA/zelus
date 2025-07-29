@@ -33,18 +33,17 @@ let error loc message =
   
 (* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
 (* where [s1,...,sn] are integer values *)
-(* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
-(* where [s1,...,sn] are integer values *)
 module Memo = 
   Map.Make (struct type t = int list let compare = Stdlib.compare end)
 
+(* a global table indexed by a qualified ident *)
 module GlobalSizeFunTable =
   Map.Make(struct type t = Lident.qualident let compare = Stdlib.compare end)
 
 type acc =
   { (* a map [f -> e] where [f] is the name of a size function definitions *)
     env_of_sizefun: sizefun Env.t;
-    (*  amap of sizes [id -> v] with [v] a positive integer *)
+    (* a map of sizes [id -> v] with [v] a positive integer *)
     env_of_sizes: int Env.t;
   }
 
@@ -58,16 +57,6 @@ and sizefun =
     (* [sf_id] used or not in the code *)
     mutable sizefun_used: bool;
   }
-
-(*
-(* global table for size functions defined globally *)
-(* a map [modname -> (id -> { entry }] associating an entry *)
-(* to [modname.id] *)
-type global_table =
-  { mutable table: sizefun_entry Modules.E.t Modules.E.t }
-
-let global_table = { table = Modules.E.empty }
-*)
 
 (* global table for size functions: map [qualid -> { entry }] *)
 let global_table = GlobalSizeFunTable.empty
