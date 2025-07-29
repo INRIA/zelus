@@ -1,13 +1,8 @@
-let node f(x) =
-  let y = model x in
-  assert
-    let z = p(x, y) in Async.exec gnuplot z; z
+let f5<<n>>(x) = x + 1
 
-Async.exec n f x x0
+let g(x) = f5<<42>>(x)
 
-let y = Async.exec read_input () in
-
-
+(*
 let f2 x returns (o)
   let inline f<<n>>(x) = x + n in
   do o = f<<42>>(x+1) + f<<44>>(x+2) done
@@ -24,10 +19,7 @@ let f4 =
     | _ -> 
       do o = or_<<n/2>>(x) || or_<<n/2>>(x) done in
   or_<<4>> 0
-
-let f5<<n>>(x) = x + 1
-
-let g(x) = f5<<42>>(x)
+*)
 
 (*
 let hybrid f() =
