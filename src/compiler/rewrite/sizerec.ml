@@ -69,6 +69,7 @@ type global_table =
 let global_table = { table = Modules.E.empty }
 *)
 
+(* global table for size functions: map [qualid -> { entry }] *)
 let global_table = GlobalSizeFunTable.empty
 
 (* store a size function in the global symbol table *)
@@ -89,13 +90,12 @@ let add_global_specialized_sizefun loc qualid (sf_fresh_id, e) =
     Not_found -> 
       error loc "Unbound global identifier"
 
-(*let flush_global_specialized_sizefun () =
-  let get_specialized_sizefun { qual; id } =
-  let { info = { value_exp } } = Modules.find_value (Name id) in
-  match value_exp with
-  | None | Some(Vfun _) -> sizefun_specialized_list
-  | Some(Vsizefun { sizefun_specialized }) ->
-     sizefun_specialized :: sizefun_specialized_list*)
+(* flush the table and generate a list of new global functions *)
+let flush_global_specialized_sizefun () =
+  let get_specialized_sizefun qualid { sizefun_specialized } sizefun_specialized_list =
+    let eq_list = List.map (fun (id, e) -> Aux.id_eq id e) sizefun_specialized in
+    eq_list @ sizefun_specialized_list in
+  GlobalSizeFunTable.fold get_specialized_sizefun global_table []
 
 let empty = { env_of_sizefun = Env.empty; env_of_sizes = Env.empty }
 
@@ -135,6 +135,7 @@ let get_specialized_sizefun acc sizefun_specialized_list sf_id =
   let eq_list = List.map (fun (id, e) -> Aux.id_eq id e) sizefun_specialized in
   eq_list @ sizefun_specialized_list
 
+    
 (* evaluation of size expressions *)
 let size env ({ loc } as s) =
   let rec size { desc } =
@@ -267,8 +268,9 @@ let equation funs ({ env_of_sizes } as acc) ({ eq_desc; eq_loc } as eq) =
      eq, acc
   | _ -> raise Mapfold.Fallback
 
-(* add a new function definition [sf_id = sf_e[v1/id1,...,vn/idn]] *)
-let add_specialized_sizefun funs
+(* compile a size function and add a new function definition *)
+(* [sf_id = sf_e[v1/id1,...,vn/idn]] into [acc] *)
+let sizefun funs
       ({ env_of_sizes } as acc) (sf_id, sf_id_list, v_list, sf_e) =
   let sf_fresh_id = fresh (Ident.name sf_id) in
   let env_of_sizes =
@@ -279,7 +281,7 @@ let add_specialized_sizefun funs
   (* add the new function to the list of specialized size functions for [sf_id] *)
   let acc = add_specialized_sizefun sf_id (sf_fresh_id, sf_e) acc in
   sf_fresh_id, acc
-     
+ 
 let expression funs ({ env_of_sizefun; env_of_sizes } as acc) 
       ({ e_desc; e_loc } as e) =
   match e_desc with
@@ -310,7 +312,7 @@ let expression funs ({ env_of_sizefun; env_of_sizes } as acc)
              Memo.find v_list sizefun_memo_table, acc
            with
              Not_found ->
-             add_specialized_sizefun funs acc (sf_id, sf_id_list, v_list, sf_e) in
+             sizefun funs acc (sf_id, sf_id_list, v_list, sf_e) in
          { e with e_desc = Evar(id) }, acc
        with
          Not_found -> e, acc
@@ -326,27 +328,30 @@ let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
-(*let letdecl funs acc (d_names, d_leq) =
-  let d_leq, acc = Mapfold.leq_it funs empty d_leq in
-  (* every entry in [subst] is added to the global symbol table *)
-  let update_module_table d_names (name, m) =
-    let m_copy, _ = Mapfold.var_ident_it funs.global_funs acc m in
-    try
-      let { f_inline; f_args; f_kind; f_body; f_env } =
-        Env.find m_copy subst in
-      let entry = Modules.find_value (Name name) in
-      Global.set_value_exp entry
-        (Global.Vfun { Global.f_inline; 
-                       Global.f_args; Global.f_kind;
-                       Global.f_body; Global.f_env });
-      (* entry [name, m] is removed from the list of defined names *)
-      d_names
-    with
-      Not_found -> (name, m_copy) :: d_names in
+let letdecl funs acc (d_names, ({ l_eq; l_loc } as d_leq)) =
+  match Typing.eq_or_sizefun l_loc l_eq with
+  | Either.Left _ ->
+     let d_leq, acc = Mapfold.leq_it funs acc d_leq in
+     (d_names, d_leq), acc
+  | Either.Right(sizefun_list) ->
+     let sizefun_map = 
+       List.fold_left (fun acc ({ sf_id } as sizefun) -> Env.add sf_id sizefun acc) 
+         Env.empty sizefun_list in
+     (* add entry [sf_id -> sizefun] for every element of the list *)
+     (* into the global table *)
+     let update_module_table d_names (name, m) =
+       try
+         let entry = Modules.find_value (Name name) in
+         let sizefun = Env.find m sizefun_map in
+         Global.set_value_exp entry
+           (Global.Vsizefun(sizefun));
+         (* entry [name, m] is removed from the list of defined names *)
+         d_names
+       with
+         Not_found -> (name, m) :: d_names in
   let d_names = List.fold_left update_module_table [] d_names in
   
-  let _ = check_no_inline_letdecl subst (d_names, d_leq) in
-  (d_names, d_leq), acc*)
+  (d_names, d_leq), acc
 
 let open_t funs acc modname =
   Modules.open_module modname;
@@ -356,7 +361,7 @@ let program genv p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
     { Mapfold.defaults with
-      global_funs; equation; expression; open_t; set_index; get_index; } in
+      global_funs; equation; expression; letdecl; open_t; set_index; get_index; } in
   let { p_impl_list } as p, _ =
     if !Misc.sizerec then Mapfold.program_it funs empty p else p, empty in
   { p with p_impl_list } 
