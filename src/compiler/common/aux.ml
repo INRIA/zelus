@@ -82,6 +82,12 @@ let result_e e =
 let is_empty { eq_desc } =
   match eq_desc with | EQempty -> true | _ -> false
 
+(* remove empty declarations [let ()] *)
+let not_empty_impl { desc } = match desc with
+  | Eletdecl { d_leq = { l_eq } } when is_empty l_eq -> false | _ -> true
+
+let letdecl d_names d_leq = make (Eletdecl { d_names; d_leq })
+
 let eqmake w desc =
   { eq_desc = desc; eq_loc = no_location; eq_write = w;
     eq_safe = true; eq_index = -1 }
