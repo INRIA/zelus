@@ -31,7 +31,14 @@ let error loc message =
   Format.eprintf "%aError in pass sizerec %s\n"
     Location.output_location loc message;
   raise Misc.Error
-  
+
+(* fresh name *)
+let fresh sf_id v_list =
+  let name = (Ident.name sf_id) ^ "_" ^
+               (List.fold_right (fun v rest -> (string_of_int v) ^ rest)
+                  v_list "") in
+  fresh name
+
 (* memoization table; mapping [id -> (s1,...,sn) -> id_j] *)
 (* where [s1,...,sn] are integer values *)
 module Memo =
@@ -54,7 +61,7 @@ and sizefun =
     (* the list of specialized functions *)
     mutable sizefun_specialized: (Ident.t * Typinfo.exp) list;
     (* the memoization table which associate a fresh name [id] to (s1,...,sn) *)
-    sizefun_memo_table: Ident.t Memo.t;
+    mutable sizefun_memo_table: Ident.t Memo.t;
     (* [sf_id] used or not in the code *)
     mutable sizefun_used: bool;
   }
@@ -302,13 +309,12 @@ let equation funs ({ env_of_sizes } as acc) ({ eq_desc; eq_loc } as eq) =
 (* [sf_id = sf_e[v1/id1,...,vn/idn]] in [acc] *)
 let sizefun funs
       ({ env_of_sizes } as acc) (sf_id, sf_id_list, v_list, sf_e) =
-  let sf_fresh_id = fresh (Ident.name sf_id) in
   let env_of_sizes =
     List.fold_left2
       (fun env_of_sizes sf_id v -> Env.add sf_id v env_of_sizes)
       env_of_sizes sf_id_list v_list in
   let sf_e, acc = Mapfold.expression_it funs { acc with env_of_sizes } sf_e in
-  (sf_fresh_id, sf_e), acc
+  sf_e, acc
 
 (* application [f<<s1,...,sn>>] where [s1,...] are integer constant *)
 let sizeapp funs ({ env_of_sizes } as acc)
@@ -320,13 +326,17 @@ let sizeapp funs ({ env_of_sizes } as acc)
       Memo.find v_list sizefun_memo_table, acc
     with
       Not_found ->
-        (* add a new specialized version of [sf_id] *)
-      let (sf_fresh_id, sf_e), acc =
-        sizefun funs acc (sf_id, sf_id_list, v_list, sf_e) in
-      (* add the new function definition to the list of specialized size *)
-      (* functions for [sf_id] *)
-      let acc = add_specialized_sizefun entry (sf_fresh_id, sf_e) acc in
-      sf_fresh_id, acc in
+        let sf_fresh_id = fresh sf_id v_list in
+        (* add entry [v_list -> sf_fresh_id] to the memo table *)
+        entry.sizefun_memo_table <-
+          Memo.add v_list sf_fresh_id sizefun_memo_table;
+        (* compile the specialized version of [sf_id] *)
+        let sf_e, acc =
+          sizefun funs acc (sf_id, sf_id_list, v_list, sf_e) in
+        (* add the new function definition to the list of specialized size *)
+        (* functions for [sf_id] *)
+        let acc = add_specialized_sizefun entry (sf_fresh_id, sf_e) acc in
+        sf_fresh_id, acc in
   Aux.var id, acc
 
 let expression funs ({ env_of_sizefun; env_of_sizes } as acc) 
