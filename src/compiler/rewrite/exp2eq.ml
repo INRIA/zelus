@@ -42,14 +42,14 @@ let expression funs acc e =
                              handlers = List.map handler handlers };
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
-     Aux.e_let (Aux.leq false [eq]) (Aux.var result), acc
+     Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
   | Ereset(e, e_r) ->
      let result = fresh () in
      let eq =
        { eq_desc = EQreset(Aux.id_eq result e, e_r);
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
-     Aux.e_let (Aux.leq false [eq]) (Aux.var result), acc
+     Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
   | _ -> e, acc
 
 let set_index funs acc n =

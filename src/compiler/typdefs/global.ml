@@ -69,8 +69,8 @@ and type_components =
     | Abbrev of Deftypes.typ list * Deftypes.typ 
         (* type ('a1,...,'an) t = ty *)
 
-let value_desc is_const typs qualident = 
-  { value_typ = typs; value_const = is_const; value_caus = None; 
+let value_desc is_const tys = 
+  { value_typ = tys; value_const = is_const; value_caus = None; 
     value_init = None; value_exp = None }
 let set_type { info = ({ value_typ } as v) } tys = 
   v.value_typ <- tys

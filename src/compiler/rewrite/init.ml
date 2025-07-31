@@ -83,7 +83,7 @@ let local_init_in_eq { i } eq =
 (* [let rec init id = true and id = false in e] *)
 let let_init_in_exp { i } e =
   match i with
-  | None -> e | Some(id) -> Aux.e_let_list false (init id) e
+  | None -> e | Some(id) -> Aux.let_eq_list_in_e false (init id) e
 
 (* all the constructs below are atomic blocks, that is, *)
 (* a fresh initialization variable is necessary *)

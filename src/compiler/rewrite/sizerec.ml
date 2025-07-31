@@ -111,6 +111,13 @@ let flush_global_specialized_sizefun p_impl_list =
     let d_names =
       List.map (fun (id, _) -> (Ident.name id, id)) sizefun_specialized in
     let l_decl = Aux.letdecl d_names (Aux.leq false eq_list) in
+    (* add entry in the symbol table *)
+    List.iter
+      (fun (id, { e_info }) ->
+        let ty = Typinfo.get_type e_info in
+        Modules.add_value (Ident.name id)
+          (Global.value_desc false (Deftypes.scheme ty)))
+      sizefun_specialized;
     l_decl :: p_impl_list in
   GlobalSizeFunTable.fold get_specialized_sizefun !global_table p_impl_list
 
@@ -149,8 +156,10 @@ let add_specialized_sizefun ({ sizefun_specialized } as entry)
 
 let get_specialized_sizefun acc sizefun_specialized_list sf_id =
   let { sizefun_specialized } = find_sizefun sf_id acc in
-  let eq_list = List.map (fun (id, e) -> Aux.id_eq id e) sizefun_specialized in
-  eq_list @ sizefun_specialized_list
+  let leq_list =
+    List.map (fun (id, e) -> Aux.leq false [Aux.id_eq id e])
+      sizefun_specialized in
+  leq_list @ sizefun_specialized_list
 
     
 (* evaluation of size expressions *)
@@ -278,9 +287,9 @@ let equation funs ({ env_of_sizes } as acc) ({ eq_desc; eq_loc } as eq) =
      let (leq_opt, sizefun_specialized_list, eq_let), acc =
        let_in funs Mapfold.equation_it acc leq eq_let in
      { eq with eq_desc =
-                 Aux.opt_eq_let_desc leq_opt
-                   (Aux.let_eq_list_in_eq
-                      false sizefun_specialized_list eq_let) },
+                 Aux.opt_let_leq_in_eq leq_opt
+                   (Aux.let_leq_list_in_eq
+                      sizefun_specialized_list eq_let) },
      acc
   | EQmatch { is_size = true; e; handlers } ->
      let v = size_e env_of_sizes e in
@@ -336,8 +345,8 @@ let expression funs ({ env_of_sizefun; env_of_sizes } as acc)
      let (leq_opt, sizefun_specialized_list, e_let), acc =
        let_in funs Mapfold.expression_it acc leq e_let in
      { e with e_desc =
-                Aux.opt_e_let_desc leq_opt
-                  (Aux.let_eq_list_in_e false sizefun_specialized_list e_let) },
+                Aux.opt_let_leq_in_e_desc leq_opt
+                  (Aux.let_leq_list_in_e sizefun_specialized_list e_let) },
      acc
   | Esizeapp { f = { e_desc = Evar(f) }; size_list } ->
      (* [f <<s1,...>>] where the [s_i] are immediate values] *)
@@ -401,9 +410,9 @@ let program genv p =
       set_index; get_index; } in
   let { p_impl_list } as p, _ =
     if !Misc.sizerec then Mapfold.program_it funs empty p else p, empty in
+  (* remove empty declarations [let ()] *)
+  let p_impl_list = List.filter Aux.not_empty_impl p_impl_list in
   (* flush specialized size function generated during the pass *)
   let sizefun_specialized_impl_list =
     flush_global_specialized_sizefun p_impl_list in
-  (* remove empty declarations [let ()] *)
-  let p_impl_list = List.filter Aux.not_empty_impl p_impl_list in
-  { p with p_impl_list = sizefun_specialized_impl_list @ p_impl_list } 
+  { p with p_impl_list = sizefun_specialized_impl_list } 

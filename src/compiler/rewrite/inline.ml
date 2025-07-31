@@ -124,10 +124,10 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
      let { r_desc } as result, f_acc = Mapfold.result_it funs f_acc result in
      let e = match r_desc with
        | Exp(r_e) ->
-          Aux.e_let_list false eq_list r_e
+          Aux.let_eq_list_in_e false eq_list r_e
        | Returns { b_vars; b_body } ->
-          Aux.e_let_list false eq_list
-            (Aux.e_let_list false [b_body]
+          Aux.let_eq_list_in_e false eq_list
+            (Aux.let_eq_list_in_e false [b_body]
                (Aux.returns_of_vardec_list_make b_vars)) in
      e, append f_acc acc in
 
@@ -159,7 +159,7 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
          match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) in
        let e, f_acc = result_t f_acc [] f_body in
        let e, f_acc = apply funs f_acc e arg_rest_list in
-       Aux.e_let_list false eq_list e, f_acc
+       Aux.let_eq_list_in_e false eq_list e, f_acc
      else
        (* [n_f_param_list > n_arg_list] *)
        (* [(inline fun x1..xn xn+1..xm -> result) e1..en] *)
@@ -178,7 +178,7 @@ let match_f_param_with_arg_list acc f_acc (f_param_list, arg_list) =
          { f_inline; f_partial = true;
            f_kind; f_args = f_param_rest_list; f_body = f_body;
            f_env; f_acc } in
-       Aux.e_let_list false eq_list { (Aux.var m) with e_loc = loc },
+       Aux.let_eq_list_in_e false eq_list { (Aux.var m) with e_loc = loc },
        append { f_acc with subst = Env.add m entry f_acc.subst } acc
 
 (* application *)
@@ -229,7 +229,7 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc; e_loc } as e) =
   | Elet(leq, e_let) ->
      let leq, acc = Mapfold.leq_it funs acc leq in
      let e_let, acc = Mapfold.expression_it funs acc e_let in
-     Aux.e_let_loc e_loc leq e_let, acc
+     Aux.let_leq_in_e_loc e_loc leq e_let, acc
   (* TODO: remove the operator Erun; mark function calls instead *)
   | Eop(Erun i, [f; arg]) ->
      let f, acc = Mapfold.expression_it funs acc f in
@@ -254,7 +254,7 @@ let equation funs acc eq =
            acc in
        eq, acc
     | EQlet(leq, eq_let) ->
-       Aux.eq_let_loc eq_loc leq eq_let, acc
+       Aux.let_leq_in_eq_loc eq_loc leq eq_let, acc
   | _ -> 
        eq, acc
 

@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -178,7 +178,7 @@ let automaton acc is_weak handlers state_opt =
         { e_loc; e_zero; e_cond; e_env; e_reset; e_let; e_body; e_next_state } =
     { p_cond = e_cond; p_env = e_env; p_loc = e_loc; p_zero = e_zero;
       p_body =
-        eq_let_list e_let
+        Aux.let_leq_list_in_eq e_let
           (Aux.par [(id_eq state_name (state e_next_state));
                     id_eq reset_name (bool e_reset);
                     eq_local e_body]) } in
@@ -189,7 +189,7 @@ let automaton acc is_weak handlers state_opt =
     (* translate the escape expression *)
     let p_h_list = List.map escape s_trans in
     let handler_to_compute_current_state =
-      eq_reset (Aux.eq_let_list s_let
+      eq_reset (Aux.let_leq_list_in_eq s_let
                   (eq_present p_h_list (id_eq reset_name efalse)))
         (reset_last reset_name) in
     let handler_for_current_active_state =
@@ -205,7 +205,7 @@ let automaton acc is_weak handlers state_opt =
     let eq_next_state =
       eq_present p_h_list (id_eq reset_name efalse) in
     let eq = Aux.eq_and eq_next_state (eq_local s_body) in
-    pat, eq_reset (Aux.eq_let_list s_let eq) (reset_last reset_name) in
+    pat, eq_reset (Aux.let_leq_list_in_eq s_let eq) (reset_last reset_name) in
   
   (* the code generated for automata with strong transitions *)
   let strong_automaton handlers =

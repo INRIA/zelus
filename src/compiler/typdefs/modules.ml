@@ -117,9 +117,9 @@ let initialize modname =
   List.iter open_module !default_used_modules
   
 (* value names cannot be defined twice in a module *)
-let add_value f signature = 
+let add_value f value_desc = 
   if E.mem f current.values then raise (Already_defined f);
-  current.values <- E.add f signature current.values
+  current.values <- E.add f value_desc current.values
   
 (* type names, type constructors and record constructors *)
 (* cannot be defined twice in a module *)

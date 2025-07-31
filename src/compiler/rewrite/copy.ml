@@ -55,7 +55,7 @@ let expression funs acc ({ e_desc; e_loc } as e) =
   | Elet(leq, e_let) ->
      let leq, acc = Mapfold.leq_it funs acc leq in
      let e_let, acc = Mapfold.expression_it funs acc e_let in
-     { (Aux.e_let leq e_let) with e_loc }, acc
+     { (Aux.let_leq_in_e leq e_let) with e_loc }, acc
   | _ -> raise Mapfold.Fallback
 						
 (* Local declarations *)

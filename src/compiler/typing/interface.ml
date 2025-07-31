@@ -371,7 +371,7 @@ let update_typedecl ff loc ty_name ty_params typ =
 (* analysing a value declaration *)
 let add_type_of_value ff loc name is_const ty_scheme =
   try
-    Modules.add_value name (value_desc is_const ty_scheme (Modules.qualify name));
+    Modules.add_value name (value_desc is_const ty_scheme);
     if !Misc.print_types then
       Ptypes.output_value_type_declaration ff [global name (is_const, ty_scheme)]
   with
