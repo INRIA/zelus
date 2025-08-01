@@ -16,17 +16,24 @@ let f x =
     | n -> f<<n/2>>(x-1) + f<<n/2>>(x+1) in
   f<<6>>(x)
 
-(*
 let f3 x =
   let rec f3<<n>>() = match size n with | 0 -> 0 | n -> f3<<n-1>>() + 1 in
   f3<<2>>()
 
 let f4 =
-  let rec or_<<n>> = fun (x) returns (o)
+  let rec f<<n>>(x) returns (o)
     match size n with
     | 0 -> o = false
     | 1 -> o = true
     | _ -> 
-      do o = or_<<n/2>>(x) || or_<<n/2>>(x) done in
-  or_<<4>> 0
-*)
+      do o = f<<n/2>>(x) || f<<n/2>>(x) done in
+  f<<4>>(0)
+
+let f5 =
+  let rec or_<<n>>(x:[n]'a) returns o
+    match size n with
+    | 0 -> o = false
+    | 1 -> o = x.(0)
+    | _ -> o = or_<<n/2>>(x.(0 .. n/2 - 1)) ||
+               or_<<n - n/2>>(x.(n/2 .. n - 1)) in
+  or_<<4>>([| false; false; true; false |])
