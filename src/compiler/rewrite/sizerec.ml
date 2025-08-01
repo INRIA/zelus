@@ -339,6 +339,13 @@ let sizeapp funs ({ env_of_sizes } as acc)
         sf_fresh_id, acc in
   Aux.var id, acc
 
+let size_t global_funs ({ env_of_sizes } as acc) ({ desc } as si) =
+  match desc with
+  | Size_var(id) ->
+     (try { si with desc = Size_int(Env.find id env_of_sizes)}, acc
+      with Not_found -> si, acc)
+  | _ -> raise Mapfold.Fallback
+
 let expression funs ({ env_of_sizefun; env_of_sizes } as acc) 
       ({ e_desc; e_loc } as e) =
   match e_desc with
@@ -413,7 +420,7 @@ let open_t funs acc modname =
   modname, acc
 
 let program genv p =
-  let global_funs = Mapfold.default_global_funs in
+  let global_funs = { Mapfold.default_global_funs with size_t } in
   let funs =
     { Mapfold.defaults with
       global_funs; equation; expression; letdecl; open_t;
