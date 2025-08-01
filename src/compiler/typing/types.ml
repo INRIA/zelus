@@ -89,7 +89,8 @@ let rec fv bounded acc { t_desc } =
        | Some(n) -> fv (S.add n bounded) acc ty_res in
      fv bounded acc ty_arg
   | Tsizefun { id_list; ty; constraints } ->
-     let bounded = List.fold_left (fun acc id -> S.add id acc) bounded id_list in
+     let bounded =
+       List.fold_left (fun acc id -> S.add id acc) bounded id_list in
      Sizes.fv_constraints bounded (fv bounded acc ty) constraints
   | Tlink(ty_link) -> fv bounded acc ty_link
 
