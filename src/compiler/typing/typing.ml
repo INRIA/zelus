@@ -109,19 +109,22 @@ let check_type_is_in_kind loc h actual_k vkind =
       match vkind with
       | Tconst | Tstatic -> vkind
       | Tany -> match actual_k with | Tnode _ -> Tany | Tfun vkind -> vkind in
-    Env.iter (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body vkind) h
+  Env.iter
+    (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body vkind) h
 
-(* Check that no size variables are all bounded *)
-let check_no_unbounded_size_name loc h =
-  let check_no_unbounded_size_name loc fv ty =
+(* Check that there is no more free size variable in [ty] *)
+let check_no_unbounded_size_variable_in_env loc h =
+  let check_no_unbounded_size_variable loc fv ty =
     if not (S.is_empty fv)
     then
       let n = S.choose fv in
       error loc (Esize_parameter_cannot_be_generalized(n, ty)) in
+  
   Env.iter
     (fun _ { t_tys = { typ_body } } ->
-      check_no_unbounded_size_name loc (Types.fv S.empty typ_body) typ_body) h
- 
+      check_no_unbounded_size_variable loc (Types.fv S.empty typ_body)
+        typ_body) h
+
 let less_than loc actual_k expected_k =
   if not (Kind.is_less_than actual_k expected_k)
   then error loc (Ekind_clash(actual_k, expected_k))
@@ -589,6 +592,7 @@ let rec pattern h ({ pat_desc; pat_loc; pat_info } as pat) ty =
      unify_pat pat ty (product ty_list);
      List.iter2 (pattern h) pat_list ty_list
   | Etypeconstraintpat(p, typ_expr) ->
+     Interface.check_no_unbounded_size_variable_in_type_expr h typ_expr;
      let expected_typ =
        Types.instance (Interface.scheme_of_type typ_expr) in
      unify_pat pat expected_typ ty;
@@ -1033,6 +1037,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        let actual_k = expect expected_k h e1 ty in
        ty, Kind.sup actual_k (Kind.sup_list actual_k_list)
     | Etypeconstraint(exp, typ_expr) ->
+       Interface.check_no_unbounded_size_variable_in_type_expr h typ_expr;
        let expected_typ =
          Types.instance (Interface.scheme_of_type typ_expr) in
        let actual_k = expect expected_k h exp expected_typ in
@@ -1582,13 +1587,13 @@ and sizefun_list_t l_rec h sizefun_list =
       (fun { sf_e } -> intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
       sizefun_list in
   (* initial typing environment *)
-  (* [f_1: <<n_11,...>>.t_1 with [is_rec] f_11(id_rec_list);...;
-   *- f_k: <<nk1,...>.t_k with [is_rec] f_1k(id_rec_list)] *)
+  (* [f_1: <<n_11,...>>.t_1 with [is_rec] f_1(id_rec_list);...;
+   *- f_k: <<nk1,...>.t_k with [is_rec] f_k(id_rec_list)] *)
   let h0 id_rec_list =
     List.fold_left2
-      (fun acc { sf_id; sf_id_list } ty_body ->
-        env_of sf_id (Types.intro_sizefun sf_id sf_id_list id_rec_list ty_body)
-          acc)
+      (fun acc { sf_id; sf_id_list; sf_loc } ty_body ->
+        let ty = Types.intro_sizefun sf_id sf_id_list id_rec_list ty_body in
+        env_of sf_id ty acc)
       Env.empty sizefun_list expected_ty_list in
   let id_id_list_ty_constraints, defined_names =
     Util.mapfold2
@@ -1946,7 +1951,7 @@ let implementation ff is_first impl =
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
 
        (* check that there is no unbounded size variables *)
-       check_no_unbounded_size_name loc new_h;
+       check_no_unbounded_size_variable_in_env loc new_h;
        
        (* check that no size constraints remain in the stack *)
        let l = Defsizes.to_seq () in
