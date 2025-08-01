@@ -16,6 +16,7 @@
 (* of types and the syntactical one in programs *)
 
 open Location
+open Ident
 open Lident
 open Zelus
 open Global
@@ -178,7 +179,33 @@ let typ_of_type_expression typ_vars typ =
          | Size_mult -> Defsizes.Smult in
        Defsizes.Sop(op, size si1, size si2) in
   typrec typ
-	    
+
+(* check that all size variables are bounded *)
+let check_no_unbounded_size_variable_in_type_expr h ty_exp =
+  let open Ident in
+  let rec check bounded { desc } =
+    match desc with
+    | Etypevar _ -> ()
+    | Etypetuple(ty_list) | Etypeconstr(_, ty_list) ->
+       List.iter (check bounded) ty_list
+    | Etypefun { ty_name_opt; ty_arg; ty_res } ->
+       check bounded ty_arg;
+       let bounded =
+         match ty_name_opt with None -> bounded | Some(x) -> S.add x bounded in
+       check bounded ty_res
+    | Etypevec(ty, si) ->
+       check bounded ty;
+       check_size bounded si
+  and check_size bounded { desc; loc } =
+    match desc with
+    | Size_var(n) ->
+       if not ((S.mem n bounded) || (Env.mem n h))
+       then error loc (Eunbound_size_var(Ident.source n))
+    | Size_int _ -> ()
+    | Size_frac { num } -> check_size bounded num
+    | Size_op(_, si1, si2) -> check_size bounded si1; check_size bounded si2 in
+  check S.empty ty_exp
+
 let rec type_expression_of_typ typ =
   let rec size si =
     match si with
@@ -210,6 +237,7 @@ let rec type_expression_of_typ typ =
      make (Etypevec(type_expression_of_typ ty, size si))
   | Tlink(typ) -> type_expression_of_typ typ
 
+
 (* translate the internal representation of a type into a type definition *)
 let type_decl_of_type_desc tyname
     { type_desc; type_parameters } =
@@ -235,8 +263,8 @@ let type_decl_of_type_desc tyname
       | Abbrev(_, ty) -> Eabbrev(type_expression_of_typ ty) in
   (tyname, params, make type_decl_desc)
 
-
 (* translating a declared type into an internal type *)
+(* free size variables must appear in [h] *)
 let scheme_of_type typ =
   let typ_vars = free_of_type [] typ in
   let typ_vars = List.map (fun v -> (v, Types.new_generic_var ())) typ_vars in
