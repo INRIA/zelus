@@ -108,6 +108,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t copy: remove copy variables \n\
     \t\t\t Example: -step -a+inline+static. Default is +a."
 and doc_typeall = "\t Type check after every rewritting step\n"
+and doc_noassert = "\t Remove assertions\n"
 and doc_join_der_dv = "\t (undocumented)"
 let errmsg = "Options are:"
 
@@ -166,6 +167,7 @@ let main () =
           "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
           "-noinit", Arg.Set no_initialization, doc_no_initialization;
           "-typeall", Arg.Set typeall, doc_typeall;
+          "-noassert", Arg.Set noassert, doc_noassert;
           "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;
       ])
       compile

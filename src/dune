@@ -160,6 +160,7 @@
     unsafe ; is an expression/equation unsafe
     mapfold ; generic mapfold
     markfunctions ; mark function calls to be inlined
+    noassert ; remove assertions
     const ; compile time evaluation of constants
     sizerec ; specialize recursive size functions
     inline ; inlining of function calls
