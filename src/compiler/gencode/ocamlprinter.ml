@@ -290,7 +290,43 @@ and exp prio ff e =
                     _t)@]"
              (exp 0) left_size (exp 0) right_size (exp 2) left
              (exp 2) left (exp 0) left_size
-             (exp 2) right (exp 0) right_size
+             (exp 2) right (exp 0) right_size        
+  | Earray_list(e_list) ->
+     fprintf ff "[|%a|]"
+        (Pp_tools.print_list_r (exp 0) "" ";" "") e_list
+  | Etranspose { e; size_1; size_2 } ->
+     (* returns a fresh vector of vectors [_t] *)
+     (* with _t.(j).(i) = e.(i).(j) forall i in [0..s1-1], j in [0..s2-1] *)
+     fprintf ff
+       "@[<hov1>(let _s1 = %a and _s2 = %a and _v = %a in@ \
+          let _t = Array.init _s1 (fun i -> Array.make _s2 _v.(0).(0)) in @ \
+           for i = 0 to _s1 - 1 do @ \
+            for j = 0 to _s2 - 1 do @ \
+              _t.(j).(i) <- _v.(i).(j) @ \
+        done @ \
+        done; _t)@]"
+       (exp 0) size_1 (exp 0) size_2 (exp 02) e
+  | Ereverse { e; size } ->
+     (* returns a fresh vector of vectors [_t] *)
+     (* with _t.(i) = e.(s - i - 1) forall i in [0..s-1] *)
+     fprintf ff
+       "@<hov1>(let _s = %a and _v = %a in@ \
+        for i = 0 to _s - 1 do @ \
+        _t.(i) = _v.(_s - i - 1) @ \
+        done; _t@]"
+        (exp 0) size (exp 0) e
+  | Eflatten { e; size_1; size_2 } ->
+     (* returns a fresh vector of vectors [_t] *)
+     (* with _t.(i*s2 + j) = e.(i).(j) forall i in [0..s1-1], j in [0..s2-1] *)
+     fprintf ff
+       "@[<hov1>(let _s1 = %a and _s2 = %a and _v = %a in@ \
+        let _t = Array.make (_s1 * s_2) _v.(0).(0) in @ \
+        for i = 0 to _s1 - 1 do @ \
+            for j = 0 to _s2 - 1 do @ \
+              _t.(i * _s2 + j) <- _v.(i).(j) @ \
+        done @ \
+        done; _t)@]"
+       (exp 0) size_1 (exp 0) size_2 (exp 0) e
   | Emachine(ma) -> machine ff ma
   | Efun { pat_list; e } ->
      fprintf ff
@@ -474,7 +510,7 @@ let def_types acc impl =
   let rec def_types acc e =
     match e with
     | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate _ -> acc
-    | Econstr1 { arg_list } | Etuple arg_list
+    | Econstr1 { arg_list } | Etuple arg_list | Earray_list arg_list
       | Emethodcall { met_args = arg_list } | Esequence(arg_list)->
        List.fold_left def_types acc arg_list
     | Eapp { f; arg_list } ->
@@ -508,6 +544,10 @@ let def_types acc impl =
     | Econcat { left; left_size; right; right_size } ->
        def_types
          (def_types (def_types (def_types acc left) left_size) right) right_size
+    | Etranspose { e; size_1; size_2 }
+      | Eflatten { e; size_1; size_2 } ->
+       def_types (def_types (def_types acc e) size_1) size_2
+    | Ereverse { e; size } -> def_types (def_types acc e) size
     | Emachine { ma_name; ma_initialize;
                  ma_memories; ma_instances; ma_methods } ->
        let def_method acc { me_body } = def_types acc me_body in

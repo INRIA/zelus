@@ -98,17 +98,27 @@ and exp =
   | Emachine of machine
   | Efun of funexp
   (* array operations *)
-  | Eget of { e: exp; index: exp } (* access in an array *)
+  | Evec of { e: exp; size: exp }
+  (* [e1^e2] - make<<n>>(e) *)                                  
+  | Eget of { e: exp; index: exp }
+  (* e1.(e2); access in an array *)
   | Eupdate of { e: exp; size: exp; index: exp; arg: exp }
-  (* update of an array [e1] of size [s1] [|e1 with (i) <- e2|]*)
+  (* [|e with (i) <- e2|]; update of an array [e1] of size [s1] *)
   | Eslice of
-      { e: exp; left: exp; right: exp } (* e{s1..s2} *)
+      { e: exp; left: exp; right: exp }
+  (* e{s1..s2} *)
   | Econcat of { left: exp; left_size: exp;
                  right: exp; right_size: exp }
   (* { e1 ++ e2 } *)
-  | Evec of { e: exp; size: exp }
-  (* e1[e2] build an array of size [s2] with value [e1] *)
-               
+  | Earray_list of exp list
+  (* [|e1;...;en|] *)
+  | Etranspose of { e: exp; size_1: exp; size_2: exp }
+  (* [e.T] - transpose<<n,m>>(e) *)
+  | Ereverse of { e: exp; size: exp }
+  (* [e.R] - reverse<<n>>(e) *)
+  | Eflatten of { e: exp; size_1: exp; size_2: exp }
+  (* [e.F] - flatten<<n,m>>(e) *)
+
 (* when [is_mutable = true] a variable [x] is mutable which means that *)
 (* x <- ... and ...x... are valid expression; otherwise a ref will be *)
 (* added when translated into OCaml **)

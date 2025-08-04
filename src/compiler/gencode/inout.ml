@@ -465,6 +465,7 @@ let machine({ ma_kind } as mach) =
   | Deftypes.Tnode(Tcont) -> hybrid_machine mach
   | _ -> mach
 
+(* simply traverse [e] to translate hybrid machines *)
 let rec exp e = match e with
   | Econst _ | Econstr0 _ | Eglobal _ | Evar _ | Estate _ -> e
   | Econstr1 { lname; arg_list } ->
@@ -509,6 +510,14 @@ let rec exp e = match e with
      Econcat { left = exp left; left_size = exp left_size;
                right = exp right; right_size = exp right_size }
   | Evec { e; size } -> Evec { e = exp e; size = exp size }
+  | Etranspose { e; size_1; size_2 } ->
+     Etranspose { e = exp e; size_1 = exp size_1; size_2 = exp size_2 }
+  | Eflatten { e; size_1; size_2 } ->
+     Eflatten { e = exp e; size_1 = exp size_1; size_2 = exp size_2 }
+  | Ereverse { e; size } ->
+     Ereverse { e = exp e; size = exp size }
+  | Earray_list(e_list) ->
+     Earray_list(List.map exp e_list)
   | Eletsizefun(is_rec, sizefun_list, e) ->
      Eletsizefun(is_rec, List.map sizefun sizefun_list, exp e)
   | Esizeapp { f; size_list } ->

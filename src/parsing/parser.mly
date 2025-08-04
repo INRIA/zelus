@@ -1198,7 +1198,7 @@ expression_desc:
   | e = expression FLATTEN
       { Eop(Earray(Eflatten), [e]) }
   | e = expression REVERSE
-      { Eop(Earray(Ereverse), [e]) }
+    { Eop(Earray(Ereverse), [e]) }
 ;
 
 %inline opt_end:

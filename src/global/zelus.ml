@@ -128,6 +128,8 @@ and array_operator =
   (* [e.F] *)
   | Ereverse 
   (* [e.R] *)
+  | Emake
+  (* [e^e] *)
 
 and is_inline = bool
 

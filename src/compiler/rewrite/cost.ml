@@ -48,7 +48,8 @@ and array_operator acc op =
     | Eupdate -> 1
     | Etranspose -> 1
     | Eflatten -> 1
-    | Ereverse -> 1 in
+    | Ereverse -> 1
+    | Emake -> 1 in
   let acc = acc - v in
   if acc <= 0 then raise Exit else acc
 

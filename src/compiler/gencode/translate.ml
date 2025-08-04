@@ -485,23 +485,11 @@ let rec expression env loop_path context { Zelus.e_desc } =
      let e2, context = expression env loop_path context e2 in
      let e3, context = expression env loop_path context e3 in
      Eifthenelse(e1, e2, e3), context
-  | Zelus.Eop(Zelus.Earray(Eget), [e1; e2]) ->
-     let e1, context = expression env loop_path context e1 in
-     let e2, context = expression env loop_path context e2 in
-     Eget { e = e1; index = e2 }, context
-  | Zelus.Eop(Zelus.Earray(Eupdate), [e1; i; e2]) ->
-     let ty = Typinfo.get_type e1.e_info in
-     let _, se = Types.filter_vec ty in
-     let se = exp_of_sizetype se in
-     let e1, context = expression env loop_path context e1 in
-     let i, context = expression env loop_path context i in
-     let e2, context = expression env loop_path context e2 in
-     Eupdate { e = e1; index = i; arg = e2; size = se }, context
-  | Zelus.Eop(Zelus.Earray(Eslice), [e1; e2; e]) ->
-     let e1, context = expression env loop_path context e1 in
-     let e2, context = expression env loop_path context e2 in
-     let e, context = expression env loop_path context e in
-     Eslice { e; left = e1; right = e2 }, context
+  (* array operators *)
+  | Zelus.Eop(Zelus.Earray(Earray_list), e_list) ->
+     let e_list, context =
+       Util.mapfold (expression env loop_path) context e_list in
+     Earray_list e_list, context
   | Zelus.Eop(Zelus.Earray(Econcat), [e1; e2]) -> 
      let ty1 = Typinfo.get_type e1.e_info in
      let ty2 = Typinfo.get_type e2.e_info in
@@ -512,6 +500,49 @@ let rec expression env loop_path context { Zelus.e_desc } =
      let e1, context = expression env loop_path context e1 in
      let e2, context = expression env loop_path context e2 in
      Econcat { left = e1; left_size = s1; right = e2; right_size = s2 }, context
+  | Zelus.Eop(Zelus.Earray(Eget), [e1; e2]) ->
+     let e1, context = expression env loop_path context e1 in
+     let e2, context = expression env loop_path context e2 in
+     Eget { e = e1; index = e2 }, context
+  | Zelus.Eop(Zelus.Earray(Eget_with_default), [e1; e2]) ->
+     let e1, context = expression env loop_path context e1 in
+     let e2, context = expression env loop_path context e2 in
+     Eget { e = e1; index = e2 }, context
+  | Zelus.Eop(Zelus.Earray(Eslice), [e1; e2; e]) ->
+     let e1, context = expression env loop_path context e1 in
+     let e2, context = expression env loop_path context e2 in
+     let e, context = expression env loop_path context e in
+     Eslice { e; left = e1; right = e2 }, context
+  | Zelus.Eop(Zelus.Earray(Eupdate), [e1; i; e2]) ->
+     let ty = Typinfo.get_type e1.e_info in
+     let _, se = Types.filter_vec ty in
+     let se = exp_of_sizetype se in
+     let e1, context = expression env loop_path context e1 in
+     let i, context = expression env loop_path context i in
+     let e2, context = expression env loop_path context e2 in
+     Eupdate { e = e1; index = i; arg = e2; size = se }, context
+  | Zelus.Eop(Zelus.Earray(Etranspose), [e]) ->
+     let ty = Typinfo.get_type e.e_info in
+     let ty, s_1 = Types.filter_vec ty in
+     let _, s_2 = Types.filter_vec ty in
+     let size_1 = exp_of_sizetype s_1 in
+     let size_2 = exp_of_sizetype s_2 in
+     let e, context = expression env loop_path context e in
+     Etranspose { e; size_1; size_2 }, context
+  | Zelus.Eop(Zelus.Earray(Eflatten), [e]) ->
+     let ty = Typinfo.get_type e.e_info in
+     let ty, s_1 = Types.filter_vec ty in
+     let _, s_2 = Types.filter_vec ty in
+     let size_1 = exp_of_sizetype s_1 in
+     let size_2 = exp_of_sizetype s_2 in
+     let e, context = expression env loop_path context e in
+     Eflatten { e; size_1; size_2 }, context
+  | Zelus.Eop(Zelus.Earray(Ereverse), [e]) ->
+     let ty = Typinfo.get_type e.e_info in
+     let _, s = Types.filter_vec ty in
+     let size = exp_of_sizetype s in
+     let e, context = expression env loop_path context e in
+     Ereverse { e; size }, context
   | Zelus.Eop(Zelus.Eatomic, [e]) ->
      expression env loop_path context e  
   | Zelus.Eop(Eseq, [e1; e2]) ->

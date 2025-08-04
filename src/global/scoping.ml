@@ -171,6 +171,7 @@ module Make (Info: INFO) =
       | Etranspose -> Zelus.Etranspose
       | Ereverse -> Zelus.Ereverse
       | Eflatten -> Zelus.Eflatten
+      | Emake -> Zelus.Emake
     
     (* translate types. [env] is used to renames dependent variables *)
     let rec types env { desc; loc } =

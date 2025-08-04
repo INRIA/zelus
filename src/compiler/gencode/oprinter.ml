@@ -37,9 +37,10 @@ let kind = function
 (* Priorities *)
 let priority_exp = function
   | Econst _ | Econstr0 _| Eglobal _ | Evar _ 
-    | Estate _ | Eget _ | Eupdate _ | Eslice _
-    | Econcat _ | Evec _ | Erecord _ | Erecord_access _ | Erecord_with _
-  | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
+    | Estate _ | Earray_list _ | Eget _ | Eupdate _ | Eslice _
+    | Econcat _ | Evec _ | Etranspose _ | Ereverse _ | Eflatten _
+    | Erecord _ | Erecord_access _ | Erecord_with _
+    | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
   | Econstr1 _ | Eapp _ | Esizeapp _ | Emethodcall _ | Eassert _ -> 2
   | Eassign _ | Eassign_state _  -> 1
   | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Eletmem _ | Eletinstance _
@@ -251,13 +252,24 @@ and exp prio ff e =
      fprintf ff "@[<hov2>{%a:%a with@ %a = %a}@]"
        (exp prio_e) e (exp 0) size (exp 0) index (exp 0) arg
   | Evec { e; size } ->
-     fprintf ff "%a[%a]" (exp prio_e) e (exp 0) size
+     fprintf ff "%a^%a" (exp prio_e) e (exp 3) size
   | Eslice { e; left; right } ->
      fprintf ff "%a{%a..%a}"
        (exp prio_e) e (exp 0) left (exp 0) right
   | Econcat { left; left_size; right; right_size } ->
      fprintf ff "{%a:%a | %a:%a}"
        (exp 0) left (exp 0) left_size (exp 0) right (exp 0) right_size
+  | Earray_list(e_list) ->
+     fprintf ff "[|%a|]"
+       (Pp_tools.print_list_r (exp 0) "" ";" "") e_list
+  | Etranspose { e; size_1; size_2 } ->
+     fprintf ff "@[<hov2>transpose@,<<%a,%a>>@,(%a)@]"
+       (exp 0) size_1 (exp 0) size_2 (exp 0) e
+  | Ereverse { e; size } ->
+     fprintf ff "@[<hov2>reverse@,<<%a>>@,(%a)@]" (exp 0) size (exp 0) e
+  | Eflatten { e; size_1; size_2 } ->
+      fprintf ff "@[<hov2>flatten@,<<%a,%a>>@,(%a)@]"
+       (exp 0) size_1 (exp 0) size_2 (exp 0) e
   | Emachine(ma) -> machine ff ma
   | Efun { pat_list; e } ->
      fprintf ff
