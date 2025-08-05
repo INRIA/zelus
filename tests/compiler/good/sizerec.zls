@@ -2,7 +2,6 @@ let f5<<n>>(x) = x + 1
 
 let g(x) = f5<<42>>(x)
 
-(*
 let f2 x returns (o)
   let f<<n>>(x) = x + n in
   do o = f<<42>>(x+1) + f<<44>>(x+2) + f<<42>>(x+3) done
@@ -28,7 +27,7 @@ let f4 =
       do o = f<<n/2>>(x) || f<<n/2>>(x) done in
   f<<4>>(0)
 
-let f5 =
+let f6 =
   let rec or_<<n>>(x:[n]'a) returns o
     match size n with
     | 0 -> o = false
@@ -36,4 +35,3 @@ let f5 =
     | _ -> o = or_<<n/2>>(x.(0 .. n/2 - 1)) ||
                or_<<n - n/2>>(x.(n/2 .. n - 1)) in
   or_<<4>>([| false; false; true; false |])
-*)
