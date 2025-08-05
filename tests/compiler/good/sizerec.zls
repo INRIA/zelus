@@ -36,4 +36,4 @@ let f5 =
     | _ -> o = or_<<n/2>>(x.(0 .. n/2 - 1)) ||
                or_<<n - n/2>>(x.(n/2 .. n - 1)) in
   or_<<4>>([| false; false; true; false |])
-  *)
+*)
