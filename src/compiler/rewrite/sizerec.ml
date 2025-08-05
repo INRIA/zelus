@@ -337,7 +337,7 @@ let sizeapp funs ({ env_of_sizes } as acc)
         (* functions for [sf_id] *)
         let acc = add_specialized_sizefun entry (sf_fresh_id, sf_e) acc in
         sf_fresh_id, acc in
-  Aux.var id, acc
+  id, acc
 
 let size_t global_funs ({ env_of_sizes } as acc) ({ desc } as si) =
   match desc with
@@ -369,14 +369,16 @@ let expression funs ({ env_of_sizefun; env_of_sizes } as acc)
      (* [f <<s1,...>>] where the [s_i] are immediate values] *)
      (try
          let entry = Env.find f env_of_sizefun in
-         sizeapp funs acc entry size_list
+         let sf_fresh_id, acc = sizeapp funs acc entry size_list in
+         Aux.var sf_fresh_id, acc
        with
          Not_found -> e, acc)
   | Esizeapp { f = { e_desc = Eglobal { lname }; e_loc }; size_list } ->
      (* [f <<s1,...>>] where the [s_i] are immediate values] *)
      (try
          let entry = find_global_value e_loc lname in
-         sizeapp funs acc entry size_list
+         let sf_fresh_id, acc = sizeapp funs acc entry size_list in
+         Aux.global (Name(Ident.name sf_fresh_id)), acc
        with
          Not_found -> e, acc)
   | Ematch { is_size = true; e; handlers } ->
