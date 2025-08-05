@@ -152,6 +152,10 @@ and primitive_access =
   | Ezero_in (* ... x.zero_in.(i) ... *)
 
 (* Definition of a sequential machine *)
+(* machine(k) f (v1,..., vn) =
+   mem m_i : t_i [= v_i]_i
+   instances j_i: t_j [= e_i]_i
+   methods m1(...) = *)
 and machine =
   { ma_name: Ident.t; (* name of the machine *)
     ma_kind: Deftypes.kind;
@@ -161,6 +165,7 @@ and machine =
     ma_memories: mentry list;(* its memories *)
     ma_instances: ientry list; (* its node instances *)
     ma_methods: method_desc list; (* its methods *) 
+    (* ma_assertion: machine option; *) (* *)
   }
 
 and mentry =
