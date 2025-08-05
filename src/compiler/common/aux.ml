@@ -54,7 +54,7 @@ let e_with_type ({ e_info } as e) ty =
 let p_with_type ({ pat_info } as p) ty =
   { p with pat_info = Typinfo.set_type pat_info ty }
 
-let global lname = Eglobal { lname = lname }
+let global lname = emake (Eglobal { lname = lname })
 let const c = emake (Econst c)
 let constr0 lname = emake (Econstr0 { lname })
 let constr1 lname arg_list = emake (Econstr1 { lname; arg_list })
@@ -68,7 +68,7 @@ let zero : Typinfo.exp = emake (Econst(Efloat(0.0)))
 let one = emake (Econst(Efloat(1.0)))
 let minus_one = emake (Econst(Efloat(-1.0)))
 let infinity : Typinfo.exp =
-  emake (global (Modname(Initial.stdlib_name "infinity")))
+  global (Modname(Initial.stdlib_name "infinity"))
 let tuplepat pat_list = pmake (Etuplepat(pat_list))
 let tuple e_list = emake (Etuple(e_list))
 let record l_list e_list =
@@ -300,8 +300,7 @@ let last_star id = emake (Elast { copy = false; id })
 let float v = emake (Econst(Efloat(v)))
 let bool v = emake (Econst(Ebool(v)))
 
-let global_in_stdlib lname =
-  emake (global (Modname(Initial.stdlib_name lname)))
+let global_in_stdlib lname = global (Modname(Initial.stdlib_name lname))
 
 let unop op e =
   emake (Eapp { is_inline = false; f = global_in_stdlib op; arg_list = [e] })
