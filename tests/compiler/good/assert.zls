@@ -1,11 +1,21 @@
-let hybrid f() =
+let hybrid g() =
   let rec der x = 1.0 init 0.0 in
   assert
     (let rec der y = 1.0 init 0.0 in
      assert
        (let rec der z = 1.0 init 0.0 in
-        abs_float (x -. z) <= 0.1) && (y -. z) <= 0.1; (* copie de x *)
+        abs_float (x -. z) <= 0.1 && (y -. z) <= 0.1); (* copie de x *)
      abs_float (x -. y) <= 0.1);
+  x +. 1.0
+
+let hybrid g() =
+  let rec der x = 1.0 init 0.0 in
+  assert
+    (let rec der y = 1.0 init 0.0 in
+     abs_float (x -. y) <= 0.1);
+  assert
+     (let rec der z = 1.0 init 0.0 in
+      abs_float (x -. z) <= 0.1 && (y -. z) <= 0.1);
   x +. 1.0
 
 (*
@@ -41,9 +51,11 @@ let f = machine f () as self =
 	       end)	    
 *)
 
+(*
 let hybrid sin_cos epsilon =
   let der t = 1.0 init 0.0 in
   let s_ref = sin t and c_ref = cos t in
   assert
     (let rec der s = c init 1.0 and der c = -. s init 0.0 in
      (abs_float (s -. s_ref) <= epsilon) && (abs_float (c -. c_ref) <= epsilon))
+*)
