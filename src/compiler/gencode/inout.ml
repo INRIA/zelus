@@ -121,18 +121,18 @@ let set x e = Eassign(Eleft_name x, e)
 
 let i = Ident.fresh "i"
 
-(* cstate.horizon <- min cstate.horizon h *)
-let set_horizon cstate h =
+(* cstate.horizon <- min cstate.horizon name *)
+let set_horizon cstate self name =
   Eassign(Eleft_record_access
             { arg = Eleft_name(cstate); label = Name "horizon" },
-          min (access cstate "horizon") (Estate(Eleft_state_name h)))
+          min (access cstate "horizon") (Estate(Eleft_state_name { self; name })))
 
 (* m <- cstate.major *)
-let set_major cstate m =
-  Eassign_state(Eleft_state_name(m), access cstate "major")
+let set_major cstate self name =
+  Eassign_state(Eleft_state_name { self; name }, access cstate "major")
 
-let set_time cstate m =
-  Eassign_state(Eleft_state_name(m), access cstate "time")
+let set_time cstate self name =
+  Eassign_state(Eleft_state_name { self; name }, access cstate "time")
 
 (* [cstate.field <- cstate.field + i] *)
 let incr cstate field ie =
@@ -149,11 +149,11 @@ let major cstate = access cstate "major"
 (* [x.cont.(i1)....(in).(j1)...(jk) <- cstate.cvec.(pos)] *)
 (* [x.zero_in.(i1)...(in).(j1)...(jk) <- cstate.zin.(pos)] *)
 
-let write_into_internal_state (x, cont) i_list j_list get pos =
+let write_into_internal_state (self, x, cont) i_list j_list get pos =
   Eassign_state
     (left_state_access
        (left_state_access
-	  (Eleft_state_primitive_access(Eleft_state_name(x), cont))
+	  (Eleft_state_primitive_access(Eleft_state_name { self; name = x }, cont))
           i_list) j_list, get (varmut pos))
     
 let app f arg_list = Eapp { f = global(modname f); arg_list }
@@ -169,39 +169,41 @@ let set_zout cstate pos e =
   app "set" [access cstate "zoutvec"; pos; e]
 
 (* sets the continuous state vector - from the csolver to the internal state *)
-let cin cstate x i_list j_list pos =
+let cin cstate self x i_list j_list pos =
   let getc pos = getc cstate pos in
-  write_into_internal_state (x, Epos) i_list j_list getc pos
+  write_into_internal_state (self, x, Epos) i_list j_list getc pos
 			    
 (* sets the zero-crossing vector - from the zsolver to the internal state *)
-let zin cstate x i_list j_list pos =
+let zin cstate self x i_list j_list pos =
   let get_zin pos = get_zin cstate pos in
-  write_into_internal_state (x, Ezero_in) i_list j_list get_zin pos
+  write_into_internal_state (self, x, Ezero_in) i_list j_list get_zin pos
 
 (* [cstate.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
-let write_from_internal_state set (x, cont) i_list j_list pos =
+let write_from_internal_state set (self, x, cont) i_list j_list pos =
   set (varmut pos)
     (Estate
        (left_state_access
           (left_state_access
-	     (Eleft_state_primitive_access(Eleft_state_name(x), cont))
+	     (Eleft_state_primitive_access(Eleft_state_name
+                                             { self; name = x }, cont))
 	     i_list) j_list))
-let cout cstate x i_list j_list pos =
+let cout cstate self x i_list j_list pos =
   let setc pos e = setc cstate pos e in
-  write_from_internal_state setc (x, Epos) i_list j_list pos
-let dout cstate x i_list j_list pos =
+  write_from_internal_state setc (self, x, Epos) i_list j_list pos
+let dout cstate self x i_list j_list pos =
   let setd pos e = setd cstate pos e in
-  write_from_internal_state setd (x, Eder) i_list j_list pos
-let zout cstate x i_list j_list pos =
+  write_from_internal_state setd (self, x, Eder) i_list j_list pos
+let zout cstate self x i_list j_list pos =
   let set_zout pos e = set_zout cstate pos e in
-  write_from_internal_state set_zout (x, Ezero_out) i_list j_list pos
-let set_zin_to_false x i_list j_list pos =
+  write_from_internal_state set_zout (self, x, Ezero_out) i_list j_list pos
+let set_zin_to_false self x i_list j_list pos =
   Eassign_state
     (left_state_access
        (left_state_access
-          (Eleft_state_primitive_access(Eleft_state_name(x), Ezero_in))
+          (Eleft_state_primitive_access(Eleft_state_name
+                                          { self; name = x }, Ezero_in))
           i_list) j_list,
      ffalse)
 
@@ -299,28 +301,28 @@ let cinout table call pos incr =
   let c_list = Env.fold add table [] in
   sequence(c_list)
 
-let cin table cstate pos =
-  let call x i_list j_list pos = cin cstate x i_list j_list pos in
+let cin table cstate self pos =
+  let call x i_list j_list pos = cin cstate self x i_list j_list pos in
   cinout table call pos incr_pos
 
-let cout table cstate pos =
-  let call x i_list j_list pos = cout cstate x i_list j_list pos in
+let cout table cstate self pos =
+  let call x i_list j_list pos = cout cstate self x i_list j_list pos in
   cinout table call pos incr_pos
 
-let dout table cstate pos =
-  let call x i_list j_list pos = dout cstate x i_list j_list pos in
+let dout table cstate self pos =
+  let call x i_list j_list pos = dout cstate self x i_list j_list pos in
   cinout table call pos incr_pos
 
-let zin table cstate pos =
-  let call x i_list j_list pos = zin cstate x i_list j_list pos in
+let zin table cstate self pos =
+  let call x i_list j_list pos = zin cstate self x i_list j_list pos in
   cinout table call pos incr_pos
 
-let zout table cstate pos =
-  let call x i_list j_list pos = zout cstate x i_list j_list pos in
+let zout table cstate self pos =
+  let call x i_list j_list pos = zout cstate self x i_list j_list pos in
   cinout table call pos incr_pos
 
-let set_zin_to_false table pos =
-   let call x i_list j_list pos = set_zin_to_false x i_list j_list pos in
+let set_zin_to_false table self pos =
+   let call x i_list j_list pos = set_zin_to_false self x i_list j_list pos in
    cinout table call pos (fun _ -> void)
  
 (* increments the maximum size of the continuous state vector and that of *)
@@ -333,23 +335,23 @@ let maxsize call size i_opt =
 
 (* If the current block contains an horizon state variable *)
 (* for every horizon state variable *)
-let set_horizon cstate h_opt =
+let set_horizon cstate self h_opt =
   match h_opt with
-  | None -> Econst(Evoid) | Some(h) -> set_horizon cstate h
+  | None -> Econst(Evoid) | Some(h) -> set_horizon cstate self h
 
 (* If the current block contains a major state variable *)
-let set_major cstate major_opt =
+let set_major cstate self major_opt =
   match major_opt with
-  | None -> Econst(Evoid) | Some(m) -> set_major cstate m
+  | None -> Econst(Evoid) | Some(m) -> set_major cstate self m
 
 (* If the current block contains a reference to time *)
-let set_time cstate time_opt =
+let set_time cstate self time_opt =
   match time_opt with
-  | None -> Econst(Evoid) | Some(m) -> set_time cstate m
+  | None -> Econst(Evoid) | Some(m) -> set_time cstate self m
 
 (* Translate a continuous-time machine *)
 let hybrid_machine 
-    ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list;
+    ({ ma_params = params; ma_self; ma_initialize = i_opt; ma_memories = m_list;
        ma_instances = mi_list; ma_methods = method_list } as mach) =
   let cstate = Ident.fresh "cstate" in
   (* auxiliary function. Find the method "step" in the list of methods *)
@@ -417,38 +419,38 @@ let hybrid_machine
 		 (sequence
 		    [only c_is_not_zero (incr cstate "cindex" csize);
                      only z_is_not_zero (incr cstate "zindex" zsize);
-		     only major_is_not_zero (set_major cstate major_opt);
-		     only time_is_not_zero (set_time cstate time_opt);
+		     only major_is_not_zero (set_major cstate ma_self major_opt);
+		     only time_is_not_zero (set_time cstate ma_self time_opt);
 		     ifthenelse
                        (major cstate) (set_dvec_to_zero cstate c_start csize)
-		       (only c_is_not_zero (cin ctable cstate cpos));
+		       (only c_is_not_zero (cin ctable cstate ma_self cpos));
                      (only_else
                         (c_is_not_zero || z_is_not_zero || h_is_not_zero)
                         (letin
 		           (varpat result (Interface.type_expression_of_typ ty))
                            body
 		           (sequence
-			      [set_horizon cstate h_opt;
+			      [set_horizon cstate ma_self h_opt;
                                only
                                  c_is_not_zero (set cpos (local c_start));
 	                       ifthenelse
                                  (major cstate)
 				 (sequence
                                    [only
-                                      c_is_not_zero (cout ctable cstate cpos);
+                                      c_is_not_zero (cout ctable cstate ma_self cpos);
                                     only
                                       z_is_not_zero
-                                      (set_zin_to_false ztable zpos)])
+                                      (set_zin_to_false ztable ma_self zpos)])
                                  (sequence
 				    [only
-                                       z_is_not_zero (zin ztable cstate zpos);
+                                       z_is_not_zero (zin ztable cstate ma_self zpos);
                                      only
                                        z_is_not_zero
                                        (set zpos (local z_start));
 	                             only
-                                       z_is_not_zero (zout ztable cstate zpos);
+                                       z_is_not_zero (zout ztable cstate ma_self zpos);
 	                             only
-                                       c_is_not_zero (dout ctable cstate cpos)]);
+                                       c_is_not_zero (dout ctable cstate ma_self cpos)]);
                                local result]))
                         body)
         ])))) in
