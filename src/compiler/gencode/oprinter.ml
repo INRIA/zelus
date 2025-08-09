@@ -339,14 +339,15 @@ and pinitialize ff i_opt =
   | Some(e) -> fprintf ff "@[<hov2>initialize@;%a@]" (exp 0) e
 
 (* Print a machine *)
-and machine ff { ma_name; ma_kind; ma_params; ma_initialize;
+and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods; ma_assertion } =
   fprintf ff
-    "@[<hov 2>%s machine@ %a@ (%a)@ \
+    "@[<hov 2>%s machine@ %a@ (%a) as %a@ \
      {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]%a}@]"
     (kind ma_kind) Ident.fprint_t ma_name  
     (pattern_list Printer.ptype) ma_params
-    pinitialize ma_initialize
+     print_self_name ma_self
+     pinitialize ma_initialize
     (print_list_r_empty memory """;""") ma_memories
     (print_list_r_empty instance """;""") ma_instances
     (print_list_r pmethod """""") ma_methods
