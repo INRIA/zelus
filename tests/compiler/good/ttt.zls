@@ -1,31 +1,11 @@
-let f5<<n>>(x) = x + 1
-
-let g(x) = f5<<42>>(x)
-
-(*
-let f2 x returns (o)
-  let inline f<<n>>(x) = x + n in
-  do o = f<<42>>(x+1) + f<<44>>(x+2) done
-
-let f3 x =
-  let rec f3<<n>>() = match size n with | 0 -> 0 | n -> f3<<n-1>>() + 1 in
-  f3<<2>>()
-
-let f4 =
-  let rec or_<<n>> = inline fun (x) returns (o)
-    match size n with
-    | 0 -> o = false
-    | 1 -> o = true
-    | _ -> 
-      do o = or_<<n/2>>(x) || or_<<n/2>>(x) done in
-  or_<<4>> 0
-*)
-
-(*
 let hybrid f() =
-  let rec der x = 1.0 init 0.0 and der x' = x init 0.0 in
-  x'
-
+  let rec der x = 1.0 init 0.0 in
+  assert
+    (let rec der y = 1.0 init 0.0 in
+     abs_float(x -. y) <= 0.1);
+  x
+ 
+(*
 let node ff () =
   let o = run (Solve.solve f) (Some(Solve.make 100.0 ()) fby None) in
   Solve.iter 10 (node v -> print_float v) o
