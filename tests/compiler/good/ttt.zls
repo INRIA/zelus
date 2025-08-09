@@ -1,16 +1,3 @@
-let hybrid f() =
-  let rec der x = 1.0 init 0.0 in
-  assert
-    (let rec der y = 1.0 init 0.0 in
-     abs_float(x -. y) <= 0.1);
-  x
- 
-(*
-let node ff () =
-  let o = run (Solve.solve f) (Some(Solve.make 100.0 ()) fby None) in
-  Solve.iter 10 (node v -> print_float v) o
-*)
-
 (*
 let f1 x returns (o)
   let f x = 1 in

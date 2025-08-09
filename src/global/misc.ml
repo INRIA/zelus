@@ -119,6 +119,7 @@ let with_copy = ref false
 let no_reduce = ref false
 let typeall = ref false
 let noassert = ref false
+let transparent = ref false
 
 (* two internal undocumented flags *)
 (* switch off some static verifications during typing *)

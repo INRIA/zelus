@@ -1,3 +1,46 @@
+let hybrid f() =
+  let rec der x = 1.0 init 0.0 in
+  assert
+    (let rec der y = 1.0 init 0.0 in
+     assert
+       (let rec der z = 1.0 init 0.0 in
+        abs_float (x -. z) <= 0.1) && (y -. z) <= 0.1; (* copie de x *)
+     abs_float (x -. y) <= 0.1);
+  x +. 1.0
+
+(*
+let f = machine f () as self =
+          memory x: cont = 0.0
+	  method step() =
+	     self.x.der <- 1.0;
+	     self.x.pos +. 1.0
+	  method reset() =
+	     self.x.pos <- 0.0
+
+          assertion a1 =
+	    Solve.check
+	      (machine f_assert () as self1 =
+	         memory y: cont = 0.0; x_copy: float;
+	         method step self =
+	              self1.y.der <- 1.0;
+		      self1.x_copy <- self.x.pos;
+	              self1.abs_float (self.x.pos +. self1.y.pos) <= 0.1
+	         method reset() =
+	              self1.y.pos <- 0.0
+
+                 assertion a2 =
+		   Solve.check
+		     (machine f_assert_assert () as self2 =
+		        memory z: cont = 0.0
+			method step self1 =
+			   self2.z.der <- 1.0;
+			   abs_float (self1.x_copy -. self2.z.pos <= 0.1)
+                        method reset() =
+			   self2.z.pos <- 0.0
+			end)
+	       end)	    
+*)
+
 let hybrid sin_cos epsilon =
   let der t = 1.0 init 0.0 in
   let s_ref = sin t and c_ref = cos t in

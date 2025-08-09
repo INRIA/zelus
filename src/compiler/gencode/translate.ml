@@ -373,7 +373,7 @@ let append loop_path l_env { self; env } =
  * instance o = f se1 ... sen
  * call o.(i1)...(ik).step(e)
  * reset with o.(i1)...(ik).reset *)
-let apply k loop_path code f arg_list =
+let make_apply k loop_path code f arg_list =
   match k with
   | Deftypes.Tfun _ -> Eapp { f; arg_list }, code
   | Deftypes.Tnode _ ->
@@ -398,7 +398,7 @@ let apply k loop_path code f arg_list =
 
 
 (* Define a function or a machine according to a kind [k] *)
-let machine f k pat_list self { mem; instances; reset } e ty_res =
+let make_machine f k pat_list self { mem; instances; reset } e ty_res =
   let k = Interface.kindtype k in
   match k with
   | Deftypes.Tfun _ -> Efun { pat_list; e }
@@ -457,6 +457,13 @@ let match_handlers body env loop_path code p_h_list =
     { m_pat = pattern m_pat; m_body = letvar var_acc step },
     { code with mem = Parseq.seq mem_acc code.mem } in
   Util.mapfold body code p_h_list
+
+let vardec { Zelus.var_name = id; Zelus.var_info = info } =
+  let ty = Typinfo.get_type info in
+  Evarpat { id; ty = Interface.type_expression_of_typ ty }
+
+let arg a_list =
+  match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
 
 (* Translation of expressions under an environment [env] *)
 (* [context] is the context already generated *)
@@ -598,7 +605,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let e_fun, code = match ne_list with
        | [] -> e_fun, code
        | _ -> let k = Types.kind_of_funtype ty_res in
-	      apply k loop_path code e_fun ne_list in
+	      make_apply k loop_path code e_fun ne_list in
      e_fun, code
   | Zelus.Esizeapp { f; size_list } ->
      (* for the moment only combinatorial size functions are treated *)
@@ -617,7 +624,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let e, code_body =
        add_mem_vars_to_code mem_acc var_acc (e, code_body) in
      let f = Ident.fresh "machine" in
-     machine f k pat_list self code_body e ty, code
+     make_machine f k pat_list self code_body e ty, code
   | Zelus.Ereset(e, r_e) ->
      let r_e, code = expression env loop_path code r_e in
      let e, ({ init } as code_e) =
@@ -627,8 +634,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      seq code code_e    
   | Eforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.Eassert(e) ->
-     let e, code = expression env loop_path code e in
-     Eassert(e), code
+     assertion_expression env loop_path code e
   | Zelus.Elet(l, e) ->
      leq_in_e env loop_path l code e
   | Zelus.Elocal(b, e) ->
@@ -644,12 +650,19 @@ let rec expression env loop_path code { Zelus.e_desc } =
      (* these last constructions have been rewritten in previous steps *)
      assert false
 
-and arg a_list =
-  match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
+and assertion_expression env loop_path code e =
+  if !Misc.transparent then
+    (* transparent assertions. [assert e] is translated as a machine *)
+    (* whose input is [self] *)
+    Oaux.void, code
+  else
+    let e, code = expression env loop_path code e in
+    Eassert(e), code
 
-and vardec { Zelus.var_name = id; Zelus.var_info = info } =
-  let ty = Typinfo.get_type info in
-  Evarpat { id; ty = Interface.type_expression_of_typ ty }
+(* transparent assertion. [e] is compiled as if it were a hybrid node *)
+(* [hybrid self -> e] where [self] is the name of the closest memory state *)
+(* surrending the assertion *)
+and assertion { self; env } e = e
 
 and result env { Zelus.r_desc } =
   match r_desc with
@@ -719,12 +732,19 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, code) =
        equation env loop_path eq_false (Oaux.void, code) in
      Oaux.seq (Oaux.ifthenelse e e_true e_false) step, code
   | Zelus.EQassert(e) ->
-     let e, code = expression env loop_path code e in
-     Oaux.seq (Eassert(e)) step, code
+     assertion_equation env loop_path (step, code) e
   | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQsizefun _ -> assert false
   
+and assertion_equation env loop_path (step, code) e =
+  if !Misc.transparent then
+    (* transparent assertions *)
+    step, code
+  else
+    let e, code = expression env loop_path code e in
+    Oaux.seq (Eassert(e)) step, code
+
 and sizefun_list env is_rec s_list (step, code) =
   let sizefun env { Zelus.sf_id; Zelus.sf_id_list; Zelus.sf_e; sf_env } =
     let env, _, _ = append empty_loop_path sf_env env in
