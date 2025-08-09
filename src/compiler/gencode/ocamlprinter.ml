@@ -138,12 +138,15 @@ let rec method_call ff { met_name; met_instance; met_args } =
 	  instance_name met_instance m instance met_instance
 	  (print_list_r (exp 3) "" "" "") met_args
 
+and print_self_name ff self_opt =
+  match self_opt with
+  | None -> Format.fprintf ff "self" | Some(id) -> Printer.name ff id
+
 and left_state_value ff left =
   match left with
-  | Eself -> fprintf ff "self."
-  | Eleft_instance_name(n) -> fprintf ff "self.%a" Printer.name n
-  | Eleft_state_global(ln) -> longname ff ln
-  | Eleft_state_name(n) -> fprintf ff "self.%a" Printer.name n
+  | Eself_state(self_opt) -> print_self_name ff self_opt
+  | Eleft_instance_name { self; name } | Eleft_state_name { self; name } ->
+        Format.fprintf ff "%a.%a" print_self_name self Printer.name name
   | Eleft_state_record_access { label; arg } ->
      fprintf ff "@[%a.%a@]" left_state_value arg longname label
   | Eleft_state_index(left, idx) ->
@@ -161,8 +164,8 @@ and assign ff left e =
 
 and assign_state ff left e =
   match left with
-  | Eleft_state_global(gname) ->
-     fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
+  | Eself_state(self) ->
+     fprintf ff "@[<v 2>%a := %a@]" print_self_name self (exp 2) e
   | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
 and letvar ff n is_mutable ty e_opt e =

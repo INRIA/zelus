@@ -127,12 +127,15 @@ and left_value ff left =
   | Eleft_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_value left (exp 0) idx
 
+and print_self_name ff self_opt =
+  match self_opt with
+  | None -> Format.fprintf ff "self" | Some(id) -> Printer.name ff id
+
 and left_state_value ff left =
   match left with
-  | Eself -> fprintf ff "self."
-  | Eleft_instance_name(n) -> Printer.name ff n
-  | Eleft_state_global(ln) -> longname ff ln
-  | Eleft_state_name(n) -> Printer.name ff n
+  | Eself_state(self_opt) -> print_self_name ff self_opt
+  | Eleft_state_name { self; name } | Eleft_instance_name { self; name } ->
+     Format.fprintf ff "%a.%a" print_self_name self Printer.name name
   | Eleft_state_record_access { label; arg } ->
      fprintf ff "@[%a.%a@]" left_state_value arg longname label
   | Eleft_state_index(left, idx) ->
@@ -149,8 +152,8 @@ and assign ff left e =
 
 and assign_state ff left e =
   match left with
-  | Eleft_state_global(gname) ->
-     fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
+  | Eself_state(self) -> 
+     fprintf ff "@[<v 2>%a := %a@]" print_self_name self (exp 2) e
   | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
 and state_primitive_access a =
@@ -337,16 +340,17 @@ and pinitialize ff i_opt =
 
 (* Print a machine *)
 and machine ff { ma_name; ma_kind; ma_params; ma_initialize;
-		 ma_memories; ma_instances; ma_methods } =
+		 ma_memories; ma_instances; ma_methods; ma_assertion } =
   fprintf ff
     "@[<hov 2>%s machine@ %a@ (%a)@ \
-     {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]}@]"
+     {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]%a}@]"
     (kind ma_kind) Ident.fprint_t ma_name  
     (pattern_list Printer.ptype) ma_params
     pinitialize ma_initialize
     (print_list_r_empty memory """;""") ma_memories
     (print_list_r_empty instance """;""") ma_instances
     (print_list_r pmethod """""") ma_methods
+    (print_opt machine) ma_assertion
 
 let print_type_params ff pl =
       print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl

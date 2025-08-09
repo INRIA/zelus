@@ -136,12 +136,16 @@ and left_value =
   | Eleft_index of left_value * exp
   
 and left_state_value =
-  | Eself
-  | Eleft_state_global of Lident.t 
-  | Eleft_instance_name of Ident.t
-  | Eleft_state_name of Ident.t
+  | Eself_state of Ident.t option (* an implicit variable "self" *)
+  (* name of the instance. [self.name] *)
+  | Eleft_instance_name of { self: Ident.t option; name: Ident.t }
+  (* name of the memory. [self.name] *)
+  | Eleft_state_name of { self: Ident.t option; name: Ident.t }
+  (* the state is a record. *)
   | Eleft_state_record_access of left_state_value record
+  (* an array *)
   | Eleft_state_index of left_state_value * exp
+  (* the access to a field of a special state variable *)
   | Eleft_state_primitive_access of left_state_value * primitive_access
 
 (* a machine provides certain fields for reading/writting state variables *)
@@ -152,20 +156,23 @@ and primitive_access =
   | Ezero_in (* ... x.zero_in.(i) ... *)
 
 (* Definition of a sequential machine *)
-(* machine(k) f (v1,..., vn) =
+(* machine(k) f (v1,..., vn) as self_k =
    mem m_i : t_i [= v_i]_i
    instances j_i: t_j [= e_i]_i
-   methods m1(...) = *)
+   methods m1(...) = ...
+   assertion a_opt *)
 and machine =
   { ma_name: Ident.t; (* name of the machine *)
     ma_kind: Deftypes.kind;
     (* combinatorial, continuous-time or discrete-time *)
+    ma_self: Ident.t option;
+    (* name of the memory state; when none, use "self" *)
     ma_initialize: exp option;
     ma_params: pattern list; (* list of static parameters *)
     ma_memories: mentry list;(* its memories *)
     ma_instances: ientry list; (* its node instances *)
     ma_methods: method_desc list; (* its methods *) 
-    (* ma_assertion: machine option; *) (* *)
+    ma_assertion: machine option; (* gather all internal assertions *)
   }
 
 and mentry =
@@ -173,7 +180,7 @@ and mentry =
     m_value: exp option; (* its initial value *)
     m_typ: Deftypes.typ; (* its type *)
     m_kind: Deftypes.mkind option; (* the kind of the memory *)
-    m_size: exp path; (* it may be an array *)
+    m_size: exp path; (* it may be n-dimension array *)
   }
 
 and ientry =
