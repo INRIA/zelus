@@ -240,12 +240,12 @@ let print_value_type_declaration ff { qualid; info = (is_const, ty_scheme) } =
 
 
 (* the main printing functions *)
-let output_type ff ty =
+let ptype ff ty =
   fprintf ff "@[%a@]" (print 0) ty
 
-let output_size ff si = size 0 ff si
+let psize ff si = size 0 ff si
 
-let output_tentry ff { t_path; t_sort; t_tys } = 
+let ptentry ff { t_path; t_sort; t_tys } = 
   let vkind =
     function Tconst -> "const" | Tstatic -> "static" | Tany -> "any" in
   let tkind = function Tdiscrete -> "d" | Tcont -> "c" in

@@ -150,7 +150,7 @@ let message loc kind =
                    give a initial or default value.@.@]"
         output_location loc
         (Ident.source s)
-	Ptypes.output_type expected_ty
+	Ptypes.ptype expected_ty
   | Ecannot_be_set(is_next, s) ->
       eprintf "@[%aType error: the %s value of %s cannot be set. @,\
                  This is either because the %s value is set or @,\
@@ -163,13 +163,13 @@ let message loc kind =
       eprintf "@[%aType error: this expression has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         output_location loc
-        Ptypes.output_type  actual_ty
-        Ptypes.output_type  expected_ty
+        Ptypes.ptype  actual_ty
+        Ptypes.ptype  expected_ty
   | Etype_vkind_clash(vkind, actual_ty) ->
       eprintf "@[%aType error: this expression has type@ %a,@ \
                which does not belong to the %s kind.@.@]"
         output_location loc
-        Ptypes.output_type  actual_ty
+        Ptypes.ptype  actual_ty
         (vkind_message vkind)
   | Earity_clash(actual_arit, expected_arit) ->
       eprintf "@[%aType error: this expression expects %d arguments,@ \
@@ -240,15 +240,15 @@ let message loc kind =
     eprintf "@[%aType error: this expression is equal to@ %a,@ \
                but is expected to be %s@ %a.@.@]"
         output_location loc
-        Ptypes.output_size actual_size
+        Ptypes.psize actual_size
         s
-        Ptypes.output_size expected_size
+        Ptypes.psize expected_size
  | Esize_parameter_cannot_be_generalized(n, ty) ->
      eprintf
        "@[%aType error: this pattern has type@ %a,@ \
         which contains the variable %s that is unbounded.@.@]"
 	output_location loc
-        Ptypes.output_type ty
+        Ptypes.ptype ty
 	(Ident.name n)
  | Esize_parameter_mutually_recursive_definitions
     (expected_number, actual_number) ->
