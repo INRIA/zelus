@@ -56,8 +56,8 @@ let check_type_of_main_node name { qualid = qualid; info = { value_typ = tys } }
       eprintf "@[The name %s has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         name
-        Ptypes.output_type actual_ty
-        Ptypes.output_type expected_ty;
+        Ptypes.ptype actual_ty
+        Ptypes.ptype expected_ty;
       raise Error
 
 (* the  main node must be of type [unit -> unit] *)
