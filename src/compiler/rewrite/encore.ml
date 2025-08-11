@@ -58,7 +58,7 @@ let local_in_exp { horizon } e =
   | None -> e
   | Some(h) ->
      let m = fresh () in
-     Aux.e_local
+     Aux.local_in_e
        (Aux.block_make [Aux.vardec h false None (Some(Aux.infinity));
                         Aux.vardec m false None None]
        [Aux.id_eq m e])  (Aux.var m)

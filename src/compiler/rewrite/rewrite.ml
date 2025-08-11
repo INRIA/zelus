@@ -43,6 +43,10 @@ let default_list =
    Copy.program;
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
+   "exp2eq",
+   "Translate match/reset expressions in their equational form. See below:",
+   nothing,
+   Exp2eq.program;
    "auto", "Translation of automata. See below:", nothing,
    Automata.program;
    "present", "Translation of present. See below:", nothing,
@@ -54,10 +58,6 @@ let default_list =
    "copylast",
    "Add a copy [lx = last* x] to remove false cycles. See below:", nothing,
    Copylast.program;
-   "exp2eq",
-   "Translate match/reset expressions in their equational form. See below:",
-   nothing,
-   Exp2eq.program;
    "returns",
    "Rewrite [returns (p) eq]. See below:", nothing,
    Returns.program;

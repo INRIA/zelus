@@ -35,7 +35,7 @@ let disc major e =
   let x = Ident.fresh "x" in
   let cx = Ident.fresh "cx" in
   let z = Ident.fresh "z" in
-  Aux.e_local (Aux.block_make [Aux.vardec x false None None;
+  Aux.local_in_e (Aux.block_make [Aux.vardec x false None None;
                                Aux.vardec cx false
                                  (Some(Aux.infinity)) None;
                                Aux.vardec z false None None]

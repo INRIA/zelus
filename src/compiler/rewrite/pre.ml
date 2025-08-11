@@ -58,7 +58,7 @@ let let_init_mem_value e1 e2 =
 let local_mem_value e =
   let x = fresh_pre () in
   let m = fresh_m () in
-  Aux.e_local (Aux.block_make [Aux.vardec x false None None;
+  Aux.local_in_e (Aux.block_make [Aux.vardec x false None None;
                                Aux.vardec m true None None]
                  [Aux.id_eq m e; Aux.id_eq x (Aux.last_star m)]) (var x)
 
@@ -67,7 +67,7 @@ let local_mem_value e =
 let local_init_mem_value e1 e2 =
   let x = fresh_fby () in
   let m = fresh_m () in
-  Aux.e_local (Aux.block_make [Aux.vardec x false None None;
+  Aux.local_in_e (Aux.block_make [Aux.vardec x false None None;
                                Aux.vardec m false (Some(e1)) None]
                  [Aux.id_eq m e2; Aux.id_eq x (Aux.last_star m)]) (var x)
 

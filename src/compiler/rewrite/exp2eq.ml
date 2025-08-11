@@ -51,6 +51,8 @@ let expression funs acc e =
                              handlers = List.map handler handlers };
          eq_write = Defnames.singleton result;
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
+     (* [let match e with (P_i -> r = e_i)_i in r] *)
+     (* or [let match e with (P_i -> emit r = e_i)_i in r *)
      Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
   | Ereset(e, e_r) ->
      let result = fresh () in

@@ -114,7 +114,7 @@ let add_equations_into_eq acc env eq =
 
 let add_equations_into_e acc env e =
   let v_list, eq_list = Env.fold (add_x_m acc) env ([], []) in
-  Aux.e_local_vardec v_list eq_list e
+  Aux.local_vardec_in_e v_list eq_list e
 
 let match_handler_eq funs acc m_h =
   let ({ m_body; m_env } as m_h), acc_h =
@@ -173,7 +173,7 @@ let funexp funs acc f =
          Util.mapfold (Util.mapfold (update_vardec acc)) ([], []) f_args in
   let f_args, r_desc, acc = match r_desc with
     | Exp(e) ->
-       let e = Aux.e_local_vardec v_list eq_list e in
+       let e = Aux.local_vardec_in_e v_list eq_list e in
        f_args, Exp(e), acc
     | Returns({ b_body } as b) ->
        let b_body = Aux.eq_local_vardec v_list (b_body :: eq_list) in

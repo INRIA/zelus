@@ -80,7 +80,7 @@ let period_t major time phase period =
   (*  and z = major && (time >= last h) in z] *)
   let h = Ident.fresh "h" in
   let z = Ident.fresh "z" in
-  Aux.e_local_vardec [Aux.id_vardec h; Aux.id_vardec z]
+  Aux.local_vardec_in_e [Aux.id_vardec h; Aux.id_vardec z]
     [Aux.par
        [Aux.eq_init h (Aux.plus (Aux.var time) phase);
         Aux.id_eq h (Aux.horizon_f

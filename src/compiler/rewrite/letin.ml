@@ -95,7 +95,7 @@ let eq_local acc =
 
 let e_local acc e =
   let vardec_list, eq_list = vardec_list_eq acc in
-  Aux.e_local_vardec vardec_list eq_list e
+  Aux.local_vardec_in_e vardec_list eq_list e
 
 let pattern funs acc p = p, acc
 
