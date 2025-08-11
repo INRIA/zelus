@@ -414,7 +414,7 @@ let make_machine
           me_typ = Initial.typ_unit };
 	{ me_name = Oaux.step; me_params = [p]; me_body = e;
           me_typ = ty_res } ];
-    ma_assertion = None }
+    ma_assertion = Parseq.list [] assertions }
 
 let exp_of_code f k pat_list self code e ty_res =
   let k = Interface.kindtype k in

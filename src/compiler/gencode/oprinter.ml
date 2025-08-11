@@ -345,15 +345,16 @@ and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods; ma_assertion } =
   fprintf ff
     "@[<hov 2>%s machine@ %a@ (%a) as %a@ \
-     {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]%a}@]"
+     {@, %a@,@[<hov2>memories@ @[%a@]@]@;@[<hov2>instances@ @[%a@]@]@;@[%a@]\
+                   @ @[<hov2>assertions@ %a@]}@]"
     (kind ma_kind) Ident.fprint_t ma_name  
     (pattern_list Printer.ptype) ma_params
      print_self_name ma_self
      pinitialize ma_initialize
-    (print_list_r_empty memory """;""") ma_memories
-    (print_list_r_empty instance """;""") ma_instances
-    (print_list_r pmethod """""") ma_methods
-    (print_opt machine) ma_assertion
+    (print_list_r_empty memory "" ";" "") ma_memories
+    (print_list_r_empty instance "" ";" "") ma_instances
+    (print_list_r pmethod "" "" "") ma_methods
+    (print_list_r machine "" "" "") ma_assertion
 
 let print_type_params ff pl =
       print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl

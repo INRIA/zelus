@@ -107,11 +107,12 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t reset: distribute the reset over equations \n\
     \t\t\t copy: remove copy variables \n\
     \t\t\t Example: -step -a+inline+static. Default is +a."
-and doc_typeall = "\t Type check after every rewritting step\n"
-and doc_noassert = "\t Remove assertions\n"
-and doc_transparent = "\t Transparent assertions: continuous-time assertions \n\
-                       are executed separately to not interfere with the model.\n"
 and doc_join_der_dv = "\t (undocumented)"
+and doc_typeall = "\t Type check after every rewritting step"
+and doc_noassert = "\t Remove assertions"
+and doc_transparent =
+  "\t Transparent assertions: hybrid assertions\n\
+  \t\t\t are executed independently from the model."
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -168,10 +169,10 @@ let main () =
           "-nocausality", Arg.Set no_causality, doc_nocausality;
           "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
           "-noinit", Arg.Set no_initialization, doc_no_initialization;
+          "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;
           "-typeall", Arg.Set typeall, doc_typeall;
           "-noassert", Arg.Set noassert, doc_noassert;
           "-transparent", Arg.Set transparent, doc_transparent;
-          "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;
       ])
       compile
       errmsg;

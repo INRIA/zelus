@@ -2,6 +2,13 @@ let hybrid g() =
   let rec der x = 1.0 init 0.0 in
   assert
     (let rec der y = 1.0 init 0.0 in
+     abs_float (x -. y) <= 0.0);
+  x
+(*
+let hybrid g() =
+  let rec der x = 1.0 init 0.0 in
+  assert
+    (let rec der y = 1.0 init 0.0 in
      assert
        (let rec der z = 1.0 init 0.0 in
         abs_float (x -. z) <= 0.1 && (y -. z) <= 0.1); (* copie de x *)
@@ -17,6 +24,7 @@ let hybrid g() =
      (let rec der z = 1.0 init 0.0 in
       abs_float (x -. z) <= 0.1 && (y -. z) <= 0.1);
   x +. 1.0
+*)
 
 (*
 let f = machine f () as self =
