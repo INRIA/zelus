@@ -108,10 +108,9 @@ open Deftypes
 open Obc
 open Oaux
        
-let typ_cstate =
-  Aux.make (Zelus.Etypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, []))
+let typ_cstate = Types.nconstr { qual = "Ztypes"; id = "cstate" } []
 
-let varpat id ty = Evarpat { id; ty }
+let varpat id ty = Evarpat { id; ty = Some(ty) }
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 let access x label = Erecord_access { arg = local x; label = Name label }
 
@@ -404,16 +403,15 @@ let hybrid_machine
     let only cond inst = if cond then inst else void in
     let only_else cond inst1 inst2 = if cond then inst1 else inst2 in
         
-    let typ_int = Interface.type_expression_of_typ Initial.typ_int in
     let body =
       letin_only c_is_not_zero
         (* compute the current position of the cvector *)
-	(varpat c_start typ_int) cstate_cpos
+	(varpat c_start Initial.typ_int) cstate_cpos
         (letvar_only
            c_is_not_zero cpos Initial.typ_int (local c_start)
 	   (* compute the current position of the zvector *)
            (letin_only
-              z_is_not_zero (varpat z_start typ_int) cstate_zpos
+              z_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
               (letvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
@@ -427,7 +425,7 @@ let hybrid_machine
                      (only_else
                         (c_is_not_zero || z_is_not_zero || h_is_not_zero)
                         (letin
-		           (varpat result (Interface.type_expression_of_typ ty))
+		           (varpat result ty)
                            body
 		           (sequence
 			      [set_horizon cstate ma_self h_opt;
@@ -454,10 +452,11 @@ let hybrid_machine
                                local result]))
                         body)
         ])))) in
-    { mach with ma_params = (Evarpat { id = cstate; ty = typ_cstate }) :: params;
-		ma_initialize = i_opt;
-		ma_methods = { mdesc with me_body = body } :: method_list;
-		ma_instances = List.map add_extra_param mi_list }
+    { mach with
+      ma_params = (Evarpat { id = cstate; ty = Some(typ_cstate) }) :: params;
+      ma_initialize = i_opt;
+      ma_methods = { mdesc with me_body = body } :: method_list;
+      ma_instances = List.map add_extra_param mi_list }
   with
     (* no step method is present *)
     Not_found -> mach
