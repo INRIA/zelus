@@ -13,9 +13,15 @@
 (* *********************************************************************)
 
 (* translate some control expressions into equations *)
-(* the constructs that are concerned are:
- *- [match e with P1 -> e1 | ... | Pn -> en] =>
+(* the constructs that are concerned are the by-case [match e with ...] *)
+(* and reset [reset e every c] *)
+(*
+ *- by-case (total):
+    [match e with P1 -> e1 | ... | Pn -> en] =>
     [let match e with P1 -> r = e1 | ... | Pn -> r = en in r]
+    by-case (partial):
+    [match e with P1 -> e1 | ... ] =>
+    [let match e with P1 -> emit r = e1 | ... | Pn -> emit r = en in r]
 *- [reset e every c] => let reset r = e every c in r]
 *)
 
@@ -34,8 +40,11 @@ let expression funs acc e =
   match e_desc with
   | Ematch { is_size; is_total; e; handlers } ->
      let result = fresh () in
+     (* when [not is_total], [result] is a signal *)
      let handler { m_pat; m_body; m_env; m_loc; m_reset; m_zero } =
-       { m_pat; m_body = Aux.id_eq result m_body; m_env; m_loc;
+       let m_body = if is_total then Aux.id_eq result m_body
+                    else Aux.emit_id_eq result m_body in
+       { m_pat; m_body; m_env; m_loc;
          m_reset; m_zero } in
      let eq =
        { eq_desc = EQmatch { is_size; is_total; e;

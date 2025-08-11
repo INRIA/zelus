@@ -103,6 +103,10 @@ let id_eq id e =
   let w = Defnames.singleton id in
   eqmake w (EQeq(pat_make id, e))
 
+let emit_id_eq id e =
+  let w = Defnames.singleton id in
+  eqmake w (EQemit(id, Some e))
+
 let eq_empty () = eqmake Defnames.empty EQempty
 
 let wildpat_eq e =

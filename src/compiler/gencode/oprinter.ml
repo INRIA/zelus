@@ -344,10 +344,10 @@ and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
   fprintf ff
     "@[<hov 2>%s machine@ %a@ (%a) as %a@ \
      {@, %a@ \
-     @[<hov2>memories@ @[%a@]@]@ \
-     @[<hov2>instances@ @[%a@]@]@ \
-     @[<hov2>methods@ @[%a@]@]@ \
-     @[<hov2>assertions@ @[%a@]@]}@]"
+     @[<v2>memories@ @[%a@]@]@ \
+     @[<v2>instances@ @[%a@]@]@ \
+     @[<v2>methods@ @[%a@]@]@ \
+     @[<v2>assertions@ @[%a@]@]}@]"
     (kind ma_kind) Ident.fprint_t ma_name  
     (pattern_list Printer.ptype) ma_params
      print_self_name ma_self

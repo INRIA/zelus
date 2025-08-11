@@ -120,7 +120,7 @@ let set_steps w =
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 
-    | "schedule" | "distribute" | "deadcode" | "copy" | "exp2seq" | "default"
+    | "schedule" | "distribute" | "deadcode" | "copy" | "exp2eq" | "default"
     | "returns" | "reset" | "set_sorts" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()

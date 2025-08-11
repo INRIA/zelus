@@ -1,39 +1,41 @@
 (* The Zelus compiler, version 2024-dev
   (2025-05-13-5:25) *)
 open Ztypes
-type ('a) machine_11 = {mutable x_6: 'a}
+type ('a) machine_14 = {mutable x_7: 'a}
 let (g) =
-      let g_5 =
-          let machine_11 cstate_12 = 
+      let g_6 =
+          let machine_14 cstate_15 = 
             
-            let machine_11_alloc _ =
-              cstate_12.cmax <- (+) cstate_12.cmax 1;
-              { x_6 = { pos = (-1.); der = 0. } } in
-            let machine_11_step self _ =
-              ((let cindex_13 = cstate_12.cindex in
-                let cpos_15 = ref (cindex_13:int) in
-                cstate_12.cindex <- (+) cstate_12.cindex 1;
-                (if cstate_12.major
+            let machine_14_alloc _ =
+              cstate_15.cmax <- (+) cstate_15.cmax 1;
+              { x_7 = { pos = (-1.); der = 0. } } in
+            let machine_14_step self _ =
+              ((let cindex_16 = cstate_15.cindex in
+                let cpos_18 = ref (cindex_16:int) in
+                cstate_15.cindex <- (+) cstate_15.cindex 1;
+                (if cstate_15.major
                  then
-                   for i_1 = cindex_13 to 0
-                   do Zls.set cstate_12.dvec i_1 0. done
+                   for i_2 = cindex_16 to 0
+                   do Zls.set cstate_15.dvec i_2 0. done
                  else
-                   ((self_8.x_6.pos <- Zls.get cstate_12.cvec !cpos_15;
-                     cpos_15 := (+) !cpos_15 1)));
-                (let result_17 =
-                     self_8.x_6.der <- 1.; (let _ = () in
-                                            self_8.x_6.pos) in
-                 cpos_15 := cindex_13;
-                 (if cstate_12.major
+                   ((self_9.x_7.pos <- Zls.get cstate_15.cvec !cpos_18;
+                     cpos_18 := (+) !cpos_18 1)));
+                (let result_20 =
+                     self_9.x_7.der <- 1.;
+                     (let _ = () in
+                      let _ = () in
+                      self_9.x_7.pos) in
+                 cpos_18 := cindex_16;
+                 (if cstate_15.major
                   then
-                    (((Zls.set cstate_12.cvec !cpos_15 self_8.x_6.pos;
-                       cpos_15 := (+) !cpos_15 1)))
+                    (((Zls.set cstate_15.cvec !cpos_18 self_9.x_7.pos;
+                       cpos_18 := (+) !cpos_18 1)))
                   else
-                    (((Zls.set cstate_12.dvec !cpos_15 self_8.x_6.der;
-                       cpos_15 := (+) !cpos_15 1)))); result_17)):float) in
-            let machine_11_reset self  =
-              ((self_8.x_6.pos <- 0.):unit) in
-            Node { alloc = machine_11_alloc; step = machine_11_step;
-                                             reset = machine_11_reset } in
-            machine_11 in
-      g_5
+                    (((Zls.set cstate_15.dvec !cpos_18 self_9.x_7.der;
+                       cpos_18 := (+) !cpos_18 1)))); result_20)):float) in
+            let machine_14_reset self  =
+              ((self_9.x_7.pos <- 0.):unit) in
+            Node { alloc = machine_14_alloc; step = machine_14_step;
+                                             reset = machine_14_reset } in
+            machine_14 in
+      g_6
