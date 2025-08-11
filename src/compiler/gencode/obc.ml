@@ -136,11 +136,11 @@ and left_value =
   | Eleft_index of left_value * exp
   
 and left_state_value =
-  | Eself_state of Ident.t option (* an implicit variable "self" *)
+  | Eself_state of Ident.t (* an implicit variable "self" *)
   (* name of the instance. [self.name] *)
-  | Eleft_instance_name of { self: Ident.t option; name: Ident.t }
+  | Eleft_instance_name of { self: Ident.t; name: Ident.t }
   (* name of the memory. [self.name] *)
-  | Eleft_state_name of { self: Ident.t option; name: Ident.t }
+  | Eleft_state_name of { self: Ident.t; name: Ident.t }
   (* the state is a record. *)
   | Eleft_state_record_access of left_state_value record
   (* an array *)
@@ -165,7 +165,7 @@ and machine =
   { ma_name: Ident.t; (* name of the machine *)
     ma_kind: Deftypes.kind;
     (* combinatorial, continuous-time or discrete-time *)
-    ma_self: Ident.t option;
+    ma_self: Ident.t;
     (* name of the memory state; when none, use "self" *)
     ma_initialize: exp option;
     ma_params: pattern list; (* list of static parameters *)

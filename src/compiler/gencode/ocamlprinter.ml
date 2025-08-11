@@ -138,13 +138,11 @@ let rec method_call ff { met_name; met_instance; met_args } =
 	  instance_name met_instance m instance met_instance
 	  (print_list_r (exp 3) "" "" "") met_args
 
-and print_self_name ff self_opt =
-  match self_opt with
-  | None -> Format.fprintf ff "self" | Some(id) -> Printer.name ff id
+and print_self_name ff self = Printer.name ff self
 
 and left_state_value ff left =
   match left with
-  | Eself_state(self_opt) -> print_self_name ff self_opt
+  | Eself_state(self) -> print_self_name ff self
   | Eleft_instance_name { self; name } | Eleft_state_name { self; name } ->
         Format.fprintf ff "%a.%a" print_self_name self Printer.name name
   | Eleft_state_record_access { label; arg } ->

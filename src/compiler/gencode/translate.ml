@@ -40,7 +40,7 @@ and sort =
   | Out of
       { y: Ident.t;
         tsort: Deftypes.tsort;
-        self: Ident.t option }
+        self: Ident.t }
 (* the variable [x] is stored into [y.(i_1)...(i_n); e.g. [x out y]] *)
 (* if [y] is a state variable, it is represented as self.id where [self] *)
 (* is the name of the state for the machine in which [y] is defined *)
@@ -53,11 +53,11 @@ and loop_path = Ident.t list
     
 type env =
   { env: entry Env.t; (* symbol table *)
-    self: Ident.t option; (* current name for the state *)
+    self: Ident.t; (* current name for the state *)
     (* the default memory state variable is [self] *)
   }
 
-let empty_env = { env = Env.empty; self = None }
+let empty_env = { env = Env.empty; self = Ident.fresh "self" }
 
 let fprint ff { env; self } =
   let fprint_env ff env =
@@ -69,7 +69,7 @@ let fprint ff { env; self } =
   Format.fprintf ff
     "@[<hov 2>{ env = %a;@ self = %a}@]"
     fprint_env env
-    (Pp_tools.print_opt Ident.fprint_t) self
+    Ident.fprint_t self
 
 type code =
   { init: Obc.exp; (* sequence of initializations for [mem] *)
@@ -623,7 +623,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let ty_res = Typinfo.get_type r.r_info in
      let pat_list = List.map arg arg_list in
      let f_env = Env.append f_hidden_env f_env in
-     let self = Some(Ident.fresh "self") in
+     let self = Ident.fresh "self" in
      let env, mem_acc, var_acc =
        append empty_loop_path f_env { self; env = env.env } in
      let e, code_body = result env r in
@@ -671,9 +671,8 @@ and assertion_expression env loop_path code e =
 (* every free variable of the assertion is a state variable of the model. *)
 and assertion { self; env } loop_path ({ assertions } as code) e =
   let self_pat =
-    Evarpat { id = (match self with None -> assert false | Some(id) -> id);
-              ty = None } in
-    let self = Some(Ident.fresh "self") in
+    Evarpat { id = self; ty = None } in
+  let self = Ident.fresh "self" in
   let e, code_body =
     expression { self; env } empty_loop_path empty_code e in
   let f = Ident.fresh "machine" in

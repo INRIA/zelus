@@ -129,13 +129,11 @@ and left_value ff left =
   | Eleft_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_value left (exp 0) idx
 
-and print_self_name ff self_opt =
-  match self_opt with
-  | None -> Format.fprintf ff "self" | Some(id) -> Printer.name ff id
+and print_self_name ff self = Printer.name ff self
 
 and left_state_value ff left =
   match left with
-  | Eself_state(self_opt) -> print_self_name ff self_opt
+  | Eself_state(self) -> print_self_name ff self
   | Eleft_state_name { self; name } | Eleft_instance_name { self; name } ->
      Format.fprintf ff "%a.%a" print_self_name self Printer.name name
   | Eleft_state_record_access { label; arg } ->
