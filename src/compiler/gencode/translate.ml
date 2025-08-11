@@ -63,7 +63,7 @@ let fprint ff { env; self } =
   let fprint_env ff env =
     let fprint_entry ff { e_typ = ty; e_sort = sort; e_size = size } =
       Format.fprintf ff "@[{ typ = %a;@,size = %a}@]"
-	Ptypes.output_type ty
+	Ptypes.ptype ty
 	(Pp_tools.print_list_r Printer.name "[" "," "]") size in
     Ident.Env.fprint_t fprint_entry ff env in
   Format.fprintf ff
@@ -76,17 +76,19 @@ type code =
     mem: mentry Parseq.t; (* set of state variables *)
     instances: ientry Parseq.t; (* set of instances *)
     reset: Obc.exp; (* code to reset the memory state *)
-  }
+    (* transparent assertions (for hybrid models) *)
+    assertions: machine Parseq.t; }
 
 let empty_code =
   { mem = Parseq.empty; init = Oaux.void;
     instances = Parseq.empty;
-    reset = Oaux.void }
+    reset = Oaux.void;
+    assertions = Parseq.empty }
 
-let seq { mem = m1; init = i1; instances = j1; reset = r1 } 
-	{ mem = m2; init = i2; instances = j2; reset = r2 } =
+let seq { mem = m1; init = i1; instances = j1; reset = r1; assertions = a1 } 
+	{ mem = m2; init = i2; instances = j2; reset = r2; assertions = a2 } =
   { mem = Parseq.seq m1 m2; init = Oaux.seq i1 i2; instances = Parseq.par j1 j2;
-    reset = Oaux.seq r1 r2 }
+    reset = Oaux.seq r1 r2; assertions = Parseq.par a1 a2 }
 
 let empty_loop_path = []
 
@@ -179,7 +181,7 @@ let def n { e_typ; e_sort; e_size = ei_list } e k =
   | Out { y = id; tsort; self } ->
      match tsort with
      | Sort_val ->
-        Elet(Evarpat { id; ty = Interface.type_expression_of_typ e_typ }, e, k)
+        Elet(Evarpat { id; ty = Some(e_typ) }, e, k)
      | Sort_var ->
 	Oaux.seq (Eassign(left_value_index (Eleft_name id) ei_list, e)) k
      | Sort_mem { m_mkind } ->
@@ -398,7 +400,23 @@ let make_apply k loop_path code f arg_list =
 
 
 (* Define a function or a machine according to a kind [k] *)
-let make_machine f k pat_list self { mem; instances; reset } e ty_res =
+let make_machine
+      f k pat_list self p { mem; instances; reset; assertions } e ty_res =
+  { ma_name = f;
+    ma_kind = k;
+    ma_self = self;
+    ma_params = pat_list;
+    ma_initialize = None;
+    ma_memories = Parseq.list [] mem;
+    ma_instances = Parseq.list [] instances;
+    ma_methods = 
+      [ { me_name = Oaux.reset; me_params = []; me_body = reset;
+          me_typ = Initial.typ_unit };
+	{ me_name = Oaux.step; me_params = [p]; me_body = e;
+          me_typ = ty_res } ];
+    ma_assertion = None }
+
+let exp_of_code f k pat_list self code e ty_res =
   let k = Interface.kindtype k in
   match k with
   | Deftypes.Tfun _ -> Efun { pat_list; e }
@@ -406,19 +424,7 @@ let make_machine f k pat_list self { mem; instances; reset } e ty_res =
     (* the [n-1] parameters are static *)
     let pat_list, p = Util.firsts pat_list in
     let body =
-      { ma_name = f;
-        ma_kind = k;
-	ma_self = self;
-        ma_params = pat_list;
-	ma_initialize = None;
-	ma_memories = Parseq.list [] mem;
-	ma_instances = Parseq.list [] instances;
-	ma_methods = 
-	  [ { me_name = Oaux.reset; me_params = []; me_body = reset;
-              me_typ = Initial.typ_unit };
-	    { me_name = Oaux.step; me_params = [p]; me_body = e;
-              me_typ = ty_res } ];
-      ma_assertion = None } in
+      make_machine f k pat_list self p code e ty_res in
     Emachine(body)
 
 let add_mem_vars_to_code mem_acc var_acc (e, ({ mem } as code)) =
@@ -435,7 +441,7 @@ let rec pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
      Econstr1pat(c1, List.map pattern p_list)
   | Zelus.Etuplepat(p_list) -> Etuplepat(List.map pattern p_list)
   | Zelus.Evarpat(id) -> 
-     Evarpat { id; ty = Interface.type_expression_of_typ ty }
+     Evarpat { id; ty = Some(ty) }
   | Zelus.Erecordpat(label_pat_list) ->
      Erecordpat
        (List.map
@@ -460,7 +466,7 @@ let match_handlers body env loop_path code p_h_list =
 
 let vardec { Zelus.var_name = id; Zelus.var_info = info } =
   let ty = Typinfo.get_type info in
-  Evarpat { id; ty = Interface.type_expression_of_typ ty }
+  Evarpat { id; ty = Some(ty) }
 
 let arg a_list =
   match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
@@ -614,7 +620,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      Esizeapp { f; size_list }, code
   | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = arg_list;
 		 Zelus.f_body = r; Zelus.f_env = f_env; Zelus.f_hidden_env } ->
-     let ty = Typinfo.get_type r.r_info in
+     let ty_res = Typinfo.get_type r.r_info in
      let pat_list = List.map arg arg_list in
      let f_env = Env.append f_hidden_env f_env in
      let self = Some(Ident.fresh "self") in
@@ -624,7 +630,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let e, code_body =
        add_mem_vars_to_code mem_acc var_acc (e, code_body) in
      let f = Ident.fresh "machine" in
-     make_machine f k pat_list self code_body e ty, code
+     exp_of_code f k pat_list self code_body e ty_res, code
   | Zelus.Ereset(e, r_e) ->
      let r_e, code = expression env loop_path code r_e in
      let e, ({ init } as code_e) =
@@ -654,15 +660,27 @@ and assertion_expression env loop_path code e =
   if !Misc.transparent then
     (* transparent assertions. [assert e] is translated as a machine *)
     (* whose input is [self] *)
-    Oaux.void, code
+    assertion env loop_path code e
   else
     let e, code = expression env loop_path code e in
     Eassert(e), code
 
 (* transparent assertion. [e] is compiled as if it were a hybrid node *)
 (* [hybrid self -> e] where [self] is the name of the closest memory state *)
-(* surrending the assertion *)
-and assertion { self; env } e = e
+(* surrending the assertion. The pre-condition to the translation is that *)
+(* every free variable of the assertion is a state variable of the model. *)
+and assertion { self; env } loop_path ({ assertions } as code) e =
+  let self_pat =
+    Evarpat { id = (match self with None -> assert false | Some(id) -> id);
+              ty = None } in
+    let self = Some(Ident.fresh "self") in
+  let e, code_body =
+    expression { self; env } empty_loop_path empty_code e in
+  let f = Ident.fresh "machine" in
+  let ma =
+    make_machine f (Tnode(Tcont)) [] self self_pat code_body e Initial.typ_bool
+  in
+  Oaux.void, { code with assertions = Parseq.cons ma assertions }
 
 and result env { Zelus.r_desc } =
   match r_desc with

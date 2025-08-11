@@ -43,7 +43,7 @@ type immediate =
 type pattern = 
   | Ewildpat
   | Etuplepat of pattern list
-  | Evarpat of { id: Ident.t; ty: type_expression }
+  | Evarpat of { id: Ident.t; ty: Deftypes.typ option }
   | Econstpat of immediate
   | Ealiaspat of pattern * Ident.t
   | Econstr0pat of Lident.t
@@ -91,7 +91,7 @@ and exp =
   | Eapp of { f: exp; arg_list: exp list }
   | Esizeapp of { f: exp; size_list: exp list }
   | Emethodcall of methodcall
-  | Etypeconstraint of exp * Zelus.type_expression
+  | Etypeconstraint of exp * type_expression
   | Efor of { index: Ident.t; dir: bool; left: exp; right: exp; e: exp }
   | Ewhile of { cond: exp; e: exp }
   | Eassert of exp
@@ -222,13 +222,13 @@ and 'a path = 'a list
 
 type type_decl =
   | Eabstract_type
-  | Eabbrev of Zelus.type_expression 
+  | Eabbrev of type_expression 
   | Evariant_type of constr_decl list 
-  | Erecord_type of (is_mutable * name * Zelus.type_expression) list
+  | Erecord_type of (is_mutable * name * type_expression) list
 
 and constr_decl =
   | Econstr0decl of name 
-  | Econstr1decl of name * Zelus.type_expression list
+  | Econstr1decl of name * type_expression list
 
 type implementation = 
   (* [let x1,...xn = e]; when n = 0, it means [let () = e]  *)

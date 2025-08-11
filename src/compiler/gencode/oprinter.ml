@@ -48,7 +48,7 @@ let priority_exp = function
   | Efun _ | Emachine _ -> 0
 
 let p_internal_type ff ty =
-  if !Misc.verbose then fprintf ff ": %a" Ptypes.output_type ty
+  if !Misc.verbose then fprintf ff ": %a" Ptypes.ptype ty
 
 let immediate ff = function
   | Eint i ->
@@ -80,7 +80,9 @@ let rec pattern ptype ff pat =
     | Evarpat { id; ty } ->
        (* print the type in verbose mode only *)
        if !Misc.verbose then
-         fprintf ff "@[(%a:%a)@]" Printer.name id ptype ty
+         match ty with
+         | None -> Printer.name ff id
+         | Some(ty) -> fprintf ff "@[(%a:%a)@]" Printer.name id Ptypes.ptype ty
        else Printer.name ff id
     | Etuplepat(pat_list) ->
        pattern_comma_list ptype ff pat_list
@@ -277,7 +279,7 @@ and exp prio ff e =
   | Efun { pat_list; e } ->
      fprintf ff
        "@[<hov2>(fun@ %a ->@ %a)@]"
-       (pattern_list Printer.ptype) pat_list (exp 0) e
+       (pattern_list Ptypes.ptype) pat_list (exp 0) e
   end;
   if prio_e < prio then fprintf ff ")"
 
@@ -288,7 +290,7 @@ and sizefun ff { sf_id; sf_id_list; sf_e } =
     (print_list_r var "<<" "," ">>") sf_id_list (exp 0) sf_e
 
 and pat_exp ff (p, e) =
-  fprintf ff "@[@[%a@] =@ @[%a@]@]" (pattern Printer.ptype) p (exp 0) e
+  fprintf ff "@[@[%a@] =@ @[%a@]@]" (pattern Ptypes.ptype) p (exp 0) e
 
 and exp_with_typ ff (e, ty) =
   fprintf ff "(%a%a)" (exp 2) e p_internal_type ty
@@ -296,7 +298,7 @@ and exp_with_typ ff (e, ty) =
 and expression ff e = exp 0 ff e
 
 and match_handler ff { m_pat = pat; m_body = b } =
-  fprintf ff "@[<hov 4>| %a ->@ %a@]" (pattern Printer.ptype) pat (exp 0) b
+  fprintf ff "@[<hov 4>| %a ->@ %a@]" (pattern Ptypes.ptype) pat (exp 0) b
 
 and mkind mk =
   match mk with
