@@ -331,7 +331,7 @@ and instance ff { i_name; i_machine; i_kind; i_params; i_size } =
     i_size
 
 and pmethod ff { me_name; me_params; me_body; me_typ } =
-  fprintf ff "@[<hov 2>method %s %a@ =@ (%a%a)@]"
+  fprintf ff "@[<hov2>%s %a@ =@ (%a%a)@]"
     (method_name me_name) (pattern_list Printer.ptype) me_params (exp 2) me_body
     p_internal_type me_typ
 
@@ -345,8 +345,11 @@ and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods; ma_assertion } =
   fprintf ff
     "@[<hov 2>%s machine@ %a@ (%a) as %a@ \
-     {@, %a@,@[<hov2>memories@ @[%a@]@]@;@[<hov2>instances@ @[%a@]@]@;@[%a@]\
-                   @ @[<hov2>assertions@ %a@]}@]"
+     {@, %a@ \
+     @[<hov2>memories@ @[%a@]@]@ \
+     @[<hov2>instances@ @[%a@]@]@ \
+     @[<hov2>methods@ @[%a@]@]@ \
+     @[<hov2>assertions@ @[%a@]@]}@]"
     (kind ma_kind) Ident.fprint_t ma_name  
     (pattern_list Printer.ptype) ma_params
      print_self_name ma_self
