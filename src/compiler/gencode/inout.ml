@@ -32,7 +32,7 @@
 (*                                                         *)
 (* the body of the step method is extended to read/write   *)
 (* entries from the following data-structure               *)
-(* on the global parameter cstate                          *)
+(* on a global parameter cstate                            *)
 (* type cstate =
  *-  { mutable dvec : float array;
  *-    mutable cvec : float array;
@@ -47,7 +47,7 @@
  *-    mutable horizon : float;
  *-    mutable major : bool }                           *)
 
-(* The main class takes an extra static argument
+(* The main class takes an extra static argument [cstate]
  *- suppose that [csize] is the length of the state vector of the current block;
  *- x1:float[size1],..., xn:float[sizen] are the continuous state variables;
  *- m1:zero[size'1],..., mk:zero[size'k] are the zero-crossing variables;
@@ -96,6 +96,53 @@
  *-          ... cpos is incremented);
  *-    result
  *-
+ *- method step(arg1,...,argl) =
+ *-    self.prelude ();
+ *-    let result = ...body... in
+ *-    self.postlude ();
+ *-    result
+ *-
+ *- local method prelude =
+ *-    let c_start = cstate.cindex in (* current position of the cvector *)
+ *-    var cpos = c_start in
+ *-    let z_start = cstate.zindex in (* current position of the zvector *)
+ *-    cstate.cindex <- cstate.cindex + csize; 
+ *-    cstate.zindex <- cstate.zindex + zsize;
+ *-    m <- cstate.major;
+ *-    var zpos = z_start in
+ *-    if cstate.major then 
+ *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
+ *-    else ((* copy the value of the continuous state vector of the solver *)
+ *-          (* into the local continuous state variables *)
+ *-          cin cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
+ *-          ... cpos is incremented
+ *-
+ *- local method postlude =
+ *-    cpos <- c_start;
+ *-    if cstate.major then 
+ *-        ((* copy the local continuous state variables into *)
+ *-         (* the continuous state vector of the solver *)
+ *-         cout cstate x1 ci;...; cout cstate ck (zi+size'1+...+size'(n-1));
+ *-        ... cpos is incremented
+ *-         (* h is the horizon of the block *)
+ *-         cstate.horizon <- min cstate.horizon h 
+ *-         (* the zero-crossing variables are set to false *)
+ *-         m1 <- false; ...; mk <- false;
+ *-         ... zpos is incremented)
+ *-    else ((* copy the zero-crossing vector of the solver into the local *)
+ *-          (* zero-crossing variables *)
+ *-          zin cstate m1 zi;...; zin cstate mk (zi+size'1+...+size'(k-1));
+ *-          ... zpos is incremented
+ *-          zpos <- z_start;
+ *-          (* copy the local zero-crossing variables into the *)
+ *-          (* zero-crossing vector of the solver *)
+ *-          zout cstate m1 zi;...; zout cstate mk (zi+size'1+...+size'(k-1));
+ *-          ... zpos is incremented
+ *-          (* copy the local derivatives into the vector of derivative *)
+ *-          (* of the solver *)
+ *-          dout cstate x1 ci;...; dout cstate ck (zi+size'1+...+size'(n-1));
+ *-          ... cpos is incremented);
+ *-
  *- Add to the initialization code: 
  *-    cmax csize; 
  *-    zmax zsize
@@ -124,7 +171,8 @@ let i = Ident.fresh "i"
 let set_horizon cstate self name =
   Eassign(Eleft_record_access
             { arg = Eleft_name(cstate); label = Name "horizon" },
-          min (access cstate "horizon") (Estate(Eleft_state_name { self; name })))
+          min (access cstate "horizon")
+            (Estate(Eleft_state_name { self; name })))
 
 (* m <- cstate.major *)
 let set_major cstate self name =
@@ -348,18 +396,17 @@ let set_time cstate self time_opt =
   match time_opt with
   | None -> Econst(Evoid) | Some(m) -> set_time cstate self m
 
-(* Translate a continuous-time machine *)
-let hybrid_machine 
-    ({ ma_params = params; ma_self; ma_initialize = i_opt; ma_memories = m_list;
-       ma_instances = mi_list; ma_methods = method_list } as mach) =
+(* Translate a continuous-time machine; do not touch to assertions *)
+let hybrid_machine_model ({ ma_params; ma_self; ma_initialize; ma_memories;
+       ma_instances; ma_methods } as mach) =
   let cstate = Ident.fresh "cstate" in
   (* auxiliary function. Find the method "step" in the list of methods *)
-  let rec find_step method_list =
+  let rec find_step_method method_list =
     match method_list with
     | [] -> raise Not_found
     | { me_name = m } as mdesc :: method_list ->
        if m = Oaux.step then mdesc, method_list
-       else let step, method_list = find_step method_list in
+       else let step, method_list = find_step_method method_list in
 	    step, mdesc :: method_list in
   (* for every instance of a continuous machine () *)
   (* pass the extra argument [cstate] *)
@@ -369,23 +416,23 @@ let hybrid_machine
     | _ -> ientry in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
-      find_step method_list in
+      find_step_method ma_methods in
     (* associate an integer index to every continuous state *)
     (* variable and zero-crossing *)
-    let ctable, ztable, h_opt, major_opt, time_opt = build_index m_list in
+    let ctable, ztable, h_opt, major_opt, time_opt = build_index ma_memories in
 
     let csize = size_of ctable in
     let zsize = size_of ztable in
     
-    let c_is_not_zero = not (is_zero csize) in
-    let z_is_not_zero = not (is_zero zsize) in
+    let cvec_is_not_zero = not (is_zero csize) in
+    let zvec_is_not_zero = not (is_zero zsize) in
     let h_is_not_zero = not (h_opt = None) in
     let major_is_not_zero = not (major_opt = None) in
     let time_is_not_zero = not (time_opt = None) in
     
     (* add initialization code to [e_opt] *)
-    let i_opt =
-      maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize i_opt) in
+    let ma_initialize =
+      maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize ma_initialize) in
           
     let c_start = Ident.fresh "cindex" in
     let z_start = Ident.fresh "zindex" in
@@ -400,67 +447,132 @@ let hybrid_machine
       if cond then letin pat e body else body in
     let letvar_only cond v ty e body =
       if cond then letvar v ty e body else body in
-    let only cond inst = if cond then inst else void in
-    let only_else cond inst1 inst2 = if cond then inst1 else inst2 in
+    let only cond e = if cond then e else void in
+    let only_then_else cond e1 e2 = if cond then e1 else e2 in
         
-    let body =
-      letin_only c_is_not_zero
+    (*
+      let prelude_body =
+      letin_only cvec_is_not_zero
         (* compute the current position of the cvector *)
 	(varpat c_start Initial.typ_int) cstate_cpos
         (letvar_only
-           c_is_not_zero cpos Initial.typ_int (local c_start)
+           cvec_is_not_zero cpos Initial.typ_int (local c_start)
 	   (* compute the current position of the zvector *)
            (letin_only
-              z_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
+              zvec_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
               (letvar_only
-                 z_is_not_zero zpos Initial.typ_int (local z_start)
+                 zvec_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
-		    [only c_is_not_zero (incr cstate "cindex" csize);
-                     only z_is_not_zero (incr cstate "zindex" zsize);
+		    [only cvec_is_not_zero (incr cstate "cindex" csize);
+                     only zvec_is_not_zero (incr cstate "zindex" zsize);
 		     only major_is_not_zero (set_major cstate ma_self major_opt);
 		     only time_is_not_zero (set_time cstate ma_self time_opt);
 		     ifthenelse
                        (major cstate) (set_dvec_to_zero cstate c_start csize)
-		       (only c_is_not_zero (cin ctable cstate ma_self cpos));
-                     (only_else
-                        (c_is_not_zero || z_is_not_zero || h_is_not_zero)
+		       (only cvec_is_not_zero (cin ctable cstate ma_self cpos))])
+              )
+           )
+         ) in
+
+    let postlude_body =
+      sequence
+	[set_horizon cstate ma_self h_opt;
+         only
+           cvec_is_not_zero (set cpos (local c_start));
+	 ifthenelse
+           (major cstate)
+	   (sequence
+              [only
+                 cvec_is_not_zero (cout ctable cstate ma_self cpos);
+               only
+                 zvec_is_not_zero
+                 (set_zin_to_false ztable ma_self zpos)])
+           (sequence
+	      [only
+                 zvec_is_not_zero (zin ztable cstate ma_self zpos);
+               only
+                 zvec_is_not_zero
+                 (set zpos (local z_start));
+	       only
+                 zvec_is_not_zero (zout ztable cstate ma_self zpos);
+	       only
+                 cvec_is_not_zero (dout ctable cstate ma_self cpos)])] in
+
+    let body =
+      sequence
+        [prelude_body; (* the prelude *)
+         (letin (varpat result ty) body (* the body *)
+            (sequence
+               [only (cvec_is_not_zero || zvec_is_not_zero || h_is_not_zero)
+                  postlude_body; (* the postlude *)
+                  local result]))] in
+     *)
+    
+    let body =
+      letin_only cvec_is_not_zero
+        (* compute the current position of the cvector *)
+	(varpat c_start Initial.typ_int) cstate_cpos
+        (letvar_only
+           cvec_is_not_zero cpos Initial.typ_int (local c_start)
+	   (* compute the current position of the zvector *)
+           (letin_only
+              zvec_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
+              (letvar_only
+                 zvec_is_not_zero zpos Initial.typ_int (local z_start)
+		 (sequence
+		    [only cvec_is_not_zero (incr cstate "cindex" csize);
+                     only zvec_is_not_zero (incr cstate "zindex" zsize);
+		     only major_is_not_zero (set_major cstate ma_self major_opt);
+		     only time_is_not_zero (set_time cstate ma_self time_opt);
+		     ifthenelse
+                       (major cstate) (set_dvec_to_zero cstate c_start csize)
+		       (only cvec_is_not_zero (cin ctable cstate ma_self cpos));
+                     (only_then_else
+                        (cvec_is_not_zero || zvec_is_not_zero || h_is_not_zero)
                         (letin
 		           (varpat result ty)
                            body
 		           (sequence
 			      [set_horizon cstate ma_self h_opt;
                                only
-                                 c_is_not_zero (set cpos (local c_start));
+                                 cvec_is_not_zero (set cpos (local c_start));
 	                       ifthenelse
                                  (major cstate)
 				 (sequence
                                    [only
-                                      c_is_not_zero (cout ctable cstate ma_self cpos);
+                                      cvec_is_not_zero (cout ctable cstate ma_self cpos);
                                     only
-                                      z_is_not_zero
+                                      zvec_is_not_zero
                                       (set_zin_to_false ztable ma_self zpos)])
                                  (sequence
 				    [only
-                                       z_is_not_zero (zin ztable cstate ma_self zpos);
+                                       zvec_is_not_zero (zin ztable cstate ma_self zpos);
                                      only
-                                       z_is_not_zero
+                                       zvec_is_not_zero
                                        (set zpos (local z_start));
 	                             only
-                                       z_is_not_zero (zout ztable cstate ma_self zpos);
+                                       zvec_is_not_zero (zout ztable cstate ma_self zpos);
 	                             only
-                                       c_is_not_zero (dout ctable cstate ma_self cpos)]);
+                                       cvec_is_not_zero (dout ctable cstate ma_self cpos)]);
                                local result]))
                         body)
         ])))) in
     { mach with
-      ma_params = (Evarpat { id = cstate; ty = Some(typ_cstate) }) :: params;
-      ma_initialize = i_opt;
+      ma_params = (Evarpat { id = cstate; ty = Some(typ_cstate) }) :: ma_params;
+      ma_initialize;
       ma_methods = { mdesc with me_body = body } :: method_list;
-      ma_instances = List.map add_extra_param mi_list }
+      ma_instances = List.map add_extra_param ma_instances }
   with
     (* no step method is present *)
     Not_found -> mach
 
+(* treat the model and its transparent assertions *)
+let rec hybrid_machine ({ ma_assertion } as mach) =
+  let ma_assertion =
+    match ma_assertion with
+    | [] -> [] | _ -> List.map hybrid_machine ma_assertion in
+  hybrid_machine_model { mach with ma_assertion }
+           
 let machine({ ma_kind } as mach) =
   match ma_kind with
   | Deftypes.Tnode(Tcont) -> hybrid_machine mach

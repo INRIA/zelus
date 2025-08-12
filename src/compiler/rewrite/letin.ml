@@ -162,6 +162,12 @@ let equation funs acc ({ eq_desc } as eq) =
        let _, { c_vardec; c_eq } = Mapfold.equation_it funs empty eq_reset in
        add_par { eq with eq_desc = EQreset(Aux.par (equations c_eq), e_reset) }
          (par acc_e_reset { c_vardec; c_eq = Parseq.Empty })
+    | EQassert(e_body) ->
+       if !Misc.transparent then
+         add_par { eq with eq_desc = EQassert(atomic_expression funs empty e_body) } acc  
+       else
+         let e_body, acc = Mapfold.expression funs acc e_body in
+         add_par { eq with eq_desc = EQassert(e_body) } acc
     | _ ->
        let eq, acc_eq = Mapfold.equation funs empty eq in
        seq acc_eq (add_seq eq empty) in
