@@ -53,7 +53,10 @@ let expression funs acc e =
          eq_safe = true; eq_index = -1; eq_loc = e_loc } in
      (* [let match e with (P_i -> r = e_i)_i in r] *)
      (* or [let match e with (P_i -> emit r = e_i)_i in r *)
-     Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
+     if is_total then
+       Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
+     else
+       Aux.local_vardec_in_e [Aux.id_vardec result] [eq] (Aux.var result), acc
   | Ereset(e, e_r) ->
      let result = fresh () in
      let eq =
