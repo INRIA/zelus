@@ -488,7 +488,11 @@ module Make (Info: INFO) =
              Zelus.EQautomaton({ is_weak; handlers; state_opt })
         | EQempty ->
            Zelus. EQempty
-        | EQassert(e) -> Zelus.EQassert(expression env e)
+        | EQassert(e_body) ->
+           Zelus.EQassert
+             { Zelus.a_body = expression env e_body;
+               Zelus.a_hidden_env = Ident.Env.empty;
+               Zelus.a_free_vars = Ident.S.empty }
         | EQpresent(p_h_list, eq_opt) ->
            let handlers =
              List.map
@@ -834,7 +838,10 @@ module Make (Info: INFO) =
         | Ereset(e_body, e_res) ->
            Zelus.Ereset(expression env e_body, expression env e_res)
         | Eassert(e_body) ->
-           Zelus.Eassert(expression env e_body)
+           Zelus.Eassert
+             { Zelus.a_body = expression env e_body;
+               Zelus.a_hidden_env = Ident.Env.empty;
+               Zelus.a_free_vars = Ident.S.empty }
         | Eforloop(f) ->
            Zelus.Eforloop(forloop_exp env f)
       in

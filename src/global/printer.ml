@@ -4,7 +4,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -216,7 +216,7 @@ module Make (Info: INFO) =
     let print_hidden_env ff env =
       if not (Ident.Env.is_empty env) then 
         if !verbose then
-          fprintf ff "@[<v 0>(* %a *)@]"
+          fprintf ff "@[<v 0>(* hidden env: %a *)@]"
           (Ident.Env.fprint_t Info.pienv) env
         else 
           Pp_tools.print_list_r
@@ -386,8 +386,7 @@ module Make (Info: INFO) =
            expression e_body expression e
       | Efun(fe) ->
          fprintf ff "@[(%a)@]" funexp fe
-      | Eassert(e_body) ->
-         fprintf ff "@[<hov 2>assert@ %a@]" expression e_body
+      | Eassert a -> p_assert ff a
       | Eforloop({ for_size; for_kind; for_index; for_input; for_body;
                    for_env; for_resume }) ->
          let size ff for_size =
@@ -404,6 +403,12 @@ module Make (Info: INFO) =
            for_exp for_body 
            for_exit_condition for_kind
     
+    and p_assert ff { a_body; a_hidden_env; a_free_vars } =
+      fprintf ff "@[<hov2>assert@ %a@]" expression a_body;
+         print_hidden_env ff a_hidden_env;
+         fprintf ff "@[<hov2>(* free variables:@ %a *)@]"
+           Ident.S.fprint_t a_free_vars
+
     and result ff { r_desc } =
       match r_desc with
       | Exp(e) -> fprintf ff "@[<hov 2>->@ %a@]" expression e
@@ -561,9 +566,9 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov0>%a@]"
            (and_equation ordered "do " " done") eq_list
       | EQempty -> fprintf ff "()"
-      | EQassert(e_assert) ->
-         fprintf ff "@[<hov2>assert@ %a@]" expression e_assert
-      | EQforloop({ for_size; for_kind; for_index; for_input; for_env; for_resume;
+      | EQassert a -> p_assert ff a
+      | EQforloop
+        ({ for_size; for_kind; for_index; for_input; for_env; for_resume;
                     for_body = { for_out; for_block; for_out_env } }) ->
          let size ff for_size =
            Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)

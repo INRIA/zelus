@@ -191,10 +191,10 @@ and expression funs ({ read } as acc) ({ e_desc } as e) =
      e, acc
   | _ -> raise Mapfold.Fallback
 
-and assert_t funs ({ def_use } as acc) e =
+and assert_t funs ({ def_use } as acc) ({ a_body } as a) =
   let _, { def_use; read } =
-    Mapfold.expression_it funs { def_use; read = S.empty } e in
-  e, { acc with def_use = mark true read def_use }
+    Mapfold.expression_it funs { def_use; read = S.empty } a_body in
+  a, { acc with def_use = mark true read def_use }
 
 (* free variables that appear in the output [e] of *)
 (* a function [fun x1... -> e where eq] are useful *)

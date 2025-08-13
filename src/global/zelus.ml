@@ -268,9 +268,20 @@ and ('info, 'ienv) exp_desc =
                      present_handler list;
         default_opt : ('info, 'ienv) exp default } 
   | Ereset of ('info, 'ienv) exp * ('info, 'ienv) exp 
-  | Eassert of ('info, 'ienv) exp
+  | Eassert of ('info, 'ienv) assertion
   | Eforloop of
       ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) for_exp) forloop 
+
+(* assertions *)
+and ('info, 'ienv) assertion =
+  { a_body: ('info, 'ienv) exp; (* the body of the assertion *)
+    (* an auxiliary mapping for hidden state variables; this appears only *)
+    (* in continuous-time models. It is empty in the surface language (Zelus) *)
+    (* and is generated during some of the rewriting steps *)
+    (* only useful for transparent assertions *)
+    mutable a_hidden_env: 'ienv Ident.Env.t;
+    mutable a_free_vars: Ident.S.t; (* its free variables in [a_body] *)
+  }
 
 and ('info, 'ienv, 'size, 'body) forloop =
   { for_size : 'size option;
@@ -378,7 +389,7 @@ and ('info, 'ienv) eq_desc =
                  handlers : ('ienv, 'info pattern, ('info, 'ienv) eq)
                               match_handler list }
   | EQempty
-  | EQassert of ('info, 'ienv) exp 
+  | EQassert of ('info, 'ienv) assertion
   | EQforloop of
       ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) for_eq) forloop 
 (* [foreach [e]* [id in e [by e],]* returns (vardec_list) do eq] *)
@@ -441,9 +452,10 @@ and ('info, 'ienv) funexp =
     f_body: ('info, 'ienv) result;
     f_loc: Location.t;
     mutable f_env: 'ienv Ident.Env.t; (* the environment for input variables *)
+    (* an auxiliary mapping for hidden state variables; this appears only *)
+    (* in continuous-time models. It is empty in the surface language (Zelus) *)
+    (* and is generated during some of the rewriting steps *)
     mutable f_hidden_env: 'ienv Ident.Env.t;
-    (* an auxiliary mapping for hidden state variables; it is empty *)
-    (* in the surface language (Zelus) *)
   }
 
 and ('info, 'ienv) sizefun =

@@ -639,8 +639,8 @@ let rec expression env loop_path code { Zelus.e_desc } =
      Oaux.seq (ifthen r_e init) e,
      seq code code_e    
   | Eforloop _ -> Misc.not_yet_implemented "for loops"
-  | Zelus.Eassert(e) ->
-     assertion_expression env loop_path code e
+  | Zelus.Eassert(a) ->
+     assertion_expression env loop_path code a
   | Zelus.Elet(l, e) ->
      leq_in_e env loop_path l code e
   | Zelus.Elocal(b, e) ->
@@ -656,30 +656,31 @@ let rec expression env loop_path code { Zelus.e_desc } =
      (* these last constructions have been rewritten in previous steps *)
      assert false
 
-and assertion_expression env loop_path code e =
+and assertion_expression env loop_path code ({ a_body } as a) =
   if !Misc.transparent then
     (* transparent assertions. [assert e] is translated as a machine *)
     (* whose input is [self] *)
-    assertion env loop_path code e
+    let code = assertion env loop_path code a in
+    Oaux.void, code 
   else
-    let e, code = expression env loop_path code e in
-    Eassert(e), code
+    let a_body, code = expression env loop_path code a_body in
+    Eassert(a_body), code
 
-(* transparent assertion. [e] is compiled as if it were a hybrid node *)
+(* transparent assertions. [e] is compiled as if it were a hybrid node *)
 (* [hybrid self -> e] where [self] is the name of the closest memory state *)
 (* surrending the assertion. The pre-condition to the translation is that *)
 (* every free variable of the assertion is a state variable of the model. *)
-and assertion { self; env } loop_path ({ assertions } as code) e =
+and assertion { self; env } loop_path ({ assertions } as code) { a_body } =
   let self_pat =
     Evarpat { id = self; ty = None } in
   let self = Ident.fresh "self" in
-  let e, code_body =
-    expression { self; env } empty_loop_path empty_code e in
+  let a_body, code_body =
+    expression { self; env } empty_loop_path empty_code a_body in
   let f = Ident.fresh "machine" in
   let ma =
-    make_machine f (Tnode(Tcont)) [] self self_pat code_body e Initial.typ_bool
-  in
-  Oaux.void, { code with assertions = Parseq.cons ma assertions }
+    make_machine
+      f (Tnode(Tcont)) [] self self_pat code_body a_body Initial.typ_bool in
+  { code with assertions = Parseq.cons ma assertions }
 
 and result env { Zelus.r_desc } =
   match r_desc with
@@ -748,19 +749,20 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, code) =
      let e_false, code =
        equation env loop_path eq_false (Oaux.void, code) in
      Oaux.seq (Oaux.ifthenelse e e_true e_false) step, code
-  | Zelus.EQassert(e) ->
-     assertion_equation env loop_path (step, code) e
+  | Zelus.EQassert(a) ->
+     assertion_equation env loop_path (step, code) a
   | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
   | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
   | Zelus.EQsizefun _ -> assert false
   
-and assertion_equation env loop_path (step, code) e =
+and assertion_equation env loop_path (step, code) ({ a_body } as a) =
   if !Misc.transparent then
     (* transparent assertions *)
+    let code = assertion env loop_path code a in
     step, code
   else
-    let e, code = expression env loop_path code e in
-    Oaux.seq (Eassert(e)) step, code
+    let a_body, code = expression env loop_path code a_body in
+    Oaux.seq (Eassert(a_body)) step, code
 
 and sizefun_list env is_rec s_list (step, code) =
   let sizefun env { Zelus.sf_id; Zelus.sf_id_list; Zelus.sf_e; sf_env } =

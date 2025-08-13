@@ -15,6 +15,7 @@
 (* add extra code for in-place modification of the continuous state vector *)
 (* see Ztypes.ml *)
 
+
 (* A continuous machine of the form                *)
 (* machine m s1 ... =                              *)
 (*    memories (k_i m_k: t_i)_{i in I}             *)
@@ -57,12 +58,13 @@
  *-
  *- method step(arg1,...,argl) =
  *-    let c_start = cstate.cindex in (* current position of the cvector *)
- *-    var cpos = c_start in
  *-    let z_start = cstate.zindex in (* current position of the zvector *)
+ *-
+ *-    var cpos = c_start in
+ *-    var zpos = z_start in
  *-    cstate.cindex <- cstate.cindex + csize; 
  *-    cstate.zindex <- cstate.zindex + zsize;
  *-    m <- cstate.major;
- *-    var zpos = z_start in
  *-    if cstate.major then 
  *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
  *-    else ((* copy the value of the continuous state vector of the solver *)
@@ -97,19 +99,18 @@
  *-    result
  *-
  *- method step(arg1,...,argl) =
- *-    self.prelude ();
+ *-    let c_start = cstate.cindex in (* current position of the cvector *)
+ *-    let z_start = cstate.zindex in (* current position of the zvector *)
+ *-    self.prelude (c_start);
  *-    let result = ...body... in
- *-    self.postlude ();
+ *-    self.postlude (c_start, z_start);
  *-    result
  *-
- *- local method prelude =
- *-    let c_start = cstate.cindex in (* current position of the cvector *)
+ *- local method prelude(c_start) =
  *-    var cpos = c_start in
- *-    let z_start = cstate.zindex in (* current position of the zvector *)
  *-    cstate.cindex <- cstate.cindex + csize; 
  *-    cstate.zindex <- cstate.zindex + zsize;
- *-    m <- cstate.major;
- *-    var zpos = z_start in
+ *-    m <- cstate.major; (* set the major flag *)
  *-    if cstate.major then 
  *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
  *-    else ((* copy the value of the continuous state vector of the solver *)
@@ -117,8 +118,9 @@
  *-          cin cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
  *-          ... cpos is incremented
  *-
- *- local method postlude =
- *-    cpos <- c_start;
+ *- local method postlude(c_start, z_start) =
+ *-    var cpos = c_start in
+ *-    var zpos = z_start in
  *-    if cstate.major then 
  *-        ((* copy the local continuous state variables into *)
  *-         (* the continuous state vector of the solver *)
@@ -432,6 +434,8 @@ let hybrid_machine_model ({ ma_params; ma_self; ma_initialize; ma_memories;
     
     (* add initialization code to [e_opt] *)
     let ma_initialize =
+      (* cstate.cmax <- cstate.cmax + csize;
+         cstate.zmax <- cstate.zmax + zsize *)
       maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize ma_initialize) in
           
     let c_start = Ident.fresh "cindex" in
@@ -450,29 +454,29 @@ let hybrid_machine_model ({ ma_params; ma_self; ma_initialize; ma_memories;
     let only cond e = if cond then e else void in
     let only_then_else cond e1 e2 = if cond then e1 else e2 in
         
-    (*
-      let prelude_body =
+    (* let prelude_body =
       letin_only cvec_is_not_zero
         (* compute the current position of the cvector *)
 	(varpat c_start Initial.typ_int) cstate_cpos
-        (letvar_only
-           cvec_is_not_zero cpos Initial.typ_int (local c_start)
-	   (* compute the current position of the zvector *)
-           (letin_only
-              zvec_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
-              (letvar_only
+        (* compute the current position of the zvector *)
+        (letin_only
+           zvec_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
+           (letvar_only
+              cvec_is_not_zero cpos Initial.typ_int (local c_start)
+	      (letvar_only
                  zvec_is_not_zero zpos Initial.typ_int (local z_start)
-		 (sequence
-		    [only cvec_is_not_zero (incr cstate "cindex" csize);
+	         (sequence
+	            [only cvec_is_not_zero (incr cstate "cindex" csize);
                      only zvec_is_not_zero (incr cstate "zindex" zsize);
-		     only major_is_not_zero (set_major cstate ma_self major_opt);
+	             only major_is_not_zero
+                       (set_major cstate ma_self major_opt);
 		     only time_is_not_zero (set_time cstate ma_self time_opt);
 		     ifthenelse
                        (major cstate) (set_dvec_to_zero cstate c_start csize)
 		       (only cvec_is_not_zero (cin ctable cstate ma_self cpos))])
               )
            )
-         ) in
+        ) in
 
     let postlude_body =
       sequence
@@ -512,17 +516,18 @@ let hybrid_machine_model ({ ma_params; ma_self; ma_initialize; ma_memories;
       letin_only cvec_is_not_zero
         (* compute the current position of the cvector *)
 	(varpat c_start Initial.typ_int) cstate_cpos
-        (letvar_only
-           cvec_is_not_zero cpos Initial.typ_int (local c_start)
-	   (* compute the current position of the zvector *)
-           (letin_only
-              zvec_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
-              (letvar_only
+        (* compute the current position of the zvector *)
+        (letin_only
+           zvec_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
+           (letvar_only
+              cvec_is_not_zero cpos Initial.typ_int (local c_start)
+	      (letvar_only
                  zvec_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
 		    [only cvec_is_not_zero (incr cstate "cindex" csize);
                      only zvec_is_not_zero (incr cstate "zindex" zsize);
-		     only major_is_not_zero (set_major cstate ma_self major_opt);
+		     only major_is_not_zero
+                       (set_major cstate ma_self major_opt);
 		     only time_is_not_zero (set_time cstate ma_self time_opt);
 		     ifthenelse
                        (major cstate) (set_dvec_to_zero cstate c_start csize)
@@ -539,21 +544,25 @@ let hybrid_machine_model ({ ma_params; ma_self; ma_initialize; ma_memories;
 	                       ifthenelse
                                  (major cstate)
 				 (sequence
-                                   [only
-                                      cvec_is_not_zero (cout ctable cstate ma_self cpos);
-                                    only
-                                      zvec_is_not_zero
-                                      (set_zin_to_false ztable ma_self zpos)])
+                                    [only
+                                       cvec_is_not_zero
+                                       (cout ctable cstate ma_self cpos);
+                                     only
+                                       zvec_is_not_zero
+                                       (set_zin_to_false ztable ma_self zpos)])
                                  (sequence
 				    [only
-                                       zvec_is_not_zero (zin ztable cstate ma_self zpos);
+                                       zvec_is_not_zero
+                                       (zin ztable cstate ma_self zpos);
                                      only
                                        zvec_is_not_zero
                                        (set zpos (local z_start));
 	                             only
-                                       zvec_is_not_zero (zout ztable cstate ma_self zpos);
+                                       zvec_is_not_zero
+                                       (zout ztable cstate ma_self zpos);
 	                             only
-                                       cvec_is_not_zero (dout ctable cstate ma_self cpos)]);
+                                       cvec_is_not_zero
+                                       (dout ctable cstate ma_self cpos)]);
                                local result]))
                         body)
         ])))) in

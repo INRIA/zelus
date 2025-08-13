@@ -1067,8 +1067,9 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        let ty, actual_k_body = expression expected_k h e_body in
        let actual_k = expect expected_k h e_res Initial.typ_bool in
        ty, Kind.sup actual_k_body actual_k
-    | Eassert(e_body) ->
-       let actual_k = expect expected_k h e_body Initial.typ_bool in
+    | Eassert({ a_body; a_hidden_env }) ->
+       let h = Env.append a_hidden_env h in
+       let actual_k = expect expected_k h a_body Initial.typ_bool in
        Initial.typ_unit, actual_k
     | Elocal(b, e_body) ->
        let _, new_h, _, actual_k = block_eq expected_k h b in
@@ -1241,8 +1242,8 @@ and array_operator expected_k h loc op e_list =
      Types.vec ty (Sizes.mult si1 si2), actual_k
   | _ -> assert false
 
-and funexp expected_k h ({ f_vkind; f_kind; f_args; f_body; f_loc;
-                           f_hidden_env } as body) =
+and funexp expected_k h
+  ({ f_vkind; f_kind; f_args; f_body; f_loc; f_hidden_env } as body) =
   (* typing the argument of a function *)
   let arg_list expected_k h f_args =
     (* typing an argument. An argument is a list of vardec declarations *)
@@ -1403,8 +1404,9 @@ and equation expected_k h { eq_desc; eq_loc } =
      let h, actual_k = leq expected_k h l_eq in
      let defnames, actual_k_eq = equation expected_k h eq in
      defnames, Kind.sup actual_k actual_k_eq
-  | EQassert(e_body) ->
-     let actual_k = expect expected_k h e_body Initial.typ_bool in
+  | EQassert({ a_body; a_hidden_env }) ->
+     let h = Env.append a_hidden_env h in
+     let actual_k = expect expected_k h a_body Initial.typ_bool in
      Defnames.empty, actual_k
   | EQforloop(f_eq) -> 
      forloop_eq eq_loc expected_k h f_eq

@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2025 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -184,7 +184,8 @@ module Make (Info: INFO) =
              | Else(eq) -> let eq, def = equation eq in Else(eq), def in
            EQpresent({ handlers; default_opt }), Defnames.union def def_opt
         | EQempty -> EQempty, Defnames.empty
-        | EQassert(e) -> EQassert(expression e), Defnames.empty
+        | EQassert({ a_body } as a) ->
+           EQassert({ a with a_body = expression a_body }), Defnames.empty
         | EQforloop({ for_size; for_kind; for_index;
                       for_input; for_body = { for_out; for_block } } as f) ->
            let for_size = Util.optional_map expression for_size in
@@ -356,8 +357,10 @@ module Make (Info: INFO) =
            Epresent({ handlers; default_opt })
         | Ereset(e_body, e_res) ->
            Ereset(expression e_body, expression e_res)
-        | Eassert(e_body) -> Eassert(expression e_body)
-        | Eforloop({ for_size; for_index; for_kind; for_input; for_body } as f) ->
+        | Eassert({ a_body } as a) ->
+           Eassert({ a with a_body = expression a_body })
+        | Eforloop
+           ({ for_size; for_index; for_kind; for_input; for_body } as f) ->
            let for_size = Util.optional_map expression for_size in
            let for_kind =
              match for_kind with

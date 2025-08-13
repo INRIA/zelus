@@ -151,7 +151,7 @@ type ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs =
       'a -> ('info1, 'ienv1) exp -> ('info2, 'ienv2) exp * 'a;
     assert_t :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
-      'a -> ('info1, 'ienv1) exp -> ('info2, 'ienv2) exp * 'a;
+      'a -> ('info1, 'ienv1) assertion -> ('info2, 'ienv2) assertion * 'a;
     vardec :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
       'a -> ('info1, ('info1, 'ienv1) exp) vardec ->
@@ -677,9 +677,9 @@ and expression funs acc ({ e_desc; e_loc } as e) =
      let handlers, acc =
        Util.mapfold (match_handler_e_it funs) acc handlers in
      { e with e_desc = Ematch { m with e; handlers } }, acc
-  | Eassert e ->
-     let e, acc = assert_it funs acc e in
-     { e with e_desc = Eassert(e) }, acc
+  | Eassert(a) ->
+     let a, acc = assert_it funs acc a in
+     { e with e_desc = Eassert(a) }, acc
   | Ereset(e_body, e_c) ->
      let e_body, acc = reset_e_it funs acc e_body in
      let e_c, acc = expression_it funs acc e_c in
@@ -710,9 +710,14 @@ and expression funs acc ({ e_desc; e_loc } as e) =
                            for_body; for_env } }, acc
 
 (* Assert *)
-and assert_it funs acc e = funs.assert_t funs acc e
+and assert_it funs acc a = funs.assert_t funs acc a
 
-and assert_t funs acc e = expression funs acc e
+and assert_t funs acc ({ a_body; a_free_vars } as a) =
+  let a_body, acc = expression funs acc a_body in
+  let a_free_vars =
+    Ident.S.map (fun x -> let x, _ = var_ident_it funs.global_funs acc x in x)
+      a_free_vars in
+  { a with a_body; a_free_vars }, acc
 
 (* match handler - equations and expressions *)
 and match_handler_eq_it funs acc m_handler =
@@ -823,9 +828,9 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
          Util.mapfold (automaton_handler_it funs) acc handlers in
        { eq with eq_desc = EQautomaton({ a with handlers; state_opt }) }, acc
     | EQempty -> eq, acc
-    | EQassert(e) ->
-       let e, acc = assert_it funs acc e in
-       { eq with eq_desc = EQassert(e) }, acc
+    | EQassert(a) ->
+       let a, acc = assert_it funs acc a in
+       { eq with eq_desc = EQassert(a) }, acc
     | EQforloop
        ({ for_size; for_kind; for_index; for_input; for_body; for_env } as f) ->
       let for_env, acc = build_it funs.global_funs acc for_env in

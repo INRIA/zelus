@@ -377,7 +377,7 @@ and exp env ({ e_desc; e_info; e_loc } as e) =
     | Ereset(e_body, e_res) ->
        exp_less_than_on_i env e_res izero;
        exp env e_body
-    | Eassert(e_body) -> exp env e_body
+    | Eassert { a_body } -> exp env a_body
     | Elocal(b_eq, e_body) ->
        let env = block_eq Ident.S.empty env b_eq in
        exp env e_body
@@ -551,7 +551,7 @@ and equation env { eq_desc; eq_loc; eq_write } =
      ignore (block_eq Ident.S.empty env b_eq)
   | EQlet(l_eq, eq) ->
      let env = leq env l_eq in equation env eq
-  | EQassert(e_assert) -> exp_less_than_on_i env e_assert izero 
+  | EQassert { a_body } -> exp_less_than_on_i env a_body izero 
   | EQempty -> ()
   | EQforloop(f_eq) -> forloop_eq eq_loc env f_eq
   | EQsizefun(f_size) -> sizefun_t env f_size

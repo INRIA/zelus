@@ -99,6 +99,10 @@ let e_local acc e =
 
 let pattern funs acc p = p, acc
 
+let atomic_expression funs acc e =
+  let e, acc = Mapfold.expression_it funs acc e in
+  e_local acc e
+
 (* Translation of expressions *)
 (* [expression funs { c_vardec; c_eq } e = [e', { c_vardec'; c_eq'}] *)
 (* such that [local c_vardec do c_eq in e] and *)
@@ -121,14 +125,15 @@ let expression funs acc ({ e_desc } as e) =
        let _, acc_b = Mapfold.block_it funs empty b in
        let e, acc_e = Mapfold.expression_it funs empty e in
        e, seq acc_b acc_e
+    | Eassert({ a_body } as a) ->
+       let a_body, acc =
+         if !Misc.transparent then atomic_expression funs empty a_body, acc
+         else Mapfold.expression_it funs acc a_body in
+       { e with e_desc = Eassert { a with a_body } }, acc
     | _ ->
        Mapfold.expression funs empty e in
   let acc_e = par acc acc_e in
   e, acc_e
-
-let atomic_expression funs acc e =
-  let e, acc = Mapfold.expression_it funs acc e in
-  e_local acc e
 
 let atomic_equation funs acc eq =
   let eq, acc = Mapfold.equation_it funs acc eq in
@@ -162,12 +167,12 @@ let equation funs acc ({ eq_desc } as eq) =
        let _, { c_vardec; c_eq } = Mapfold.equation_it funs empty eq_reset in
        add_par { eq with eq_desc = EQreset(Aux.par (equations c_eq), e_reset) }
          (par acc_e_reset { c_vardec; c_eq = Parseq.Empty })
-    | EQassert(e_body) ->
-       if !Misc.transparent then
-         add_par { eq with eq_desc = EQassert(atomic_expression funs empty e_body) } acc  
-       else
-         let e_body, acc = Mapfold.expression funs acc e_body in
-         add_par { eq with eq_desc = EQassert(e_body) } acc
+    | EQassert({ a_body } as a) ->
+       let a_body, acc =
+         if !Misc.transparent then atomic_expression funs empty a_body, acc
+         else Mapfold.expression_it funs acc a_body in
+       add_par
+           { eq with eq_desc = EQassert { a with a_body } } acc
     | _ ->
        let eq, acc_eq = Mapfold.equation funs empty eq in
        seq acc_eq (add_seq eq empty) in
@@ -249,8 +254,6 @@ let for_out_t funs acc ({ desc = ({ for_init; for_default } as desc) } as f) =
     Util.optional_map (atomic_expression funs empty) for_default in
   { f with desc = { desc with for_init; for_default } }, acc
 
-let assert_t funs acc e = atomic_expression funs empty e, acc 
-
 let letdecl funs acc (d_names, ({ l_eq } as leq)) =
   let _, acc_local = Mapfold.equation_it funs empty l_eq in
   (d_names, { leq with l_eq = eq_local acc_local }), acc
@@ -263,7 +266,7 @@ let program _ p =
                             present_handler_eq; present_handler_e;
                             reset_e; reset_eq; result;
                             for_exp_t; for_eq_t; for_out_t;
-                            letdecl; assert_t; global_funs } in
+                            letdecl; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

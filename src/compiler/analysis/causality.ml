@@ -461,9 +461,9 @@ and exp env c_free ({ e_desc; e_info; e_loc } as e) =
        exp_less_than_on_c env c_free e_res c_e;
        exp_less_than_on_c env c_free e_body c_e;
        Tcausal.skeleton_on_c c_e e_typ
-    | Eassert(e_body) ->
+    | Eassert { a_body } ->
        let c_e = Tcausal.intro_less_c c_free in
-       exp_less_than_on_c env c_free e_body c_e;
+       exp_less_than_on_c env c_free a_body c_e;
        Tcausal.skeleton_on_c c_e e_typ
     | Elocal(b_eq, e_body) ->
        let env = block_eq Ident.S.empty env c_free b_eq in
@@ -683,9 +683,9 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
      ignore (block_eq Ident.S.empty env c_free b_eq)
   | EQlet(l_eq, eq) ->
      let env = leq env c_free l_eq in equation env c_free eq
-  | EQassert(e_assert) ->
+  | EQassert { a_body } ->
      let c_e = Tcausal.intro_less_c c_free in
-     exp_less_than_on_c env c_free e_assert c_e
+     exp_less_than_on_c env c_free a_body c_e
   | EQempty -> ()
   | EQforloop(f_eq) -> forloop_eq env c_free f_eq
   | EQsizefun(f_size) -> sizefun_t env c_free f_size
