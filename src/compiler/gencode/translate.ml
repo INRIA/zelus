@@ -670,13 +670,17 @@ and assertion_expression env loop_path code ({ a_body } as a) =
 (* [hybrid self -> e] where [self] is the name of the closest memory state *)
 (* surrending the assertion. The pre-condition to the translation is that *)
 (* every free variable of the assertion is a state variable of the model. *)
-and assertion { self; env } loop_path ({ assertions } as code) { a_body } =
-  let self_pat =
-    Evarpat { id = self; ty = None } in
+and assertion { self; env } loop_path ({ assertions } as code)
+  { a_body; a_hidden_env } =
+  let self_pat = Evarpat { id = self; ty = None } in
   let self = Ident.fresh "self" in
+  let env, mem_acc, var_acc =
+    append empty_loop_path a_hidden_env { self; env } in
   let a_body, code_body =
-    expression { self; env } empty_loop_path empty_code a_body in
-  let f = Ident.fresh "machine" in
+    expression env empty_loop_path empty_code a_body in
+  let a_body, code_body =
+    add_mem_vars_to_code mem_acc var_acc (a_body, code_body) in
+     let f = Ident.fresh "machine" in
   let ma =
     make_machine
       f (Tnode(Tcont)) [] self self_pat code_body a_body Initial.typ_bool in
