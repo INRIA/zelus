@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2019. All rights reserved.                           *)
+(*  Copyright 2012 - 2025. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -72,6 +72,7 @@ type cstate =
 (* all instances points to this global parameter and read/write on it *)
 type ('a, 'b) hnode = cstate -> ('a, 'b) node
 
+(* an autonomous (no input) hybrid system *)
 type 'b hsimu =
     Hsim:
       { alloc : unit -> 's;
