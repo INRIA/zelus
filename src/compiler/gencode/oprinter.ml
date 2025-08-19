@@ -328,15 +328,18 @@ and instance ff { i_name; i_machine; i_kind; i_params; i_size } =
        (print_with_braces (exp 0) "[" "]") "" "" "")
     i_size
 
-and pmethod ff { me_name; me_params; me_body; me_typ } =
-  fprintf ff "@[<hov2>%s %a@ =@ (%a%a)@]"
+and pmethod ff { me_local; me_name; me_params; me_body; me_typ } =
+  fprintf ff "@[<hov2>%s%s %a@ =@ (%a%a)@]"
+    (if me_local then "local " else "")
     (method_name me_name) (pattern_list Printer.ptype) me_params (exp 2) me_body
     p_internal_type me_typ
 
-and pinitialize ff i_opt =
-  match i_opt with
-  | None -> ()
-  | Some(e) -> fprintf ff "@[<hov2>initialize@;%a@]" (exp 0) e
+and pinitialize ff i_list =
+  match i_list with
+  | [] -> ()
+  | _ ->
+     fprintf ff "@[<hov2>initialize@ %a@]"
+       (Pp_tools.print_list_r (exp 0) "" ";" "") i_list
 
 (* Print a machine *)
 and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;

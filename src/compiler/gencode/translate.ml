@@ -406,13 +406,15 @@ let make_machine
     ma_kind = k;
     ma_self = self;
     ma_params = pat_list;
-    ma_initialize = None;
+    ma_initialize = [];
     ma_memories = Parseq.list [] mem;
     ma_instances = Parseq.list [] instances;
     ma_methods = 
-      [ { me_name = Oaux.reset; me_params = []; me_body = reset;
+      [ { me_local = false;
+          me_name = Oaux.reset; me_params = []; me_body = reset;
           me_typ = Initial.typ_unit };
-	{ me_name = Oaux.step; me_params = [p]; me_body = e;
+	{ me_local = false;
+          me_name = Oaux.step; me_params = [p]; me_body = e;
           me_typ = ty_res } ];
     ma_assertion = Parseq.list [] assertions }
 

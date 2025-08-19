@@ -115,8 +115,6 @@ let def_type_for_a_machine ma_name ma_memories ma_instances =
     Etypedecl
       [Ident.name ma_name, params, Erecord_type(List.map one_entry entries)]
 
-(* produce the set of type declarations for state for a whole program *)
-
 (* Print the call to a method *)
 let rec method_call ff { met_name; met_instance; met_args } =
   let m = Oprinter.method_name met_name in
@@ -411,9 +409,10 @@ and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
 and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e p_internal_type ty
 
 (* Print the method as a function *)
-and pmethod f ff { me_name; me_params; me_body; me_typ } =
-  fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
-    f (Oprinter.method_name me_name) (Oprinter.pattern_list ptype) me_params (exp 2) me_body
+and pmethod f ma_self ff { me_name; me_params; me_body; me_typ } =
+  fprintf ff "@[<v 2>let %s_%s %a %a =@ (%a:%a) in@]"
+    f (Oprinter.method_name me_name) print_self_name ma_self
+    (Oprinter.pattern_list ptype) me_params (exp 2) me_body
     p_internal_type me_typ
 
 and constructor_for_kind = function
@@ -423,31 +422,33 @@ and constructor_for_kind = function
 and expected_list_of_methods = default_list_of_methods
 
 (* Print initialization code *)
-and print_initialize ff e_opt =
-  match e_opt with
-  | None -> fprintf ff "()" | Some(e) -> fprintf ff "%a" (exp 0) e
+and print_initialize ff i_list =
+  match i_list with
+  | [] -> fprintf ff "()"
+  | _ -> Pp_tools.print_list_r (exp 0) "" ";" "" ff i_list
 
-and palloc f i_opt memories ff instances =
+and palloc f i_list memories ff instances =
   if memories = []
   then if instances = []
-       then fprintf ff "@[let %s_alloc _ = %a in@]" f print_initialize i_opt
+       then fprintf ff "@[let %s_alloc _ = %a in@]" f print_initialize i_list
        else
          fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
-           f print_initialize i_opt
+           f print_initialize i_list
            (Pp_tools.print_record print_instance) instances
   else if instances = []
   then
     fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
-      f print_initialize i_opt (Pp_tools.print_record print_memory) memories
+      f print_initialize i_list (Pp_tools.print_record print_memory) memories
   else
     fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
       f
-      print_initialize i_opt
+      print_initialize i_list
       (print_list_r print_memory """;"";") memories
       (print_list_r print_instance """;""") instances
 
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
-(* for every instance *)
+(* for every instance; the list of method is limited to the non local *)
+(* (visible) ones *)
 and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
   (* Define the method *)
   let method_name ff me_name =
@@ -477,9 +478,10 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
  *   let f_alloc () = ... in
  *   let f_step y = ... in
  *   let f_reset = ... in
- *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)
-and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
-                   ma_instances; ma_methods } =
+ *   { alloc = f_alloc; step = f_step; reset = f_reset; ... } in
+ * f *)
+and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_self; 
+                 ma_memories; ma_instances; ma_methods; ma_assertion } =
   (* print either [(f)] *)
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
   let f = Ident.name ma_name in
@@ -497,12 +499,13 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_memories;
 	       k f (print_list_r method_name "" ";" "") m_name_list in
 
   (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a in@ %s@]@]"
+  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a %a in@ %s@]@]"
     f
     (Oprinter.pattern_list ptype) ma_params
     (print_list_r def_instance_function "" "" "") ma_instances
     (palloc f ma_initialize ma_memories) ma_instances
-    (print_list_r (pmethod f) """""") ma_methods
+    (print_list_r (pmethod f ma_self) """""") ma_methods
+    (print_list_r machine "" "" "") ma_assertion 
     tuple_of_methods ma_methods f
 
 (* computes the set of type declarations for representing the state *)

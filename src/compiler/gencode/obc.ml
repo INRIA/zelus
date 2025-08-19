@@ -167,7 +167,7 @@ and machine =
     (* combinatorial, continuous-time or discrete-time *)
     ma_self: Ident.t;
     (* name of the memory state; when none, use "self" *)
-    ma_initialize: exp option;
+    ma_initialize: exp list; (* code to execute at the creation *)
     ma_params: pattern list; (* list of static parameters *)
     ma_memories: mentry list;(* its memories *)
     ma_instances: ientry list; (* its node instances *)
@@ -192,7 +192,8 @@ and ientry =
   }
     
 and method_desc =
-  { me_name: method_name; (* name of the method *)
+  { me_local: bool; (* local method (non public); cannot be called outside) *)
+    me_name: method_name; (* name of the method *)
     me_params: pattern list; (* list of input arguments *)
     me_body: exp; (* its result *)
     me_typ: Deftypes.typ; (* type of the result *)

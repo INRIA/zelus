@@ -1,4 +1,4 @@
-let hybrid g() =
+let hybrid g(x1, x2) =
   let rec der x = 1.0 init 0.0 in
   assert
     (let rec der y = 1.0 init 0.0 in
