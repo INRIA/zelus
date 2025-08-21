@@ -480,12 +480,10 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset; ... } in
  * f *)
-and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_self; 
-                 ma_memories; ma_instances; ma_methods; ma_assertion } =
-  (* print either [(f)] *)
-  (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
+and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
   let f = Ident.name ma_name in
-  let tuple_of_methods ff m_name_list =
+  (* print [(f)] or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
+  let tuple_of_methods ff ma_methods =
     match ma_kind with
     | Deftypes.Tfun _ -> fprintf ff "%s" f
     | Deftypes.Tnode _ ->
@@ -498,15 +496,28 @@ and machine ff { ma_name; ma_kind; ma_params; ma_initialize; ma_self;
        fprintf ff "@[%s { alloc = %s_alloc; %a }@]"
 	       k f (print_list_r method_name "" ";" "") m_name_list in
 
-  (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a %a in@ %s@]@]"
+  let list_of_assertions ff ma_assertion =
+    (* print assertion = [a1;...;an] *)
+    fprintf ff "@[assertion = %a@]"
+      (Pp_tools.print_list_r
+         (fun ff { ma_name } -> Ident.fprint_t ff ma_name) "[" ";" "]")
+      ma_assertion in
+      
+  (* print [let f x1...xn = ...] *)
+  let rec def_machine ff { ma_name; ma_params; ma_initialize; ma_self; 
+                      ma_memories; ma_instances; ma_methods; ma_assertion } =
+    fprintf ff
+      "@[<hov2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a %a in@]@]"
     f
     (Oprinter.pattern_list ptype) ma_params
     (print_list_r def_instance_function "" "" "") ma_instances
     (palloc f ma_initialize ma_memories) ma_instances
     (print_list_r (pmethod f ma_self) """""") ma_methods
-    (print_list_r machine "" "" "") ma_assertion 
-    tuple_of_methods ma_methods f
+    (print_list_r def_machine "" "" "") ma_assertion 
+    tuple_of_methods ma_methods in
+
+  (* print the code for [f] *)
+  fprintf ff "@[<hov0>%a@ %s@]" def_machine ma f
 
 (* computes the set of type declarations for representing the state *)
 (* for every machines defined in expression [e]. This is done by a first step *)
