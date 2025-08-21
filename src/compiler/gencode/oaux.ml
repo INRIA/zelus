@@ -67,6 +67,12 @@ let varmut id = Evar { is_mutable = true; id }
 
 let ifthenelse c e1 e2 = Eifthenelse(c, e1, e2)
 
+let nil = Econstr0 { lname = Lident.Modname(Initial.nil_ident) }
+let cons x l =
+  Econstr1 { lname = Lident.Modname(Initial.cons_ident); arg_list = [x; l] }
+let rec list_of l =
+  match l with | [] -> nil | x :: l -> cons x (list_of l)
+
 let seq e1 e2 =
   match e1, e2 with
   | (Econst(Evoid), e) | (e, Econst(Evoid)) -> e
