@@ -502,7 +502,7 @@ and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
        let k = constructor_for_kind ma_kind in
        let m_name_list =
 	 List.map (fun { me_name } -> me_name) ma_methods in
-       fprintf ff "@[%s { alloc = %s_alloc; %a; %a }@]"
+       fprintf ff "@[%s @[<hov2>{ alloc = %s_alloc;@ %a;@ %a }@]@]"
 	 k f (print_list_r method_name "" ";" "") m_name_list
          list_of_assertions ma_assertion in
 
