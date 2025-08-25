@@ -26,7 +26,7 @@ type ('p, 'r, 'a, 'b) node =
   Node : { alloc : 'p -> 's;
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
-           reset : 'r -> 's -> unit } -> ('p, 'r, 'a, 'b) node
+           reset : 's -> 'r -> unit } -> ('p, 'r, 'a, 'b) node
 
 (* Est-ce equivalent ? La creation (avec alloc) est parametree *)
 (* Au lieu de:
@@ -70,7 +70,7 @@ type ('p, 'r, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode =
   Hnode : { alloc : 'p -> 's;
             step : 's -> 'a -> 'b;
             copy : 's -> 's -> unit;
-            reset : 'r -> 's -> unit;
+            reset : 's -> 's -> unit;
             fder : 's -> 'a -> 'x -> 'xder;
             fzero : 's -> 'a -> 'x -> 'zout;
             fout : 's -> 'a -> 'x -> 'b;
@@ -94,8 +94,8 @@ type ('p, 'r, 'a, 'b) node =
   Node : { alloc : 'p -> 's;
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
-           reset : 'r -> 's -> unit;
-           assertion : ('p, 'r, 's dense, unit) node option }
+           reset : 's -> 'r -> unit;
+           assertion : ('p, 'r, 's dense, bool) node option }
          -> ('p, 'r, 'a, 'b) node
 
 (* Exemples:
@@ -111,14 +111,30 @@ type ('p, 'r, 'a, 'b) node =
  *- let assertion = compose a1 a2 in
  *- ... *)
 
+(* projections *)
+let proj1 { horizon; u } = { horizon; u = fun t -> let v1, _ = u t in v1 }
+let proj2 { horizon; u } = { horizon; u = fun t -> let _, v2 = u t in v2 }
+
 (* Composer deux assertions *)
-let compose a1 a2 =
+let rec compose (*:
+          's1 's2. ('p, 'r, 's1 dense, bool) node option *
+                   ('p, 'r, 's2 dense, bool) node option ->
+                 ('p, 'r, ('s1 * 's2) dense, unit) node option *) =
+  fun a1 a2 -> 
   match a1, a2 with
   | None, None -> None
-  | Some _, None -> a1
-  | _, Some _ -> a2
-  | Some(Node { alloc = alloc1; step = s1; copy = c1; reset = r1; assertion = a1 },
-         Node { alloc = alloc2; step = s1; copy = c2; reset = r2; assertion = a2 }) ->
+  | Some(Node({ step } as a1)), None ->
+     Some(Node { a1 with step = fun self sdense -> step self (proj1 sdense) })
+  | None, Some(Node({ step } as a2)) ->
+     Some(Node { a2 with step = fun self sdense -> step self (proj2 sdense) })
+  | Some(Node { alloc = alloc1; step = s1; copy = c1; reset = r1; assertion = a1 }),
+    Some(Node { alloc = alloc2; step = s2; copy = c2; reset = r2; assertion = a2 }) ->
      let alloc p = (alloc1 p, alloc2 p) in
-     let step
+     let step (self1, self2) sdense =
+       (s1 self1 (proj1 sdense)) && (s2 self2 (proj2 sdense)) in
+     let copy (self1, self2) (self11, self22) =
+       c1 self1 self11; c2 self2 self22 in
+     let reset (self1, self2) r = r1 self1 r; r2 self2 r in
+     let assertion = None in
+     Some(Node { alloc; step; copy; reset; assertion })
      
