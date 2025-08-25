@@ -151,7 +151,7 @@ type ('p, 'r, 'a, 'b) node =
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
            reset : 's -> 'r -> unit;
-           assertion : ('p, 'r, 's, bool) node list }
+           assertion : ('p, 'r, 's dense, bool) node list }
          -> ('p, 'r, 'a, 'b) node
 
 (* Dans ce cas, la composition d'assertion n'est pas tellement plus simple car il *)
@@ -163,9 +163,13 @@ type ('p, 'r, 'a, 'b) node =
  *- let Node { alloc = alloc_n; step = s_n; assertion = a_list_n } = ... in
  *- let alloc p = (alloc_1 p,...,alloc_n p) in
  *- let step (self_1,...,self_n) = s_1 self_1 ...;...; s_n self_n ... in
- *- let a_list_1 = List.map (apply (fun (self_1,...,self_n) -> self_1)) a_list_1 in
+ *- let a_list_1 = List.map (apply (fun { horizon; u } ->
+ *-                                         { horizon;
+ *-                                           u = fun t ->
+ *-                                                let self_1,...,self_n = u(t) in
+ *-                                                self_1 }) a_list_1 in
  *- ...
- *- let a_list_n = List.map (apply (fun (self_1,...,self_n) -> self_n)) a_list_n in
+ *- let a_list_n = List.map (apply (fun ... -> ...)) a_list_n in
  *- Node { alloc; step; assertion = a_list_1 @ ... @ a_list_n }
 
  *- ou:
@@ -173,9 +177,21 @@ type ('p, 'r, 'a, 'b) node =
  *- let apply proj (Node { alloc; step; assertion }) =
  *-   Node { alloc; step = fun self i = step self (proj i); assertion } *)
 
+(* If faut des fonctions de lifting (node vers hnode), *)
+(* de conversion d'un noeud a temps continu vers un noeud a temps discret *)
+(* et de verification des assertions *)
+
+(* val lift : (cstate, unit, 'a, 'b) node ->
+                    (unit, 'a, 'b, cvec, cvec, zinvec, zoutvec) hnode *)
+(* val solve :
+   (cstate, unit, 'a, 'b) node -> (unit, 'a superdense, 'b superdense) node *)
+
+(* val check :
+   (cstate, 'a, bool) node -> (unit, 'a dense, bool) node *)
+
 (* Odealus *)
 
-(* Une autre interface *)
+(* Une autre interface ? *)
 type ('p, 'r, 'a, 'b) node =
   Node : { alloc : 'p -> 's;
            step : 's -> 'a -> 'b;
@@ -185,3 +201,22 @@ type ('p, 'r, 'a, 'b) node =
 
 (* Dans ce cas, la fonction de composition des assertions serait-elle plus simple ? *)
 (* Je ne vois pas comment construire une valeur de ce type, cad comment compiler. *)
+
+(* N'est-ce pas plus simple avec la forme suivante ? *)
+type ('a, 'b) cnode_with_assertions =
+  Node : { alloc : cstate -> 's;
+           step : 's -> 'a -> 'b;
+           copy : 's -> 's -> unit;
+           reset : 's -> -> unit;
+           assertion : ('s, bool) cnode_with_assertions list }
+         -> ('p, 'r, 'a, 'b) node
+
+ (*
+  *- Dans ce cas, c'est la fonction de simulation qui se charge de produire une
+  *- machine discrete pour le modele et qui verifie recursivement que les
+  *- assertions sont vraies.
+
+  val solve: solver -S-> (cstate, unit, 'a, 'b) node -S->
+                         (unit, unit, 'a superdense, 'b superdense) node
+  
+*)
