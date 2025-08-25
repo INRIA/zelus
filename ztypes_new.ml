@@ -21,12 +21,12 @@ type cstate =
 
 type ('a, 'b) hnode = cstate -> ('a, 'b) node
 
-(* Pourrait-on plutot avoir un type *)
-type ('p, 'a, 'b) node =
+(* Pourrait-on plutot avoir un type ? *)
+type ('p, 'r, 'a, 'b) node =
   Node : { alloc : 'p -> 's;
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
-           reset : 's -> unit } -> ('p, 'a, 'b) node
+           reset : 'r -> 's -> unit } -> ('p, 'r, 'a, 'b) node
 
 (* Est-ce equivalent ? La creation (avec alloc) est parametree *)
 (* Au lieu de:
@@ -66,11 +66,11 @@ type 'a dense =
 
 type 'a superdense = 'a dense signal
 
-type ('p, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode =
+type ('p, 'r, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode =
   Hnode : { alloc : 'p -> 's;
             step : 's -> 'a -> 'b;
             copy : 's -> 's -> unit;
-            reset : 's -> unit;
+            reset : 'r -> 's -> unit;
             fder : 's -> 'a -> 'x -> 'xder;
             fzero : 's -> 'a -> 'x -> 'zout;
             fout : 's -> 'a -> 'x -> 'b;
@@ -79,7 +79,7 @@ type ('p, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode =
             zset : 's -> 'zin -> unit;
             horizon : 's -> time;
           } ->
-          ('p, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode
+          ('p, 'r, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode
 
 (* val lift : (cstate, 'a, 'b) node ->
                     (unit, 'a, 'b, cvec, cvec, zinvec, zoutvec) hnode *)
@@ -90,13 +90,13 @@ type ('p, 'a, 'b, 'x, 'xder, 'zin, 'zout) hnode =
    (cstate, 'a, bool) node -> (unit, 'a dense, bool) node *)
 
 (* Cas des noeuds avec assertions *)
-type ('p, 'a, 'b) node =
+type ('p, 'r, 'a, 'b) node =
   Node : { alloc : 'p -> 's;
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
-           reset : 's -> unit;
-           assertion : (unit, 's dense, unit) node option }
-         -> ('p, 'a, 'b) node
+           reset : 'r -> 's -> unit;
+           assertion : ('p, 'r, 's dense, unit) node option }
+         -> ('p, 'r, 'a, 'b) node
 
 (* Exemples:
  *- un noeud a temps discret, sans assertion:
@@ -117,5 +117,8 @@ let compose a1 a2 =
   | None, None -> None
   | Some _, None -> a1
   | _, Some _ -> a2
-  | Some(Node { a1), Some(a2) ->
+  | Some(Node { alloc = alloc1; step = s1; copy = c1; reset = r1; assertion = a1 },
+         Node { alloc = alloc2; step = s1; copy = c2; reset = r2; assertion = a2 }) ->
+     let alloc p = (alloc1 p, alloc2 p) in
+     let step
      
