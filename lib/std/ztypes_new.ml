@@ -105,7 +105,7 @@ type ('p, 'r, 'a, 'b) node =
  *-
  *- un noeud a temps continu, avec assertion:
  *-
- *- let Node { alloc = a1; step = s1; assertion = a1 } = ... in
+ *- let Node { alloc = alloc1; step = s1; assertion = a1 } = ... in
  *- ...
  *- let a2 = lift (Node { alloc = ...;... }) in
  *- let assertion = compose a1 a2 in
@@ -154,3 +154,34 @@ type ('p, 'r, 'a, 'b) node =
            assertion : ('p, 'r, 's, bool) node list }
          -> ('p, 'r, 'a, 'b) node
 
+(* Dans ce cas, la composition d'assertion n'est pas tellement plus simple car il *)
+(* faut ajouter les projections *)
+
+(*
+ *- let Node { alloc = alloc_1; step = s_1; assertion = a_list_1 } = ... in
+ *- ...
+ *- let Node { alloc = alloc_n; step = s_n; assertion = a_list_n } = ... in
+ *- let alloc p = (alloc_1 p,...,alloc_n p) in
+ *- let step (self_1,...,self_n) = s_1 self_1 ...;...; s_n self_n ... in
+ *- let a_list_1 = List.map (apply (fun (self_1,...,self_n) -> self_1)) a_list_1 in
+ *- ...
+ *- let a_list_n = List.map (apply (fun (self_1,...,self_n) -> self_n)) a_list_n in
+ *- Node { alloc; step; assertion = a_list_1 @ ... @ a_list_n }
+
+ *- ou:
+ *-
+ *- let apply proj (Node { alloc; step; assertion }) =
+ *-   Node { alloc; step = fun self i = step self (proj i); assertion } *)
+
+(* Odealus *)
+
+(* Une autre interface *)
+type ('p, 'r, 'a, 'b) node =
+  Node : { alloc : 'p -> 's;
+           step : 's -> 'a -> 'b;
+           copy : 's -> 's -> unit;
+           reset : 's -> 'r -> unit;
+           assertion : ('p, 'r, 'c, bool) node option } -> ('p, 'r, 'a, 'b) node
+
+(* Dans ce cas, la fonction de composition des assertions serait-elle plus simple ? *)
+(* Je ne vois pas comment construire une valeur de ce type, cad comment compiler. *)
