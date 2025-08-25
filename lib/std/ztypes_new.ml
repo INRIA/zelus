@@ -203,13 +203,13 @@ type ('p, 'r, 'a, 'b) node =
 (* Je ne vois pas comment construire une valeur de ce type, cad comment compiler. *)
 
 (* N'est-ce pas plus simple avec la forme suivante ? *)
-type ('a, 'b) cnode_with_assertions =
-  Node : { alloc : cstate -> 's;
+type ('p, 'a, 'b) node_with_assertions =
+  Node : { alloc : 'p -> 's;
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
            reset : 's -> unit;
-           assertion : ('s, bool) cnode_with_assertions list }
-         -> ('a, 'b) cnode_with_assertions
+           assertion : ('p, 's, bool) node_with_assertions list }
+         -> ('p, 'a, 'b) node_with_assertions
 
  (*
   *- Dans ce cas, c'est la fonction de simulation qui se charge de produire une
