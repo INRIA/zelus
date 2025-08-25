@@ -207,9 +207,9 @@ type ('a, 'b) cnode_with_assertions =
   Node : { alloc : cstate -> 's;
            step : 's -> 'a -> 'b;
            copy : 's -> 's -> unit;
-           reset : 's -> -> unit;
+           reset : 's -> unit;
            assertion : ('s, bool) cnode_with_assertions list }
-         -> ('p, 'r, 'a, 'b) node
+         -> ('a, 'b) cnode_with_assertions
 
  (*
   *- Dans ce cas, c'est la fonction de simulation qui se charge de produire une
