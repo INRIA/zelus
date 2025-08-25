@@ -116,10 +116,10 @@ let proj1 { horizon; u } = { horizon; u = fun t -> let v1, _ = u t in v1 }
 let proj2 { horizon; u } = { horizon; u = fun t -> let _, v2 = u t in v2 }
 
 (* Composer deux assertions *)
-let rec compose (*:
-          's1 's2. ('p, 'r, 's1 dense, bool) node option *
-                   ('p, 'r, 's2 dense, bool) node option ->
-                 ('p, 'r, ('s1 * 's2) dense, unit) node option *) =
+let rec compose :
+          's1 's2. ('p, 'r, 's1 dense, bool) node option ->
+            ('p, 'r, 's2 dense, bool) node option ->
+          ('p, 'r, ('s1 * 's2) dense, bool) node option =
   fun a1 a2 -> 
   match a1, a2 with
   | None, None -> None
@@ -135,6 +135,22 @@ let rec compose (*:
      let copy (self1, self2) (self11, self22) =
        c1 self1 self11; c2 self2 self22 in
      let reset (self1, self2) r = r1 self1 r; r2 self2 r in
-     let assertion = None in
+     let assertion = compose a1 a2 in
      Some(Node { alloc; step; copy; reset; assertion })
-     
+
+(* Est-ce efficace ? Ne serait-ce pas mieux de considerer qu'un noeud a une liste *)
+(* d'assertions et que la machine qui simule le modele et verifie les assertions *)
+(* les parcours recursivement (tel que c'etait formule initialement avec *)
+(* Francois Bidet) ? *)
+
+(* Ainsi, le type des noeuds avec assertions serait: *)
+(* La fonction [solve] qui convertit un noeud a temps continu en un noeud *)
+(* a temps discret doit parcourir recursivement les assertions *)
+type ('p, 'r, 'a, 'b) node =
+  Node : { alloc : 'p -> 's;
+           step : 's -> 'a -> 'b;
+           copy : 's -> 's -> unit;
+           reset : 's -> 'r -> unit;
+           assertion : ('p, 'r, 's, bool) node list }
+         -> ('p, 'r, 'a, 'b) node
+
