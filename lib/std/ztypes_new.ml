@@ -199,6 +199,17 @@ type ('p, 'r, 'a, 'b) node =
            reset : 's -> 'r -> unit;
            assertion : ('p, 'r, 'c, bool) node option } -> ('p, 'r, 'a, 'b) node
 
+let f _ =
+  Node { alloc = (fun _ -> 1);
+         step = (fun _ _ -> 2);
+         copy = (fun _ _ -> ());
+         reset = (fun _ _ -> ());
+         assertion = Some (Node { alloc = (fun _ -> (1, 2));
+                                  step = (fun _ _ -> true);
+                                  copy = (fun _ _ -> ());
+                                  reset = (fun _ _ -> ());
+                                  assertion = None }) }
+
 (* Dans ce cas, la fonction de composition des assertions serait-elle plus simple ? *)
 (* Je ne vois pas comment construire une valeur de ce type, cad comment compiler. *)
 
