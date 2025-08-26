@@ -81,6 +81,15 @@ let funexp funs acc ({ f_kind; f_hidden_env } as f) =
      { f with f_hidden_env }, acc
   | _ -> Mapfold.funexp funs acc f
 
+let assert_t funs acc ({ a_body; a_hidden_env } as a) =
+  if !Misc.transparent then
+    let a_acc = get_from_hidden_env a_hidden_env in
+    let a, a_acc = Mapfold.assert_t funs a_acc a in
+    let a_hidden_env = update_hidden_env a_acc a_hidden_env in
+    { a with a_hidden_env }, acc
+  else
+    Mapfold.assert_t funs acc a
+      
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
@@ -88,7 +97,7 @@ let get_index funs acc n = Ident.get (), acc
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with funexp; expression; set_index; get_index;
+    { Mapfold.defaults with funexp; expression; assert_t; set_index; get_index;
                             global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }
