@@ -427,24 +427,32 @@ and print_initialize ff i_list =
   | [] -> fprintf ff "()"
   | _ -> Pp_tools.print_list_r (exp 0) "" ";" "" ff i_list
 
-and palloc f i_list memories ff instances =
-  if memories = []
-  then if instances = []
-       then fprintf ff "@[let %s_alloc _ = %a in@]" f print_initialize i_list
+and palloc f i_list ma_params ma_memories ff ma_instances =
+  if ma_memories = []
+  then if ma_instances = []
+       then
+         fprintf ff "@[let %s_alloc %a = %a in@]" f
+           (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
+           print_initialize i_list
        else
-         fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
-           f print_initialize i_list
-           (Pp_tools.print_record print_instance) instances
-  else if instances = []
+         fprintf ff "@[<v 2>let %s_alloc %a =@ @[%a;@,%a@] in@]"
+           f
+           (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
+           print_initialize i_list
+           (Pp_tools.print_record print_instance) ma_instances
+  else if ma_instances = []
   then
-    fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
-      f print_initialize i_list (Pp_tools.print_record print_memory) memories
-  else
-    fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
+    fprintf ff "@[<v 2>let %s_alloc %a =@ @[%a;@,%a@] in@]"
       f
+      (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
+      print_initialize i_list (Pp_tools.print_record print_memory) ma_memories
+  else
+    fprintf ff "@[<v 2>let %s_alloc %a =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
+      f
+      (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
       print_initialize i_list
-      (print_list_r print_memory """;"";") memories
-      (print_list_r print_instance """;""") instances
+      (print_list_r print_memory """;"";") ma_memories
+      (print_list_r print_instance """;""") ma_instances
 
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
 (* for every instance; the list of method is limited to the non local *)
@@ -471,16 +479,16 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
 (* and a collection of functions *)
 (* The general form is:
  * type ('a1, ...) f = { ... }
- * let f x1 ... xn =
+ * let f =
  *   let { alloc = o1_alloc; step = o1_step; reset = o1_reset, ... } = f1 ... in
  *   ...
  *   let { alloc = om_alloc; step = om_step; reset = om_reset, ... } = fm ... in
- *   let f_alloc () = ... in
+ *   let f_alloc (x_1,...,x_n) = ... in
  *   let f_step y = ... in
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset; ... } in
  * f *)
-and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
+and machine ff ({ ma_name; ma_params; ma_kind; ma_methods } as ma) =
   let f = Ident.name ma_name in
   
   (* print assertion = [a1;...;an] *)
@@ -506,18 +514,17 @@ and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
 	 k f (print_list_r method_name "" ";" "") m_name_list
          list_of_assertions ma_assertions in
 
-  (* print [let f x1...xn = ...] *)
+  (* print [let f = ...] *)
   let rec def_machine ff { ma_name; ma_params; ma_initialize; ma_self; 
                       ma_memories; ma_instances; ma_methods; ma_assertions } =
     fprintf ff
-      "@[<hov2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a %a in@]@]"
-    f
-    (Oprinter.pattern_list ptype) ma_params
-    (print_list_r def_instance_function "" "" "") ma_instances
-    (palloc f ma_initialize ma_memories) ma_instances
-    (print_list_r (pmethod f ma_self) """""") ma_methods
-    (print_list_r def_machine "" "" "") ma_assertions 
-    tuple_of_methods (ma_methods, ma_assertions) in
+      "@[<hov2>let %s =@ @[%a@]@ @[%a@]@ @[%a@]@ %a %a in@]@]"
+      f
+      (print_list_r def_instance_function "" "" "") ma_instances
+      (palloc f ma_initialize ma_params ma_memories) ma_instances
+      (print_list_r (pmethod f ma_self) """""") ma_methods
+      (print_list_r def_machine "" "" "") ma_assertions 
+      tuple_of_methods (ma_methods, ma_assertions) in
 
   (* print the code for [f] *)
   fprintf ff "@[<hov0>%a@ %s@]" def_machine ma f

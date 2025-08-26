@@ -56,6 +56,14 @@
  *-
  *- rewrite it into:
  *-
+ *- add an extra memory which points to the global cstate.
+ *-
+ *- memory
+ *- ... cstate: cstate
+ *- with initialisation code:
+ *- initialize (cstate) =
+ *-    self.cstate = cstate
+ *-
  *- method step(arg1,...,argl) =
  *-    let c_start = self.cstate.cindex in (* current position of the cvector *)
  *-    let z_start = self.cstate.zindex in (* current position of the zvector *)
@@ -439,6 +447,13 @@ let hybrid_machine_model
     match k with
     | Tnode(Tcont) -> { ientry with i_params = (local cstate) :: params }
     | _ -> ientry in
+  (* add an extra memory [cstate] *)
+  let add_extra_memory ma_memories =
+    { m_name = cstate;
+      m_value = Some(Oaux.local cstate);
+      m_typ = typ_cstate;
+      m_kind = None;
+      m_size = [] } :: ma_memories in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
       find_step_method ma_methods in
@@ -607,6 +622,7 @@ let hybrid_machine_model
     { mach with
       ma_params = (Evarpat { id = cstate; ty = Some(typ_cstate) }) :: ma_params;
       ma_initialize;
+      ma_memories = add_extra_memory ma_memories;
       ma_methods = (* method_prelude :: method_postlude :: *)
                      method_step :: method_list;
       ma_instances = List.map add_extra_param ma_instances }

@@ -335,26 +335,23 @@ and pmethod ff { me_local; me_name; me_params; me_body; me_typ } =
     p_internal_type me_typ
 
 and pinitialize ff i_list =
-  match i_list with
-  | [] -> ()
-  | _ ->
-     fprintf ff "@[<hov2>initialize@ %a@]"
-       (Pp_tools.print_list_r (exp 0) "" ";" "") i_list
+  Pp_tools.print_list_r (exp 0) "" ";" "" ff i_list
 
 (* Print a machine *)
 and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods; ma_assertions } =
   fprintf ff
-    "@[<hov 2>%s machine@ %a@ (%a) as %a@ \
-     {@, %a@ \
+    "@[<hov 2>%s machine@ %a as %a@ {@ \
+     @[<v2>initialize %a =@ @[%a@]@]@ \
      @[<v2>memories@ @[%a@]@]@ \
      @[<v2>instances@ @[%a@]@]@ \
      @[<v2>methods@ @[%a@]@]@ \
      @[<v2>assertions@ @[%a@]@]}@]"
-    (kind ma_kind) Ident.fprint_t ma_name  
-    (pattern_list Printer.ptype) ma_params
-     print_self_name ma_self
-     pinitialize ma_initialize
+    (kind ma_kind)
+    Ident.fprint_t ma_name  
+    print_self_name ma_self
+    (Pp_tools.print_list_r (pattern Printer.ptype) "(" "," ")") ma_params
+    pinitialize ma_initialize 
     (print_list_r_empty memory "" ";" "") ma_memories
     (print_list_r_empty instance "" ";" "") ma_instances
     (print_list_r pmethod "" "" "") ma_methods
