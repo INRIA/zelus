@@ -172,7 +172,7 @@ and machine =
     ma_memories: mentry list;(* its memories *)
     ma_instances: ientry list; (* its node instances *)
     ma_methods: method_desc list; (* its methods *) 
-    ma_assertion: machine list; (* gather all internal assertions *)
+    ma_assertions: machine list; (* gather all internal assertions *)
   }
 
 and mentry =

@@ -598,11 +598,11 @@ let hybrid_machine_model
     Not_found -> mach
 
 (* treat the model and its transparent assertions *)
-let rec hybrid_machine ({ ma_assertion } as mach) =
-  let ma_assertion =
-    match ma_assertion with
-    | [] -> [] | _ -> List.map hybrid_machine ma_assertion in
-  hybrid_machine_model { mach with ma_assertion }
+let rec hybrid_machine ({ ma_assertions } as mach) =
+  let ma_assertions =
+    match ma_assertions with
+    | [] -> [] | _ -> List.map hybrid_machine ma_assertions in
+  hybrid_machine_model { mach with ma_assertions }
            
 let machine({ ma_kind } as mach) =
   match ma_kind with

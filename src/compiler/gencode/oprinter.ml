@@ -343,7 +343,7 @@ and pinitialize ff i_list =
 
 (* Print a machine *)
 and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
-		 ma_memories; ma_instances; ma_methods; ma_assertion } =
+		 ma_memories; ma_instances; ma_methods; ma_assertions } =
   fprintf ff
     "@[<hov 2>%s machine@ %a@ (%a) as %a@ \
      {@, %a@ \
@@ -358,7 +358,7 @@ and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
     (print_list_r_empty memory "" ";" "") ma_memories
     (print_list_r_empty instance "" ";" "") ma_instances
     (print_list_r pmethod "" "" "") ma_methods
-    (print_list_r machine "" "" "") ma_assertion
+    (print_list_r machine "" "" "") ma_assertions
 
 let print_type_params ff pl =
       print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl

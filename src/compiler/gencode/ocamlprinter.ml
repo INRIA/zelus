@@ -484,15 +484,15 @@ and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
   let f = Ident.name ma_name in
   
   (* print assertion = [a1;...;an] *)
-  let list_of_assertions ff ma_assertion =
+  let list_of_assertions ff ma_assertions =
     fprintf ff "@[assertion = %a@]"
       (Pp_tools.print_list_r
          (fun ff { ma_name } -> Ident.fprint_t ff ma_name) "[" ";" "]")
-      ma_assertion in
+      ma_assertions in
       
   (* print [(f)] or *)
   (* [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn; assertion = ... }] *)
-  let tuple_of_methods ff (ma_methods, ma_assertion) =
+  let tuple_of_methods ff (ma_methods, ma_assertions) =
     match ma_kind with
     | Deftypes.Tfun _ -> fprintf ff "%s" f
     | Deftypes.Tnode _ ->
@@ -504,11 +504,11 @@ and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
 	 List.map (fun { me_name } -> me_name) ma_methods in
        fprintf ff "@[%s @[<hov2>{ alloc = %s_alloc;@ %a;@ %a }@]@]"
 	 k f (print_list_r method_name "" ";" "") m_name_list
-         list_of_assertions ma_assertion in
+         list_of_assertions ma_assertions in
 
   (* print [let f x1...xn = ...] *)
   let rec def_machine ff { ma_name; ma_params; ma_initialize; ma_self; 
-                      ma_memories; ma_instances; ma_methods; ma_assertion } =
+                      ma_memories; ma_instances; ma_methods; ma_assertions } =
     fprintf ff
       "@[<hov2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a %a in@]@]"
     f
@@ -516,8 +516,8 @@ and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
     (print_list_r def_instance_function "" "" "") ma_instances
     (palloc f ma_initialize ma_memories) ma_instances
     (print_list_r (pmethod f ma_self) """""") ma_methods
-    (print_list_r def_machine "" "" "") ma_assertion 
-    tuple_of_methods (ma_methods, ma_assertion) in
+    (print_list_r def_machine "" "" "") ma_assertions 
+    tuple_of_methods (ma_methods, ma_assertions) in
 
   (* print the code for [f] *)
   fprintf ff "@[<hov0>%a@ %s@]" def_machine ma f
