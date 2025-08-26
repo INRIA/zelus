@@ -409,9 +409,9 @@ and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
 and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e p_internal_type ty
 
 (* Print the method as a function *)
-and pmethod f ma_self ff { me_name; me_params; me_body; me_typ } =
-  fprintf ff "@[<v 2>let %s_%s %a %a =@ (%a:%a) in@]"
-    f (Oprinter.method_name me_name) print_self_name ma_self
+and pmethod ma_name ma_self ff { me_name; me_params; me_body; me_typ } =
+  fprintf ff "@[<v 2>let %a_%s %a %a =@ (%a:%a) in@]"
+    Ident.fprint_t ma_name (Oprinter.method_name me_name) print_self_name ma_self
     (Oprinter.pattern_list ptype) me_params (exp 2) me_body
     p_internal_type me_typ
 
@@ -427,28 +427,28 @@ and print_initialize ff i_list =
   | [] -> fprintf ff "()"
   | _ -> Pp_tools.print_list_r (exp 0) "" ";" "" ff i_list
 
-and palloc f i_list ma_params ma_memories ff ma_instances =
+and palloc ma_name i_list ma_params ma_memories ff ma_instances =
   if ma_memories = []
   then if ma_instances = []
        then
-         fprintf ff "@[let %s_alloc %a = %a in@]" f
+         fprintf ff "@[let %a_alloc %a = %a in@]" Ident.fprint_t ma_name
            (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
            print_initialize i_list
        else
-         fprintf ff "@[<v 2>let %s_alloc %a =@ @[%a;@,%a@] in@]"
-           f
+         fprintf ff "@[<v 2>let %a_alloc %a =@ @[%a;@,%a@] in@]"
+           Ident.fprint_t ma_name
            (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
            print_initialize i_list
            (Pp_tools.print_record print_instance) ma_instances
   else if ma_instances = []
   then
-    fprintf ff "@[<v 2>let %s_alloc %a =@ @[%a;@,%a@] in@]"
-      f
+    fprintf ff "@[<v 2>let %a_alloc %a =@ @[%a;@,%a@] in@]"
+      Ident.fprint_t ma_name
       (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
       print_initialize i_list (Pp_tools.print_record print_memory) ma_memories
   else
-    fprintf ff "@[<v 2>let %s_alloc %a =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
-      f
+    fprintf ff "@[<v 2>let %a_alloc %a =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
+      Ident.fprint_t ma_name
       (Pp_tools.print_list_r (Oprinter.pattern ptype) "(" "," ")") ma_params
       print_initialize i_list
       (print_list_r print_memory """;"";") ma_memories
@@ -488,10 +488,8 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset; ... } in
  * f *)
-and machine ff ({ ma_name; ma_params; ma_kind; ma_methods } as ma) =
-  let f = Ident.name ma_name in
-  
-  (* print assertion = [a1;...;an] *)
+and machine ff ({ ma_name } as ma) =
+  (* print [assertions = [a1;...;an]] *)
   let list_of_assertions ff ma_assertions =
     fprintf ff "@[assertions = %a@]"
       (Pp_tools.print_list_r
@@ -500,34 +498,36 @@ and machine ff ({ ma_name; ma_params; ma_kind; ma_methods } as ma) =
       
   (* print [(f)] or *)
   (* [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn; assertions = ... }] *)
-  let tuple_of_methods ff (ma_methods, ma_assertions) =
+  let tuple_of_methods_and_assertions ff
+        { ma_name; ma_kind; ma_methods; ma_assertions } =
     match ma_kind with
-    | Deftypes.Tfun _ -> fprintf ff "%s" f
+    | Deftypes.Tfun _ -> Ident.fprint_t ff ma_name
     | Deftypes.Tnode _ ->
        let method_name ff me_name =
 	 let m = Oprinter.method_name me_name in
-	 fprintf ff "@[%s = %s_%s@]" m f m in
+	 fprintf ff "@[%s = %a_%s@]" m Ident.fprint_t ma_name m in
        let k = constructor_for_kind ma_kind in
        let m_name_list =
 	 List.map (fun { me_name } -> me_name) ma_methods in
-       fprintf ff "@[%s @[<hov2>{ alloc = %s_alloc;@ %a;@ %a }@]@]"
-	 k f (print_list_r method_name "" ";" "") m_name_list
+       fprintf ff "@[%s @[<hov2>{ alloc = %a_alloc;@ %a;@ %a }@]@]"
+	 k Ident.fprint_t ma_name (print_list_r method_name "" ";" "") m_name_list
          list_of_assertions ma_assertions in
 
   (* print [let f = ...] *)
-  let rec def_machine ff { ma_name; ma_params; ma_initialize; ma_self; 
-                      ma_memories; ma_instances; ma_methods; ma_assertions } =
+  let rec def_machine ff
+            ({ ma_name; ma_params; ma_initialize; ma_self; 
+               ma_memories; ma_instances; ma_methods; ma_assertions } as ma) =
     fprintf ff
-      "@[<hov2>let %s =@ @[%a@]@ @[%a@]@ @[%a@]@ %a %a in@]@]"
-      f
+      "@[<hov2>let %a =@ @[%a@]@ @[%a@]@ @[%a@]@ %a %a in@]@]"
+      Ident.fprint_t ma_name
       (print_list_r def_instance_function "" "" "") ma_instances
-      (palloc f ma_initialize ma_params ma_memories) ma_instances
-      (print_list_r (pmethod f ma_self) """""") ma_methods
+      (palloc ma_name ma_initialize ma_params ma_memories) ma_instances
+      (print_list_r (pmethod ma_name ma_self) """""") ma_methods
       (print_list_r def_machine "" "" "") ma_assertions 
-      tuple_of_methods (ma_methods, ma_assertions) in
+      tuple_of_methods_and_assertions ma in
 
   (* print the code for [f] *)
-  fprintf ff "@[<hov0>%a@ %s@]" def_machine ma f
+  fprintf ff "@[<hov0>%a@ %a@]" def_machine ma Ident.fprint_t ma_name
 
 (* computes the set of type declarations for representing the state *)
 (* for every machines defined in expression [e]. This is done by a first step *)

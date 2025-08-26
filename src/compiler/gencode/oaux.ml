@@ -61,6 +61,8 @@ let mult_opt e1 e2 =
   | Econst(Eint(v1)), Econst(Eint(v2)) -> Econst(Eint(v1 * v2))
   | _ -> mult e1 e2
 
+let fun_list pat_list e =
+  match pat_list with | [] -> e | _ -> Efun { pat_list; e }
 let global lname = Eglobal { lname }
 let local id = Evar { is_mutable = false; id }
 let varmut id = Evar { is_mutable = true; id }

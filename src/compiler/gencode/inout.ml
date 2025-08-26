@@ -470,10 +470,12 @@ let hybrid_machine_model
     let major_is_not_zero = not (major_opt = None) in
     let time_is_not_zero = not (time_opt = None) in
     
-    let c_start = Ident.fresh "cindex" in
-    let z_start = Ident.fresh "zindex" in
-    let cstate_cpos = access cstate "cindex" in
-    let cstate_zpos = access cstate "zindex" in
+    let c_start = Ident.fresh "cstart" in
+    let z_start = Ident.fresh "zstart" in
+    let cstate_cpos =
+      Estate(state_access (left_state_name ma_self cstate) "cindex") in
+    let cstate_zpos =
+      Estate(state_access (left_state_name ma_self cstate) "zindex") in
     
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
