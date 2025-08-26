@@ -25,21 +25,21 @@ type zero = bool
 
 (* a synchronous stream function with type 'a -D-> 'b *)
 (* is represented by an OCaml value of type ('a, 'b) node *)
-type ('a, 'b) node =
+type ('p, 'a, 'b) node =
     Node:
-      { alloc : unit -> 's; (* allocate the state *)
+      { alloc : 'p -> 's; (* allocate the state *)
         step : 's -> 'a -> 'b; (* compute a step *)
         reset : 's -> unit; (* reset/inialize the state *)
-      } -> ('a, 'b) node
+      } -> ('p, 'a, 'b) node
 
 (* the same with a method copy *)
-type ('a, 'b) cnode =
+type ('p, 'a, 'b) cnode =
     Cnode:
-      { alloc : unit -> 's; (* allocate the state *)
+      { alloc : 'p -> 's; (* allocate the state *)
         copy : 's -> 's -> unit; (* copy the source into the destination *)
         step : 's -> 'a -> 'b; (* compute a step *)
         reset : 's -> unit; (* reset/inialize the state *)
-      } -> ('a, 'b) cnode
+      } -> ('p, 'a, 'b) cnode
 
 open Bigarray
 
@@ -70,7 +70,7 @@ type cstate =
 
 (* A hybrid node is a node that is parameterised by a continuous state *)
 (* all instances points to this global parameter and read/write on it *)
-type ('a, 'b) hnode = cstate -> ('a, 'b) node
+type ('a, 'b) hnode = (cstate, 'a, 'b) node
 
 (* an autonomous (no input) hybrid system *)
 type 'b hsimu =

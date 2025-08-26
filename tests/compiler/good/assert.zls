@@ -1,3 +1,7 @@
+let hybrid h(x1, x2) =
+  let rec der x = 1.0 init 0.0 in
+  x
+
 let hybrid g(x1, x2) =
   let rec der x = 1.0 init 0.0 in
   assert

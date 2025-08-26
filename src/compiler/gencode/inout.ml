@@ -57,97 +57,98 @@
  *- rewrite it into:
  *-
  *- method step(arg1,...,argl) =
- *-    let c_start = cstate.cindex in (* current position of the cvector *)
- *-    let z_start = cstate.zindex in (* current position of the zvector *)
+ *-    let c_start = self.cstate.cindex in (* current position of the cvector *)
+ *-    let z_start = self.cstate.zindex in (* current position of the zvector *)
  *-
  *-    var cpos = c_start in
  *-    var zpos = z_start in
- *-    cstate.cindex <- cstate.cindex + csize; 
- *-    cstate.zindex <- cstate.zindex + zsize;
+ *-    self.cstate.cindex <- self.cstate.cindex + csize; 
+ *-    self.cstate.zindex <- self.cstate.zindex + zsize;
  *-    maj <- cstate.major;
- *-    if cstate.major then 
+ *-    if self.cstate.major then 
  *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
  *-    else ((* copy the value of the continuous state vector of the solver *)
  *-          (* into the local continuous state variables *)
- *-          cin cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
+ *-          cin self.cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
  *-          ... cpos is incremented
  *-    let result = ...body... in
  *-    cpos <- c_start;
- *-    if cstate.major then 
+ *-    if self.cstate.major then 
  *-        ((* copy the local continuous state variables into *)
  *-         (* the continuous state vector of the solver *)
- *-         cout cstate x1 ci;...; cout cstate ck (zi+size'1+...+size'(n-1));
+ *-         cout self.cstate x1 ci;...; cout cstate ck (zi+size'1+...+size'(n-1));
  *-        ... cpos is incremented
  *-         (* h is the horizon of the block *)
- *-         cstate.horizon <- min cstate.horizon h 
+ *-         self.cstate.horizon <- min self.cstate.horizon h 
  *-         (* the zero-crossing variables are set to false *)
  *-         m1 <- false; ...; mk <- false;
  *-         ... zpos is incremented)
  *-    else ((* copy the zero-crossing vector of the solver into the local *)
  *-          (* zero-crossing variables *)
- *-          zin cstate m1 zi;...; zin cstate mk (zi+size'1+...+size'(k-1));
+ *-          zin self.cstate m1 zi;...; zin cstate mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
  *-          zpos <- z_start;
  *-          (* copy the local zero-crossing variables into the *)
  *-          (* zero-crossing vector of the solver *)
- *-          zout cstate m1 zi;...; zout cstate mk (zi+size'1+...+size'(k-1));
+ *-          zout self.cstate m1 zi;...;zout cstate mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
  *-          (* copy the local derivatives into the vector of derivative *)
  *-          (* of the solver *)
- *-          dout cstate x1 ci;...; dout cstate ck (zi+size'1+...+size'(n-1));
+ *-          dout self.cstate x1 ci;...;dout cstate ck (zi+size'1+...+size'(n-1));
  *-          ... cpos is incremented);
  *-    result
  *-
- *- method step(arg1,...,argl) =
- *-    let c_start = cstate.cindex in (* current position of the cvector *)
+ *- alternatively, a method step which calls two local methods
+ *- *- method step(arg1,...,argl) =
+ *-    let c_start = self.cstate.cindex in (* current position of the cvector *)
  *-    self.prelude (c_start);
  *-    let result = ...body... in
- *-    let z_start = cstate.zindex in (* current position of the zvector *)
+ *-    let z_start = self.cstate.zindex in (* current position of the zvector *)
  *-    self.postlude (c_start, z_start);
  *-    result
  *-
  *- local method prelude(c_start) =
  *-    var cpos = c_start in
- *-    cstate.cindex <- cstate.cindex + csize; 
- *-    cstate.zindex <- cstate.zindex + zsize;
- *-    if cstate.major then 
- *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
+ *-    self.cstate.cindex <- self.cstate.cindex + csize; 
+ *-    self.cstate.zindex <- self.cstate.zindex + zsize;
+ *-    if self.cstate.major then 
+ *-        dzero self.cstate.dvec c_start csize (* set all speeds to 0.0 *)
  *-    else ((* copy the value of the continuous state vector of the solver *)
  *-          (* into the local continuous state variables *)
- *-          cin cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
+ *-          cin self.cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
  *-          ... cpos is incremented
  *-
  *- local method postlude(c_start, z_start) =
  *-    var cpos = c_start in
  *-    var zpos = z_start in
- *-    if cstate.major then 
+ *-    if self.cstate.major then 
  *-        ((* copy the local continuous state variables into *)
  *-         (* the continuous state vector of the solver *)
- *-         cout cstate x1 ci;...; cout cstate ck (zi+size'1+...+size'(n-1));
+ *-         cout self.cstate x1 ci;...; cout cstate ck (zi+size'1+...+size'(n-1));
  *-        ... cpos is incremented
  *-         (* h is the horizon of the block *)
- *-         cstate.horizon <- min cstate.horizon h 
+ *-         self.cstate.horizon <- min self.cstate.horizon h 
  *-         (* the zero-crossing variables are set to false *)
  *-         m1 <- false; ...; mk <- false;
  *-         ... zpos is incremented)
  *-    else ((* copy the zero-crossing vector of the solver into the local *)
  *-          (* zero-crossing variables *)
- *-          zin cstate m1 zi;...; zin cstate mk (zi+size'1+...+size'(k-1));
+ *-          zin self.cstate m1 zi;...; zin cstate mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
  *-          zpos <- z_start;
  *-          (* copy the local zero-crossing variables into the *)
  *-          (* zero-crossing vector of the solver *)
- *-          zout cstate m1 zi;...; zout cstate mk (zi+size'1+...+size'(k-1));
+ *-          zout self.cstate m1 zi;...;zout cstate mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
  *-          (* copy the local derivatives into the vector of derivative *)
  *-          (* of the solver *)
- *-          dout cstate x1 ci;...; dout cstate ck (zi+size'1+...+size'(n-1));
+ *-          dout self.cstate x1 ci;...;dout cstate ck (zi+size'1+...+size'(n-1));
  *-          ... cpos is incremented);
  *-
  *- Add to the initialization code: 
- *-    cmax csize; 
- *-    zmax zsize;
- *-    maj <- cstate.major; (* set the major flag *)
+ *-    cmax self.cstate.csize; 
+ *-    zmax self.cstate.zsize;
+ *-    maj <- self.cstate.major; (* set the major flag *)
  *-    
  *- which increments the size of the continuous state and zero-crossing
  *- vectors and sets the local major step variable *)
@@ -173,6 +174,7 @@ let typ_cstate = Types.nconstr { qual = "Ztypes"; id = "cstate" } []
 let varpat id ty = Evarpat { id; ty = Some(ty) }
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 let access x label = Erecord_access { arg = local x; label = Name label }
+let left_state_name self name = Eleft_state_name { self; name }
 
 (* [x := !x + 1] *)
 let incr_pos x = Eassign(Eleft_name x, Oaux.plus_opt (varmut x) one)
@@ -180,34 +182,50 @@ let set x e = Eassign(Eleft_name x, e)
 
 let i = Ident.fresh "i"
 
-(* cstate.horizon <- min cstate.horizon name *)
-let set_horizon cstate self name =
-  Eassign(Eleft_record_access
-            { arg = Eleft_name(cstate); label = Name "horizon" },
-          min (access cstate "horizon")
-            (Estate(Eleft_state_name { self; name })))
+let state_access arg label = Eleft_state_record_access { arg; label = Name label }
 
-(* m <- cstate.major *)
-let set_major cstate self name =
-  Eassign_state(Eleft_state_name { self; name }, access cstate "major")
+(* self.cstate.horizon <- min self.cstate.horizon self.name *)
+let set_horizon self cstate name =
+  let self_cstate_horizon =
+    state_access (left_state_name self cstate) "horizon" in
+  Eassign_state(self_cstate_horizon,
+                min (Estate self_cstate_horizon)
+                  (Estate(left_state_name self cstate)))
 
-let set_time cstate self name =
-  Eassign_state(Eleft_state_name { self; name }, access cstate "time")
+(* self.m <- self.cstate.major *)
+let set_major self cstate name =
+  Eassign_state(left_state_name self cstate,
+                Estate(state_access (left_state_name self cstate) "major"))
 
-(* [cstate.field <- cstate.field + i] *)
-let incr cstate field ie =
-  Eassign(Eleft_record_access { arg = Eleft_name cstate; label = Name(field) },
-          Oaux.plus_opt (access cstate field) ie)
+(* self.name <- self.cstate.time *)
+let set_time self cstate name =
+  Eassign_state(left_state_name self name,
+                Estate(state_access (left_state_name self cstate) "time"))
+
+(* [self.cstate.field <- self.cstate.field + i] *)
+let incr self cstate field ie =
+  Eassign_state
+    (state_access (left_state_name self cstate) field,
+     Oaux.plus_opt (Estate(state_access (left_state_name self cstate) field)) ie)
              
-let cmax_incr cstate ie = incr cstate "cmax" ie
-let zmax_incr cstate ie = incr cstate "zmax" ie
-let cincr cstate ie = incr cstate "cindex" ie
-let zincr cstate ie = incr cstate "zindex" ie
+let cincr self cstate ie = incr self cstate "cindex" ie
+let zincr self cstate ie = incr self cstate "zindex" ie
 
-let major cstate = access cstate "major"
+(* increment the maximum size of the continuous state vector and *)
+(* zero-crossing vector *)
+(* cstate.cmax <- cstate.cmax + i *)
+let cstate_incr cstate label ie =
+  Eassign(Eleft_record_access { arg = Eleft_name(cstate); label = Name label },
+          ie)
+
+let cmax_incr cstate ie = cstate_incr cstate "cmax" ie
+let zmax_incr cstate ie = cstate_incr cstate "zmax" ie
+
+let major self cstate =
+  Estate(state_access (left_state_name self cstate) "major")
 			
-(* [x.cont.(i1)....(in).(j1)...(jk) <- cstate.cvec.(pos)] *)
-(* [x.zero_in.(i1)...(in).(j1)...(jk) <- cstate.zin.(pos)] *)
+(* [self.x.cont.(i1)....(in).(j1)...(jk) <- self.cstate.cvec.(pos)] *)
+(* [self.x.zero_in.(i1)...(in).(j1)...(jk) <- self.cstate.zin.(pos)] *)
 
 let write_into_internal_state (self, x, cont) i_list j_list get pos =
   Eassign_state
@@ -218,30 +236,30 @@ let write_into_internal_state (self, x, cont) i_list j_list get pos =
           i_list) j_list, get (varmut pos))
     
 let app f arg_list = Eapp { f = global(modname f); arg_list }
-let getc cstate pos =
-  app "get" [access cstate "cvec"; pos]
-let get_zin cstate pos =
-  app "get_zin" [access cstate "zinvec"; pos]
-let setc cstate pos e =
-  app "set" [access cstate "cvec"; pos; e]
-let setd cstate pos e =
-  app "set" [access cstate "dvec"; pos; e]
-let set_zout cstate pos e =
-  app "set" [access cstate "zoutvec"; pos; e]
+let getc self cstate pos =
+  app "get" [Estate(state_access (left_state_name self cstate) "cvec"); pos]
+let get_zin self cstate pos =
+  app "get_zin" [Estate(state_access (left_state_name self cstate) "zinvec"); pos]
+let setc self cstate pos e =
+  app "set" [Estate(state_access (left_state_name self cstate) "cvec"); pos; e]
+let setd self cstate pos e =
+  app "set" [Estate(state_access (left_state_name self cstate) "dvec"); pos; e]
+let set_zout self cstate pos e =
+  app "set" [Estate(state_access (left_state_name self cstate) "zoutvec"); pos; e]
 
 (* sets the continuous state vector - from the csolver to the internal state *)
-let cin cstate self x i_list j_list pos =
-  let getc pos = getc cstate pos in
+let cin self cstate x i_list j_list pos =
+  let getc pos = getc self cstate pos in
   write_into_internal_state (self, x, Epos) i_list j_list getc pos
 			    
 (* sets the zero-crossing vector - from the zsolver to the internal state *)
-let zin cstate self x i_list j_list pos =
-  let get_zin pos = get_zin cstate pos in
+let zin self cstate x i_list j_list pos =
+  let get_zin pos = get_zin self cstate pos in
   write_into_internal_state (self, x, Ezero_in) i_list j_list get_zin pos
 
-(* [cstate.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
-(* [cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
-(* [cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
+(* [self.cstate.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
+(* [self.cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
+(* [self.cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
 let write_from_internal_state set (self, x, cont) i_list j_list pos =
   set (varmut pos)
     (Estate
@@ -250,14 +268,14 @@ let write_from_internal_state set (self, x, cont) i_list j_list pos =
 	     (Eleft_state_primitive_access(Eleft_state_name
                                              { self; name = x }, cont))
 	     i_list) j_list))
-let cout cstate self x i_list j_list pos =
-  let setc pos e = setc cstate pos e in
+let cout self cstate x i_list j_list pos =
+  let setc pos e = setc self cstate pos e in
   write_from_internal_state setc (self, x, Epos) i_list j_list pos
-let dout cstate self x i_list j_list pos =
-  let setd pos e = setd cstate pos e in
+let dout self cstate x i_list j_list pos =
+  let setd pos e = setd self cstate pos e in
   write_from_internal_state setd (self, x, Eder) i_list j_list pos
-let zout cstate self x i_list j_list pos =
-  let set_zout pos e = set_zout cstate pos e in
+let zout self cstate x i_list j_list pos =
+  let set_zout pos e = set_zout self cstate pos e in
   write_from_internal_state set_zout (self, x, Ezero_out) i_list j_list pos
 let set_zin_to_false self x i_list j_list pos =
   Eassign_state
@@ -268,11 +286,11 @@ let set_zin_to_false self x i_list j_list pos =
           i_list) j_list,
      ffalse)
 
-let set_dvec_to_zero cstate c_start csize =
+let set_dvec_to_zero self cstate c_start csize =
   if is_zero csize then void
   else Efor { dir = true; index = i; left = local c_start;
               right = minus_opt csize one;
-              e = setd cstate (local i) (float_const 0.0) }
+              e = setd self cstate (local i) (float_const 0.0) }
 
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), h_opt, major_opt] *)
@@ -362,24 +380,24 @@ let cinout table call pos incr =
   let c_list = Env.fold add table [] in
   sequence(c_list)
 
-let cin table cstate self pos =
-  let call x i_list j_list pos = cin cstate self x i_list j_list pos in
+let cin table self cstate pos =
+  let call x i_list j_list pos = cin self cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let cout table cstate self pos =
-  let call x i_list j_list pos = cout cstate self x i_list j_list pos in
+let cout table self cstate pos =
+  let call x i_list j_list pos = cout self cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let dout table cstate self pos =
-  let call x i_list j_list pos = dout cstate self x i_list j_list pos in
+let dout table self cstate pos =
+  let call x i_list j_list pos = dout self cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let zin table cstate self pos =
-  let call x i_list j_list pos = zin cstate self x i_list j_list pos in
+let zin table self cstate pos =
+  let call x i_list j_list pos = zin self cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let zout table cstate self pos =
-  let call x i_list j_list pos = zout cstate self x i_list j_list pos in
+let zout table self cstate pos =
+  let call x i_list j_list pos = zout self cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
 let set_zin_to_false table self pos =
@@ -388,19 +406,19 @@ let set_zin_to_false table self pos =
  
 (* If the current block contains an horizon state variable *)
 (* for every horizon state variable *)
-let set_horizon cstate self h_opt =
+let set_horizon self cstate h_opt =
   match h_opt with
-  | None -> Econst(Evoid) | Some(h) -> set_horizon cstate self h
+  | None -> Econst(Evoid) | Some(h) -> set_horizon self cstate h
 
 (* If the current block contains a major state variable *)
-let set_major cstate self major_opt =
+let set_major self cstate major_opt =
   match major_opt with
-  | None -> Econst(Evoid) | Some(m) -> set_major cstate self m
+  | None -> Econst(Evoid) | Some(m) -> set_major self cstate m
 
 (* If the current block contains a reference to time *)
-let set_time cstate self time_opt =
+let set_time self cstate time_opt =
   match time_opt with
-  | None -> Econst(Evoid) | Some(m) -> set_time cstate self m
+  | None -> Econst(Evoid) | Some(m) -> set_time self cstate m
 
 (* Translate a continuous-time machine; do not touch to assertions *)
 let hybrid_machine_model
@@ -448,13 +466,11 @@ let hybrid_machine_model
 
     (* add initialization code to [e_opt] *)
     let ma_initialize =
-      (* cstate.cmax <- cstate.cmax + csize; (* increment [cmax] *)
-         cstate.zmax <- cstate.zmax + zsize (* increment [zmax] *)
-         maj <- cstate.major; (* set the major flag *) *)
+      (* cstate.cmax <- cstate.cmax + csize; -- increment [cmax] 
+         cstate.zmax <- cstate.zmax + zsize -- increment [zmax] *)
       seq_if cvec_is_not_zero (cmax_incr cstate csize)
         (seq_if zvec_is_not_zero (zmax_incr cstate zsize)
-           (seq_if major_is_not_zero (set_major cstate ma_self major_opt)
-            ma_initialize)) in
+            ma_initialize) in
               
     (* let prelude_body =
       letvar_only
@@ -465,11 +481,11 @@ let hybrid_machine_model
 	      [only cvec_is_not_zero (incr cstate "cindex" csize);
                only zvec_is_not_zero (incr cstate "zindex" zsize);
 	       only major_is_not_zero
-                 (set_major cstate ma_self major_opt);
-	       only time_is_not_zero (set_time cstate ma_self time_opt);
+                 (set_major ma_self cstate major_opt);
+	       only time_is_not_zero (set_time ma_self cstate time_opt);
 	       ifthenelse
-                 (major cstate) (set_dvec_to_zero cstate c_start csize)
-		 (only cvec_is_not_zero (cin ctable cstate ma_self cpos))])
+                 (major cstate) (set_dvec_to_zero ma_self cstate c_start csize)
+		 (only cvec_is_not_zero (cin ctable ma_self cstate cpos))])
         ) in
 
     let c_start_varpat_name = varpat c_start Initial.typ_int in
@@ -482,27 +498,27 @@ let hybrid_machine_model
 
     let postlude_body =
       sequence
-	[set_horizon cstate ma_self h_opt;
+	[set_horizon ma_self cstate h_opt;
          only
            cvec_is_not_zero (set cpos (local c_start));
 	 ifthenelse
            (major cstate)
 	   (sequence
               [only
-                 cvec_is_not_zero (cout ctable cstate ma_self cpos);
+                 cvec_is_not_zero (cout ctable ma_self cstate cpos);
                only
                  zvec_is_not_zero
                  (set_zin_to_false ztable ma_self zpos)])
            (sequence
 	      [only
-                 zvec_is_not_zero (zin ztable cstate ma_self zpos);
+                 zvec_is_not_zero (zin ztable ma_self cstate zpos);
                only
                  zvec_is_not_zero
                  (set zpos (local z_start));
 	       only
-                 zvec_is_not_zero (zout ztable cstate ma_self zpos);
+                 zvec_is_not_zero (zout ztable ma_self cstate zpos);
 	       only
-                 cvec_is_not_zero (dout ctable cstate ma_self cpos)])] in
+                 cvec_is_not_zero (dout ctable ma_self cstate cpos)])] in
 
     let method_postlude =
       { me_local = true;
@@ -542,45 +558,46 @@ let hybrid_machine_model
 	      (letvar_only
                  zvec_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
-		    [only cvec_is_not_zero (incr cstate "cindex" csize);
-                     only zvec_is_not_zero (incr cstate "zindex" zsize);
+		    [only cvec_is_not_zero (incr ma_self cstate "cindex" csize);
+                     only zvec_is_not_zero (incr ma_self cstate "zindex" zsize);
 		     only major_is_not_zero
-                       (set_major cstate ma_self major_opt);
+                       (set_major ma_self cstate major_opt);
 		     only time_is_not_zero (set_time cstate ma_self time_opt);
 		     ifthenelse
-                       (major cstate) (set_dvec_to_zero cstate c_start csize)
-		       (only cvec_is_not_zero (cin ctable cstate ma_self cpos));
+                       (major ma_self cstate)
+                         (set_dvec_to_zero ma_self cstate c_start csize)
+		       (only cvec_is_not_zero (cin ctable ma_self cstate cpos));
                      (only_then_else
                         (cvec_is_not_zero || zvec_is_not_zero || h_is_not_zero)
                         (letin
 		           (varpat result ty)
                            body
 		           (sequence
-			      [set_horizon cstate ma_self h_opt;
+			      [set_horizon ma_self cstate h_opt;
                                only
                                  cvec_is_not_zero (set cpos (local c_start));
 	                       ifthenelse
-                                 (major cstate)
+                                 (major ma_self cstate)
 				 (sequence
                                     [only
                                        cvec_is_not_zero
-                                       (cout ctable cstate ma_self cpos);
+                                       (cout ctable ma_self cstate cpos);
                                      only
                                        zvec_is_not_zero
                                        (set_zin_to_false ztable ma_self zpos)])
                                  (sequence
 				    [only
                                        zvec_is_not_zero
-                                       (zin ztable cstate ma_self zpos);
+                                       (zin ztable ma_self cstate zpos);
                                      only
                                        zvec_is_not_zero
                                        (set zpos (local z_start));
 	                             only
                                        zvec_is_not_zero
-                                       (zout ztable cstate ma_self zpos);
+                                       (zout ztable ma_self cstate zpos);
 	                             only
                                        cvec_is_not_zero
-                                       (dout ctable cstate ma_self cpos)]);
+                                       (dout ctable ma_self cstate cpos)]);
                                local result]))
                         body)
         ])))) in

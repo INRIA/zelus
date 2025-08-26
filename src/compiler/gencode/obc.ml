@@ -168,7 +168,7 @@ and machine =
     ma_self: Ident.t;
     (* name of the memory state; when none, use "self" *)
     ma_initialize: exp list; (* code to execute at the creation *)
-    ma_params: pattern list; (* list of static parameters *)
+    ma_params: pattern list; (* list of parameters for the initialization *)
     ma_memories: mentry list;(* its memories *)
     ma_instances: ientry list; (* its node instances *)
     ma_methods: method_desc list; (* its methods *) 

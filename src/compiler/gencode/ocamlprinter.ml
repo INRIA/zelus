@@ -485,13 +485,13 @@ and machine ff ({ ma_name; ma_kind; ma_methods } as ma) =
   
   (* print assertion = [a1;...;an] *)
   let list_of_assertions ff ma_assertions =
-    fprintf ff "@[assertion = %a@]"
+    fprintf ff "@[assertions = %a@]"
       (Pp_tools.print_list_r
          (fun ff { ma_name } -> Ident.fprint_t ff ma_name) "[" ";" "]")
       ma_assertions in
       
   (* print [(f)] or *)
-  (* [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn; assertion = ... }] *)
+  (* [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn; assertions = ... }] *)
   let tuple_of_methods ff (ma_methods, ma_assertions) =
     match ma_kind with
     | Deftypes.Tfun _ -> fprintf ff "%s" f
@@ -566,11 +566,14 @@ let def_types acc impl =
       | Eflatten { e; size_1; size_2 } ->
        def_types (def_types (def_types acc e) size_1) size_2
     | Ereverse { e; size } -> def_types (def_types acc e) size
-    | Emachine { ma_name; ma_initialize;
-                 ma_memories; ma_instances; ma_methods } ->
-       let def_method acc { me_body } = def_types acc me_body in
-       let acc = List.fold_left def_method acc ma_methods in
-       def_type_for_a_machine ma_name ma_memories ma_instances :: acc in
+    | Emachine(ma) -> def_types_in_machine acc ma
+  and def_types_in_machine acc
+       { ma_name; ma_initialize; ma_memories; ma_instances;
+         ma_methods; ma_assertions } =
+  let def_method acc { me_body } = def_types acc me_body in
+  let acc = List.fold_left def_method acc ma_methods in
+  let acc = List.fold_left def_types_in_machine acc ma_assertions in
+  def_type_for_a_machine ma_name ma_memories ma_instances :: acc in
   match impl with
   | Eletdef(n_e_list) ->
      List.fold_left (fun acc (n, e) -> def_types acc e) acc n_e_list

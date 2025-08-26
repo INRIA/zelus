@@ -426,8 +426,8 @@ let exp_of_code f k pat_list self code e ty_res =
     (* the [n-1] parameters are static *)
     let pat_list, p = Util.firsts pat_list in
     let body =
-      make_machine f k pat_list self p code e ty_res in
-    Emachine(body)
+      make_machine f k [] self p code e ty_res in
+    Efun { pat_list; e = Emachine(body) }
 
 let add_mem_vars_to_code mem_acc var_acc (e, ({ mem } as code)) =
   letvar var_acc e, { code with mem = Parseq.seq mem_acc mem } 
