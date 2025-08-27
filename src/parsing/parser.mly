@@ -668,8 +668,7 @@ fun_definition:
 
 fun_definition_desc:
   | i = is_inline a = is_atomic k = fun_kind_opt ide = ide
-       v_p_list_list = param_list_list 
-    r = result
+       v_p_list_list = param_list_list r = result
     { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
 	   funexp i a k v_p_list_list r $startpos $endpos) }
 ;

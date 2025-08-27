@@ -1,13 +1,19 @@
 let node h y (x) = let rec nat = x -> pre nat + y in nat
 
-let node hh(x) = (h 42) x + h 32 x
+let node hh h (x) = run (h x) x
 
+let node hhh h x = h x
+
+let f = node (const x1) x2 x3 -> x3
+
+(*
 let hybrid h1 x3 (x1, x2) =
   let rec der x = 1.0 init 0.0 in
   x
 
 let hybrid h2(x) =
   let x = (h1 x) (x, x) in x +. x
+*)
 
 (*
 let hybrid g(x1, x2) =
