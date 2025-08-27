@@ -386,8 +386,9 @@ let make_apply k loop_path code f arg_list =
        List.map (fun ix -> Oaux.local ix) loop_path in
      (* create an instance *)
      let o = Ident.fresh "i" in
-     let j_code = { i_name = o; i_machine = f; i_kind = k;
-		    i_params = se_list; i_size = [] } in
+     let j_code = { i_name = o; i_machine = Eapp { f; arg_list = se_list };
+                    i_kind = k;
+		    i_params = []; i_size = [] } in
      let reset_code =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.reset;
 		     met_instance = Some(o, loop_path); met_args = [] }) in
