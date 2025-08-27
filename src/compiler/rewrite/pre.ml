@@ -32,7 +32,7 @@ let fresh_fby () = fresh "_fby_m"
 let fresh_m () = fresh "m"
 let fresh name = fresh name
 
-(* some auxiliary functions; not used for the moment *)
+(* some auxiliary functions *)
 (* Defines a value [let x = e in e_let] *)
 let let_value name e =
   let x = fresh name in
@@ -44,13 +44,13 @@ let let_mem_value e =
   let x = fresh_pre () in
   let m = fresh_m () in
   Aux.let_eq_list_in_e
-    false [Aux.id_eq m e; Aux.id_eq x (Aux.last_star m)] (var x)
+    true [Aux.id_eq m e; Aux.id_eq x (Aux.last_star m)] (var x)
     
 (* [let rec init m = e1 and m = e2 and x = last* m in x] *)
 let let_init_mem_value e1 e2 =
   let x = fresh_fby () in
   let m = fresh_m () in
-  Aux.let_eq_list_in_e false
+  Aux.let_eq_list_in_e true
     [Aux.eq_init m e1; Aux.id_eq m e2; Aux.id_eq x (Aux.last_star m)]
     (var x)
 
