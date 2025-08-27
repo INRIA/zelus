@@ -187,7 +187,7 @@ and ientry =
   { i_name: Ident.t; (* its name *)
     i_machine: exp;  (* the machine it belongs to *)
     i_kind: Deftypes.kind;  (* the kind of the machine *)
-    i_params: exp path; (* static parameters used at instance creation *)
+    i_params: exp path; (* parameters used at instance creation *)
     i_size: exp list; (* it is possibly an array of instances *)
   }
     

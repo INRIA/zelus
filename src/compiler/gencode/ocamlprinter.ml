@@ -403,7 +403,9 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
     
 and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
     fprintf ff "@[%a = %a (* %s *)@ @]" Printer.name i_name
-      (array_make (fun ff n -> fprintf ff "%a_alloc ()" Printer.name n) i_name)
+      (array_make
+         (fun ff n -> fprintf ff "%a_alloc %a" Printer.name n
+         (Pp_tools.print_list_r (exp 0) "(" "," ")") i_params) i_name)
       i_size (Oprinter.kind i_kind)
 
 and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e p_internal_type ty
@@ -457,7 +459,7 @@ and palloc ma_name i_list ma_params ma_memories ff ma_instances =
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
 (* for every instance; the list of method is limited to the non local *)
 (* (visible) ones *)
-and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
+and def_instance_function ff { i_name; i_machine; i_kind; i_size } =
   (* Define the method *)
   let method_name ff me_name =
     let m = Oprinter.method_name me_name in
@@ -471,9 +473,9 @@ and def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
      let m_name_list = expected_list_of_methods in
      let k = constructor_for_kind i_kind in
      fprintf ff
-       "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
+       "@[let %s { alloc = %a_alloc; %a } = %a in@]"
        k Printer.name i_name list_of_methods m_name_list
-       (exp 0) i_machine (print_list_r (exp 1) "" " " "") i_params
+       (exp 0) i_machine 
 
 (* Print a machine as pieces with a type definition for the state *)
 (* and a collection of functions *)

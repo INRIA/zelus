@@ -319,7 +319,7 @@ and memory ff { m_name; m_value; m_typ; m_kind; m_size } =
 
 and instance ff { i_name; i_machine; i_kind; i_params; i_size } =
   fprintf ff
-    "@[%s %a@ %a%a%a@]" 
+    "@[%s %a:@ %a%a%a@]" 
     (kind i_kind) Printer.name i_name (exp 0) i_machine
     (print_list_no_space
        (print_with_braces (exp 0) "(" ")") "" "" "")
@@ -335,18 +335,18 @@ and pmethod ff { me_local; me_name; me_params; me_body; me_typ } =
     p_internal_type me_typ
 
 and pinitialize ff i_list =
-  Pp_tools.print_list_r (exp 0) "" ";" "" ff i_list
+  Pp_tools.print_list_r (exp 0) "(" ";" ")" ff i_list
 
 (* Print a machine *)
 and machine ff { ma_name; ma_self; ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods; ma_assertions } =
   fprintf ff
-    "@[<hov 2>%s machine@ %a as %a@ {@ \
+    "@[<hov 2>%s machine@ %a as %a {@ \
      @[<v2>initialize %a =@ @[%a@]@]@ \
      @[<v2>memories@ @[%a@]@]@ \
      @[<v2>instances@ @[%a@]@]@ \
      @[<v2>methods@ @[%a@]@]@ \
-     @[<v2>assertions@ @[%a@]@]}@]"
+     @[<v2>assertions@ @[%a@]@]@ }@]"
     (kind ma_kind)
     Ident.fprint_t ma_name  
     print_self_name ma_self
