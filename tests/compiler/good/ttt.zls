@@ -1,3 +1,5 @@
+let node f x = let rec o = 0 fby o + x in o
+
 (*
 let f1 x returns (o)
   let f x = 1 in
