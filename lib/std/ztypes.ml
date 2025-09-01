@@ -30,7 +30,8 @@ type ('p, 'a, 'b) node =
       { alloc : 'p -> 's; (* allocate the state *)
         step : 's -> 'a -> 'b; (* compute a step *)
         reset : 's -> unit; (* reset/inialize the state *)
-      } -> ('p, 'a, 'b) node
+        assertions : ('p, 's, bool) node list; (* list of assertions *)}
+    -> ('p, 'a, 'b) node
 
 (* the same with a method copy *)
 type ('p, 'a, 'b) cnode =
