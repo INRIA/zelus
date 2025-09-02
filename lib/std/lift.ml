@@ -8,10 +8,10 @@ let lift f =
     { cvec = Zls.cmake 0; dvec = Zls.cmake 0; cindex = 0; zindex = 0;
       cend = 0; zend = 0; cmax = 0; zmax = 0;
       zinvec = Zls.zmake 0; zoutvec = Zls.cmake 0;
-      major = false; horizon = max_float } in
+      major = false; horizon = max_float; time = 0.0 } in
 
-  let Node { alloc = f_alloc; step = f_step; reset = f_reset } = f cstate in
-  let s = f_alloc () in
+  let Node { alloc = f_alloc; step = f_step; reset = f_reset } = f in
+  let s = f_alloc cstate in
 
   let n_zeros = cstate.zmax in
   let n_cstates = cstate.cmax in

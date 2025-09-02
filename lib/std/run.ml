@@ -22,4 +22,4 @@ let irun =
       | Some(s) -> s in
     t s x in
   let reset self = self.m <- None in
-  Node { alloc = alloc; step = step; reset = reset }
+  Node { alloc = alloc; step = step; reset = reset; assertions = [] }

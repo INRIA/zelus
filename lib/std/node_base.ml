@@ -298,7 +298,7 @@ struct
                   result = s.output }
       with
       | x -> raise x in
-    Node { alloc = alloc; step = step; reset = reset }
+    Node { alloc = alloc; step = step; reset = reset; assertions = [] }
 end
 
 module Ode23Solver = Make (Solvers.Ode23) (Illinois)
