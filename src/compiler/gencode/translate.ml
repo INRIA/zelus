@@ -375,7 +375,7 @@ let append loop_path l_env { self; env } =
  * instance o = f se1 ... sen
  * call o.(i1)...(ik).step(e)
  * reset with o.(i1)...(ik).reset *)
-let make_apply k loop_path code f arg_list =
+let make_apply k { self } loop_path code f arg_list =
   match k with
   | Deftypes.Tfun _ -> Eapp { f; arg_list }, code
   | Deftypes.Tnode _ ->
@@ -614,7 +614,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let e_fun, code = match ne_list with
        | [] -> e_fun, code
        | _ -> let k = Types.kind_of_funtype ty_res in
-	      make_apply k loop_path code e_fun ne_list in
+	      make_apply k env loop_path code e_fun ne_list in
      e_fun, code
   | Zelus.Esizeapp { f; size_list } ->
      (* for the moment only combinatorial size functions are treated *)

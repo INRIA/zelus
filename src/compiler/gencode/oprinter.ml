@@ -105,10 +105,10 @@ and pattern_comma_list ptype ff pat_list =
 let method_name m_name = m_name
 
 (** Print the call to a method *)
-let rec method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
-  let m = method_name m in
-  let instance ff i_opt =
-    match i_opt with
+let rec method_call ff { met_name; met_instance; met_args = e_list } =
+  let m = method_name met_name in
+  let instance ff met_instance =
+    match met_instance with
     | None -> (* a call to the self machine *) fprintf ff "self"
     | Some(o, e_list) ->
        match e_list with
@@ -118,7 +118,7 @@ let rec method_call ff { met_name = m; met_instance = i_opt; met_args = e_list }
 	    (print_list_no_space
 	       (print_with_braces (exp 3) "(" ")") "" "." "") e_list in
   fprintf ff "@[<hov 2>%a.%s @ %a@]"
-    instance i_opt m
+    instance met_instance m
     (print_list_r (exp 3) "" "" "") e_list
 
 and left_value ff left =
