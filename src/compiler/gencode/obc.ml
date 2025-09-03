@@ -202,9 +202,9 @@ and method_desc =
 and methodcall =
   { met_machine: Lident.t option; (* the class of the method *)
     met_name: method_name; (* name of the method *)
-    met_instance: (Ident.t * exp path) option;
-    (* either a call to self (None) or to *)
-    (* one instance o.(index_1)...(index_n).m(e_1,...,e_k) *)
+    met_self: Ident.t; (* the reference to the memory state *)
+    met_instance: (Ident.t * exp path); (* the name of the instance *)
+    (* one instance self.o.(index_1)...(index_n).m(e_1,...,e_k) *)
     met_args: exp list;
   }
 

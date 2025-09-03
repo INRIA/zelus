@@ -116,22 +116,17 @@ let def_type_for_a_machine ma_name ma_memories ma_instances =
       [Ident.name ma_name, params, Erecord_type(List.map one_entry entries)]
 
 (* Print the call to a method *)
-let rec method_call ff { met_name; met_instance; met_args } =
+let rec method_call ff { met_name; met_self; met_instance; met_args } =
   let m = Oprinter.method_name met_name in
-  let instance_name ff i_opt =
-    match i_opt with
-    | None -> fprintf ff "self" | Some(o, _) -> Printer.name ff o in
-  let instance ff i_opt =
-    match i_opt with
-    | None -> (* a call to the self machine *) fprintf ff "self"
-    | Some(o, e_list) ->
-       match e_list with
-       | [] -> fprintf ff "self.%a" Printer.name o
-       | e_list ->
-	  fprintf ff "self.%a.%a" Printer.name o
+  let instance_name ff (i_name, _) = Printer.name ff i_name in
+  let instance ff (o, e_path) =
+    match e_path with
+       | [] -> fprintf ff "%a.%a" Printer.name met_self Printer.name o
+       | e_path ->
+	  fprintf ff "%a.%a.%a" Printer.name met_self Printer.name o
 		  (print_list_no_space
 		     (print_with_braces (exp 3) "(" ")") "" "." "")
-		  e_list in
+		  e_path in
   fprintf ff "@[<hov 2>%a_%s %a@ %a@]"
 	  instance_name met_instance m instance met_instance
 	  (print_list_r (exp 3) "" "" "") met_args

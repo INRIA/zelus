@@ -391,10 +391,12 @@ let make_apply k { self } loop_path code f arg_list =
 		    i_params = []; i_size = [] } in
      let reset_code =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.reset;
-		     met_instance = Some(o, loop_path); met_args = [] }) in
+		     met_self = self;
+                     met_instance = (o, loop_path); met_args = [] }) in
      let step =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.step;
-		     met_instance = Some(o, loop_path); met_args = [arg] }) in
+		     met_self = self;
+                     met_instance = (o, loop_path); met_args = [arg] }) in
      step,
      { code with instances = Parseq.cons j_code code.instances;
                  reset = Oaux.seq reset_code code.reset }
