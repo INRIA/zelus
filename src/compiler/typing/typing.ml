@@ -1318,8 +1318,8 @@ and apply loc expected_k h f arg_list =
          with Unify -> error loc (Eapplication_of_non_function) in
        let expected_arg_k =
          match arg_k with
-         | Tfun(Tconst) | Tfun(Tstatic) -> arg_k
-         | _ ->
+         | Tfun(Tconst) | Tfun(Tstatic) -> arg_k | Tfun _ -> expected_k
+         | Tnode _ ->
             (* if [f] is a stateful function *)
             (* [f] must be a compile-time constant or static value *)
             less_than loc actual_k_fct (Tfun(Tstatic));
