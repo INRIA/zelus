@@ -163,3 +163,5 @@ let output_location_list ff f_loc_list =
        output_location ff f_loc;
        output current_iname f_loc_list in
   output !input_name f_loc_list
+
+let between (Loc(left_l, _)) (Loc(left_r, _)) = Loc(left_l, left_r)

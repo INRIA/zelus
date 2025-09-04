@@ -1,7 +1,8 @@
-let node f(x) =
-  0 fby x
+let node h y (x) = let rec nat = x -> pre nat + y in nat
 
-let node g (n) = f (n)
+let node hh (x) = (h x) x
+
+let node hhh h x = h x
 
 (* let hybrid g(x1, x2) =
   let rec der x = 1.0 init 3.0 in
