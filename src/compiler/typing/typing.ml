@@ -1291,8 +1291,20 @@ and expect expected_k h e expected_ty =
   unify_expr e expected_ty actual_ty;
   actual_k
 
-
 (* Typing an application *)
+(*
+ *-   H |-{k2}{k2'} f : t1 -k0|k0'-> t2  H |-{k1}{k1'} e : t1
+ *-  ---------------------------------------------------------
+ *-                   H |-{k}{k'} f e : t2
+ *-
+ *-  k1' <: k1, k2' <: k2, k' <: k
+ *-
+ *-  k' = sup (k2', k'1, if k2' = const then if k'0 = any then const
+ *-                                          else k'0
+ *-                      else if k2' = static then if k0' = any then static
+ *-                                                else k'0
+ *-                           else k2')
+ *)
 and apply loc expected_k h f arg_list =
   (* first type the function body *)
   let ty_fct, actual_k_fct = expression expected_k h f in

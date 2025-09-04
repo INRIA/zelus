@@ -21,7 +21,7 @@ open Typerrors
  *- const: an expression that must be computed at compile-time;
  *- static: an expression that must be computed at instanciation time;
  *- any: a combinational expression;
- *- node: a stateful expression; either only discrete-time or continuous-time *)
+ *- node: a stateful expression; either discrete-time or continuous-time *)
 
 (* The kind for function types:
  *- -V->                 -V|V->
@@ -60,7 +60,7 @@ let vkind_is_less_than actual_v expected_v =
   | (Tconst, _) | (Tstatic, (Tstatic | Tany)) | (Tany, Tany) -> true
   | _ -> false
 
-let left_right k =
+let decompose_kind_left_right k =
   match k with
     | Tfun(k) ->
        (match k with
@@ -68,6 +68,7 @@ let left_right k =
         | Tany -> Tany, Tany)
     | Tnode _ -> Tany, Tany
 
+(* [actual_k <: expected_k] *)
 let is_less_than actual_k expected_k =
   match actual_k, expected_k with
   | Tfun(k1), Tfun(k2) -> vkind_is_less_than k1 k2
@@ -77,7 +78,7 @@ let is_less_than actual_k expected_k =
 
 let stateful = function | Tfun _ -> false | Tnode _ -> true
 
-(* The sup of two kind. This function should be applied when *)
+(* The sup of two kinds. This function should be applied when *)
 (* the sup exists *)
 let sup k1 k2 =
   let sup k1 k2 = match k1, k2 with
@@ -114,24 +115,25 @@ let rec in_vkind ka { t_desc } =
   | Tlink(ty_link) -> in_vkind ka ty_link
   | Tvec(ty, _) -> in_vkind ka ty
   | Tarrow { ty_kind; ty_arg; ty_res } ->
-     let left_kfun, right_kfun = left_right ty_kind in
+     let left_kfun, right_kfun = decompose_kind_left_right ty_kind in
      in_vkind left_kfun ty_arg && in_vkind right_kfun ty_res
                                && vkind_is_less_than ka left_kfun
   | Tsizefun { ty } -> in_vkind Tconst ty && vkind_is_less_than ka Tconst
 
-(* Kind inheritance. If the context has vkind [context_vkind] *)
-(* and the local declaration has vkind [vkind] *)
-(* introduced names will have the minimum of the two *)
-let vkind_inherits context_vkind vkind =
-  match context_vkind, vkind with
-  | (Tconst, _) | (_, Tconst) -> Tconst
-  | (Tstatic, _) | (_, Tstatic) -> Tstatic
-  | _ -> Tany
-
-(* Kind inheritance. If the context has kind [expected_k] *)
+(* Kind inheritance. *)
+(* If the context has kind [expected_k] *)
 (* and the local declaration is kind [vkind] *)
 (* names will have the minimum of the two *)
 let inherits expected_k vkind =
+  (* Kind inheritance. If the context has vkind [context_vkind] *)
+  (* and the local declaration has vkind [vkind] *)
+  (* introduced names will have the minimum of the two *)
+  let vkind_inherits context_vkind vkind =
+    match context_vkind, vkind with
+    | (Tconst, _) | (_, Tconst) -> Tconst
+    | (Tstatic, _) | (_, Tstatic) -> Tstatic
+    | _ -> Tany in
+  
   match expected_k, vkind with
   | Tnode _, (Tconst | Tstatic) -> Tfun vkind
   | Tnode _, Tany -> expected_k
