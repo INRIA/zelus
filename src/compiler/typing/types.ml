@@ -536,11 +536,10 @@ let rec split_arguments ty_fun e_list =
   | e :: e_rest_list ->
      let k, _, _, ty_res = filter_actual_arrow ty_fun in
      match k with
-     | Tfun(Tstatic) ->
+     | Tfun(Tconst | Tstatic) ->
 	let se_list, ne_list, ty_res = split_arguments ty_res e_rest_list in
 	e :: se_list, ne_list, ty_res
      | _ -> [], e_list, ty_fun
-
 
 (* All the function below are pure. They do not modify the internal *)
 (* representation of types. This is mandatory for them to be used once *)

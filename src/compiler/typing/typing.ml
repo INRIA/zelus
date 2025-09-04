@@ -1312,7 +1312,7 @@ and apply loc expected_k h f arg_list =
   (* typing the list of arguments *)
   let rec args actual_k_fct ty_fct = function
     | [] -> ty_fct, actual_k_fct
-    | arg :: arg_list ->
+    | ({ e_loc } as arg):: arg_list ->
        let arg_k, n_opt, ty1, ty2 =
          try Types.filter_arrow (Tfun(Tany)) ty_fct
          with Unify -> error loc (Eapplication_of_non_function) in
@@ -1322,7 +1322,7 @@ and apply loc expected_k h f arg_list =
          | Tnode _ ->
             (* if [f] is a stateful function *)
             (* [f] must be a compile-time constant or static value *)
-            less_than loc actual_k_fct (Tfun(Tstatic));
+            less_than (Location.between loc e_loc) actual_k_fct (Tfun(Tstatic));
             expected_k in
        let actual_k_arg = expect expected_arg_k h arg ty1 in
        let actual_k_fct =

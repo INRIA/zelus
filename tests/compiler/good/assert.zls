@@ -1,6 +1,6 @@
 let node h y (x) = let rec nat = x -> pre nat + y in nat
 
-let node hh (x) = (h x) x
+let node hh (x) = h 42 x
 
 let node hhh h x = h x
 
