@@ -1293,8 +1293,8 @@ and expect expected_k h e expected_ty =
 
 (* Typing an application *)
 (*
- *-   H |-{k2}{k2'} f : t1 -k0|k0'-> t2  H |-{k1}{k1'} e : t1
- *-  ---------------------------------------------------------
+ *-   H |-{k2}{k2'} f : t1 -k0|k0'-> t2    H |-{k1}{k1'} e : t1
+ *-  -----------------------------------------------------------
  *-                   H |-{k}{k'} f e : t2
  *-
  *-  k1' <: k1, k2' <: k2, k' <: k
@@ -1304,6 +1304,7 @@ and expect expected_k h e expected_ty =
  *-                      else if k2' = static then if k0' = any then static
  *-                                                else k'0
  *-                           else k2')
+ *-  + if k0' = D or C then k2' <: static
  *)
 and apply loc expected_k h f arg_list =
   (* first type the function body *)
@@ -1318,7 +1319,11 @@ and apply loc expected_k h f arg_list =
        let expected_arg_k =
          match arg_k with
          | Tfun(Tconst) | Tfun(Tstatic) -> arg_k
-         | _ -> expected_k in
+         | _ ->
+            (* if [f] is a stateful function *)
+            (* [f] must be a compile-time constant or static value *)
+            less_than loc actual_k_fct (Tfun(Tstatic));
+            expected_k in
        let actual_k_arg = expect expected_arg_k h arg ty1 in
        let actual_k_fct =
          match actual_k_fct, arg_k with
@@ -1329,7 +1334,7 @@ and apply loc expected_k h f arg_list =
          | _ -> Kind.sup actual_k_fct (Kind.sup arg_k actual_k_arg) in
        (* check that the actual kind is less than the expected one *)
        less_than loc actual_k_fct expected_k;
-       let ty2 =
+        let ty2 =
          match n_opt with
          | None -> ty2
          | Some(n) ->
