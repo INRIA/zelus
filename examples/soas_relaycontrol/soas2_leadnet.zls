@@ -1,0 +1,26 @@
+(*
+    Example 10.2 (A basic SOAS)
+    from "Adaptive Control", 2e, Åström and Wittenmark, 2008
+ *)
+
+open Soas
+
+let hybrid main () = () where
+  rec i = command ()
+  and y_m = reference i
+  and u = relay (0.35, g_f e)
+  and e =  y_m -. y
+
+  (* Rmk: we should be able to put the automaton below *)
+  (* into a function. We can not for the moment as there *)
+  (* is no inlining of function call a priori *)
+  and automaton
+      | G3  -> do b1 = 4.0 and c3 = 3.750 until (period (25.0 | 25.0)) then G15
+      | G15 -> do b1 = 8.0 and c3 = 9.375 done
+
+  and der x1 = -21.0 *. x1  +.  -5.0 *. x2  +.  b1 *. u init 0.0
+  and der x2 =   4.0 *. x1 init 0.0
+  and der x3 =   1.0 *. x2 init 0.0
+  and y = c3 *. x3
+
+  and () = plot ("SOAS with lead network", y, y_m, u, e)

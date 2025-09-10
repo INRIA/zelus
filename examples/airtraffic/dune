@@ -1,0 +1,11 @@
+(env (dev (flags (:standard -w -a))))
+
+(rule
+ (targets airtraffic.ml airtraffic_main.ml)
+ (deps (:zl airtraffic.zls) airtrafficgui.zli (package zelus) (package zelus-gtk))
+ (action (run zeluc -deps -gtk2 -s main -o airtraffic_main %{zl})))
+
+(executable
+  (name airtraffic_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

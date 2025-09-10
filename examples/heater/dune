@@ -1,0 +1,21 @@
+(env (dev (flags (:standard -w -a))))
+
+(rule
+ (targets maind.ml main_heat.ml heat.ml constants.ml io.ml)
+ (deps (:zl main_heat.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -deps -gtk2 -s main -o maind %{zl})))
+
+(rule
+ (targets mainc.ml main_heatc.ml heatc.ml)
+ (deps (:zl main_heatc.zls) heatc.zls heat.zls constants.zls io.zls (package zelus) (package zelus-gtk) (sandbox always))
+ (action (run zeluc -deps -gtk2 -s main -o mainc %{zl})))
+
+(rule
+ (targets maindc.ml main_heatdc.ml heatdc.ml)
+ (deps (:zl main_heatdc.zls) heatdc.zls heatc.zls heat.zls constants.zls io.zls  (package zelus) (package zelus-gtk) (sandbox always))
+ (action (run zeluc -deps -gtk2 -s main -o maindc %{zl})))
+
+(executables
+  (names maind mainc maindc)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

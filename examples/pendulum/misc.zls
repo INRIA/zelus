@@ -1,0 +1,8 @@
+(* usefull stuff *)
+(* rectangle integration *)
+let node integr (dt, x') = x where
+  rec x = 0.0 -> dt *. x' +. (pre x)
+
+(* derivative *)
+let node deriv (dt, x) = x' where
+  rec x' = 0.0 -> (x -.(pre x)) /. dt

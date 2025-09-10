@@ -1,0 +1,32 @@
+(env (dev (flags (:standard -w -a))))
+
+(rule
+ (targets fly.ml fly_main.ml)
+ (deps (:zl fly.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -gtk2 -s main -o fly_main %{zl})))
+
+(rule
+ (targets cantharide1.ml cantharide1_main.ml)
+ (deps (:zl cantharide1.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -gtk2 -s main -o cantharide1_main %{zl})))
+
+(rule
+ (targets cantharide2.ml cantharide2_main.ml)
+ (deps (:zl cantharide2.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -gtk2 -s main -o cantharide2_main %{zl})))
+
+(rule
+ (targets cantharide3.ml cantharide3_main.ml)
+ (deps (:zl cantharide3.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -gtk2 -s main -o cantharide3_main %{zl})))
+
+(rule
+ (targets cantharide4.ml cantharide4_main.ml)
+ (deps (:zl cantharide4.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -gtk2 -s main -o cantharide4_main %{zl})))
+
+
+(executables
+  (names fly_main cantharide1_main cantharide2_main cantharide3_main cantharide4_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

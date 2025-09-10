@@ -1,0 +1,5 @@
+
+type t
+val create : float * float -> t
+val update : t * float * float -> unit
+

@@ -1,0 +1,6 @@
+
+val start : unit -AD-> unit
+val show  : (bool * float * float * float * float) -AD-> unit
+val stop  : unit -AD-> unit
+val input : unit -AD-> bool
+

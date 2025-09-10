@@ -1,0 +1,20 @@
+(*
+    Example 10.2 (A basic SOAS)
+    from "Adaptive Control", 2e, Åström and Wittenmark, 2008
+ *)
+
+open Soas
+
+let hybrid main () = () where
+  rec i = command ()
+  and y_m = reference i
+  and u = relay (gain_changer (0.5, 0.1, 0.1, e), w)
+  and w = present (period (0.05)) -> dfilter e init e
+  and e =  y_m -. y
+  and y = process(u, highgain)
+
+  and automaton
+      | Low  -> do highgain = false until (period (25.0 | 25.0)) then High
+      | High -> do highgain = true done
+
+  and () = plot ("SOAS with lead network and gain changer", y, y_m, u, e)

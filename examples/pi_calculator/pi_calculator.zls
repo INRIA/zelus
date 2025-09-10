@@ -1,0 +1,186 @@
+(*
+    https://www.youtube.com/watch?v=jsYwFizhncE
+*)
+
+let precision = 3
+
+(* for printing purposes only: show red text if collision count is different
+   than expected
+*)
+let static pi = 3.1415926535897932384626433832795028841971693993751058209749445
+let real_approx_pi = truncate (pi *. (10. ** (float_of_int precision)))
+
+type collision = Mass | Wall
+
+let m1 = 1.
+let m2 = 100. ** (float_of_int precision)
+let static m1size = 20.
+let static m2size = 50.
+
+let static x1_0 = 50.
+let static x2_0 = 400.
+let static v1_0 = 0.
+let static v2_0 = -100.
+let max_v = sqrt(m2) *. (abs_float v2_0)
+
+
+let msum = m1 +. m2
+let a11  = (m1 -. m2) /. msum
+let a12  = (2. *. m2) /. msum
+let a21  = (2. *. m1) /. msum
+let a22  = (m2 -. m1) /. msum
+
+(* taken from https://prajwalsouza.github.io/Experiments/Colliding-Blocks.html
+   implementation
+*)
+let collide (v1, v2) = (v'1, v'2) where
+        v'1 = a11 *. v1 +. a12 *. v2
+    and v'2 = a21 *. v1 +. a22 *. v2
+
+hybrid model () = (x1, x2, v1, v2, collision, count) where
+    rec der x1 = v1 init x1_0
+    and der x2 = v2 init x2_0
+
+    and init v1 = v1_0 and init v2 = v2_0
+    and present
+        | up((x1 +. m1size) -. (x2 -. m2size)) -> do
+                v1, v2 = collide (last v1, last v2)
+            and emit collision = Mass done
+        | up(-. (x1 -. m1size)) -> do
+                v1 = -. (last v1)
+            and emit collision = Wall done
+
+    and count = present collision(_) -> last count + 1 init 0
+
+(* GRAPHICAL INTERFACE *)
+
+open Graphics
+
+let w = 900 (* screen width *)
+let h = 300 (* screen height *)
+let off_x = 60 (* left offset *)
+let off_y = 60 (* bottom offset *)
+let text_fontsize = 10
+
+discrete draw_line((x1, y1), (x2, y2)) =
+    moveto x1 y1; lineto x2 y2
+
+discrete draw_centered (x, y, string) =
+    let size = fst (text_size string) in
+    let x = x - size / 2 in
+    moveto x y; draw_string string
+
+discrete draw_alignr(x, y, string) =
+    let size = fst (text_size string) in
+    moveto (x - size) y; draw_string string
+
+(* v = 0 : blue, v = maxv : red *)
+discrete get_color (v, maxv) =
+    let v = abs_float v in
+    let red = v /. maxv *. 255. in
+    let green = 0. in
+    let blue = (1. -. v /. maxv) *. 255. in
+    truncate red, truncate green, truncate blue
+
+discrete draw_mass (x, size) =
+    let size = truncate size in
+    let x = off_x + truncate x in
+    let y = off_y + size in
+    draw_rect (x - size) (y - size) (2 * size) (2 * size);
+    x,y
+
+discrete draw_speed (x, y, m, v) =
+    let r,g,b = get_color (sqrt(m) *. v, max_v) in
+    let x' =
+        if v >= 0. then min (x + truncate v) (w - off_x / 2)
+        else max (x + truncate v) (off_x / 2) in
+    set_color (rgb r g b);
+    draw_line ((x, y), (x', y));
+    set_color (rgb 0 0 0)
+
+discrete write_mass (x, y, mass) =
+    draw_centered (x, y, "Mass: " ^ (string_of_float mass) ^ " kg")
+
+discrete write_speed (x, y, mass) =
+    draw_centered (x, y, "Speed: " ^ (string_of_float mass) ^ " m/s")
+
+node show(t, x1, x2, v1, v2, count) =
+    (* Create window *)
+    let init g = open_graph "" in
+
+    (* Set params *)
+    let init tmp1 = set_window_title "Pi calculator"
+    and init tmp2 = resize_window w h
+    and init tmp3 = auto_synchronize false in
+
+    (* Main loop *)
+
+    (* clear *)
+    clear_graph ();
+
+    (* axis *)
+    draw_line ((off_x, off_y), (off_x, h));
+    draw_line ((off_x, off_y), (w, off_y));
+
+    (* m1 *)
+    let x,y = draw_mass (x1, m1size) in
+    write_mass (x, 45, m1);
+    (* draw_speed (x, y, m1, v1); *)
+    write_speed (x, 30, v1);
+
+    (* m2 *)
+    let x,y = draw_mass (x2, m2size) in
+    write_mass (x, 15, m2);
+    (* draw_speed (x, y, m2, v2); *)
+    write_speed (x, 0, v2);
+
+    (* draw collision count *)
+    draw_alignr (w - 10, h - text_fontsize - 10, "Collision count: " ^ (string_of_int count));
+
+    (* sync *)
+    synchronize ()
+
+hybrid main () =
+    let der t = 1. init 0. in
+
+    let x1, x2, v1, v2, collision, count = model () in
+
+    present
+        | (period(0.01)) ->
+            show(t, x1, x2, v1, v2, count)
+        | collision(_) ->
+            (show(t, x1, x2, v1, v2, count);
+             sound 1 1)
+    else ()
+
+hybrid cli () =
+    let init tmp = print_endline ("Precision: " ^ (string_of_int precision)) in
+
+    let der t = 1. init 0. in
+
+    let x1, x2, v1, v2, collision, count = model () in
+
+    present
+        | collision(_) on (v1 > 0. && v2 > 0. && v2 > v1) ->
+            let pi_approx =
+                (float_of_int count) /. (10. ** (float_of_int precision)) in
+            let col = "\027[1m" ^
+                if count = real_approx_pi
+                then "\027[32m"
+                else "\027[31m"
+            in
+            (
+                print_newline ();
+                print_endline ("Done at t = " ^ (string_of_float t) ^ "s");
+                print_endline (col ^
+                    "Pi approximation: " ^ (string_of_float (pi_approx)) ^
+                    "\027[0m");
+                print_string "Press Ctrl + C to exit ...";
+                flush stdout;
+                input_line stdin;
+                ()
+            )
+        | collision(_) ->
+            print_string ("Counting collisions ... " ^ (string_of_int (count + 1)) ^
+                " / " ^ (string_of_int real_approx_pi) ^ "\r")
+    else ()

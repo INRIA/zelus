@@ -1,0 +1,66 @@
+(* A library of generators and observers *)
+
+(* Generation of a source. Constant *)
+let node piecewise_constant(low)(high)(z) = o where
+  rec reset
+    init o = Random.float high
+  every z
+
+let node linear_constant(h)(low)(slope)(z) = o where
+  rec reset
+     init o = Random.float low
+     and init s = Random.float slope
+     and o = last o +. h *. s
+   every z
+
+(* checks that when [start(deadline)] is present *)
+(* [answer] is true before the timer initialized to deadline is zero *)
+let node watchdog(h)(start) = ok where
+  rec ok = automaton
+	   | Await ->
+	       do true unless start(deadline) then Run(deadline)
+           | Run(deadline) ->
+	       let rec cpt = 0 fby cpt + 1 in
+	       do (cpt <= deadline) unless start(deadline) then Run(deadline)
+	   
+
+(*
+let node lustre_watchdog(h)(start) = ok where
+  rec init t_limit = max_int
+  and init cpt = 0
+  and cpt = present
+              start(deadline) -> do t_limit = deadline and cpt = 0 done
+            else do cpt = last cpt + 1 done
+  and ok = (cpt <= t_limit)
+*)
+  
+(* check that an input is true for at least [max_time] seconds *)
+let node count(h)(max_time, c) =
+   let n = int_of_float (max_time /. h) in
+   let rec co = n -> if c then pre co + 1 else n in
+   co = 0
+   
+(* does it oscillate *)
+let node oscillate(x) =
+  let px = x fby x in
+  let ppx = x fby px in
+  (x <> px) && (px <> ppx)
+
+(* a signal is constant during [k] consecutive steps *)
+(*
+let node constant(h)(k)(x) =
+   let rec init m = x
+   and init cpt = 1
+   and if x = last m then do cpt = last cpt + 1 done
+       else do m = x and cpt = 1 done in
+   cpt >= k
+*)
+      
+(* decrease *)
+let node decrease(x) = true -> x < pre x    
+
+(* constant *)
+let node constant(x) = true -> x = pre x
+
+(* edge detector *)
+let node edge(x) = x -> x && not (pre x)

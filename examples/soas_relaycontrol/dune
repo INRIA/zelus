@@ -1,0 +1,33 @@
+(env (dev (flags (:standard -w -a))))
+
+(rule
+ (targets soas.ml)
+ (deps (:zl soas.zls) (package zelus) (package zelus-gtk))
+ (action (run zeluc -gtk2 -dzero %{zl})))
+
+(rule
+ (targets soas1_basic.ml soas1_basic_main.ml)
+ (deps (:zl soas1_basic.zls) soas.zls (package zelus) (package zelus-gtk) (sandbox always))
+ (action (run zeluc -gtk2 -deps -s main -o soas1_basic_main %{zl})))
+
+(rule
+ (targets soas2_leadnet.ml soas2_leadnet_main.ml)
+ (deps (:zl soas2_leadnet.zls) soas.zls (package zelus) (package zelus-gtk) (sandbox always))
+ (action (run zeluc -gtk2 -deps -s main -o soas2_leadnet_main %{zl})))
+
+(rule
+ (targets soas3_gainchanger.ml soas3_gainchanger_main.ml)
+ (deps (:zl soas3_gainchanger.zls) soas.zls (package zelus) (package zelus-gtk) (sandbox always))
+ (action (run zeluc -gtk2 -deps -s main -o soas3_gainchanger_main %{zl})))
+
+; (rule
+;  (targets soas4_gainchanger_disc.ml soas4_gainchanger_disc_main.ml)
+;  (deps (:zl soas4_gainchanger_disc.zls) soas.zls (sandbox always))
+;  (action (run zeluc -gtk2 -deps -s main -o soas4_gainchanger_disc_main %{zl})))
+
+(executables
+  (names soas1_basic_main soas2_leadnet_main soas3_gainchanger_main 
+  ;soas4_gainchanger_disc_main
+  )
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

@@ -1,0 +1,82 @@
+open Node
+
+(* Compute information about what the solver did.
+ *- the number of points that have been computed;
+ *- the number of time the solver has been called;
+ *- the number of successive jumps *)
+let node steps status =
+  let rec nb_points = 0 fby nb_points + 1 in
+  let rec init nb_integr = 0 and init nb_jumps = 0
+  and match status with
+      | Interpolate | StopTimeReached
+      | TimeHasPassed | Error ->
+	  do nb_jumps = 0 done
+      | Success _ ->
+	  do nb_integr = last nb_integr + 1 and nb_jumps = 0 done
+      | RootsFound | Horizon _ | Cascade ->
+	  do nb_jumps = last nb_jumps + 1 done
+  in (nb_points, nb_integr, nb_jumps)
+    
+let node debug (status, time) =
+  (match status with
+  | Interpolate -> print_string "Interpolate"
+  | StopTimeReached -> print_string "StopTimeReached"
+  | TimeHasPassed -> print_string "TimeHasPassed"
+  | Error -> print_string "Error"
+  | Success(v) -> (print_string "Success("; print_float v; print_string ")")
+  | RootsFound -> print_string "RootsFound"
+  | Horizon(h) ->
+      (print_string "Horizon("; print_float h; print_string ")")
+  | Cascade -> print_string "Cascade"
+  end);
+  print_newline ();
+  print_string "Time = "; print_float time;
+  print_newline ();
+  flush stdout
+   
+let node maindc_without_graphics () =
+  (* Compute the dynamics of the system. Draw an observation *)
+  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
+  automaton
+  | Run ->
+      let reference_temp = 19.0 in
+      let time, u, measured_temp, status = Heatdc.system(reference_temp) in
+      let rec outside =
+	0.0 ->
+	  let eps = measured_temp -. reference_temp -. 1.0 in
+	  if eps > 0.0 then max (pre outside) eps
+	  else pre outside in
+      let nb_points, nb_integr, nb_jumps = steps status in
+      do ()
+      until (status = StopTimeReached)
+      then Stop(nb_points, nb_integr, nb_jumps, outside)
+  | Stop(nb_points, nb_integr, nb_jumps, outside) ->
+      do print_string "nb_points = ";
+	print_int nb_points; print_newline ();
+	print_string "nb_integr = ";
+	print_int nb_integr;
+	print_newline ();
+	print_string "nb_jumps = ";
+	print_int nb_jumps;
+	print_newline ();
+	print_string "outside = ";
+	print_float outside;
+	print_newline ();
+	Basics.exit 0
+      done
+      
+(* The main function *)
+let node main () =
+  (* Compute the dynamics of the system. Draw an observation *)
+  (* at times [n * h] with n in Nat or when the solver stops *)
+  automaton
+  | Run ->
+      let reference_temp = Io.input () in
+      let time, u, measured_temp, status = Heatdc.system(reference_temp) in
+      let () = debug (status, time) in
+      do
+	Io.output (u, reference_temp, measured_temp, time)
+      until (status = StopTimeReached)
+      then Stop
+  | Stop -> do () done
+      

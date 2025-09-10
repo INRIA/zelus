@@ -1,0 +1,23 @@
+
+let thresh1 = 0.987
+let thresh2 = 1.987
+
+let hybrid f () =
+  let rec der t = 1.0 init 0.0
+  and z1 = up (t -. thresh1)
+  and z2 = up (t -. thresh2)
+  and o1 = present z1 -> 1.0 else 0.0
+  and o2 = present z2 -> 1.0 else 0.0 in
+  t, z1, o1, z2, o2
+
+let hybrid main () =
+  let (t, z1, o1, z2, o2) = f () in
+  present
+    (period (0.6)) | (init) | z1 | z2 ->
+       let s1 = Scope.scope (-1.0, 5.0, ("o1 =", Scope.linear, o1))
+       and s2 = Scope.scope (-1.0, 5.0, ("o2 =", Scope.linear, o2))
+       in
+       print_float t; print_newline ();
+       Scope.window2 ("discontinuity", 8.0, t, s1, s2)
+  else ()
+
