@@ -18,6 +18,7 @@
   (modules
     location ; position in the source file
     lexer parser parsetree ; parsing
+    deps_tools ; compute module names that appear in the current module
   )
   (libraries menhirLib))
 
@@ -97,7 +98,6 @@
   (public_name zelus.common_lib)
   (wrapped false)
   (modules
-    deps_tools ; compute module names that appear in the current module
     graph ; acyclic graph manipulation
     parseq ; a data-structure to represent
            ; parallel and sequential composition
