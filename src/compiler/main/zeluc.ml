@@ -38,6 +38,27 @@ let compile file =
   else
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
+(* compute dependences; written by G. Baudart; taken from Version 2 of Zelus *)
+module SS = Zdepend.StringSet
+let build file = 
+  Deps_tools.add_to_load_path Filename.current_dir_name;
+  let rec _build acc file = 
+    let deps = 
+      match (Filename.extension file) with
+      | ".zls" -> Deps_tools.zls_dependencies file
+      | ".zli" -> Deps_tools.zli_dependencies file
+      | _ -> raise (Arg.Bad ("don't know what to do with " ^ file))
+    in
+    let acc = List.fold_left _build acc deps in
+    let basename = Filename.chop_extension file in
+    if not (SS.mem basename acc) then begin
+      compile file; 
+      SS.add basename acc
+    end else
+      acc
+  in
+  ignore (_build (SS.empty) file)
+  
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
 let doc_print_passes = "\t Output compiler passes"
@@ -113,6 +134,8 @@ and doc_noassert = "\t Remove assertions"
 and doc_transparent =
   "\t Transparent assertions: hybrid assertions\n\
   \t\t\t are executed independently from the model."
+and doc_deps = 
+  "\t Recursively compile modules on which the current module depend"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -173,6 +196,7 @@ let main () =
           "-typeall", Arg.Set typeall, doc_typeall;
           "-noassert", Arg.Set noassert, doc_noassert;
           "-transparent", Arg.Set transparent, doc_transparent;
+          "-deps", Arg.Set build_deps, doc_deps;
       ])
       compile
       errmsg;

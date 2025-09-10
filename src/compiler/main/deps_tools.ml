@@ -1,4 +1,3 @@
-(* Warning: *)
 (* This file is based on the original version of ocamldep.ml *)
 (* from the Objective Caml 3.12 distribution, INRIA          *)
 
