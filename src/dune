@@ -18,7 +18,6 @@
   (modules
     location ; position in the source file
     lexer parser parsetree ; parsing
-    deps_tools ; compute module names that appear in the current module
   )
   (libraries menhirLib))
 

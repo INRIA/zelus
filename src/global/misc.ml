@@ -120,7 +120,6 @@ let no_reduce = ref false
 let typeall = ref false
 let noassert = ref false
 let transparent = ref false
-let build_deps = ref false
 
 
 (* two internal undocumented flags *)
