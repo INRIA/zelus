@@ -50,7 +50,7 @@ let qualident ff { Lident.qual = m; Lident.id = s } =
   fprintf ff "%s.%s" m (parenthesis s)
 
 let longname ff ln =
-  let ln = Initial.short (currentname ln) in
+  let ln = Initial.short (Modules.currentname ln) in
   match ln with
     | Lident.Name(m) -> shortname ff m
     | Lident.Modname(qual) -> qualident ff qual
