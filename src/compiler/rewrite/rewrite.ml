@@ -39,7 +39,7 @@ let default_list =
    "inline", "Inlining of annotated and small function calls. See below:", 
    nothing,
    Inline.program;
-   "copy", "Remove of copy variables. See below:", nothing,
+   "copy", "Removal of copy variables. See below:", nothing,
    Copy.program;
    "der", "Remove init and reset handlers in ODEs. See below:", nothing,
    Der.program;
