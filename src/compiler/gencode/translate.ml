@@ -859,7 +859,8 @@ and foreach_eq env loop_path code
      let env_acc, code = List.fold_left (output ix) (env_acc, code) for_out in
      let env = { env with env = env_acc } in
      let step,
-         { mem = m_code; init = i_code; instances = j_code; reset = r_code } =
+         { mem = m_code; init = i_code; instances = j_code; reset = r_code;
+           assertions = a_code } =
        block env (ix :: loop_path) for_block (Oaux.void, empty_code) in
      (* transforms instances into arrays *)
      let j_code =
@@ -869,14 +870,15 @@ and foreach_eq env loop_path code
        Parseq.map
 	 (array_of_memory (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) m_code in
      (* generate the initialization code *)
-     let init_list,
-	 (step, { mem = m; instances = j; init = i; reset = r }) =
-       Util.mapfold init code init_list in
-     Oaux.seq (Aux.sequence init_list)
-       (Oadux.seq (for_loop true ix e1 e2 s_code) s),
+     let initialization_list,
+         { mem = m; instances = j; init = i; reset = r; assertions = a } =
+       Util.mapfold init code for_out in
+     Oaux.seq (Oaux.sequence initialization_list)
+       (for_loop true ix e1 e2 step),
      { mem = Parseq.seq m_code m; instances = Parseq.seq j_code j;
-       init = Oaux.sequence (for_loop true ix e1 e2 i_code) i;
-       reset = Oaux.sequence (for_loop true ix e1 e2 r_code) r } }
+       init = Oaux.seq (for_loop true ix e1 e2 i_code) i;
+       reset = Oaux.seq (for_loop true ix e1 e2 r_code) r;
+       assertions = Parseq.empty }
 
 and forward_eq _ = Misc.not_yet_implemented "Forward (equations)"
 
