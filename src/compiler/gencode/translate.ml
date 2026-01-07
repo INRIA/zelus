@@ -863,12 +863,11 @@ and foreach_eq env loop_path code
            assertions = a_code } =
        block env (ix :: loop_path) for_block (Oaux.void, empty_code) in
      (* transforms instances into arrays *)
+     let size = Oaux.plus_opt (Oaux.minus_opt e2 e1) Oaux.one in
      let j_code =
-       Parseq.map
-	 (array_of_instance (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) j_code in
+       Parseq.map (array_of_instance size) j_code in
      let m_code =
-       Parseq.map
-	 (array_of_memory (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) m_code in
+       Parseq.map (array_of_memory size) m_code in
      (* generate the initialization code *)
      let initialization_list,
          { mem = m; instances = j; init = i; reset = r; assertions = a } =
