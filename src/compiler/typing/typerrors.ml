@@ -104,11 +104,12 @@ let message loc kind =
   begin match kind with
   | Evar_undefined(name) ->
      eprintf "@[%aType error: The value identifier %s is unbound.@.@]"
-             output_location loc (Ident.source name)
-  | Emissing(s) ->
+       output_location loc
+       (if !Misc.vverbose then Ident.name name else Ident.source name)
+  | Emissing(name) ->
      eprintf "@[%aType error: no equation is given for name %s.@.@]"
         output_location loc
-        (Ident.source s);
+        (if !Misc.vverbose then Ident.name name else Ident.source name);
   | Eglobal_undefined(k, lname) ->
      eprintf
        "@[%aType error: the global value identifier %s %s is unbound.@.@]"
@@ -117,47 +118,49 @@ let message loc kind =
   | Eglobal_already(k, s) ->
       eprintf "@[%aType error: the %s name %s is already defined.@.@]"
         output_location loc (kind_of_global_ident k) s 
-  | Ealready(k, s) ->
+  | Ealready(k, name) ->
      let k = kind_of_ident k in
      eprintf
        "@[%aType error: the identifier %s, with kind %s, is defined twice.@.@]"
-        output_location loc (Ident.source s) k
-  | Ealready_with_different_kinds(k1, k2, s) ->
+       output_location loc
+       (if !Misc.vverbose then Ident.name name else Ident.source name) k
+  | Ealready_with_different_kinds(k1, k2, name) ->
      let k1 = kind_of_ident k1 in
      let k2 = kind_of_ident k2 in
      eprintf
        "@[%aType error: %s is defined twice in a parallel branch,@,\
                 once as a %s, once as a %s.@.@]"
-        output_location loc (Ident.source s) k1 k2
+       output_location loc
+       (if !Misc.vverbose then Ident.name name else Ident.source name) k1 k2
   | Einit_undefined(s) ->
       eprintf "@[%aType error: %s must be initialized in every branch.@.@]"
         output_location loc
         (Ident.source s)
-  | Eis_a_value(s) ->
+  | Eis_a_value(name) ->
+      let s = if !Misc.vverbose then Ident.name name else Ident.source name in
       eprintf "@[%aType error: last %s is forbidden as %s is a value.@.@]"
-        output_location loc
-        (Ident.source s) (Ident.source s)
-  | Elast_forbidden(s) ->
+        output_location loc s s
+  | Elast_forbidden(name) ->
+     let s = if !Misc.vverbose then Ident.name name else Ident.source name in
      eprintf
        "@[%aType error: last %s is forbidden. This is either @,\
         because %s is not a state variable or next %s is defined.@.@]"
-       output_location loc
-       (Ident.source s) (Ident.source s) (Ident.source s)
-  | Eshould_be_a_signal(s, expected_ty) ->
+       output_location loc s s s
+  | Eshould_be_a_signal(name, expected_ty) ->
       eprintf "@[%aType error: the variable %s of type %a is defined by case \
                    but one case is missing. \n\
                    Either define the variable as a signal or \
                    give a initial or default value.@.@]"
         output_location loc
-        (Ident.source s)
+        (if !Misc.vverbose then Ident.name name else Ident.source name)
 	Ptypes.ptype expected_ty
-  | Ecannot_be_set(is_next, s) ->
+  | Ecannot_be_set(is_next, name) ->
       eprintf "@[%aType error: the %s value of %s cannot be set. @,\
                  This is either because the %s value is set or @,\
                  the last value is used.@.@]"
         output_location loc
         (if is_next then "next" else "current")
-	(Ident.source s)
+	(if !Misc.vverbose then Ident.name name else Ident.source name)
 	(if is_next then "current" else "next")
   | Etype_clash(actual_ty, expected_ty) ->
       eprintf "@[%aType error: this expression has type@ %a,@ \
@@ -180,13 +183,13 @@ let message loc kind =
       eprintf "@[%aType error: the state %s expects %d arguments,@ \
                but is given %d arguments.@.@]"
         output_location loc
-        (Ident.source name)
+        (if !Misc.vverbose then Ident.name name else Ident.source name)
         expected_arit actual_arit
   | Estate_unbound(name) ->
       eprintf
         "@[%aType error: the state %s is unbound in the current automaton.@.@]"
         output_location loc
-        (Ident.source name)
+        (if !Misc.vverbose then Ident.name name else Ident.source name)
   | Estate_initial ->
       eprintf
         "@[%aType error: the initial state cannot be parameterized.@.@]"
@@ -208,7 +211,7 @@ let message loc kind =
      eprintf
        "@[%aType error: the variable %s must be defined in an equation.@.@]"
        output_location loc
-       (Ident.source name)
+       (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Eglobal_is_a_function(lname) ->
      eprintf "@[%aType error: the global name %s must not be a function.@.@]"
         output_location loc

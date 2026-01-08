@@ -32,7 +32,7 @@ let rec is_mutable { t_desc = desc } =
 type entry =
       { e_typ: Deftypes.typ;
         e_sort: sort;
-        e_size: loop_path; (* [e.(i_1)...(i_n)] *)
+        e_size: Ident.t list; (* [e.(i_1)...(i_n)] *)
       }
 and sort =
   | In of exp
@@ -49,8 +49,30 @@ and sort =
 (* A variable [x] inside [n] nested loops *)
 (* is represented as an n-dimension array. The access to [x] *)
 (* is represented as x.(i1)...(in)] *)
-and loop_path = Ident.t list
-    
+and loop_path = loop_path_entry list
+
+and loop_path_entry =
+  { kind: kind; (* [Forward or Restart(is_restart)] *)
+    index: Ident.t; (* [ix] *)
+    size: exp; (* size *)
+    }
+  
+and kind = Foreach | Forward of is_restart
+
+and is_restart = bool (* [true] is restart *)
+
+(* computes [(i1)....(in)] from a loop path *)
+let rec index_of_loop_path loop_path =
+  match loop_path with
+  | [] -> []
+  | { kind; index } :: loop_path ->
+     match kind with
+     | Foreach ->
+        index :: index_of_loop_path loop_path
+     | Forward(is_restart) ->
+        (* stop when the for loop is reset *)
+        if is_restart then [] else index_of_loop_path loop_path
+
 type env =
   { env: entry Env.t; (* symbol table *)
     self: Ident.t; (* current name for the state *)
@@ -359,7 +381,7 @@ let append loop_path l_env { self; env } =
       | Sort_mem { m_mkind } ->
 	 Env.add n
 	   { e_typ = typ_body; e_sort = Out { y = n; tsort = t_sort; self };
-             e_size = loop_path }
+             e_size = index_of_loop_path loop_path }
            env_acc,
 	 Parseq.cons
            { m_name = n; m_value = choose typ_body; m_typ = typ_body;
@@ -382,8 +404,10 @@ let make_apply k { self } loop_path code f arg_list =
      (* the first [n-1] arguments are static *)
      let se_list, arg = Util.firsts arg_list in
      let f_opt = match f with | Eglobal { lname } -> Some lname | _ -> None in
-     let loop_path =
-       List.map (fun ix -> Oaux.local ix) loop_path in
+     let index_path =
+       index_of_loop_path loop_path in
+     let index_path =
+       List.map (fun ix -> Oaux.local ix) index_path in
      (* create an instance *)
      let o = Ident.fresh "i" in
      let j_code = { i_name = o; i_machine = Eapp { f; arg_list = se_list };
@@ -392,11 +416,11 @@ let make_apply k { self } loop_path code f arg_list =
      let reset_code =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.reset;
 		     met_self = self;
-                     met_instance = (o, loop_path); met_args = [] }) in
+                     met_instance = (o, index_path); met_args = [] }) in
      let step =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.step;
 		     met_self = self;
-                     met_instance = (o, loop_path); met_args = [arg] }) in
+                     met_instance = (o, index_path); met_args = [arg] }) in
      step,
      { code with instances = Parseq.cons j_code code.instances;
                  reset = Oaux.seq reset_code code.reset }
@@ -853,17 +877,19 @@ and foreach_eq env loop_path code
 	  assign oi (entry_of oi env) e, code  in
      (* first compute the index [idx:[size]] *)
      let (ix, e1, e2), code = index code for_input in
+     (* compute the size *)
+     let size = Oaux.plus_opt (Oaux.minus_opt e2 e1) Oaux.one in
      (* extend the environment [env] with inputs *)
      let env_acc, code = List.fold_left (input ix) (env.env, code) for_input in
      (* extend the environment [env] with output variables *)
      let env_acc, code = List.fold_left (output ix) (env_acc, code) for_out in
      let env = { env with env = env_acc } in
+     let loop_path = { kind = Foreach; index = ix; size = size } :: loop_path in
      let step,
          { mem = m_code; init = i_code; instances = j_code; reset = r_code;
            assertions = a_code } =
-       block env (ix :: loop_path) for_block (Oaux.void, empty_code) in
+       block env loop_path for_block (Oaux.void, empty_code) in
      (* transforms instances into arrays *)
-     let size = Oaux.plus_opt (Oaux.minus_opt e2 e1) Oaux.one in
      let j_code =
        Parseq.map (array_of_instance size) j_code in
      let m_code =

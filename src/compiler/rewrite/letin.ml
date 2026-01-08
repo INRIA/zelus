@@ -120,15 +120,16 @@ let expression funs acc ({ e_desc } as e) =
        let _, acc_l = Mapfold.leq_it funs empty l in
        let e, acc_e = Mapfold.expression_it funs empty e in
        e, seq acc_l acc_e
-    | Elocal(b, e) ->
+    | Elocal({ b_vars; b_body }, e) ->
        (* the sequential order is preserved *)
-       let _, acc_b = Mapfold.block_it funs empty b in
+       (* [b_vars] does not contain expressions (default/init) anymore *)
+       let _, acc_b = Mapfold.equation_it funs empty b_body in
        let e, acc_e = Mapfold.expression_it funs empty e in
-       e, seq acc_b acc_e
+       e, add_vardec b_vars (seq acc_b acc_e)
     | Eassert({ a_body } as a) ->
        let a_body, acc =
-         if !Misc.transparent then atomic_expression funs empty a_body, acc
-         else Mapfold.expression_it funs acc a_body in
+         if !Misc.transparent then atomic_expression funs empty a_body, empty
+         else Mapfold.expression_it funs empty a_body in
        { e with e_desc = Eassert { a with a_body } }, acc
     | _ ->
        Mapfold.expression funs empty e in
@@ -159,8 +160,8 @@ let equation funs acc ({ eq_desc } as eq) =
        seq acc_l acc_eq
     | EQlocal { b_vars; b_body } ->
        (* [b_vars] does not contain expressions (default/init) anymore *)
-       let _, acc = Mapfold.equation_it funs acc b_body in
-       add_vardec b_vars acc
+       let _, acc_body = Mapfold.equation_it funs empty b_body in
+       add_vardec b_vars acc_body
     | EQreset(eq_reset, e_reset) ->
        (* [reset local x1,... in eq every e] =
              [local x1,... in reset eq every e] *)
