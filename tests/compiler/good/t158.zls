@@ -1,0 +1,12 @@
+let h_<<l>> =
+ let rec f_<<n,m>> =
+   match size n with
+   | 0 -> true | 1 -> false | _ -> g_<<n-n/2,1>>
+ and g_<<k,m>> = f_<<k,0>> in
+ f_<<l,0>>
+
+let rec f__<<n>> =
+  match size n with
+  | 0 -> true | _ -> false
+
+let f___ = h_<<45>>

@@ -32,7 +32,7 @@ let rec is_mutable { t_desc = desc } =
 type entry =
       { e_typ: Deftypes.typ;
         e_sort: sort;
-        e_size: loop_path; (* [e.(i_1)...(i_n)] *)
+        e_size: Ident.t list; (* [e.(i_1)...(i_n)] *)
       }
 and sort =
   | In of exp
@@ -41,16 +41,38 @@ and sort =
       { y: Ident.t;
         tsort: Deftypes.tsort;
         self: Ident.t }
-(* the variable [x] is stored into [y.(i_1)...(i_n); e.g. [x out y]] *)
-(* if [y] is a state variable, it is represented as self.id where [self] *)
-(* is the name of the state for the machine in which [y] is defined *)
-(* [self] is the name of the memory state*)
+  (* the variable [x] is stored in [y.(i_1)...(i_n); e.g. [x out y]] *)
+  (* if [y] is a state variable, it is represented as self.id where [self] *)
+  (* is the name of the state for the machine in which [y] is defined *)
+  (* [self] is the name of the memory state*)
 
-(* A variable [x] inside [n] nested parallel loops *)
+(* A variable [x] inside [n] nested loops *)
 (* is represented as an n-dimension array. The access to [x] *)
 (* is represented as x.(i1)...(in)] *)
-and loop_path = Ident.t list
-    
+and loop_path = loop_path_entry list
+
+and loop_path_entry =
+  { kind: kind; (* [Forward or Restart(is_restart)] *)
+    index: Ident.t; (* [ix] *)
+    size: exp; (* size *)
+    }
+  
+and kind = Foreach | Forward of is_restart
+
+and is_restart = bool (* [true] is restart *)
+
+(* computes [(i1)....(in)] from a loop path *)
+let rec index_of_loop_path loop_path =
+  match loop_path with
+  | [] -> []
+  | { kind; index } :: loop_path ->
+     match kind with
+     | Foreach ->
+        index :: index_of_loop_path loop_path
+     | Forward(is_restart) ->
+        (* stop when the for loop is reset *)
+        if is_restart then [] else index_of_loop_path loop_path
+
 type env =
   { env: entry Env.t; (* symbol table *)
     self: Ident.t; (* current name for the state *)
@@ -226,7 +248,7 @@ let out_of n env =
   match e_sort with
   | In _ -> (* this case should not happend *)
      Misc.internal_error "Translate: out_of" Printer.name n
-  | Out { y; tsort } -> y, e_typ, e_sort, ix_list
+  | Out { y; tsort } -> y, e_typ, tsort, ix_list
 
 (* Translate the size type expression *)
 let rec exp_of_sizetype si =
@@ -359,7 +381,7 @@ let append loop_path l_env { self; env } =
       | Sort_mem { m_mkind } ->
 	 Env.add n
 	   { e_typ = typ_body; e_sort = Out { y = n; tsort = t_sort; self };
-             e_size = loop_path }
+             e_size = index_of_loop_path loop_path }
            env_acc,
 	 Parseq.cons
            { m_name = n; m_value = choose typ_body; m_typ = typ_body;
@@ -382,8 +404,10 @@ let make_apply k { self } loop_path code f arg_list =
      (* the first [n-1] arguments are static *)
      let se_list, arg = Util.firsts arg_list in
      let f_opt = match f with | Eglobal { lname } -> Some lname | _ -> None in
-     let loop_path =
-       List.map (fun ix -> Oaux.local ix) loop_path in
+     let index_path =
+       index_of_loop_path loop_path in
+     let index_path =
+       List.map (fun ix -> Oaux.local ix) index_path in
      (* create an instance *)
      let o = Ident.fresh "i" in
      let j_code = { i_name = o; i_machine = Eapp { f; arg_list = se_list };
@@ -392,11 +416,11 @@ let make_apply k { self } loop_path code f arg_list =
      let reset_code =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.reset;
 		     met_self = self;
-                     met_instance = (o, loop_path); met_args = [] }) in
+                     met_instance = (o, index_path); met_args = [] }) in
      let step =
        Emethodcall({ met_machine = f_opt; met_name = Oaux.step;
 		     met_self = self;
-                     met_instance = (o, loop_path); met_args = [arg] }) in
+                     met_instance = (o, index_path); met_args = [arg] }) in
      step,
      { code with instances = Parseq.cons j_code code.instances;
                  reset = Oaux.seq reset_code code.reset }
@@ -643,7 +667,8 @@ let rec expression env loop_path code { Zelus.e_desc } =
      (* execute the initialization code when [r_e] is true *)
      Oaux.seq (ifthen r_e init) e,
      seq code code_e    
-  | Eforloop _ -> Misc.not_yet_implemented "for loops"
+  | Eforloop(for_loop_body) ->
+     forloop_exp loop_path code for_loop_body
   | Zelus.Eassert(a) ->
      assertion_expression env loop_path code a
   | Zelus.Elet(l, e) ->
@@ -658,7 +683,7 @@ let rec expression env loop_path code { Zelus.e_desc } =
          env loop_path code handlers in
      Ematch(e, handlers), code
   | Zelus.Eop(Eperiod, _)  | Zelus.Eop _ | Zelus.Epresent _ ->
-     (* these last constructions have been rewritten in previous steps *)
+     (* these last constructions have been eliminated in previous steps *)
      assert false
 
 and assertion_expression env loop_path code ({ a_body } as a) =
@@ -697,6 +722,27 @@ and result env { Zelus.r_desc } =
   | Returns _ ->
      (* the returns handler has been eliminated in previous passes *)
      assert false
+
+(* Compilation of for loops when the body is an expression *)
+and forloop_exp loop_path code { for_size; for_kind; for_index; for_input;
+                                 for_body; for_resume; for_env  } =
+  match for_kind with
+  | Kforeach ->
+     foreach_exp loop_path code
+       (for_size, for_index, for_input, for_body, for_resume, for_env)
+  | Kforward(exit_opt) ->
+     forward_exp loop_path code
+       (for_size, exit_opt, for_index, for_input, for_body, for_resume, for_env)
+
+and foreach_exp loop_path code
+(for_size, for_index, for_input, for_body, for_resume, for_env) =
+    Misc.not_yet_implemented "Foreach (expressions)"
+
+(* foreach(n)(xi1 in e1,...,xin in en) returns (oi1 out o1,..., oik out ok)
+ *-  eq *)
+and forward_exp loop_path code
+(for_size, exit_opt, for_index, for_input, for_body, for_resume, for_env) =
+  Misc.not_yet_implemented "Forward (expressions)"
 
 (* Translation of equations. They are traversed in reverse order *)
 (* from the last one to the first one *)
@@ -761,9 +807,106 @@ and equation env loop_path { Zelus.eq_desc = desc } (step, code) =
   | Zelus.EQassert(a) ->
      assertion_equation env loop_path (step, code) a
   | Zelus.EQemit _ | Zelus.EQautomaton _ | Zelus.EQpresent _ -> assert false
-  | Zelus.EQforloop _ -> Misc.not_yet_implemented "for loops"
+  | Zelus.EQforloop(for_loop_body) -> 
+     forloop_eq env loop_path code for_loop_body
   | Zelus.EQsizefun _ -> assert false
-  
+
+(* Compilation of for loops when the body is an expression *)
+and forloop_eq env loop_path code { for_size; for_kind; for_index; for_input;
+                                 for_body; for_resume; for_env  } =
+  match for_kind with
+  | Kforeach ->
+     foreach_eq env loop_path code
+       (for_size, for_index, for_input, for_body, for_resume, for_env)
+  | Kforward(exit_opt) ->
+     forward_eq env loop_path code
+       (for_size, exit_opt, for_index, for_input, for_body, for_resume, for_env)
+
+and foreach_eq env loop_path code
+  (for_size, for_index, for_input, { for_out; for_block }, for_resume, for_env) =
+  (* [forall i in e1..e2, xi in ei,..., oi in o,... do body done]
+      * is translated into:
+      * for i = e1 to e2 do
+          ...
+      * with xi into ei.(i), oi into o.(i)
+      * - every instance o from the body must be an array
+      * - every state variable m from the body must be an array *)
+     (* look for the index [i in for_index] *)
+     let rec index code = function
+       | [] -> let id = match for_index with
+                 | None -> Ident.fresh "i" | Some(i) -> i in
+     	       let e_right, code =
+                 match for_size with
+                 | None -> Econst(Eint(0)), code
+                 | Some(e) -> expression env loop_path code e in
+               (id, Econst(Eint(0)), e_right), code
+       | { Zelus.desc = desc } :: i_list ->
+	  match desc with
+	  | Zelus.Eindex { id; e_left; e_right; dir = true } ->
+	     let e_left, code = expression env loop_path code e_left in
+	     let e_right, code = expression env loop_path code e_right in
+	     (id, e_left, e_right), code
+	  | Zelus.Einput _ -> index code i_list in
+     (* extend the environment for input variables *)
+     (* [idx] is the index of the loop *)
+     let input ix (env_acc, code) { Zelus.desc = desc } =
+       match desc with
+       | Zelus.Einput { id; e; by = None } ->
+	  let ty = Typinfo.get_type e.Zelus.e_info in
+          let e, code = expression env loop_path code e in
+	  Env.add id { e_typ = ty; e_sort = In(e); e_size = [ix] } env_acc, code
+       | Zelus.Eindex _ ->
+	  env_acc, code in
+     let output idx (env_acc, code)
+           { Zelus.desc = { Zelus.for_name = oi; for_out_name = Some(o) } } =
+       let y, ty, tsort, idx_list = out_of o env in
+       Env.add oi { e_typ = ty; e_sort = Out { y; tsort; self = env.self };
+		   e_size = idx :: idx_list } env_acc, code in
+     (* transforms an instance into an array of instances *)
+     let array_of_instance size ({ i_size } as ientry) =
+       { ientry with i_size = size :: i_size } in
+     let array_of_memory size ({ m_size } as mentry) =
+       { mentry with m_size = size :: m_size } in
+     (* generate the code for the initialization part of the for loop *)
+     let init code
+           { Zelus.desc = { Zelus.for_name = oi; for_init; for_default } } =
+       match for_init with
+       | None -> Oaux.void, code
+       | Some(e) ->
+	  let e, code = expression env loop_path code e in
+	  assign oi (entry_of oi env) e, code  in
+     (* first compute the index [idx:[size]] *)
+     let (ix, e1, e2), code = index code for_input in
+     (* compute the size *)
+     let size = Oaux.plus_opt (Oaux.minus_opt e2 e1) Oaux.one in
+     (* extend the environment [env] with inputs *)
+     let env_acc, code = List.fold_left (input ix) (env.env, code) for_input in
+     (* extend the environment [env] with output variables *)
+     let env_acc, code = List.fold_left (output ix) (env_acc, code) for_out in
+     let env = { env with env = env_acc } in
+     let loop_path = { kind = Foreach; index = ix; size = size } :: loop_path in
+     let step,
+         { mem = m_code; init = i_code; instances = j_code; reset = r_code;
+           assertions = a_code } =
+       block env loop_path for_block (Oaux.void, empty_code) in
+     (* transforms instances into arrays *)
+     let j_code =
+       Parseq.map (array_of_instance size) j_code in
+     let m_code =
+       Parseq.map (array_of_memory size) m_code in
+     (* generate the initialization code *)
+     let initialization_list,
+         { mem = m; instances = j; init = i; reset = r; assertions = a } =
+       Util.mapfold init code for_out in
+     Oaux.seq (Oaux.sequence initialization_list)
+       (for_loop true ix e1 e2 step),
+     { mem = Parseq.seq m_code m; instances = Parseq.seq j_code j;
+       init = Oaux.seq (for_loop true ix e1 e2 i_code) i;
+       reset = Oaux.seq (for_loop true ix e1 e2 r_code) r;
+       assertions = Parseq.empty }
+
+and forward_eq _ = Misc.not_yet_implemented "Forward (equations)"
+
 and assertion_equation env loop_path (step, code) ({ a_body } as a) =
   if !Misc.transparent then
     (* transparent assertions *)

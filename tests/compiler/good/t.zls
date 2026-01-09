@@ -16,7 +16,7 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
 
 let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
-*)
+
 
 let rec g___<<n>>() returns (o)
   o = match size n with
@@ -24,18 +24,6 @@ let rec g___<<n>>() returns (o)
 
 let main_1() = g___<<42>>()
 
-let h_<<l>> =
- let rec f_<<n,m>> =
-   match size n with
-   | 0 -> true | 1 -> false | _ -> g_<<n-n/2,1>>
- and g_<<k,m>> = f_<<k,0>> in
- f_<<l,0>>
-
-let rec f__<<n>> =
-  match size n with
-  | 0 -> true | _ -> false
-
-let f___ = h_<<45>>
 
 
 let rec f1<<n>>(x:[n]int) = f2<<n>>(x)
@@ -250,6 +238,7 @@ let const f<<n>>(f)(x) returns (y)
     do yi = f xi done
 *)
 
+*)
 
 
 (* let node f0 g x = run g x

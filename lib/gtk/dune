@@ -1,3 +1,7 @@
+(env
+ (dev
+  (flags (:standard -w -6-9-27-32-33-35-37 -warn-error -A))))
+
 (rule
  (targets input.zci gtkplot.zci)
  (deps (:zli input.zli gtkplot.zli) ../std/stdlib.zci)
