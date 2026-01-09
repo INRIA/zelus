@@ -6,13 +6,13 @@ let f2 x returns (o)
   let f<<n>>(x) = x + n in
   do o = f<<42>>(x+1) + f<<44>>(x+2) + f<<42>>(x+3) done
 
-let f x =
+let f<<n>> x =
   let rec f<<n>>(x) =
     match size n with
     | 0 -> 0
     | 1 -> 1
     | n -> f<<n/2>>(x-1) + f<<n/2>>(x+1) in
-  f<<6>>(x)
+  f<<n>>(x)
 
 let f3 x =
   let rec f3<<n>>() = match size n with | 0 -> 0 | n -> f3<<n-1>>() + 1 in
