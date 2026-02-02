@@ -2,6 +2,8 @@
 
 (* ./configure generates a file config.ml. *)
 
+#load "unix.cma"
+
 let version = "2024"
 let subversion = "dev"
 
@@ -51,3 +53,4 @@ let () =
 |} x s)
     statements;
   close_out oc;
+

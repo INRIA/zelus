@@ -169,7 +169,7 @@ let node tb_controller (i, om, mi) = (o, im, pr) where
             and emit im = data(i)+pr in Ready
       | Ready ->
           do n = q -> (last n - 1)
-          until ((n = 1) or preempted) then
+          until ((n = 1) || preempted) then
             do pr = debug "PUBLISH"
             and emit o = m+pr in Wait
 
