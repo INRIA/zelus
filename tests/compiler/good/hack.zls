@@ -29,6 +29,14 @@ let dmux4(input, a1, a0) returns (s0, s1, s2, s3)
 
 (* section 1.2.3 *)
 
+let rec not_rec<<n>>(x:[n]bool) returns (y:[n]bool)
+  match size n with
+  | 0 -> y = [| |]
+  | _ -> y = [| not (x.(42)) |] ++ (not_rec<<n-1>>(x.(1 .. (n-1))))
+  end
+
+let not8(x) = not_rec<<8>>(x)
+
 let lift1 <<n>> (const f) (x) =
   let rec lift_rec <<n>> (x:[n]bool) returns (o:[n]bool)
     match size n with
@@ -96,27 +104,6 @@ http://www1.idc.ac.il/tecs/book/chapter%2002.pdf
 section 2.2.1
 *)
 
-(* warning: the following example does not type check. The typing *)
-(* is more difficult because the types [ti] of every branches are different *)
-(* the type system must find a more general type [t] such that [t[n/i] = ti] *)
-
-(* let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
-  o = match size n with
-  | 0 -> [||]
-  | _ -> let s, carry = true, true in
-         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
-
-let add_2(x:[42]bool, y:[42]bool) returns (o:[42]bool)
-  o = add_n<<42>>(x, y, false)
-*)
-
-let rec add_n___<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
-  match size n with
-  | 0 -> o = [||] 
-  | _ -> let s, carry = true, true in
-         do o = [|s|] ++ (add_n___<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
-         done
-
 let xor(a, b) = if a then not b else b
 
 (* adders *)
@@ -159,6 +146,28 @@ let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
   | _ -> let s, carry = full_adder(x.(0), y.(0), c) in
          o  = [|s|] ++
 	      (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
+(* warning: the following example does not type check. The typing *)
+(* is more difficult because the types [ti] of every branches are different *)
+(* the type system must find a more general type [t] such that [t[n/i] = ti] *)
+
+(* let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  o = match size n with
+  | 0 -> [||]
+  | _ -> let s, carry = true, true in
+         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+
+let add_2(x:[42]bool, y:[42]bool) returns (o:[42]bool)
+  o = add_n<<42>>(x, y, false)
+*)
+
+(* let rec add_n___<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
+  match size n with
+  | 0 -> o = [||] 
+  | _ -> let s, carry = true, true in
+         do o = [|s|] ++ (add_n___<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+         done
+*)
 
 (* build a constant array by repeating a value [v] *)
 let rec make<<n>>(v) returns (o:[n]'a)
