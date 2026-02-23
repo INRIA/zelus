@@ -1057,6 +1057,8 @@ size_expression_desc:
     { Size_op(Size_minus, e1, e2) }
   | e1 = size_expression STAR e2 = size_expression
     { Size_op(Size_mult, e1, e2) }
+  | LPAREN i = size_expression_desc RPAREN
+    { i }
 ;
 
 /* [| e with e1,...,en <- e' |] */
