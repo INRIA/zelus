@@ -14,7 +14,7 @@
 
 (* Specialization of size functions *)
 
-(* declarations [let rec f1<<n1,...>> = ... and fk<<<n1,...>> = ...] *)
+(* declarations [let [rec] f1<<n1,...>> = ... and fk<<<n1,...>> = ...] *)
 (* are removed. Fresh functions are introduced for all specialized *)
 (* applications with constant sizes, i.e., f<<s1,...>> where s1,..., are *)
 (* integer constant *)
