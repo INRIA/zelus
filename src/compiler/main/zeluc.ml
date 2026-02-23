@@ -51,12 +51,12 @@ and doc_print_causality_types = "\t Print causality types"
 and doc_print_initialization_types = "\t  Print initialization types"
 and doc_include = "<dir> \t Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> \t Directory for the standard library"
-and doc_locate_stdlib = "\t  Locate standard libray"
-and doc_no_stdlib = "\t  Do not load the stdlib module"
-and doc_no_zlstdlib = "\t  Do not load the zlstdlib module"
-and doc_parseonly = "\t  Stop after parsing"
-and doc_typeonly = "\t  Stop after typing"
-and doc_rewriteonly = "\t  Stop after rewritting"
+and doc_locate_stdlib = "\t Locate standard libray"
+and doc_no_stdlib = "\t Do not load the stdlib module"
+and doc_no_zlstdlib = "\t Do not load the zlstdlib module"
+and doc_parseonly = "\t Stop after parsing"
+and doc_typeonly = "\t Stop after typing"
+and doc_rewriteonly = "\t Stop after rewritting"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
@@ -113,7 +113,7 @@ and doc_typeall = "\t Type check after every rewritting step"
 and doc_noassert = "\t Remove assertions"
 and doc_transparent =
   "\t Transparent assertions: hybrid assertions\n\
-  \t\t\t are executed independently from the model."
+   \t\t\t are executed independently from the model."
 let errmsg = "Options are:"
 
 let set_verbose () =
