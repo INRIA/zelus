@@ -34,7 +34,9 @@
  (public_name zelus)
  (wrapped false)
  (modules 
-   ztypes zls basics zlsolve lift dump solvers 
+   ztypes zls basics zlsolve lift
+   ;dump
+   solvers 
    illinois odexx solvers defaultsolver zlsrun
    run node_base node))
 
