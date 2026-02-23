@@ -1,18 +1,30 @@
+let rec f<<n>>() returns (o:[n]'a) 
+  match size n with
+  | 0 -> o = [||]
+  | _ -> o = [|1|] ++ f<<n-1>>()
+  end
+
+let f_4() = f<<4>>()
+
+(*
 let get<<n, k>>(x:[n]'a) =
   match size k with
   | 0 -> 42
-  | _ -> x.(k)
+  | _ -> x.(n-k)
 
 let f_2<<n>>(x:[n]'a) = x ++ [|1|]
 
+let f_3(x) = f_2<<42>>(x)
+
 let f_00<<n, k>>(x:[n]'a) = x.(k)
 
-(*
+let f_000(x) = get<<10, 4>>(x)
+
 let rec add_n<<n>>(x:[n]bool, y:[n]bool, c) returns (o:[n]bool)
-  o = match size n with
-  | 0 -> [||]
+  match size n with
+  | 0 -> o = [||]
   | _ -> let s, carry = true, true in
-         [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry))
+         do o = [|s|] ++ (add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), carry)) done
 
 let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
   o = add_n<<42>>(x, y, false)
@@ -20,15 +32,16 @@ let add_42(x:[42]bool, y:[42]bool) returns (o:[42]bool)
 
 let rec g___<<n>>() returns (o)
   o = match size n with
-  | 0 -> true | 1 -> let k = true in k | _ -> g___<<n-n/2>>()
+  | 0 -> true | 1 -> let k = true in k | _ -> g___<<n - (n/2)>>()
 
 let main_1() = g___<<42>>()
 
 
-
 let rec f1<<n>>(x:[n]int) = f2<<n>>(x)
 and f2<<n>>(x) = f1<<n>>(x)
+*)
 
+(*
 let ff<<n>>(x) =
   match size n with
   | 0 -> 1
