@@ -32,8 +32,8 @@ let optim_list =
 
 (* source-to-source transformations *)
 let default_list =
-  ["sizerec",
-   "Specialization of size functions (not done by default). See below:", 
+  ["sizerec", "Specialization of size functions (done if option -sizerec is set). \
+               See below:", 
    nothing,
    Sizerec.program;
    "inline", "Inlining of annotated and small function calls. See below:", 
