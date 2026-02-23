@@ -40,6 +40,7 @@ type error =
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
   | Etype_clash of typ * typ
+  | Etype_clash_in_handlers of Location.t * typ * typ
   | Etype_vkind_clash of vkind * typ
   | Earity_clash of int * int
   | Estate_arity_clash of Ident.t * int * int
@@ -166,6 +167,14 @@ let message loc kind =
       eprintf "@[%aType error: this expression has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         output_location loc
+        Ptypes.ptype  actual_ty
+        Ptypes.ptype  expected_ty
+  | Etype_clash_in_handlers(m_loc, actual_ty, expected_ty) ->
+     eprintf "@[%aType error: the types for all the handlers do not agree.\n\
+                %aIn this handler, the result has type@ %a,@ \
+               but is expected to have type@ %a.@.@]"
+        output_location loc
+        output_location m_loc
         Ptypes.ptype  actual_ty
         Ptypes.ptype  expected_ty
   | Etype_vkind_clash(vkind, actual_ty) ->

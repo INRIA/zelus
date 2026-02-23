@@ -660,8 +660,8 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   Kind.sup_list k_list
 
 (* Typing a pattern matching of a size. Returns defined names *)
-(* the size must be known ultimately at compile-time (that is, it is a size *)
-(* not an index *)
+(* the size must be known ultimately at compile-time (that is, it is a constant *)
+(* not an expression with variables *)
 (* generates a size constraint [if si matches p1 then c1 else ... else cn] *)
 (* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
 (* for body [b] *)
@@ -675,14 +675,28 @@ let match_size_handlers
     pattern h0 pat Initial.typ_int;
     mh.m_env <- h0;
     let h = Env.append h0 h in
-    let defined_names, actual_k = body expected_k h b ty_res in
+    (* introduce a fresh type variable for the local result *)
+    let new_ty_res = Types.new_var () in
+    let defined_names, actual_k = body expected_k h b new_ty_res in
     (* pop the current size constraint *)
     let constraints = Defsizes.pop () in
-    (defined_names, actual_k), (Sizes.matches pat si, constraints) in
-  let defined_names_k_c_list = List.map handler m_handlers in
-  let defined_names_k_list, c_list = List.split defined_names_k_c_list in
-  let defined_names_list, k_list = List.split defined_names_k_list in
+    (defined_names, (actual_k, new_ty_res)), (Sizes.matches pat si, constraints) in
+  let defined_names_k_ty_res_c_list = List.map handler m_handlers in
+  let defined_names_k_ty_res_list, c_list =
+    List.split defined_names_k_ty_res_c_list in
+  let defined_names_list, k_ty_res_list = List.split defined_names_k_ty_res_list in
+  let k_list, ty_res_list = List.split k_ty_res_list in
 
+  (* all the type results should unify with ty_res *)
+  List.iter2
+    (fun { m_loc } actual_ty_res ->
+      try
+        Types.unify ty_res actual_ty_res
+      with
+      | Types.Unify ->
+         error loc (Etype_clash_in_handlers(m_loc, actual_ty_res, ty_res)))
+    m_handlers ty_res_list;
+  
   (* check partiality/redundancy of the pattern matching *)
 
   let is_total =
