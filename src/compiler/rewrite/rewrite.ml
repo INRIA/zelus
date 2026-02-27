@@ -23,13 +23,6 @@ module Write = Write.Make(Ptypinfo)
 let nothing p = p
 let type_check _ p = Typing.program Format.std_formatter false p
     
-let optim_list =
-  [(* "cse", "Common sub-expression elimination. See below:", nothing,
-   Cse.program; *)
-  (* "zopt", "Sharing of zero-crossings. See below:", nothing,
-   Zopt.program *)
-  ]
-
 (* source-to-source transformations *)
 let default_list =
   ["sizerec", "Specialization of size functions (done if option -sizerec is set). \
@@ -94,8 +87,19 @@ let default_list =
    nothing,
    Schedule.program;
    "deadcode", "Dead-code removal. See below:", nothing,
-      Deadcode.program;
-   "typing", "Final typing step: See below:", nothing, type_check;
+   Deadcode.program
+  ]
+
+let optim_list =
+  [(* "cse", "Common sub-expression elimination. See below:", nothing,
+   Cse.program; *)
+  (* "zopt", "Sharing of zero-crossings. See below:", nothing,
+   Zopt.program *)
+  ]
+
+(* post-pass done at the very end *)
+let final_list =
+  ["typing", "Final typing step: See below:", nothing, type_check;
    "set_sorts",
    "Set the sort for variables in the environment \
     (value/shared/state variable). See below:", nothing,
@@ -166,4 +170,6 @@ let main is_print print_message genv0 p n_steps =
     
   let iter genv p l = List.fold_left (rewrite_and_compare genv) p l in
   
-  iter genv0 p (rewrite_list ())
+  let rewrite_list = rewrite_list () in
+  let p = iter genv0 p (rewrite_list @ final_list) in
+  p
