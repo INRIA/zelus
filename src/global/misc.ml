@@ -171,7 +171,7 @@ let n_steps = ref 0
 let set_check_equivalence_for_n_steps n = n_steps := n
 
 (* set on the specialization of size functions *)
-let sizerec = ref false
+let nosizerec = ref false
 
 (* sets the inline flags *)
 let inlining_level = ref 10
