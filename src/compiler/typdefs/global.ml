@@ -34,9 +34,12 @@ type value_desc =
 
 and is_const = bool
 
+(* the compile-time value is a function *)
 and vexp =
-  | Vfun of funexp
-  | Vsizefun of Typinfo.sizefun
+  | Vfun of funexp (* [fun x1... -> e] *)
+  | Vsizefun of Typinfo.sizefun (* [fun <<n1,...>> -> e] *)
+  | Vsizefunrec of Typinfo.sizefun * Typinfo.sizefun Env.t
+     (* [let rec f1<<n1,...>> = e1 and ... fk<<n1,...>> = ek] *)
 
 and funexp =
   { f_inline: bool; (* the function call must be inlined *)
