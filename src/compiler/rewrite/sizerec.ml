@@ -145,14 +145,17 @@ let add_sizefun ({ sf_id } as sizefun)
             (Lazy.force env_of_sizefun)) in
   { acc with env = { env with env_of_sizefun } }
 
-(* returns [{ sf_id; sf_id_list; sf_e }] associated [sf_id] in [acc] *)
-let find_sizefun sf_id env_of_sizefun =
-  Env.find_stop_if_unbound "Error in pass sizerec" sf_id env_of_sizefun
-
 (* [sf_id] is used or not *)
-let is_used sf_id { env = { env_of_sizefun } } =
-  let { sizefun_used } =
-    find_sizefun sf_id (Lazy.force env_of_sizefun) in sizefun_used
+let is_used loc sf_id { env = { env_of_sizefun } } =
+  (* returns [{ sf_id; sf_id_list; sf_e }] associated [sf_id] in [acc] *)
+  let find_sizefun sf_id env_of_sizefun =
+    try
+      Env.find sf_id env_of_sizefun
+    with
+    | Not_found -> error loc ("Unbound variable" ^ (Ident.name sf_id)) in
+
+  let { sizefun_used } = find_sizefun sf_id (Lazy.force env_of_sizefun) in
+  sizefun_used
 
 (* make [sf_id] to be used *)
 let set_used sf_id ({ env = { env_of_sizefun } } as acc) =
@@ -235,7 +238,7 @@ let let_in funs body_it ({ specialized_sizefun_list } as acc)
      let used =
        List.fold_left
          (fun used sf_id ->
-           used || (is_used sf_id acc)) false sf_id_list in
+           used || (is_used l_loc sf_id acc)) false sf_id_list in
      (* get the list of specialized size functions generated during the *)
      (* treatment of [body] *)
      let new_sizefun_specialized_list = leq_list_of (acc: acc) in
