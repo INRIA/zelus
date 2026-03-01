@@ -17,7 +17,7 @@
 (* declarations [let [rec] f1<<n1,...>> = ... and fk<<<n1,...>> = ...] *)
 (* are removed. Fresh functions are introduced for all specialized *)
 (* applications with constant sizes, i.e., f<<s1,...>> where s1,..., are *)
-(* integer constant *)
+(* (size) integer constants *)
 
 open Misc
 open Location
@@ -26,13 +26,13 @@ open Lident
 open Global
 open Zelus
 
-(* unexpected error *)
+(* unexpected error during the pass *)
 let error loc message =
   Format.eprintf "%aError in pass sizerec %s:\n"
     Location.output_location loc message;
   raise Misc.Error
 
-(* fresh name *)
+(* create a fresh name *)
 let fresh sf_id v_list =
   let name = (Ident.name sf_id) ^ "_" ^
                (List.fold_right (fun v rest -> (string_of_int v) ^ rest)
@@ -54,14 +54,6 @@ type env =
     (* a map of sizes [id -> v] with [v] a positive integer *)
     env_of_sizes: int Env.t }
 
-and acc =
-  { (* environment for free variables *)
-    env: env;
-    (* the list of specialized functions that are generated during *)
-    (* the pass *)
-    specialized_sizefun_list: (Ident.t * Typinfo.exp) list;
-  }
-
 and sizefun = 
 { (* size function: [sf_id <<n1,...>> = e] *)
     sizefun_definition: Typinfo.sizefun;
@@ -71,6 +63,14 @@ and sizefun =
     mutable sizefun_used: bool;
     (* the environment for free variables *)
     sizefun_env: env;
+  }
+
+type acc =
+  { (* environment for free variables *)
+    env: env;
+    (* the list of specialized functions that are generated during the pass *)
+    (* the latest is added on the top of the list *)
+    specialized_sizefun_list: (Ident.t * Typinfo.exp) list;
   }
 
 (* global table for size functions: map [qualid -> { entry }] *)
@@ -99,10 +99,11 @@ let find_global_value loc lname =
              | Vsizefun(sizefun) ->
                 let entry = entry sizefun (lazy Env.empty) in
                 entry
-             | Vsizefunrec(sizefun, env) ->
+             | Vsizefunrec(sizefun, f_to_exp_env) ->
                 let rec env_of_sizefun =
                   lazy
-                    (Env.map (fun sizefun -> entry sizefun env_of_sizefun) env) in
+                    (Env.map (fun sizefun -> entry sizefun env_of_sizefun) 
+                       f_to_exp_env) in
                 entry sizefun env_of_sizefun in
            global_table := GlobalSizeFunTable.add qualid entry !global_table;
            entry)
@@ -123,7 +124,8 @@ let set_global_sizefun loc qualid sizefun =
 let flush_global_specialized_sizefun { specialized_sizefun_list } p_impl_list =
   let one_letdecl p_impl_list (id, ({ e_info } as e)) =
     (* returns a global declaration [let id = ...] *)
-    let l_decl = Aux.letdecl [Ident.name id, id] (Aux.leq false [Aux.id_eq id e]) in
+    let l_decl = 
+      Aux.letdecl [Ident.name id, id] (Aux.leq false [Aux.id_eq id e]) in
     let ty = Typinfo.get_type e_info in
     (* add entry in the symbol table *)
     Modules.add_value (Ident.name id)
@@ -131,19 +133,28 @@ let flush_global_specialized_sizefun { specialized_sizefun_list } p_impl_list =
     l_decl :: p_impl_list in
   List.fold_left one_letdecl p_impl_list specialized_sizefun_list
 
-let empty =
-  { env = { env_of_sizefun = lazy Env.empty; env_of_sizes = Env.empty; };
-    specialized_sizefun_list = [] }
+let empty_env = { env_of_sizefun = lazy Env.empty; env_of_sizes = Env.empty }
+let empty = { env = empty_env; specialized_sizefun_list = [] }
 
 (* given [f, { sf_id;... }] store it in [acc] *)
-let add_sizefun ({ sf_id } as sizefun)
-      ({ env = ({ env_of_sizefun } as env) } as acc) = 
-  let env_of_sizefun =
-    lazy (Env.add sf_id { sizefun_definition = sizefun; sizefun_used = false;
-                          sizefun_memo_table = Memo.empty;
-                          sizefun_env = env }
-            (Lazy.force env_of_sizefun)) in
-  { acc with env = { env with env_of_sizefun } }
+let add_sizefun_list 
+      is_rec sizefun_list ({ env_of_sizefun; env_of_sizes } as env) =
+  (* add a single entry *)
+  let add_one_sizefun env_of_sizefun_rec env_of_sizefun ({ sf_id } as sizefun) =
+    Env.add sf_id
+      { sizefun_definition = sizefun; sizefun_used = false;
+        sizefun_memo_table = Memo.empty; 
+        sizefun_env = { env_of_sizefun = env_of_sizefun_rec; env_of_sizes } }
+      env_of_sizefun in
+  (* add a list of entries that are possibly recursively defined *)
+  let rec env_of_sizefun_rec =
+    lazy 
+      (List.fold_left 
+         (add_one_sizefun 
+            (if is_rec then env_of_sizefun_rec else env_of_sizefun))
+            (Lazy.force env_of_sizefun)
+            sizefun_list) in
+  { env with env_of_sizefun = env_of_sizefun_rec }
 
 (* [sf_id] is used or not *)
 let is_used loc sf_id { env = { env_of_sizefun } } =
@@ -172,7 +183,7 @@ let add_specialized_sizefun
   { acc with specialized_sizefun_list =
                (sf_fresh_id, e) :: specialized_sizefun_list }
 
-let leq_list_of { specialized_sizefun_list } =
+let flush_leq_list_of { specialized_sizefun_list } =
   (* the result is reversed *)
   List.fold_left (fun acc (id, e) -> Aux.leq false [Aux.id_eq id e] :: acc)
     [] specialized_sizefun_list
@@ -217,7 +228,7 @@ let size_e env ({ e_loc } as e) =
     Not_found -> error e_loc "evaluation of size expressions"
 
 (* a generic function for [let leq in e] and [let leq in eq] *)
-let let_in funs body_it ({ specialized_sizefun_list } as acc)
+let let_in funs body_it ({ env; specialized_sizefun_list } as acc)
       ({ l_rec; l_eq; l_loc } as leq) body =
   match Typing.eq_or_sizefun l_loc l_eq with
   | Either.Left _ ->
@@ -226,13 +237,12 @@ let let_in funs body_it ({ specialized_sizefun_list } as acc)
      (Some leq, [], b), acc
   | Either.Right(sizefun_list) ->
      (* add entry [sf_id -> sizefun] for every element of the list *)
-     let sf_id_list, acc =
-       List.fold_left
-         (fun (sf_id_list, acc) ({ sf_id } as sizefun) ->
-           sf_id :: sf_id_list, add_sizefun sizefun acc)
-         ([], acc) sizefun_list in
+     let sf_id_list =
+       List.fold_left (fun sf_id_list { sf_id } -> sf_id :: sf_id_list)
+         [] sizefun_list in
+     let env = add_sizefun_list l_rec sizefun_list env in
      (* compile the body *)
-     let b, acc = body_it funs acc body in
+     let b, acc = body_it funs { acc with env } body in
      (* if one use of the [sf_id] appear in the body, the size function *)
      (* definitions are kept *)
      let used =
@@ -241,7 +251,7 @@ let let_in funs body_it ({ specialized_sizefun_list } as acc)
            used || (is_used l_loc sf_id acc)) false sf_id_list in
      (* get the list of specialized size functions generated during the *)
      (* treatment of [body] *)
-     let new_sizefun_specialized_list = leq_list_of (acc: acc) in
+     let new_sizefun_specialized_list = flush_leq_list_of acc in
      (* set the list of specialized size function to what it was *)
      (* before entering the let/in block *)
      let acc = { acc with specialized_sizefun_list } in
@@ -293,8 +303,8 @@ let match_size_t loc funs body_it
           body_it funs
             { acc with env =
                          { env with
-                           env_of_sizes = Env.append env_of_sizes_p env_of_sizes } }
-            m_body in
+                           env_of_sizes = Env.append env_of_sizes_p env_of_sizes
+            } } m_body in
   
   let body, acc = match_rec handlers in
   body, acc
@@ -406,24 +416,27 @@ let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
-let letdecl funs acc (d_names, ({ l_eq; l_loc } as d_leq)) =
+let letdecl funs acc (d_names, ({ l_rec; l_eq; l_loc } as d_leq)) =
   match Typing.eq_or_sizefun l_loc l_eq with
   | Either.Left _ ->
      let d_leq, acc = Mapfold.leq_it funs acc d_leq in
      (d_names, d_leq), acc
   | Either.Right(sizefun_list) ->
-     let sizefun_map = 
-       List.fold_left
-         (fun acc ({ sf_id } as sizefun) -> Env.add sf_id sizefun acc) 
+     (* make and entry [sf_id -> sizefun] for every element of the list *)
+     let env_of_sizefun_defs =
+       List.fold_left 
+         (fun env_of_sizefun_defs ({ sf_id } as sizefun) -> 
+           Env.add sf_id sizefun env_of_sizefun_defs)
          Env.empty sizefun_list in
-     (* add entry [sf_id -> sizefun] for every element of the list *)
-     (* into the global table *)
+     let env_of_sizefun_values =
+       Env.map (fun sizefun -> Global.Vsizefunrec(sizefun, env_of_sizefun_defs))
+         env_of_sizefun_defs in
+     (* add a value for every global name *)
      let update_module_table d_names (name, m) =
        try
          let entry = Modules.find_value (Name name) in
-         let sizefun = Env.find m sizefun_map in
-         Global.set_value_exp entry
-           (Global.Vsizefun(sizefun));
+         let value = Env.find m env_of_sizefun_values in
+         Global.set_value_exp entry value;
          (* entry [name, m] is removed from the list of defined names *)
          d_names
        with
