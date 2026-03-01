@@ -1,9 +1,3 @@
-let fff<<n>>(x) = x + n
-
-let gg = fff
-
-let hh() = fff<<2>>(1)
-
 let rec ff<<n>>(x) =
   match size n with
   | 0 -> 1
@@ -13,6 +7,12 @@ let rec ff<<n>>(x) =
 let main(x) = ff<<5>>(x)
 
 (*
+let fff<<n>>(x) = x + n
+
+let gg = fff
+
+let hh() = fff<<2>>(1)
+
 let node f<<n>>(x0, x) =
   let rec node fifo<<n>>(x0, x) returns (y)
     match size n with

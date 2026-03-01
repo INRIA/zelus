@@ -340,11 +340,11 @@ let sizefun funs ({ env = ({ env_of_sizes } as env) } as acc)
   sf_e, acc
 
 (* application [f<<s1,...,sn>>] where [s1,...] are integer constant *)
-let sizeapp funs ({ env = { env_of_sizes } } as acc)
+let sizeapp funs ({ env; specialized_sizefun_list } as acc)
       ({ sizefun_definition = { sf_id; sf_id_list; sf_e };
-         sizefun_memo_table } as entry)
-      size_list =
-  let v_list = List.map (size env_of_sizes) size_list in
+         sizefun_memo_table; 
+         sizefun_env } as entry)
+      v_list =
   let id, acc =
     try
       Memo.find v_list sizefun_memo_table, acc
@@ -355,11 +355,14 @@ let sizeapp funs ({ env = { env_of_sizes } } as acc)
         entry.sizefun_memo_table <-
           Memo.add v_list sf_fresh_id sizefun_memo_table;
         (* compile the specialized version of [sf_id] *)
+        (* for that, take the environment [sizefun_env] of the closure *)
         let sf_e, acc =
-          sizefun funs acc (sf_id, sf_id_list, v_list, sf_e) in
+          sizefun funs { acc with env = sizefun_env }
+            (sf_id, sf_id_list, v_list, sf_e) in
         (* add the new function definition to the list of specialized size *)
-        (* functions *)
-        let acc = add_specialized_sizefun acc (sf_fresh_id, sf_e) in
+        (* functions. The current environment is the on at the entry *)
+        (* of [sizeapp] *)
+        let acc = add_specialized_sizefun { acc with env } (sf_fresh_id, sf_e) in
         sf_fresh_id, acc in
   id, acc
 
@@ -393,7 +396,8 @@ let expression funs ({ env = { env_of_sizefun; env_of_sizes } } as acc)
      (* [f <<s1,...>>] where the [s_i] are immediate values] *)
      (try
          let entry = Env.find f (Lazy.force env_of_sizefun) in
-         let sf_fresh_id, acc = sizeapp funs acc entry size_list in
+         let v_list = List.map (size env_of_sizes) size_list in
+         let sf_fresh_id, acc = sizeapp funs acc entry v_list in
          Aux.var sf_fresh_id, acc
        with
          Not_found -> e, acc)
@@ -401,7 +405,8 @@ let expression funs ({ env = { env_of_sizefun; env_of_sizes } } as acc)
      (* [f <<s1,...>>] where the [s_i] are immediate values] *)
      (try
          let entry = find_global_value e_loc lname in
-         let sf_fresh_id, acc = sizeapp funs acc entry size_list in
+         let v_list = List.map (size env_of_sizes) size_list in
+         let sf_fresh_id, acc = sizeapp funs acc entry v_list in
          Aux.global (Name(Ident.name sf_fresh_id)), acc
        with
          Not_found -> e, acc)
@@ -423,7 +428,7 @@ let letdecl funs acc (d_names, ({ l_rec; l_eq; l_loc } as d_leq)) =
      (d_names, d_leq), acc
   | Either.Right(sizefun_list) ->
      (* make and entry [sf_id -> sizefun] for every element of the list *)
-     let env_of_sizefun_defs =
+     let f_to_exp_env =
        List.fold_left 
          (fun env_of_sizefun_defs ({ sf_id } as sizefun) -> 
            Env.add sf_id sizefun env_of_sizefun_defs)
@@ -431,9 +436,10 @@ let letdecl funs acc (d_names, ({ l_rec; l_eq; l_loc } as d_leq)) =
      let env_of_sizefun_values =
        Env.map 
          (fun sizefun -> if l_rec then 
-                           Global.Vsizefunrec(sizefun, env_of_sizefun_defs)
+                           Global.Vsizefunrec(sizefun, f_to_exp_env)
                          else Global.Vsizefun(sizefun))
-         env_of_sizefun_defs in
+         f_to_exp_env in
+     let l = Env.to_list env_of_sizefun_values in
      (* add a value for every global name *)
      let update_module_table d_names (name, m) =
        try
