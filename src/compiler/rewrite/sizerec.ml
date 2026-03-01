@@ -429,7 +429,10 @@ let letdecl funs acc (d_names, ({ l_rec; l_eq; l_loc } as d_leq)) =
            Env.add sf_id sizefun env_of_sizefun_defs)
          Env.empty sizefun_list in
      let env_of_sizefun_values =
-       Env.map (fun sizefun -> Global.Vsizefunrec(sizefun, env_of_sizefun_defs))
+       Env.map 
+         (fun sizefun -> if l_rec then 
+                           Global.Vsizefunrec(sizefun, env_of_sizefun_defs)
+                         else Global.Vsizefun(sizefun))
          env_of_sizefun_defs in
      (* add a value for every global name *)
      let update_module_table d_names (name, m) =

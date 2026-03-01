@@ -2,7 +2,7 @@ let fff<<n>>(x) = x + n
 
 let gg = fff
 
-let hh() = gg<<2>>(1)
+let hh() = fff<<2>>(1)
 
 let rec ff<<n>>(x) =
   match size n with
