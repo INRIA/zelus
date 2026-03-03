@@ -582,11 +582,22 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let e1, code = expression env loop_path code e1 in
      let e2, code = expression env loop_path code e2 in
      Eget { e = e1; index = e2 }, code
-  | Zelus.Eop(Zelus.Earray(Eslice), [e1; e2; e]) ->
+  | Zelus.Eop(Zelus.Earray(Eslice(Slice_both)), [e1; e2; e3]) ->
      let e1, code = expression env loop_path code e1 in
      let e2, code = expression env loop_path code e2 in
+     let e3, code = expression env loop_path code e3 in
+     Eslice { e = e1; left = e2; right = e3 }, code
+  | Zelus.Eop(Zelus.Earray(Eslice(Slice_left)), [e; e1]) ->
+     let ty = Typinfo.get_type e.e_info in
+     let _, se = Types.filter_vec ty in
+     let se = exp_of_sizetype se in
      let e, code = expression env loop_path code e in
-     Eslice { e; left = e1; right = e2 }, code
+     let e1, code = expression env loop_path code e1 in
+     Eslice { e; left = e1; right = se }, code
+  | Zelus.Eop(Zelus.Earray(Eslice(Slice_right)), [e; e2]) ->
+     let e, code = expression env loop_path code e in
+     let e2, code = expression env loop_path code e2 in
+      Eslice { e; left = Oaux.zero; right = e2 }, code
   | Zelus.Eop(Zelus.Earray(Eupdate), [e1; i; e2]) ->
      let ty = Typinfo.get_type e1.e_info in
      let _, se = Types.filter_vec ty in

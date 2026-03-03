@@ -36,6 +36,36 @@ let (and+) v1 v2 =
 
 (* Array operations - slice, concat, etc. *)
 (* array operations *)
+let is_array loc v =
+  match v with
+  | Varray(a) -> return a
+  | _ -> error { kind = Etype; loc }
+
+let size loc a =
+  let s = match a with
+    | Vflat(a) -> Array.length a
+    | Vmap { m_length } -> m_length in
+  return s
+
+let dim loc v =
+  match v with
+  | Varray v -> size loc v
+  | _ -> error { kind = Etype; loc }
+
+let dim_dim loc v =
+  match v with
+  | Varray(v) ->
+     let r = match v with
+       | Vflat(a) ->
+          let* m = dim loc (a.(0)) in
+          return (Array.length a, m)
+       | Vmap { m_length; m_u } ->
+          let* v = m_u 0 in
+          let* m = dim loc v in
+          return (m_length, m) in
+     r
+  | _ -> error { kind = Etype; loc }
+
 let concat loc v1 v2 =
   let concat v1 v2 =
     match v1, v2 with
@@ -104,48 +134,48 @@ let get_with_default loc v i default =
 (* x.(i1 .. i2) returns a slices of [x] between index [i1] and [i2] *)
 (* if [i2 < i1], the result array is empty, that is, [||] *)
 (* if [x: [n]a] then x.(i1 .. i2) : [i2-i1+1]a *)
-let slice loc v i1 i2 =
-  let slice v i1 i2 = match v with
-    | Vflat(a) ->
-       let n = Array.length a in
-       if i1 < n then
-         if i2 < n then
-           return (Value(Varray(Vflat(Array.sub a i1 (i2 - i1 + 1)))))
-         else error { kind = Earray_size { size = n; index = i2 }; loc }
-       else error { kind = Earray_size { size = n; index = i1 }; loc }
-    | Vmap { m_length; m_u } ->
-       if i1 < m_length then
-         if i2 < m_length then
-           return (Value(Varray(Vmap { m_length = i2 - i1 + 1; m_u })))
-         else
-           error { kind = Earray_size { size = m_length; index = i2 }; loc }
-       else error { kind = Earray_size { size = m_length; index = i1 }; loc } in
+let slice loc v i1 i2 = match v with
+  | Vflat(a) ->
+     let n = Array.length a in
+     if i1 < n then
+       if i2 < n then
+         return (Value(Varray(Vflat(Array.sub a i1 (i2 - i1 + 1)))))
+       else error { kind = Earray_size { size = n; index = i2 }; loc }
+     else error { kind = Earray_size { size = n; index = i1 }; loc }
+  | Vmap { m_length; m_u } ->
+     if i1 < m_length then
+       if i2 < m_length then
+         return (Value(Varray(Vmap { m_length = i2 - i1 + 1; m_u })))
+       else
+         error { kind = Earray_size { size = m_length; index = i2 }; loc }
+     else error { kind = Earray_size { size = m_length; index = i1 }; loc }
+
+let slice_both loc v i1 i2 =
   let+ v = v and+ i1 = i1 and+ i2 = i2 in
   match v, i1, i2 with
-  | Varray(v), Vint(i1), Vint(i2) -> slice v i1 i2
+  | Varray(v), Vint(i1), Vint(i2) -> slice loc v i1 i2
   | _ -> error { kind = Etype; loc }
 
-let slice loc v i1 i2 =
-  let slice v i1 i2 = match v with
-    | Vflat(a) ->
-       let n = Array.length a in
-       if i1 >= 0 then
-         let len = i2 - i1 + 1 in
-         if (len >= 0) && (i1 + len <= n) then
-           return (Value(Varray(Vflat(Array.sub a i1 len))))
-         else error { kind = Earray_size { size = n; index = i2 }; loc }
-       else error { kind = Earray_size { size = n; index = i1 }; loc }
-    | Vmap { m_length; m_u } ->
-       if i1 < m_length then
-         if i2 < m_length then
-           return (Value(Varray(Vmap { m_length = i2 - i1 + 1; m_u })))
-         else
-           error { kind = Earray_size { size = m_length; index = i2 }; loc }
-       else error { kind = Earray_size { size = m_length; index = i1 }; loc } in
-  let+ v = v and+ i1 = i1 and+ i2 = i2 in
-  match v, i1, i2 with
-  | Varray(v), Vint(i1), Vint(i2) -> slice v i1 i2
-  | _ -> error { kind = Etype; loc }
+let is_int loc i =
+  match i with | Vint(i) -> return i | _ -> error { kind = Etype; loc }
+
+(* x.(e1..) *)
+let slice_left loc v i1 =
+  let+ v = v in
+  let+ i1 = i1 in
+  let* i1 = is_int loc i1 in
+  let* a = is_array loc v in
+  let* l = size loc a in
+  slice loc a i1 (l-1)
+
+(* x.(..e2) *)
+let slice_right loc v i2 =
+  let+ v = v in
+  let+ i2 = i2 in
+  let* i2 = is_int loc i2 in
+  let* a = is_array loc v in
+  let* l = size loc a in
+  slice loc a 0 i2
 
 (* [| v with i <- w |] *)
 let update loc v i w =
@@ -198,29 +228,6 @@ let flat_of_map v =
             let a = Array.make m_length v in
             let* v = fill m_length a m_u in
             return (v)
-
-let dim loc v =
-  match v with
-  | Varray v ->
-     let v = match v with
-       | Vflat(a) -> Array.length a
-       | Vmap { m_length } -> m_length in
-     return v
-  | _ -> error { kind = Etype; loc }
-
-let dim_dim loc v =
-  match v with
-  | Varray(v) ->
-     let r = match v with
-       | Vflat(a) ->
-          let* m = dim loc (a.(0)) in
-          return (Array.length a, m)
-       | Vmap { m_length; m_u } ->
-          let* v = m_u 0 in
-          let* m = dim loc v in
-          return (m_length, m) in
-     r
-  | _ -> error { kind = Etype; loc }
 
 (* [v i j] *)
 let get_get loc v i j =

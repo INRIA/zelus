@@ -165,7 +165,12 @@ module Make (Info: INFO) =
       | Eget -> Zelus.Eget
       | Eupdate -> Zelus.Eupdate
       | Eget_with_default -> Zelus.Eget_with_default
-      | Eslice -> Zelus.Eslice
+      | Eslice(slice) ->
+         let slice =
+           match slice with
+           | Slice_both -> Zelus.Slice_both | Slice_left -> Zelus.Slice_left
+           | Slice_right -> Zelus.Slice_right in
+         Zelus.Eslice(slice)
       | Econcat -> Zelus.Econcat
       | Earray_list -> Zelus.Earray_list
       | Etranspose -> Zelus.Etranspose

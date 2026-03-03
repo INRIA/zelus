@@ -1000,12 +1000,23 @@ and sexp genv env { e_desc; e_loc } s =
              let* default, s_default = sexp genv env default s_default in
              let* v = Arrays.get_with_default e_loc v vi default in
              return (v, s)
-          | Eslice, [e; i1; i2], Slist [s; s1; s2] ->
+          (* the code below could be factorized *)
+          | Eslice(Slice_both), [e; i1; i2], Slist [s; s1; s2] ->
              let* v, s = sexp genv env e s in
              let* i1 = vsexp genv env i1 s1 in
              let* i2 = vsexp genv env i2 s2 in
-             let* v = Arrays.slice e_loc v i1 i2 in
+             let* v = Arrays.slice_both e_loc v i1 i2 in
              return (v, Slist [s; s1; s2])
+          | Eslice(Slice_left), [e; i1], Slist [s; s1] ->
+             let* v, s = sexp genv env e s in
+             let* i1 = vsexp genv env i1 s1 in
+             let* v = Arrays.slice_left e_loc v i1 in
+             return (v, Slist [s; s1])
+          | Eslice(Slice_right), [e; i2], Slist [s; s2] ->
+             let* v, s = sexp genv env e s in
+             let* i2 = vsexp genv env i2 s2 in
+             let* v = Arrays.slice_right e_loc v i2 in
+             return (v, Slist [s; s2])
           | Eupdate, (e :: arg :: i_list), Slist (s :: s_arg :: s_list) ->
              (* [| e with i1,..., in <- arg |] *)
              let* v, s = sexp genv env e s in

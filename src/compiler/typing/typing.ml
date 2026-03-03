@@ -1223,17 +1223,35 @@ and array_operator expected_k h loc op e_list =
      let actual_ki = expect expected_k h i Initial.typ_int in
      let actual_kd = expect expected_k h default ty in
      ty, Kind.sup actual_k (Kind.sup actual_ki actual_kd)
-  | Eslice, [a; i1; i2] ->
+  | Eslice(slice), a :: l ->
      let ty_a, actual_k = expression expected_k h a in
      let ty, si = check_is_vec a.e_loc ty_a in
-     let actual_ki1 = expect expected_k h i1 Initial.typ_int in
-     let actual_ki2 = expect expected_k h i2 Initial.typ_int in
-     (* [i1] and [i2] must be sizes; not index *)
-     let si1 = size_of_exp Tconst h i1 in
-     let si2 = size_of_exp Tconst h i2 in
-     let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
-     compare_sizes a.e_loc Defsizes.Lte si_i si;
-     Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
+     (* we can make the following code shorter and more elegant *)
+     let ty, k =
+       match slice, l with
+       | Slice_both, [i1; i2] ->
+          let actual_ki1 = expect expected_k h i1 Initial.typ_int in
+          let actual_ki2 = expect expected_k h i2 Initial.typ_int in
+          (* [i1] and [i2] must be sizes; not index *)
+          let si1 = size_of_exp Tconst h i1 in
+          let si2 = size_of_exp Tconst h i2 in
+          let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
+          compare_sizes a.e_loc Defsizes.Lte si_i si;
+          Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
+       | Slice_left, [i1] ->
+          let actual_ki1 = expect expected_k h i1 Initial.typ_int in
+          let si1 = size_of_exp Tconst h i1 in
+          let si_i = Sizes.minus si si1 in
+          compare_sizes a.e_loc Defsizes.Lte si1 si;
+          Types.vec ty si_i, Kind.sup actual_k actual_ki1
+       | Slice_right, [i2] ->
+          let actual_ki2 = expect expected_k h i2 Initial.typ_int in
+          let si2 = size_of_exp Tconst h i2 in
+          let si_i = Sizes.plus si2 Sizes.one in
+          compare_sizes a.e_loc Defsizes.Lte si_i si;
+          Types.vec ty si_i, Kind.sup actual_k actual_ki2
+       | _ -> assert false in
+     ty, k
   | Eupdate, [a; i; v] ->
      let ty_a, actual_k = expression expected_k h a in
      let ty, si = check_is_vec a.e_loc ty_a in

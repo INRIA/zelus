@@ -44,7 +44,7 @@ and array_operator acc op =
     | Econcat -> 1
     | Eget -> 1
     | Eget_with_default -> 1
-    | Eslice -> 1
+    | Eslice _ -> 1
     | Eupdate -> 1
     | Etranspose -> 1
     | Eflatten -> 1

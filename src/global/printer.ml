@@ -488,9 +488,18 @@ module Make (Info: INFO) =
       | Eget_with_default, [e1; e2; e3] ->
          fprintf ff "@[<hov2>%a.(%a)@ default@ %a@]" 
            expression e1 expression e2 expression e3
-      | Eslice, [e1; e2; e3] ->
-         fprintf ff "@[<hov2>%a.@,(%a@ ..@ %a)@]" 
-           expression e1 expression e2 expression e3
+      | Eslice(slice), e_list ->
+         (match slice, e_list with
+          | Slice_both, [e1; e2; e3] ->
+             fprintf ff "@[<hov2>%a.@,(%a@ ..@ %a)@]" 
+               expression e1 expression e2 expression e3
+          | Slice_left, [e1; e2] ->
+             fprintf ff "@[<hov2>%a.@,(%a@ ..)@]" 
+               expression e1 expression e2
+          | Slice_right, [e1; e2] ->
+             fprintf ff "@[<hov2>%a.@,(..@ %a)@]" 
+               expression e1 expression e2
+          | _ -> assert false)
       | Eupdate, (e1 :: e2 :: i_list) ->
          (* [| e1 with i_list <- e2 |] *)
          fprintf ff "@[<hov 2>[|%a with@, %a <- %a|]@]"

@@ -1030,7 +1030,13 @@ simple_expression_desc:
       { Eop(Earray(Eget), [e1; e2]) }
   | e = simple_expression DOT
       LPAREN e1 = expression DOTDOT e2 = expression RPAREN
-      { Eop(Earray(Eslice), [e; e1; e2]) }
+      { Eop(Earray(Eslice(Slice_both)), [e; e1; e2]) }
+  | e = simple_expression DOT
+      LPAREN e1 = expression DOTDOT RPAREN
+      { Eop(Earray(Eslice(Slice_left)), [e; e1]) }
+  | e = simple_expression DOT
+      LPAREN DOTDOT e2 = expression RPAREN
+      { Eop(Earray(Eslice(Slice_right)), [e; e2]) }
 ;
 
 /* size expression list */

@@ -450,10 +450,8 @@ and array_operator env op ty e_list =
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
      Tinit.skeleton_on_i izero ty
-  | (Eget_with_default | Eslice | Eupdate), [e1; e2; e3] ->
-     exp_less_than_on_i env e1 izero;
-     exp_less_than_on_i env e2 izero;
-     exp_less_than_on_i env e3 izero;
+  | (Eget_with_default | Eslice _ | Eupdate), l ->
+     List.iter (fun e -> exp_less_than_on_i env e izero) l;
      Tinit.skeleton_on_i izero ty
   | (Etranspose | Ereverse | Eflatten), [e1] ->
      exp_less_than_on_i env e1 izero;

@@ -118,7 +118,7 @@ and array_operator =
   (* [e.(e)] *)
   | Eget_with_default 
   (* [e.(e) default e] *)
-  | Eslice 
+  | Eslice of slice
   (* [e.(e .. e)] *)
   | Eupdate 
   (* [| e with e <- e |] *)
@@ -130,6 +130,11 @@ and array_operator =
   (* [e.R] *)
   | Emake
   (* [e^e] *)
+
+and slice =
+  | Slice_both
+  | Slice_left
+  | Slice_right
 
 and is_inline = bool
 

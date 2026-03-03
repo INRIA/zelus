@@ -563,10 +563,8 @@ and array_operator env op c_free ty e_list =
      exp_less_than_on_c env c_free e1 c_res;
      exp_less_than_on_c env c_free e2 c_res;
      Tcausal.skeleton_on_c c_res ty
-  | (Eget_with_default | Eslice | Eupdate), [e1; e2; e3] ->
-     exp_less_than_on_c env c_free e1 c_res;
-     exp_less_than_on_c env c_free e2 c_res;
-     exp_less_than_on_c env c_free e3 c_res;
+  | (Eget_with_default | Eslice _ | Eupdate),  l ->
+     List.iter (fun e -> exp_less_than_on_c env c_free e c_res) l;
      Tcausal.skeleton_on_c c_res ty
   | (Etranspose | Ereverse | Eflatten), [e1] ->
      exp_less_than_on_c env c_free e1 c_res;
