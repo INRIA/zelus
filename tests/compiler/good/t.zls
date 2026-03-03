@@ -4,7 +4,25 @@ let rec ff<<n>>(x) =
   | _ -> ff<<n-1>>(x) + 1
   end
 
-let main(x) = ff<<5>>(x)
+let main1(x) = ff<<4>>(x)
+
+let node f<<n>>(x0, x) =
+  let rec node fifo<<n>>(x0, x) returns (y)
+    match size n with
+    | 0 -> y = x
+    | _ -> y = x0 fby (run (fifo<<n-1>>)(x0, x))
+    end in
+  run (fifo<<n>>)(x0, x)
+
+let node fifo_42(x0, x) = f<<4>>(x0, x)
+
+let rec fff<<n>>(x) =
+  match size n with
+  | 0 -> 1
+  | _ -> fff<<n-1>>(x) + 1
+  end
+
+let main2(x) = fff<<5>>(x)
 
 (*
 let fff<<n>>(x) = x + n

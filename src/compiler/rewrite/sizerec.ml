@@ -63,6 +63,8 @@ and sizefun =
     mutable sizefun_used: bool;
     (* the environment for free variables *)
     sizefun_env: env;
+    (* is-it a global value or not? *)
+    sizefun_is_global: bool;
   }
 
 type acc =
@@ -88,7 +90,8 @@ let find_global_value loc lname =
             sizefun_used = false;
             sizefun_memo_table = Memo.empty;
             sizefun_env =
-              { env_of_sizefun = env; env_of_sizes = Env.empty } } in
+              { env_of_sizefun = env; env_of_sizes = Env.empty };
+            sizefun_is_global = true } in
         (* check that [value_exp] is a size function *)
         match value_exp with
         | None -> raise Not_found
@@ -144,7 +147,8 @@ let add_sizefun_list
     Env.add sf_id
       { sizefun_definition = sizefun; sizefun_used = false;
         sizefun_memo_table = Memo.empty; 
-        sizefun_env = { env_of_sizefun = env_of_sizefun_rec; env_of_sizes } }
+        sizefun_env = { env_of_sizefun = env_of_sizefun_rec; env_of_sizes };
+      sizefun_is_global = false }
       env_of_sizefun in
   (* add a list of entries that are possibly recursively defined *)
   let rec env_of_sizefun_rec =
@@ -343,7 +347,8 @@ let sizefun funs ({ env = ({ env_of_sizes } as env) } as acc)
 let sizeapp funs ({ env; specialized_sizefun_list } as acc)
       ({ sizefun_definition = { sf_id; sf_id_list; sf_e };
          sizefun_memo_table; 
-         sizefun_env } as entry)
+         sizefun_env;
+         sizefun_is_global } as entry)
       v_list =
   let id, acc =
     try
@@ -364,7 +369,7 @@ let sizeapp funs ({ env; specialized_sizefun_list } as acc)
         (* of [sizeapp] *)
         let acc = add_specialized_sizefun { acc with env } (sf_fresh_id, sf_e) in
         sf_fresh_id, acc in
-  id, acc
+  sizefun_is_global, id, acc
 
 let size_t global_funs ({ env = { env_of_sizes } } as acc) ({ desc } as si) =
   match desc with
@@ -397,8 +402,10 @@ let expression funs ({ env = { env_of_sizefun; env_of_sizes } } as acc)
      (try
          let entry = Env.find f (Lazy.force env_of_sizefun) in
          let v_list = List.map (size env_of_sizes) size_list in
-         let sf_fresh_id, acc = sizeapp funs acc entry v_list in
-         Aux.var sf_fresh_id, acc
+         let is_global, sf_fresh_id, acc = sizeapp funs acc entry v_list in
+         let id = if is_global then  Aux.global (Name(Ident.name sf_fresh_id))
+                  else Aux.var sf_fresh_id in
+         id, acc
        with
          Not_found -> e, acc)
   | Esizeapp { f = { e_desc = Eglobal { lname }; e_loc }; size_list } ->
@@ -406,8 +413,10 @@ let expression funs ({ env = { env_of_sizefun; env_of_sizes } } as acc)
      (try
          let entry = find_global_value e_loc lname in
          let v_list = List.map (size env_of_sizes) size_list in
-         let sf_fresh_id, acc = sizeapp funs acc entry v_list in
-         Aux.global (Name(Ident.name sf_fresh_id)), acc
+         let is_global, sf_fresh_id, acc = sizeapp funs acc entry v_list in
+         let id = if is_global then  Aux.global (Name(Ident.name sf_fresh_id))
+                  else Aux.var sf_fresh_id in
+         id, acc
        with
          Not_found -> e, acc)
   | Ematch { is_size = true; e; handlers } ->
