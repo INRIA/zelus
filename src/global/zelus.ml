@@ -40,7 +40,8 @@ and tkind =
 type type_expression = type_expression_desc localized
 
 and type_expression_desc =
-  | Etypevar of name
+  | Etypevar of name (* 'a *)
+  | Etypewildcard (* _ *)
   | Etypeconstr of Lident.t * type_expression list
   | Etypetuple of type_expression list
   | Etypefun of

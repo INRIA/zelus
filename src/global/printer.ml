@@ -108,6 +108,7 @@ module Make (Info: INFO) =
     let rec ptype ff { desc } =
       match desc with
       | Etypevar(s) -> fprintf ff "'%s" s
+      | Etypewildcard -> fprintf ff "_"
       | Etypeconstr(ln, ty_list) ->
          fprintf ff "@[<hov2>%a@,%a@]"
            (print_list_r_empty ptype "("","")") ty_list type_longname ln

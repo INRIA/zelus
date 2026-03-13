@@ -41,6 +41,7 @@ type type_expression = type_expression_desc localized
 
 and type_expression_desc =
   | Etypevar : name -> type_expression_desc
+  | Etypewildcard : type_expression_desc
   | Etypeconstr : longname * type_expression list -> type_expression_desc
   | Etypetuple : type_expression list -> type_expression_desc
   | Etypefun : kind * name option * type_expression * type_expression ->

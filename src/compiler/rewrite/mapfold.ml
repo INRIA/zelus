@@ -360,7 +360,9 @@ and type_expression_it global_funs acc ty =
 
 and type_expression global_funs acc ({ desc } as ty) =
   let desc, acc = match desc with
-  | Etypevar(name) ->
+    | Etypewildcard ->
+       Etypewildcard, acc
+    | Etypevar(name) ->
      let name, acc = typevar_it global_funs acc name in
      Etypevar(name), acc
   | Etypeconstr(lname, ty_list) ->

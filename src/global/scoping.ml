@@ -182,6 +182,7 @@ module Make (Info: INFO) =
     let rec types env { desc; loc } =
       let desc = match desc with
         | Etypevar(n) -> Zelus.Etypevar(n)
+        | Etypewildcard -> Zelus.Etypewildcard
         | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map (types env) ty_list)
         | Etypeconstr(lname, ty_list) ->
            Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)

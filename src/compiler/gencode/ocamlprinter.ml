@@ -31,13 +31,14 @@ let ptype ff typ_exp =
   let open Zelus in
   let priority desc =
     match desc with
-    | Etypevar _ | Etypeconstr _ | Etypevec _ -> 2 
+    | Etypevar _ | Etypewildcard | Etypeconstr _ | Etypevec _ -> 2 
     | Etypetuple _ -> 2 | Etypefun _ -> 1 in
   let rec ptype prio ff { desc } =
     let prio_ty = priority desc in
     if prio_ty < prio then fprintf ff "(";
     begin match desc with
     | Etypevar(s) -> fprintf ff "%s" s
+    | Etypewildcard -> fprintf ff "_"
     | Etypefun { ty_kind; ty_arg; ty_res } ->
         begin match ty_kind with
           | Kfun _ ->

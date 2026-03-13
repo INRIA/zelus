@@ -32,6 +32,7 @@ type error =
   | Etype_constr_arity of Lident.t * int * int
   | Eunbound_type_var of string
   | Eunbound_size_var of string
+  | Etype_wildcard_not_allowed
   | Erepeated_type_param of string
   | Erepeated_constructor of string
   | Erepeated_label of string
@@ -68,6 +69,9 @@ let message loc kind =
        eprintf "%aType error: The size type variable %s is unbound.@."
          output_location loc
          n
+    | Etype_wildcard_not_allowed ->
+       eprintf "%aType error: A type wildcard _ is not allowed here.@."
+         output_location loc
     | Erepeated_type_param(n) ->
        eprintf "%aType error: Repeated parameter in type declaration.@."
          output_location loc
@@ -108,6 +112,7 @@ let global n desc = { qualid = Modules.qualify n; info = desc }
 let rec free_of_type v ty =
   match ty.desc with
   | Etypevar(x) -> if List.mem x v then v else x :: v
+  | Etypewildcard -> v
   | Etypetuple(ty_list) ->
      List.fold_left free_of_type v ty_list
   | Etypeconstr(_,ty_list) ->
@@ -147,25 +152,36 @@ let skindoftype = function
 let kindoftype = function
   | Tfun(k) -> Kfun(skindoftype k) | Tnode(k) -> Knode(tkindoftype k)
 
-let typ_of_type_expression typ_vars typ =
-  let rec typrec typ =
+(* [typ_vars] is an environment [name -> typ_var] *)
+(* [typ_vars_wildcard] is a list of fresh and unique type variables *)
+let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
+  let rec typrec acc typ =
     match typ.desc with
     | Etypevar(s) ->
        begin try
-           List.assoc s typ_vars
+           List.assoc s typ_vars, typ_vars_wildcard 
          with
            Not_found -> error typ.loc (Eunbound_type_var(s))
        end
+    | Etypewildcard ->
+       if with_wildcard then
+         let ty = Types.new_generic_var () in ty, ty :: acc
+       else error typ.loc Etype_wildcard_not_allowed
     | Etypetuple(l) ->
-       Types.product (List.map typrec l)
+       let l, acc = Util.mapfold typrec acc l in
+       Types.product l, acc
     | Etypeconstr(s, ty_list) ->
        let name = constr_name typ.loc s (List.length ty_list) in
-       Types.nconstr name (List.map typrec ty_list)
+       let l, acc = Util.mapfold typrec acc ty_list in
+       Types.nconstr name l, acc
     | Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res } ->
+       let ty_arg, acc = typrec acc ty_arg in
+       let ty_res, acc = typrec acc ty_res in
        Types.arrow_type
-         (kindtype ty_kind) ty_name_opt (typrec ty_arg) (typrec ty_res)
+         (kindtype ty_kind) ty_name_opt ty_arg ty_res, acc
     | Etypevec(ty, si) ->
-       Types.vec (typrec ty) (size si)
+       let ty, acc = typrec acc ty in
+       Types.vec ty (size si), acc
   and size { desc } =
     match desc with
     | Size_var(n) -> Defsizes.Svar(n)
@@ -178,14 +194,21 @@ let typ_of_type_expression typ_vars typ =
          | Size_plus -> Defsizes.Splus | Size_minus -> Defsizes.Sminus
          | Size_mult -> Defsizes.Smult in
        Defsizes.Sop(op, size si1, size si2) in
-  typrec typ
+  typrec typ_vars_wildcard typ
+
+let typ_of_type_expression_with_wildcard typ_vars typ =
+  typ_of_type_expression true typ_vars [] typ
+
+let typ_of_type_expression typ_vars typ =
+  let ty, _ = typ_of_type_expression false typ_vars [] typ in
+  ty
 
 (* check that all size variables are bounded *)
 let check_no_unbounded_size_variable_in_type_expr h ty_exp =
   let open Ident in
   let rec check bounded { desc } =
     match desc with
-    | Etypevar _ -> ()
+    | Etypevar _ | Etypewildcard -> ()
     | Etypetuple(ty_list) | Etypeconstr(_, ty_list) ->
        List.iter (check bounded) ty_list
     | Etypefun { ty_name_opt; ty_arg; ty_res } ->
@@ -268,8 +291,9 @@ let type_decl_of_type_desc tyname
 let scheme_of_type typ =
   let typ_vars = free_of_type [] typ in
   let typ_vars = List.map (fun v -> (v, Types.new_generic_var ())) typ_vars in
-  let typ = typ_of_type_expression typ_vars typ in
-  { typ_vars = List.map snd typ_vars;
+  let typ, typ_vars_wildcard =
+    typ_of_type_expression_with_wildcard typ_vars typ in
+  { typ_vars = typ_vars_wildcard @ (List.map snd typ_vars);
     typ_body = typ }
 
 (* analysing a type declaration *)

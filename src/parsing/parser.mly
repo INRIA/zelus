@@ -1466,6 +1466,8 @@ type_expression:
 simple_type:
   | t = type_var
       { make (Etypevar t) $startpos $endpos }
+  | UNDERSCORE
+    { make (Etypewildcard) $startpos $endpos }
   | i = ext_ident
       { make (Etypeconstr(i, [])) $startpos $endpos }
   | t = simple_type i = ext_ident
