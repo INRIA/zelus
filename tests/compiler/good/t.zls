@@ -1,4 +1,4 @@
-let rec ff<<n>>(x) =
+let rec ff<<n>>(x:a) =
   match size n with
   | 0 -> 1
   | _ -> ff<<n-1>>(x) + 1
