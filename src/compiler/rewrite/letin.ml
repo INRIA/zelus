@@ -97,6 +97,10 @@ let e_local acc e =
   let vardec_list, eq_list = vardec_list_eq acc in
   Aux.local_vardec_in_e vardec_list eq_list e
 
+let e_let acc e =
+  let _, eq_list = vardec_list_eq acc in
+  Aux.let_eq_list_in_e true eq_list e
+
 let pattern funs acc p = p, acc
 
 let atomic_expression funs acc e =
