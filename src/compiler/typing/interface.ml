@@ -296,6 +296,12 @@ let scheme_of_type typ =
   { typ_vars = typ_vars_wildcard @ (List.map snd typ_vars);
     typ_body = typ }
 
+(* the main entry *)
+let scheme_of_type ({ loc } as typ) =
+  try
+    scheme_of_type typ
+  with Error (loc, err) -> message loc err
+
 (* analysing a type declaration *)
 let check_no_repeated_type_param loc typ_params =
   let rec checkrec tp =
