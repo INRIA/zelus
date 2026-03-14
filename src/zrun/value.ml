@@ -77,7 +77,7 @@ and 'a array =
 and 'a map =
   { m_length : int; m_u : int -> 'a result }
      
-(* a size parameterized expression - f <n1,...,nk> = e *)
+(* a size parameterized expression - f <<n1,...,nk>> = e *)
 and ('info, 'ienv) sizefun = 
   { s_params: Ident.t list; 
     s_body: ('info, 'ienv) Zelus.exp; 
