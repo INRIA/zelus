@@ -1,3 +1,8 @@
+let node main(x) =
+  let rec o = x + 1 + 0 fby y
+  and y = o + 1 fby y in
+  o
+
 (* let rec ff<<n>>(x) =
   match size n with
   | 0 -> 1
@@ -6,7 +11,7 @@
 
 let main1(x) = ff<<4>>(x)
 
-*)
+
 let node f<<n>>(x0, x) =
   let rec node fifo<<n>>(x0, x) returns (y)
     match size n with
@@ -17,7 +22,7 @@ let node f<<n>>(x0, x) =
 
 let node fifo_42(x0, x) = f<<4>>(x0, x)
 
-(*
+
 let rec fff<<n>>(x) =
   match size n with
   | 0 -> 1
