@@ -1,4 +1,4 @@
-let rec ff<<n>>(x:a) =
+(* let rec ff<<n>>(x) =
   match size n with
   | 0 -> 1
   | _ -> ff<<n-1>>(x) + 1
@@ -6,6 +6,7 @@ let rec ff<<n>>(x:a) =
 
 let main1(x) = ff<<4>>(x)
 
+*)
 let node f<<n>>(x0, x) =
   let rec node fifo<<n>>(x0, x) returns (y)
     match size n with
@@ -16,6 +17,7 @@ let node f<<n>>(x0, x) =
 
 let node fifo_42(x0, x) = f<<4>>(x0, x)
 
+(*
 let rec fff<<n>>(x) =
   match size n with
   | 0 -> 1
@@ -24,7 +26,7 @@ let rec fff<<n>>(x) =
 
 let main2(x) = fff<<5>>(x)
 
-(*
+
 let fff<<n>>(x) = x + n
 
 let gg = fff
