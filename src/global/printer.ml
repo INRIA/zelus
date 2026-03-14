@@ -128,6 +128,11 @@ module Make (Info: INFO) =
                | Kdiscrete -> "-D->" | Kcont -> "-C->") in
          fprintf ff "@[<hov2>%a %s %a@]" pas (ty_name_opt, ty_arg) s ptype ty_res
       | Etypevec(ty, s) -> fprintf ff "@[[%a]]%a@]" size s ptype ty
+
+    let opt_ptype ff ty_opt =
+      match ty_opt with
+      | None -> ()
+      | Some(ty) -> fprintf ff ":%a" ptype ty
     
     let print_type_params ff pl =
       print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
@@ -175,10 +180,11 @@ module Make (Info: INFO) =
     
     let vardec exp ff
           { var_name = x; var_default = d_opt; var_init = i_opt; var_is_last; 
-            var_init_in_eq } =
-      fprintf ff "@[%s%a%a%a%s@]" 
+            var_init_in_eq; var_typeconstraint } =
+      fprintf ff "@[%s%a%a%a%a%s@]" 
         (if var_is_last then "last " else "")
-        name x (init exp) i_opt (default exp) d_opt
+        name x opt_ptype var_typeconstraint
+        (init exp) i_opt (default exp) d_opt
         (if var_init_in_eq then " init ..." else "")
     
     let vardec_list exp ff vardec_list =
