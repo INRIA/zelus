@@ -634,25 +634,10 @@ let rec expression env loop_path code { Zelus.e_desc } =
      let e1, code  = expression env loop_path code e1 in
      let e2, code = expression env loop_path code e2 in
      Oaux.seq e1 e2, code
+  | Zelus.Eop(Zelus.Erun _, [f; arg]) ->
+     application env loop_path code f [arg]
   | Zelus.Eapp { f; arg_list } ->
-     (* make an application *)
-     let make_app f arg_list =
-       match arg_list with | [] -> f | _ -> Eapp { f; arg_list } in
-     let ty = Typinfo.get_type f.e_info in
-     (* compute the sequence of static arguments and non static ones *)
-     let se_list, ne_list, ty_res = 
-       Types.split_arguments ty arg_list in
-     let f, code = expression env loop_path code f in
-     let se_list, code =
-       Util.mapfold (expression env loop_path) code se_list in
-     let ne_list, code =
-       Util.mapfold (expression env loop_path) code ne_list in
-     let e_fun = make_app f se_list in
-     let e_fun, code = match ne_list with
-       | [] -> e_fun, code
-       | _ -> let k = Types.kind_of_funtype ty_res in
-	      make_apply k env loop_path code e_fun ne_list in
-     e_fun, code
+     application env loop_path code f arg_list
   | Zelus.Esizeapp { f; size_list } ->
      (* for the moment only combinatorial size functions are treated *)
      let f, code = expression env loop_path code f in
@@ -696,6 +681,27 @@ let rec expression env loop_path code { Zelus.e_desc } =
   | Zelus.Eop(Eperiod, _)  | Zelus.Eop _ | Zelus.Epresent _ ->
      (* these last constructions have been eliminated in previous steps *)
      assert false
+
+(* translate an application [f e1 ... en] *)
+and application env loop_path code f arg_list =
+  (* make an application *)
+  let make_app f arg_list =
+    match arg_list with | [] -> f | _ -> Eapp { f; arg_list } in
+  let ty = Typinfo.get_type f.e_info in
+  (* compute the sequence of static arguments and non static ones *)
+  let se_list, ne_list, ty_res = 
+    Types.split_arguments ty arg_list in
+  let f, code = expression env loop_path code f in
+  let se_list, code =
+    Util.mapfold (expression env loop_path) code se_list in
+  let ne_list, code =
+    Util.mapfold (expression env loop_path) code ne_list in
+  let e_fun = make_app f se_list in
+  let e_fun, code = match ne_list with
+    | [] -> e_fun, code
+    | _ -> let k = Types.kind_of_funtype ty_res in
+	   make_apply k env loop_path code e_fun ne_list in
+  e_fun, code
 
 and assertion_expression env loop_path code ({ a_body } as a) =
   if !Misc.transparent then

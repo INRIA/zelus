@@ -222,7 +222,8 @@ let result funs acc ({ r_desc } as r) =
      let e = atomic_expression funs empty e in
      Exp(e)
   | Returns({ b_body } as b) ->
-     (* assume that [b_vars] does not contain expressions (default/init) anymore *)
+     (* assume that [b_vars] does not contain expressions *)
+     (* (default/init) anymore *)
      let _, acc = Mapfold.equation_it funs empty b_body in
      Returns { b with b_body = eq_local acc } in
   { r with r_desc }, acc
