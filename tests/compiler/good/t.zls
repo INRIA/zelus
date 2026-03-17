@@ -1,8 +1,23 @@
-let node main(x) =
+let node main1(x) =
   let rec o = x + 1 + 0 fby y
   and y = o + 1 fby y in
   o
 
+(* le type du programme ci-dessous est faux *)
+let node main2 f x = run f (x+1)
+
+(* ce programme ci-dessous devrait etre rejete *)
+let node main3 x = main2 (node y -> y + x) x
+
+let node main4 x =
+  let static x = 1 in
+  let static y = x + 1 in
+  y
+
+let node main5 x =
+  let static h = node x -> x + 1 in
+  h (x + 1)
+  
 (* let rec ff<<n>>(x) =
   match size n with
   | 0 -> 1
