@@ -1888,13 +1888,11 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
      (* check that [id] is not already in [h_inputs] *)
      if Env.mem id acc_h then error loc (Ealready(Current, id));
      let ty_e, actual_k = expression expected_k h e in
-     let ty, si =
-       match size_opt with
-       | None -> check_is_vec e.e_loc ty_e
-       | Some(si) ->
-          let ty = Types.new_var () in
-          unify_expr e (Types.vec ty si) ty_e;
-          ty, si in
+     let ty, actual_size = check_is_vec e.e_loc ty_e in
+     (* check that the size of arguments is [actual_size] *)
+     Util.optional_unit 
+       (fun _ expected_size ->
+          compare_sizes e.e_loc Defsizes.Eq expected_size actual_size) () size_opt;
      let actual_k =
        match by with 
        | None -> actual_k 
@@ -1905,7 +1903,7 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
        Env.add id 
          (Deftypes.entry expected_k Deftypes.Sort_val (Deftypes.scheme ty)) 
          acc_h in
-     acc_h, Kind.sup acc_k actual_k, Some(si)
+     acc_h, Kind.sup acc_k actual_k, Some(actual_size)
   | Eindex { id; e_left; e_right; dir } ->
      (* [i in e0 to e1] or [i in e1 downto e0] *)
      let actual_k_left = expect expected_k h e_left Initial.typ_int in
