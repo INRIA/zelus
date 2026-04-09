@@ -1,0 +1,51 @@
+let main0<<n>> x (y:[n]_) z = [|x|] ++ y ++ [|z|]
+
+let main1 =
+  let f = fun x (y:[2]_) -> [|x|] ++ y in
+  (* f 1 [|1;2|], *)
+  let x = [|1|] in
+  let y = [| [|1|]; [|1|] |] in
+  let z = f x y in
+  z
+
+(*
+let main2 () =
+  let f<<n>>(x:'a, y:[n]'a) = [|x|] ++ y in
+  let main1 = f<<2>>(1, [|2;3|]) in
+  let main2 = f<<3>>([|1|], [| [|2|];[|3|];[|4|] |]) in 1
+*)
+
+(*
+let rec make<<n>>(v) returns (o: [n]_)
+  match size n with
+  | 0 -> o = [||]
+  | _ -> o = [| v |] ++ (make<<n-1>>(v))
+  end
+
+let cons_vec<<n>>(left: _, right: [n]_) returns (v: [n+1]_)
+  v = [|left|] ++ right
+
+let cons_vec2<<n>>(left: _, right: [n]_) returns (v: [n+1]_)
+  v = [|left|] ++ right
+
+let f1<<n, m>>(upper_left: int, lower_left: [n]int,
+              upper_right: [m]int, lower_right: [n][m]int)
+  returns (mat: [n+1][m+1]int)
+  let upper =
+      cons_vec<<m>>(upper_left, upper_right) in
+  let lower = make<<n>>(make<<m+1>>(0)) in
+  do mat = cons_vec2<<n>>(upper, lower)
+  done
+
+let f2<<n, m>>(upper_left: int, lower_left: [n]int,
+              upper_right: [m]int, lower_right: [n][m]int)
+  returns (mat: [n+1][m+1]int)
+  local upper: [m+1]int, lower: [n][m+1]int do
+    mat = cons_vec<<n>>(upper, lower)
+  and
+    upper = (* make<<m+1>>(0) *)
+      cons_vec<<m>>(upper_left, upper_right)
+  and
+    lower = make<<n>>(make<<m+1>>(0))
+  done
+*)

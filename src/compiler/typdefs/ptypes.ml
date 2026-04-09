@@ -183,7 +183,11 @@ let rec print prio ff { t_desc; t_level; t_index } =
   end;
   if prio_current < prio then fprintf ff ")"  
 
-let print_scheme ff { typ_body } = print 0 ff typ_body     
+let print_scheme ff { typ_vars; typ_body } =
+  let print_typ_vars ff typ_vars =
+    Pp_tools.print_list_r_empty (print 0) "forall " "," "." ff typ_vars in
+  print_typ_vars ff typ_vars;
+  print 0 ff typ_body     
 
 let print_type_params ff pl =
   print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
