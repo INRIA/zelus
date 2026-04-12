@@ -240,10 +240,10 @@ let rec gen_ty is_gen ty =
     | Tarrow { ty_arg; ty_res } ->
 	     ty.t_level <-
 	       min (gen_ty is_gen ty_arg) (gen_ty is_gen ty_res)
-    | Tvec(ty, si) ->
-       ty.t_level <- gen_ty is_gen ty
-    | Tsizefun { ty } ->
-       ty.t_level <- gen_ty is_gen ty
+    | Tvec(ty_body, si) ->
+       ty.t_level <- gen_ty is_gen ty_body
+    | Tsizefun { ty = ty_body } ->
+       ty.t_level <- gen_ty is_gen ty_body
     | Tlink(link) ->
        ty.t_level <- gen_ty is_gen link
   end;
@@ -297,12 +297,12 @@ let rec copy ty =
        if level = generic
        then arrow_type ty_kind ty_name_opt (copy ty_arg) (copy ty_res)
        else ty
-    | Tvec(ty, si) ->
-       if level = generic then vec (copy ty) si
+    | Tvec(ty_body, si) ->
+       if level = generic then vec (copy ty_body) si
        else ty
-    | Tsizefun { id_list; ty; constraints; is_rec } ->
+    | Tsizefun { id_list; ty = ty_body; constraints; is_rec } ->
        if level = generic
-       then sizefun id_list (copy ty) constraints is_rec
+       then sizefun id_list (copy ty_body) constraints is_rec
        else ty
 
 (* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)

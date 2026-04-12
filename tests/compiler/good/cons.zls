@@ -2,9 +2,14 @@ let main0<<n>> x (y:[n]_) z = [|x|] ++ y ++ [|z|]
 
 let main1 =
   let f = fun x (y:[2]_) -> [|x|] ++ y in
+  let h = fun x y -> x, y in
   (* f 1 [|1;2|], *)
   let x = [|1|] in
   let y = [| [|1|]; [|1|] |] in
+  let g1 = f in
+  let g2 = f in
+  let t1 = h in
+  let t2 = h in
   let z = f x y in
   z
 
