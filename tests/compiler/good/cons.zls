@@ -1,26 +1,15 @@
-let main0<<n>> x (y:[n]_) z = [|x|] ++ y ++ [|z|]
+(* examples adapted from the ones of Victor Miquel *)
+let f<<n>> x (y:[n]_) z = [|x|] ++ y ++ [|z|]
 
-let main1 =
-  let f = fun x (y:[2]_) -> [|x|] ++ y in
-  let h = fun x y -> x, y in
-  (* f 1 [|1;2|], *)
-  let x = [|1|] in
-  let y = [| [|1|]; [|1|] |] in
-  let g1 = f in
-  let g2 = f in
-  let t1 = h in
-  let t2 = h in
-  let z = f x y in
-  z
+let main1 = f<<2>>(1, [|2;3|])   
+let main2 = f<<3>>([|1|], [| [|2|];[|3|];[|4|] |])
 
-(*
-let main2 () =
+let main =
   let f<<n>>(x:'a, y:[n]'a) = [|x|] ++ y in
-  let main1 = f<<2>>(1, [|2;3|]) in
-  let main2 = f<<3>>([|1|], [| [|2|];[|3|];[|4|] |]) in 1
-*)
+  let m1 = f<<2>>(1, [|2;3|]) in 
+  let m2 = f<<3>>([|1|], [| [|2|];[|3|];[|4|] |]) in
+  m1, m2
 
-(*
 let rec make<<n>>(v) returns (o: [n]_)
   match size n with
   | 0 -> o = [||]
@@ -53,4 +42,3 @@ let f2<<n, m>>(upper_left: int, lower_left: [n]int,
   and
     lower = make<<n>>(make<<m+1>>(0))
   done
-*)
