@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -147,7 +147,12 @@ let rec print prio ff { t_desc; t_level; t_index } =
   | Tvar ->
       (* prefix non generalized type variables with "_" *)
       let p = if t_level <> Misc.notgeneric then "" else "_" in
-      fprintf ff "@['%s%s@]" p (type_name#name t_index)
+      (* for debug, print the index *)
+      let s =
+        if !Misc.vverbose then
+          "(" ^ (string_of_int t_index) ^ "/" ^
+        (string_of_int t_level) ^ ")" else "" in
+      fprintf ff "@['%s%s%s@]" p (type_name#name t_index) s
   | Tproduct [] ->
      (* this situation should not happen after typing *)
      fprintf ff "?"
