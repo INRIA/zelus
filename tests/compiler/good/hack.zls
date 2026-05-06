@@ -32,7 +32,7 @@ let dmux4(input, a1, a0) returns (s0, s1, s2, s3)
 let rec not_rec<<n>>(x:[n]bool) returns (y:[n]bool)
   match size n with
   | 0 -> y = [| |]
-  | _ -> y = [| not (x.(42)) |] ++ (not_rec<<n-1>>(x.(1 .. (n-1))))
+  | _ -> y = [| not (x.(0)) |] ++ (not_rec<<n-1>>(x.(1 .. (n-1))))
   end
 
 let not8(x) = not_rec<<8>>(x)
@@ -71,7 +71,7 @@ let or16(x,y) = lift2<<16>> (fun x y -> x or y) (x, y)
 let eq16(x,y) = lift2<<16>> (fun x y -> x = y) (x, y)
 
 (* or n-way (linear) *)
-let rec or_n_way_linear<<n>>(x:[n]'a) returns (y)
+let rec or_n_way_linear<<n>>(x:[n]_) returns (y)
     match size n with
     | 0 -> y = false
     | _ -> y = x.(0) or or_n_way_linear<<n-1>>(x.(1 .. n-1))
