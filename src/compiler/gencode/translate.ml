@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -855,7 +855,8 @@ and foreach_eq env loop_path code
      	       let e_right, code =
                  match for_size with
                  | None -> Econst(Eint(0)), code
-                 | Some(e) -> expression env loop_path code e in
+                 | Some { for_size_exp } ->
+                    expression env loop_path code for_size_exp in
                (id, Econst(Eint(0)), e_right), code
        | { Zelus.desc = desc } :: i_list ->
 	  match desc with

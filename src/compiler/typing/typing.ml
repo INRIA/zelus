@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -61,7 +61,6 @@ let find_label loc lname =
   try Modules.find_label lname
   with Not_found -> error loc (Eglobal_undefined(Label, lname))
 
-
 (* The main unification functions *)
 let unify loc expected_ty actual_ty =
   try
@@ -99,6 +98,15 @@ let stateful loc expected_k =
   if not (Kind.stateful expected_k)
   then error loc
          (Ekind_clash(Deftypes.Tnode(Deftypes.Tdiscrete), expected_k))
+
+(* check that a size index [i_opt] does not appear in a type environment [h] *)
+let check_size_index_not_in_h loc index_opt h =
+  let check_one index x { t_tys = { typ_body } } =
+    if S.mem index (Types.fv S.empty typ_body)
+    then error loc (Esize_index_escape_in_environment(index, x, typ_body)) in
+  match index_opt with
+  | None -> ()
+  | Some(index) -> Env.iter (check_one index) h
 
 (* check that a type belong to a kind *)
 let check_type_is_in_kind loc h actual_k vkind =
@@ -1232,21 +1240,24 @@ and array_operator expected_k h loc op e_list =
        | Slice_both, [i1; i2] ->
           let actual_ki1 = expect expected_k h i1 Initial.typ_int in
           let actual_ki2 = expect expected_k h i2 Initial.typ_int in
-          (* [i1] and [i2] must be sizes; not index *)
-          let si1 = size_of_exp Tconst h i1 in
-          let si2 = size_of_exp Tconst h i2 in
+          (* [i1,i2] must be index, that is, positive integer bounded *)
+          (* by a size *)     
+          let si1 = size_of_exp (Kind.vkind_of_kind expected_k) h i1 in
+          let si2 = size_of_exp (Kind.vkind_of_kind expected_k) h i2 in
           let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
           compare_sizes a.e_loc Defsizes.Lte si_i si;
           Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
        | Slice_left, [i1] ->
+          (* [i1] must be an index *)
           let actual_ki1 = expect expected_k h i1 Initial.typ_int in
-          let si1 = size_of_exp Tconst h i1 in
+          let si1 = size_of_exp (Kind.vkind_of_kind expected_k) h i1 in
           let si_i = Sizes.minus si si1 in
           compare_sizes a.e_loc Defsizes.Lte si1 si;
           Types.vec ty si_i, Kind.sup actual_k actual_ki1
        | Slice_right, [i2] ->
+          (* [i2] must be an index *)
           let actual_ki2 = expect expected_k h i2 Initial.typ_int in
-          let si2 = size_of_exp Tconst h i2 in
+          let si2 = size_of_exp (Kind.vkind_of_kind expected_k) h i2 in
           let si_i = Sizes.plus si2 Sizes.one in
           compare_sizes a.e_loc Defsizes.Lte si_i si;
           Types.vec ty si_i, Kind.sup actual_k actual_ki2
@@ -1754,18 +1765,25 @@ and forloop_exp loc expected_k h
     match size_opt with | None -> error loc Esize_is_undetermined
                         | Some(size) -> size in
 
-  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
-  (* push an empty size constraint *)
+  (* if [for_index = Some(i)], [i] can appear in size constraints in *)
+  (* [for_exp] but it should not escape the scope of the for loop, that is *)
+  (* it must not happen in the typing environment nor the type of input *)
+  (* and output values of the loop *)
+  (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
     for_exp_t expected_k_for_body h size for_body in
-  (* pop the current size constraint *)
+  (* 1.2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible loc (Sizes.forall i si sc)) () for_index;
+      check_size_constraint_if_possible
+        loc (Sizes.forall i si sc)) () for_index;
+  (* 2: check that the size index does not escape its scope *)
+  check_size_index_not_in_h loc for_index h;
+
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1803,9 +1821,9 @@ and type_of_for_vardec_list size n_list =
 and for_size_t expected_k h for_size_opt =
   match for_size_opt with
   | None -> None, Tfun(Tconst)
-  | Some(e) ->
-     let actual_k = expect (Tfun(Tany)) h e Initial.typ_int in
-     let s = size_of_exp Tconst h e in
+  | Some { for_size_index; for_size_exp } ->
+     let actual_k = expect (Tfun(Tany)) h for_size_exp Initial.typ_int in
+     let s = size_of_exp Tconst h for_size_exp in
      Some(s), actual_k
 
 and for_kind_t loc expected_k h for_kind =
@@ -1941,21 +1959,29 @@ and forloop_eq loc expected_k h
   
   (* the size must be determined at this point *)
   let size =
-    match size_opt with | None -> error loc Esize_is_undetermined
-                        | Some(size) -> size in
-
-  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
-  (* push an empty size constraint *)
+    match size_opt with
+    | None -> error loc Esize_is_undetermined
+    | Some(size) -> size in
+  
+  (* if [for_index = Some(i)], [i] can appear in size constraints in *)
+  (* [for_exp] but it should not escape the scope of the for loop, that is *)
+  (* it must not happen in the typing environment nor the type of input *)
+  (* and output values of the loop *)
+  (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
     for_eq_t expected_k_for_body size h for_body in
-  (* pop the current size constraint *)
+  (* 1.2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible loc (Sizes.forall i si sc)) () for_index;
+      check_size_constraint_if_possible
+        loc (Sizes.forall i si sc)) () for_index;
+  (* 2: check that the size index does not escape its scope *)
+  check_size_index_not_in_h loc for_index h;
+
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in

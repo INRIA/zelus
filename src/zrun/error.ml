@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -18,7 +18,7 @@ open Location
 open Format
 
 type kind =
-  | Etype : kind (* type error for values *)
+  | Etype : typ_error option -> kind (* type error for values *)
   | Estate : kind (* type error for states *)
   | Eunbound_ident : Ident.t -> kind (* unbound variable *)
   | Eunbound_last_ident : Ident.t -> kind (* unbound last variable *)
@@ -43,7 +43,8 @@ type kind =
   (* two equations define a common name *)
   | Erecursive_value : kind (* recursive value definition *)
   | Enot_causal : Ident.S.t -> kind (* a set of variables whose value is bot *)
-  | Earray_size : { size : int; index : int } -> kind
+  | Earray_index : { size : int; index : int } -> kind
+  | Earray_slice : { size : int; i1 : int; i2 : int } -> kind
   (* the array is of size [size] but accessed out-of-bound, at index > size *)
   | Eloop_index : { size : int; index : int } -> kind
   (* the loop has [size] iterations but the index is of a different size *)
@@ -58,7 +59,7 @@ type kind =
   (* the size is not given and there is no input *)
   | Earray_cannot_be_filled : { name: Ident.t;
                                 size : int;
-                                missing : int } -> kind
+                                nb_of_missing_iterations : int } -> kind
   (* the returned value for [id] should be an array of size [size]; *)
   (* [missing] elements are missing *)
   | Earray_dimension_in_iteration : { expected_dimension: int;
@@ -68,7 +69,22 @@ type kind =
   | Eunexpected_failure : { print : formatter -> 'a -> unit; arg : 'a } -> kind
   (* an error that should not arrive *)
   | Enot_implemented : kind (* not implemented *)
-                  
+
+(* the possible type errors *)
+and typ_error =
+  | Etyp_bool | Etyp_int | Etyp_float (* a boolean, int, float is expected *)
+  | Etyp_array (* an array is expected *)
+  | Etyp_fun (* a function is expected *)
+  | Etyp_signal (* a signal is expected *)
+  | Etyp_record of typ_record_error
+  | Etyp_state_in_automaton (* it should be a state of the automaton *)
+  | Etyp_pvalue (* it should be a value (that is, neither bot nor nil *)
+                   
+and typ_record_error =
+  | Etyp_record_access of Lident.t (* a record is expected with label [l] *)
+  | Etyp_record_build
+  | Etyp_record_with
+
 type error = { kind : kind; loc : Location.t }
 
 let unexpected_failure =
@@ -89,9 +105,28 @@ let message loc kind =
      eprintf
        "@[%aZrun: the identifier %s is declared but it has no definition.@.@]"
        output_location loc (Ident.source name)
-  | Etype ->
-     eprintf "@[%aZrun: actual and expected types do not match.@.@]"
-       output_location loc 
+  | Etype(ty_opt) ->
+     let typ_error ff ty =
+       match ty with
+       | Etyp_bool -> fprintf ff "bool"
+       | Etyp_int -> fprintf ff "int"
+       | Etyp_float -> fprintf ff "float"
+       | Etyp_array -> fprintf ff "array"
+       | Etyp_fun -> fprintf ff "function"
+       | Etyp_signal -> fprintf ff "signal"
+       | Etyp_state_in_automaton -> fprintf ff "state in an automaton"
+       | Etyp_pvalue -> fprintf ff "value must be neither nil nor bot"
+       | Etyp_record(error) ->
+          match error with
+          | Etyp_record_access(lname) ->
+             fprintf ff "label %s in record is missing" (Lident.modname lname)
+          | Etyp_record_build 
+            | Etyp_record_with -> fprintf ff "record" in
+     let typ_error_opt ff ty_opt =
+       match ty_opt with
+       | None -> () | Some(ty) -> fprintf ff " (%a)" typ_error ty in
+     eprintf "@[%aZrun: the actual and the expected type%a do not match.@.@]"
+       output_location loc typ_error_opt ty_opt
   | Estate ->
      eprintf "@[%aZrun: actual and expected state do not match.@.@]"
        output_location loc 
@@ -130,7 +165,8 @@ let message loc kind =
   | Ebot ->
      eprintf "@[%aZrun: value is bottom.@.@]" output_location loc
   | Eequal ->
-     eprintf "@[%aZrun: expressions expected to be equal are not.@.@]" output_location loc
+     eprintf "@[%aZrun: equality is not defined for these inputs.@.@]"
+       output_location loc
   | Eassert_failure ->
      eprintf "@[%aZrun: assertion is not true.@.@]" output_location loc
   | Emerge_env { init; id } ->
@@ -149,9 +185,12 @@ let message loc kind =
               %a@.@]"
        output_location loc
        pnames bot_names
-  | Earray_size { size; index } ->
+  | Earray_index { size; index } ->
      eprintf "@[%aZrun: the array is of length %d but accessed at index %d.@.@]"
        output_location loc size index
+  | Earray_slice { size; i1; i2 } ->
+     eprintf "@[%aZrun: the array is of length %d but sliced from %d to %d.@.@]"
+       output_location loc size i1 i2
   | Eloop_index { size; index } ->
      eprintf
        "@[%aZrun: the loop has %d iterations but the index is of lenfth %d.@.@]"
@@ -179,11 +218,11 @@ let message loc kind =
     eprintf
        "@[%aZrun: the number of iterations of the loop cannot be determined.@.@]"
        output_location loc
-  | Earray_cannot_be_filled { name; size; missing } ->
+  | Earray_cannot_be_filled { name; size; nb_of_missing_iterations } ->
      eprintf
      "@[%aZrun: the result should be an array of size %d but %d elements are\
         missing. Either declare %s with an init or a default value.@.@]"
-      output_location loc size missing (Ident.source name)
+      output_location loc size nb_of_missing_iterations (Ident.source name)
   | Earray_dimension_in_iteration { expected_dimension; actual_dimension } ->
     eprintf
       "@[%aZrun: the number of dimensions for the result is %d\n

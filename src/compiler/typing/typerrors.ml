@@ -69,6 +69,7 @@ type error =
       }
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Esize_parameter_mutually_recursive_definitions of int * int
+  | Esize_index_escape_in_environment of Ident.t * Ident.t * typ
   | Econstr_arity of Lident.t * int * int
   | Esizefun_and_equations_are_mixed
 
@@ -297,20 +298,28 @@ let message loc kind =
          (Sizes.fv_constraints Ident.S.empty Ident.S.empty nested_sc)
        (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env
        output_location_list f_loc_list
+ | Esize_index_escape_in_environment(index, x, ty) ->
+    eprintf
+      "@[%aType error: the size index %s of this loop \n\
+       escape its scope. It appears in the type of %s which is:\
+       %a@.@]"
+      output_location loc
+      (Ident.name index) (Ident.name x)
+      Ptypes.ptype ty
  | Econstr_arity(ln, expected_arity, actual_arity) ->
-     let module Printer = Printer.Make(Ptypinfo) in
-     eprintf
-       "@[%aType error: the type constructor %a expects %d argument(s),@ \
-        but is here given %d arguments(s).@.@]"
-       output_location loc
-       Printer.longname ln
-       expected_arity
-       actual_arity
+    let module Printer = Printer.Make(Ptypinfo) in
+    eprintf
+      "@[%aType error: the type constructor %a expects %d argument(s),@ \
+       but is here given %d arguments(s).@.@]"
+      output_location loc
+      Printer.longname ln
+      expected_arity
+      actual_arity
  | Esizefun_and_equations_are_mixed ->
     eprintf
       "@[%aType error: definitions of (stream) equations and size functions \
        are mixed.@.@]"
-       output_location loc
+      output_location loc
   end;
   raise Misc.Error
 

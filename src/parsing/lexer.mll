@@ -32,6 +32,7 @@ let keyword_table = ((Hashtbl.create 149) : (string, token) Hashtbl.t);;
 
 List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "and", AND;
+  "as", AS;
   "assert", ASSERT;
   "atomic", ATOMIC;
   "automaton", AUTOMATON;
@@ -149,17 +150,18 @@ let char_for_decimal_code lexbuf i =
 
 rule main = parse 
   | [' ' '\010' '\013' '\009' '\012'] +   { main lexbuf }
-  | "."  { DOT }
   | ".."  { DOTDOT }
   | ".T" { TRANSPOSE }
   | ".R" { REVERSE }
   | ".F" { FLATTEN }
+  | "."  { DOT }
   | "("  { LPAREN }
   | ")"  { RPAREN }
   | "["  { LBRACKET }
   | "]"  { RBRACKET }
   | "[|" { LBRACKETBAR }
   | "|]" { RBRACKETBAR }
+  | "[@" { LBRACKETAT }
   | "{"  { LBRACE }
   | "}"  { RBRACE }
   | "*"  { STAR }
@@ -179,6 +181,7 @@ rule main = parse
   | "-A->" { AFUN }
   | "-D->" { DFUN }
   | "-C->" { CFUN }
+  | "last*" { LAST_STAR }
   | "<-" { LESSMINUS }
   | "|"  { BAR }
   | "/"  { DIV }
@@ -192,7 +195,6 @@ rule main = parse
   | "<"  { LESSER }
   | "<<"  { LLESSER }
   | ">>"  { GGREATER }
-  | "last*" { LAST_STAR }
   | (['A'-'Z']('_' ? ['A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
       {CONSTRUCTOR id}
   | (['A'-'Z' 'a'-'z'](['_' 'A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 

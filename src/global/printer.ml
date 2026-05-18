@@ -4,7 +4,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2025 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -177,6 +177,8 @@ module Make (Info: INFO) =
       match e_opt with | None -> () | Some(e) -> fprintf ff " default %a" exp e
     let out ff o_opt =
       match o_opt with | None -> () | Some(x) -> fprintf ff " out %a" name x
+    let as_name ff as_opt =
+      match as_opt with | None -> () | Some(x) -> fprintf ff " as %a" name x
     
     let vardec exp ff
           { var_name = x; var_default = d_opt; var_init = i_opt; var_is_last; 
@@ -396,20 +398,21 @@ module Make (Info: INFO) =
       | Eassert a -> p_assert ff a
       | Eforloop({ for_size; for_kind; for_index; for_input; for_body;
                    for_env; for_resume }) ->
-         let size ff for_size =
-           Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
-             ff for_size in
          fprintf ff
            "@[<hov 2>%a%a@,%a%a(%a) %a@ %a@ @[%a@]@ @]"
            kind_of_forloop for_kind
            for_resume_or_restart for_resume
-           size for_size
+           (Util.optional_unit for_size_expression) for_size
            index_opt for_index
            input_list for_input
            print_env for_env
            for_exp for_body 
            for_exit_condition for_kind
-    
+
+    and for_size_expression ff { for_size_index; for_size_exp } =
+      if for_size_index then fprintf ff "(%a)@ " expression for_size_exp
+      else fprintf ff "<<%a>>@ " expression for_size_exp
+         
     and p_assert ff { a_body; a_hidden_env; a_free_vars } =
       fprintf ff "@[<hov2>assert@ %a@]" expression a_body;
          print_hidden_env ff a_hidden_env;
@@ -429,8 +432,10 @@ module Make (Info: INFO) =
     and kind f_kind =
       match f_kind with
       | Kfun _ -> "fun "
-      | Knode(k) ->
-         (match k with | Kdiscrete -> "node " | Kcont -> "hybrid ")
+      | Knode(t_kind) -> tkind t_kind
+
+    and tkind t_kind =
+      match t_kind with | Kdiscrete -> "node " | Kcont -> "hybrid "
     
     and funexp ff
           { f_vkind; f_kind; f_args; f_body; f_env; f_atomic;
@@ -586,21 +591,19 @@ module Make (Info: INFO) =
       | EQforloop
         ({ for_size; for_kind; for_index; for_input; for_env; for_resume;
                     for_body = { for_out; for_block; for_out_env } }) ->
-         let size ff for_size =
-           Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
-             ff for_size in
          let print_for_out ff l =
            let for_out ff
-                 { desc = { for_name = x; for_out_name = o_opt;
-                            for_init = i_opt } } =
-             fprintf ff "@[%a%a%a@]" 
-               name x (init expression) i_opt out o_opt in
+                 { desc = { for_name; for_out_name;
+                            for_init; for_as_name } } =
+             fprintf ff "@[%a%a%a%a@]" 
+               name for_name (init expression) for_init out for_out_name
+               as_name for_as_name in
            print_list_r for_out "" "," "" ff l in
          fprintf ff
            "@[<hov 2>%a%a%a%a@ (@[%a@])@ @[%a@]@ returns@ (%a)@ %a@ @[%a@,%a@]@ @]"
            kind_of_forloop for_kind
            for_resume_or_restart for_resume
-           size for_size
+           (Util.optional_unit for_size_expression) for_size
            index_opt for_index
            input_list for_input
            print_env for_env
@@ -654,11 +657,11 @@ module Make (Info: INFO) =
     
     and for_exp ff r =
       let for_returns ff for_vardec_list =
-        let for_vardec ff { desc = { for_array; for_vardec } } =
+        let for_vardec ff { desc = { for_array; for_vardec; for_as } } =
           let rec print_array_of n ff x =
             if n = 0 then vardec expression ff x
             else fprintf ff "@[<hov 1>[|@,%a@,|]@]" (print_array_of (n-1)) x in
-          print_array_of for_array ff for_vardec in
+          fprintf ff "@[%a%a@]" (print_array_of for_array) for_vardec as_name for_as in
         print_list_r for_vardec "(" "" ")" ff for_vardec_list in
       match r with
       | Forexp { exp; default = d} ->
@@ -672,11 +675,14 @@ module Make (Info: INFO) =
     
     and block_of_equation ff b_eq =
       block expression equation ff b_eq
+
+    and attribute ff a_list =
+      print_list_r_empty (fun ff s -> fprintf ff "%s" s) "[@" "" "]" ff a_list
     
-    and leq ff { l_rec; l_kind; l_eq; l_env } =
+    and leq ff { l_rec; l_kind; l_eq; l_env; l_attribute } =
       let s = if l_rec then " rec " else "" in
-      fprintf ff "@[<v0>@[<hov2>let%a%s@ %a@ %a@]@]" 
-        vkind l_kind s equation l_eq print_env l_env 
+      fprintf ff "@[<v0>@[<hov2>let%a%a%s@ %a@ %a@]@]" 
+        attribute l_attribute vkind l_kind s equation l_eq print_env l_env 
     
     and leqs ff l = print_list_r_empty leq "" "in" "in " ff l
     

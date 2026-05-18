@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -433,7 +433,9 @@ and for_kind_t funs acc for_kind =
        Util.optional_with_map (for_exit_t funs) acc for_exit_opt in
      Kforward(for_exit_opt), acc
 
-and for_size_t funs acc e = expression_it funs acc e
+and for_size_t funs acc { for_size_index; for_size_exp } =
+  let for_size_exp, acc = expression_it funs acc for_size_exp in
+  { for_size_index; for_size_exp }, acc
 
 and for_input_t funs acc ({ desc } as fi) =
   let desc, acc = match desc with
@@ -534,9 +536,11 @@ and vardec_list funs acc v_list =
 
 and for_vardec_it funs acc v = funs.for_vardec funs acc v
 
-and for_vardec funs acc ({ desc = { for_array; for_vardec } } as f) =
+and for_vardec funs acc ({ desc = { for_array; for_vardec; for_as } } as f) =
   let for_vardec, acc = vardec_it funs acc for_vardec in
-  { f with desc = { for_array; for_vardec } }, acc
+  let for_as, acc =
+    Util.optional_with_map (var_ident_it funs.global_funs) acc for_as in
+  { f with desc = { for_array; for_vardec; for_as } }, acc
 
 and for_out_it funs acc v = funs.for_out_t funs acc v
 

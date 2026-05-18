@@ -1,4 +1,8 @@
-let reverse<<n>>(x:[n]int) returns (o:[n]int)
+let reverse<<n>>(x:[n]int) returns (o)
+  forward(n)[i] returns (oi out o)
+    do oi = x.(n - i - 1) done
+
+let slicesse<<n>>(x:[n]int) returns (o:[n]int)
   forward(n)[i] returns (oi out o)
     do oi = x.(n - i) done
 
@@ -6,8 +10,9 @@ let rev_42(x) = reverse<<42>>(x)
 
 let fix f x = let rec y = f x y in y
 
-let const map__ <<n>> f x y = forward(n) (xi in x, yi in y) returns ([|zi|])
-                                 do zi = f xi yi done
+let const map__ <<n>> f (x:[n]_) (y:[n]_) =
+  forward(n) (xi in x, yi in y) returns ([|zi|])
+    do zi = f xi yi done
 
 
 let const f_00<<n>>(x:[n]int, y:[n]int) =
@@ -65,11 +70,11 @@ let hybrid gh(z) =
 let node f0(x) returns (y init 42)
   y = last y + x
   
-let const node f1<<n>>(x) returns (y)
+let const node f1<<n>>(x:[n]_) returns (y:[n]_)
   forward(n) (xi in x) returns (yi out y)
     do yi = xi + 1 done
 
-let node f1'(x) returns (y)
+let node f1'<<n>>(x:[n]_) returns (y:[n]_)
   y = forward (42) (xi in x) returns ([|yi|])
         do yi = xi + 1 done
 
@@ -89,22 +94,22 @@ let const map<<n>> (* f : (_ -> _) -> ([_]_ -> [_]_) *) =
   node f (x:[n]'a) -> forward(n) (xi in x) returns ([|yi|])
                do yi = run f xi done
 	       
-let const node f2<<n>>(x, z) returns (y)
+let const node f2<<n>>(x:[n]_, z) returns (y:[n]_)
   forward(n) (xi in x) returns (yi out y)
     local k in
     do yi = xi + 1 and k = 42 until z = 0 done
 
-let node f3(x, z) returns (y)
+let node f3<<n>>(x:[n]_, z) returns (y:[n]_)
   forward(43) (i in 0 to 42, xi in x) returns (yi out y)
     local k init 42 in
     do yi = xi + 1 and k = last k + 1 unless z = 0 done
 
-let node f4(x, z) returns (y)
+let node f4<<n>>(x:[n]_, z) returns (y:[n]_)
   forward(42) (xi in x) returns (yi out y)
     local k in
     do yi = xi + 1 and k = yi while z = 0 done
 
-let node f5 y (x, z) returns (t)
+let node f5 y (x:[42]_, z) returns (t:[42]_)
   local m in
   forward(42) (xi in x) returns (m, ti out t)
     local k in
@@ -121,7 +126,7 @@ let node f6(x:[41+1]int, z) returns (y)
     do m = 1 and yi = xi + 1 and k = 0 while z = 0 done
 
 
-let node f7(f)(x) returns (y)
+let node f7(f)(x:[42]_) returns (y:[42]_)
   local m in
   foreach(42) [i] (xi in x) returns (m, yi out y)
     local k in
@@ -135,7 +140,7 @@ let const node f10<<a>>(x) = x + 1
 
 let const f10'<<a,b>> = node x -> x + 1
 
-let const f11<<a,b,c>> = node (x, y) returns (z)
+let const f11<<a,b,c>> = node (x:[42][32]_, y:[42][32]_) returns (z:[42][32]_)
   forward(42) [i] (xi in x, yi in y) returns (zi out z)
     do forward(32) [j] (xij in xi, yij in yi) returns (zij out zi)
        do zij = xij + yij + x.(i).(j) done

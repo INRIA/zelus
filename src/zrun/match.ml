@@ -79,46 +79,12 @@ let pmatch v p =
 
   pmatch Env.empty v p
 
-(* pattern matching for equations [p = e] and function application *)
-(* [v] is an star value; [p] is a pattern but pattern matching *)
-(* should not fail. In the case of a failure, this is considered as *)
-(* a typing error *)
-let pmatcheq v p =
-  let rec pmatcheq acc v { pat_desc } =
-    match v, pat_desc with
-    | Vstuple(v_list), Etuplepat(l_list) ->
-       pmatcheq_list acc v_list l_list
-    | Vrecord(l_v_list), Erecordpat(l_p_list) ->
-       let rec find l = function
-         | [] -> none
-         | { label; arg = v } :: p_v_list ->
-            if l = label then return v else find l p_v_list in
-       Opt.fold
-         (fun acc { label; arg = p } ->
-           let* v = find label l_v_list in
-           pmatcheq acc v p) acc l_p_list
-    | _, Evarpat(x) ->
-       return (Env.add x v acc)
-    | _, Ewildpat -> return acc
-    | _, Ealiaspat(p, x) ->
-       let* acc = pmatcheq acc v p in
-       return (Env.add x v acc)
-    | _ -> none
-  and pmatcheq_list acc v_list p_list =
-    match v_list, p_list with
-    | [], [] -> return acc
-    | v :: v_list, p :: p_list  ->
-       let* acc = pmatcheq acc v p in
-       pmatcheq_list acc v_list p_list
-    | _ -> none in
-  pmatcheq Env.empty v p
-
 (* Pattern matching of a signal *)
 let matchsig vstate p =
   match vstate with
   | Vabsent -> return (Vbool(false), Env.empty)
   | Vpresent(v) ->
-     let* env = pmatcheq v p in
+     let* env = pmatch v p in
      return (Vbool(true), env)
   | _ -> none
 
@@ -143,11 +109,16 @@ let bot_env (eq_write: Defnames.defnames) : 'a star ientry Env.t =
     (fun x acc -> Env.add x { empty with cur = Some(Vbot) } acc)
     (names eq_write) Env.empty
 
-(* the nil environment *)
-let nil_env (eq_write: Defnames.defnames) : 'a star ientry Env.t =
+(* initialize an environment with a value *)
+let init_env_with_value v eq_write =
   S.fold
-    (fun x acc -> Env.add x { empty with cur = Some(Vnil) } acc)
+    (fun x acc -> Env.add x { empty with cur = Some(v) } acc)
     (names eq_write) Env.empty
+
+(* the bottom environment *)
+let bot_env eq_write = init_env_with_value Vbot eq_write
+(* the nil environment *)
+let nil_env eq_write = init_env_with_value Vnil eq_write
 
 (* a bot/nil value lifted to lists *)
 let bot_list l = List.map (fun _ -> Vbot) l
@@ -178,12 +149,13 @@ let matcheq (v: 'a star) (p: _ pattern) : 'a star ientry Env.t Opt.t =
     match v with
     | Vbot -> return (Env.append (liftid (pbot p)) acc)
     | Vnil -> return (Env.append (liftid (pnil p)) acc)
-    | Value(v) ->
-       match v, pat_desc with
+    | Value(v_p) ->
+       match v_p, pat_desc with
        | Vtuple(v_list), Etuplepat(l_list) ->
           match_list acc v_list l_list
+       | _, Etypeconstraintpat(p, _) -> matchrec acc v p
        | _ ->
-          let* env = pmatch v p in
+          let* env = pmatch v_p p in
           return (Env.append (liftv env) acc)
   and match_list acc v_list l_list =
     Opt.fold2 matchrec acc v_list l_list in
@@ -217,6 +189,7 @@ let matching_arg_in loc env arg v =
      fold2 { kind = Epattern_matching_failure; loc = loc }
        match_in env l (List.map (fun _ -> Vnil) l)
   | [], Value(Vvoid) -> return env
+  | [x], _ -> match_in env x v
   | l, Value(Vtuple(v_list)) ->
      fold2
        { kind = Epattern_matching_failure; loc = loc }
@@ -225,10 +198,16 @@ let matching_arg_in loc env arg v =
      fold2
        { kind = Epattern_matching_failure; loc = loc }
        (fun acc n pvalue -> match_in acc n (Value(pvalue))) env l v_list
-  | [x], _ -> match_in env x v
   | _ ->
      (* type error *)
      error { kind = Epattern_matching_failure; loc = loc }
+
+let matching_arg_in_list loc env arg_list v_list =
+  let open Result in
+  let open Error in
+  fold2
+    { kind = Epattern_matching_failure; loc }
+    (fun env arg v -> matching_arg_in loc env arg v) env arg_list v_list
 
 let matching_arg_out loc env arg =
   let open Result in

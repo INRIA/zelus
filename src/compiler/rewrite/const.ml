@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -82,7 +82,7 @@ let pvalue_of_env loc c_env =
     let* v = v |> Opt.to_result ~none: { Error.kind = Eunbound_ident(x); loc }
     in
     let* v = Primitives.pvalue v |>
-               Opt.to_result ~none: { Error.kind = Etype; loc } in
+               Opt.to_result ~none: { Error.kind = Etype(None); loc } in
     return (Env.add x v acc) in
   let c_env = Env.to_seq c_env in
   let c_env = seqfold add Env.empty c_env in
@@ -92,7 +92,8 @@ let pvalue_of_env loc c_env =
 let add_global_definition name id e = 
   let leq id e = 
     { l_rec = false; l_kind = Kstatic; l_eq = Aux.id_eq id e; 
-      l_loc = Location.no_location; l_env = Env.singleton id Typinfo.no_ienv }
+      l_loc = Location.no_location; l_env = Env.singleton id Typinfo.no_ienv;
+      l_attribute = [] }
   in
   { desc = Eletdecl { d_names = [name, id]; d_leq = leq id e };
     loc = e.e_loc }
@@ -127,23 +128,10 @@ let rec exp_of loc funs acc v =
          let value_t acc v =
            let v = 
              catch (Primitives.pvalue v |>
-                      Opt.to_result ~none: { Error.kind = Etype; loc }) in
+                      Opt.to_result ~none: { Error.kind = Etype(None); loc }) in
            exp_of acc v in
          let e_list, acc = Util.mapfold value_t acc v_list in
          Etuple(e_list), acc
-      | Vclosure { c_funexp; c_genv; c_env } ->
-         (* add part of [g_env] and [c_env] in acc *)
-         let c_env = pvalue_of_env loc c_env in
-         let acc_local = update_with_no_renaming acc c_genv c_env in
-         (* reduce compile-time constants in the body of the function *)
-         let f, acc_local = Mapfold.funexp_it funs acc_local c_funexp in 
-         (* add a definition [m = fun(f)] in the global environment *)
-         let m = fresh () in
-         let name = Ident.name m in
-         let defs = 
-           add_global_definition name m (Aux.emake (Efun(f))) :: acc_local.defs in
-         Eglobal { lname = Name(Ident.name m) },
-         { acc with defs }
       | Varray(a) ->
          let v = catch (Arrays.flat_of_map a) in
          let v, acc = Util.mapfold exp_of acc (Array.to_list v) in
@@ -157,8 +145,10 @@ let rec exp_of loc funs acc v =
          raise (Non_representable "state")
       | Vsizefun _ ->
          raise (Non_representable "sizefun")
-      | Vsizefix _ ->
-         raise (Non_representable "sizefix")
+      | Vifun _ ->
+         raise (Non_representable "vifun")
+      | Vnode _ ->
+         raise (Non_representable "vnode")
       | Vfun _  -> raise (Non_representable "vfun") in
     Aux.emake e_desc, acc in
   let e, acc = exp_of acc v in

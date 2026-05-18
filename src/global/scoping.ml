@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2025 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -298,10 +298,16 @@ module Make (Info: INFO) =
     
     and build_vardec defnames { desc = { var_name }; loc } =
       if S.mem var_name defnames
-      then Error.error loc (Enon_linear_pat(var_name));
+      then Error.error loc (Error.Enon_linear_pat(var_name));
       S.add var_name defnames
     
-    and build_for_vardec defnames { desc = { for_vardec } } =
+    and build_for_vardec defnames { desc = { for_vardec; for_as }; loc } =
+      let defnames =
+        Util.optional
+          (fun acc as_name ->
+            if S.mem as_name acc
+            then Error.error loc (Error.Enon_linear_pat(as_name))
+            else S.add as_name acc) defnames for_as in
       build_vardec defnames for_vardec
     
     and build_match_handler defnames { desc = { m_body } } =
@@ -323,7 +329,7 @@ module Make (Info: INFO) =
       bounded_names, S.union defnames (S.diff defnames_body bounded_names)
     
     and build_automaton_handler defnames
-{ desc = { s_body; s_until; s_unless } } =
+          { desc = { s_body; s_until; s_unless } } =
       let bounded_names, defnames_s_body = build_block S.empty s_body in
       let defnames_s_trans =
         List.fold_left build_escape defnames_s_body s_until in
@@ -340,19 +346,47 @@ module Make (Info: INFO) =
       (* and visible outside of it. On the contrary *)
       (* [xi [init e] [default e] out x] means that [xi] stay local and *)
       (* [x] is defined by the for loop and visible outside of it *)
+      (* [x_as] defined by [as x_as] is visible only inside the body *)
       let build_for_out
-            (acc_left, acc_right) { desc = { for_name; for_out_name } } =
-        match for_out_name with
-        | None -> acc_left, acc_right
-        | Some(x) -> S.add for_name acc_left, S.add x acc_right in
-      let acc_left, acc_right =
-        List.fold_left build_for_out (S.empty, S.empty) for_out in
+            (acc_xi_local_names, acc_out_names, acc_as_names)
+            { desc = { for_name; for_out_name; for_as_name }; loc } =
+        (* check that [for_name] is not already in the list of output or *)
+        (* local names declared by the return *)
+        if S.mem for_name acc_xi_local_names || S.mem for_name acc_out_names
+           || S.mem for_name acc_as_names
+        then Error.error loc (Enon_linear_pat(for_name))
+        else
+          let acc_xi_local_names, acc_out_names =
+            match for_out_name with
+            | None ->
+               (* if no [out x] is given, [xi] is considered to be an *)
+               (* accumulation and an output of the loop *)
+               (* Otherwise, it is local *)
+               (* [for_name] is an accumulator and an output *)
+               acc_xi_local_names, S.add for_name acc_out_names
+            | Some(x) ->
+               (* only [x] is an output; [for_name] is local to the loop body *)
+               if S.mem x acc_xi_local_names || S.mem x acc_out_names
+                  || S.mem x acc_as_names
+               then Error.error loc (Enon_linear_pat(x))
+               else S.add for_name acc_xi_local_names, S.add x acc_out_names in
+          let acc_as_names =
+            match for_as_name with
+            | None -> acc_as_names
+            | Some(x_as) ->
+               if S.mem x_as acc_xi_local_names || S.mem x_as acc_out_names
+                  || S.mem x_as acc_as_names
+               then Error.error loc (Enon_linear_pat(x_as))
+               else S.add x_as acc_as_names in
+          acc_xi_local_names, acc_out_names, acc_as_names in
+      let acc_xi_local_names, acc_out_names, _ =
+        List.fold_left build_for_out (S.empty, S.empty, S.empty) for_out in
       
       (* computes defnames for the block *)
       let _, defnames_body = build_block defnames for_block in
       S.union defnames
         (S.union (* remove [xi] in defnames *)
-           (S.diff defnames_body acc_left) acc_right)
+           (S.diff defnames_body acc_xi_local_names) acc_out_names)
     
     let buildeq eq =
       let defnames = buildeq S.empty eq in
@@ -516,7 +550,7 @@ module Make (Info: INFO) =
       { Zelus.eq_desc = eq_desc; Zelus.eq_write = Defnames.empty;
         Zelus.eq_loc = loc; Zelus.eq_safe = true; Zelus.eq_index = -1 }
     
-    and trans_for_input env acc i_list =
+    and for_input_t env acc i_list =
       let input acc { desc; loc } =
         let desc, acc = match desc with
           | Einput { id; e; by } ->
@@ -539,53 +573,84 @@ module Make (Info: INFO) =
         { Zelus.desc = desc; Zelus.loc = loc }, acc in
       Util.mapfold input acc i_list
     
-    and trans_for_out env i_env for_out =
-      (* [local_out_env] is the environment for variables defined in the *)
-      (* for loop that are associated to an output [xi out x]. In that *)
-      (* case, [xi] is local to the loop body; [x] is the only visible *)
-    (* defined variable otherwise, [xi] is defined by the for loop *)
-    (* and visible outside of it *)
-      let for_out_one local_out_env
-            { desc = { for_name; for_init; for_default; for_out_name }; loc } =
-        (* check that output name [xi] is distinct from input names. This is *)
+    and for_out_t env i_env for_out =
+      (* [local_env] is the environment of variables defined *)
+      (* in the [returns] clause *)
+      (* [oi out o] or [o init e]: o must be declared globally *)
+      (* [oi out o] or [oi as o_] : oi and o_ are local to the loop *)
+      let for_out_one local_env
+            { desc =
+                { for_name; for_init; for_default; for_out_name; for_as_name };
+              loc } =
+        (* check that [for_name] is distinct from input names. This is *)
         (* not mandatory but makes loops simpler to understand *)
-        if Env.mem for_name i_env
-        then Error.error loc (Enon_linear_pat(for_name));
-        let for_name, local_out_env =
-          match for_out_name with
-          | None -> name loc env for_name, local_out_env
-          | Some(x) -> let m = fresh for_name in
-                       m, Env.add for_name m local_out_env in
-        let for_init =
-          Util.optional_map (expression env) for_init in
-        let for_default =
-          Util.optional_map (expression env) for_default in
-        let for_out_name = Util.optional_map (name loc env) for_out_name in
-        { Zelus.desc =
-            { Zelus.for_name = for_name; Zelus.for_init = for_init;
-              Zelus.for_default = for_default;
-              Zelus.for_out_name = for_out_name;
-              Zelus.for_info = Info.no_info  };
-          Zelus.loc = loc },
-        local_out_env in
-      Util.mapfold for_out_one Env.empty for_out
+        if Env.mem for_name i_env || Env.mem for_name local_env
+        then Error.error loc (Error.Enon_linear_forloop(for_name))
+        else
+          let for_name, for_out_name, local_env =
+            match for_out_name with
+            | Some(out_name) ->
+               (* check that [out_name] is distinct from inputs *)
+               (* and names in the [return] clause *)
+               if Env.mem out_name i_env || Env.mem out_name local_env
+               then Error.error loc (Error.Enon_linear_forloop(for_name))
+               else
+                 (* if [oi out o] then [oi] is local to the body *)
+                 (* and [o] must already exist in the environment *)
+                 let m_for_name = fresh for_name in
+                 let m_out_name = name loc env out_name in
+                 m_for_name, Some(m_out_name),
+                 Env.add for_name m_for_name
+                   (Env.add out_name m_out_name local_env)
+            | None ->
+               (* [oi] is an accumulation *)
+               let m_for_name = name loc env for_name in
+               m_for_name, None, Env.add for_name m_for_name local_env in
+          let for_as_name, local_env =
+            match for_as_name with
+            | Some(as_name) ->
+               (* check that [as_name] is distinct from inputs *)
+               (* and names in the [return] clause *)
+               if Env.mem as_name i_env || Env.mem as_name local_env
+               then Error.error loc (Error.Enon_linear_forloop(as_name))
+               else
+                 let m_as_name = fresh as_name in
+                 Some(m_as_name), Env.add as_name m_as_name local_env
+            | None -> 
+               None, local_env in
+          let for_init =
+            Util.optional_map (expression env) for_init in
+          let for_default =
+            Util.optional_map (expression env) for_default in
+          { Zelus.desc =
+              { Zelus.for_name = for_name; Zelus.for_init = for_init;
+                Zelus.for_default = for_default;
+                Zelus.for_out_name = for_out_name;
+                Zelus.for_as_name = for_as_name;
+                Zelus.for_info = Info.no_info  };
+            Zelus.loc = loc },
+          local_env in
+      let for_out_list, local_env =
+        Util.mapfold for_out_one Env.empty for_out in
+      for_out_list, local_env
     
     (* translation of for loops *)
     and forloop_eq env_pat env
-{ for_size; for_kind; for_index; for_input; for_resume;
-  for_body = { for_out; for_block } } =
-      let for_size = Util.optional_map (expression env) for_size in
+       { for_size; for_kind; for_index; for_input; for_resume;
+         for_body = { for_out; for_block } } =
+      let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
         match for_index with
         | None -> None, Env.empty
         | Some(id) -> let m = fresh id in Some(m), Env.singleton id m in
       let for_input, i_env =
-        trans_for_input env i_env for_input in
+        for_input_t env i_env for_input in
       let env = Env.append i_env env in
-      let for_out, local_out_env =
-        trans_for_out env i_env for_out in
-      let env = Env.append local_out_env env in
-      let env_pat = Env.append local_out_env env in
+      (* here, we check that names introduces in the [returns] clause *)
+      (* are pair-wise distinct from names for inputs *)
+      let for_out, local_env = for_out_t env i_env for_out in
+      let env = Env.append local_env env in
+      let env_pat = Env.append local_env env_pat in
       let env_body, for_block = block equation env_pat env for_block in
       let for_kind =
         match for_kind with
@@ -599,16 +664,21 @@ module Make (Info: INFO) =
         Zelus.for_body = { for_out; for_block; for_out_env = Ident.Env.empty };
         Zelus.for_resume = for_resume;
         Zelus.for_env = Ident.Env.empty }
+
+    (* translating a size expression in a for loop *)
+    and for_size_expression env { for_size_index; for_size_exp } =
+      { Zelus.for_size_index = for_size_index;
+        Zelus.for_size_exp = expression env for_size_exp }
     
     (** Translating a sequence of local declarations *)
     and leqs env l = Util.mapfold letin env l
     
-    and letin env { desc = { l_kind; l_rec; l_eq }; loc } =
+    and letin env { desc = { l_kind; l_rec; l_eq; l_attribute }; loc } =
       let env_pat = buildeq l_eq in
       let new_env = Env.append env_pat env in
-      let l_eq = equation env_pat (if l_rec then new_env else env) l_eq in
+      let l_eq = equation new_env (if l_rec then new_env else env) l_eq in
       let l_kind = vkind l_kind in
-      { l_kind; l_rec; l_eq; l_loc = loc; l_env = Ident.Env.empty }, new_env
+      { l_kind; l_rec; l_eq; l_loc = loc; l_env = Ident.Env.empty; l_attribute }, new_env
     
     and vardec env { desc = { var_name; var_init; var_default;
                               var_typeconstraint; var_clock; var_is_last };
@@ -643,17 +713,28 @@ module Make (Info: INFO) =
       let v_list = List.map (vardec env) v_list in
       v_list, env_v_list 
     
-    and for_vardec env { desc = { for_array; for_vardec }; loc } =
+    and for_vardec env i_env
+      { desc = { for_array; for_vardec = ({ desc = { var_name } } as for_vardec);
+                                          for_as }; loc } =
+      (* check that [var_name] is distinct from input names *)
+      if Env.mem var_name i_env then Error.error loc (Enon_linear_forloop(var_name));
       let for_vardec = vardec env for_vardec in
+      let for_as =
+        Util.optional_map
+          (fun as_name -> (* check that [as_name] is distinct from input names *)
+            if Env.mem as_name i_env
+            then Error.error loc (Enon_linear_forloop(as_name));
+            name loc env as_name) for_as in
       { Zelus.desc = { Zelus.for_array = for_array;
-                       Zelus.for_vardec = for_vardec };
+                       Zelus.for_vardec = for_vardec;
+                       Zelus.for_as = for_as };
         Zelus.loc = loc }
     
-    and for_vardec_list env for_v_list =
+    and for_vardec_list env i_env for_v_list =
       let defnames = List.fold_left build_for_vardec S.empty for_v_list in
       let env_v_list = Env.make defnames Env.empty in
       let env = Env.append env_v_list env in
-      let v_list = List.map (for_vardec env) for_v_list in
+      let v_list = List.map (for_vardec env i_env) for_v_list in
       v_list, env_v_list
     
     (* [local x1 [init e1][default e'1],...,xn[...] do eq] *)
@@ -855,13 +936,13 @@ module Make (Info: INFO) =
     
     and forloop_exp env 
           { for_size; for_kind; for_index; for_input; for_body; for_resume } =
-      let for_size = Util.optional_map (expression env) for_size in
+      let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
         match for_index with
       | None -> None, Env.empty
       | Some(id) -> let m = fresh id in Some(m), Env.singleton id m in
       let for_input, i_env =
-        trans_for_input env i_env for_input in
+        for_input_t env i_env for_input in
       let env = Env.append i_env env in
       let env_body, for_body = match for_body with
         | Forexp { exp; default } ->
@@ -869,7 +950,7 @@ module Make (Info: INFO) =
            let default = Util.optional_map (expression env) default in
            env, Zelus.Forexp { exp = exp; default = default }
         | Forreturns { r_returns; r_block } ->
-           let r_returns, env_v_list = for_vardec_list env r_returns in
+           let r_returns, env_v_list = for_vardec_list env i_env r_returns in
            let env = Env.append env_v_list env in
            let env_block, r_block = block equation env_v_list env r_block in
            env_block,
@@ -977,7 +1058,7 @@ module Make (Info: INFO) =
           | Eletdecl(d_leq) ->
              let d_leq, env = letin Env.empty d_leq in
              let d_names = Env.to_list env in
-             Zelus.Eletdecl { d_names = d_names; d_leq = d_leq }
+             Zelus.Eletdecl { d_leq = d_leq; d_names = d_names }
           | Etypedecl { name; ty_params; ty_decl } ->
              let ty_decl = type_decl ty_decl in
              Zelus.Etypedecl { name = name; ty_params; ty_decl } in

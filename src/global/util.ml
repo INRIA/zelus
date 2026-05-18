@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -94,6 +94,16 @@ let rec firsts = function
   | [] -> assert false
   | [p] -> [], p
   | p :: l -> let head, tail = firsts l in p :: head, tail
+
+let split_n n l =
+  let rec split_n n l =
+    match l with
+    | [] -> [], []
+    | p :: l_right ->
+       if n = 0 then [], l
+       else let l_left, l_right = split_n (n-1) l_right in
+            p :: l_left, l_right in
+  if n < 0 then raise (Stdlib.Invalid_argument("split_n")) else split_n n l
 
 (* takes the first patterns of the list, except the last one *)
 let rec firsts_n n l =

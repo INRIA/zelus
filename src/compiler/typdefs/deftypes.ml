@@ -142,8 +142,10 @@ let mem = previous imem
 let memory = Sort_mem mem
 let imemory = Sort_mem imem
 		   
-let entry v_kind sort t_tys = { t_path = Pkind(v_kind); t_sort = sort; t_tys }
-let size_entry v_kind t_tys = { t_path = Psize(v_kind); t_sort = Sort_val; t_tys }
+let entry v_kind sort t_tys =
+  { t_path = Pkind(v_kind); t_sort = sort; t_tys }
+let size_entry v_kind t_tys =
+  { t_path = Psize(v_kind); t_sort = Sort_val; t_tys }
 
 let last t_sort =
   match t_sort with
@@ -156,7 +158,8 @@ let init_in_eq t_sort =
   | Sort_val | Sort_var -> Sort_mem imem
 
 let sort_mem mkind t_sort =
- let m = match t_sort with | Sort_mem m -> m | Sort_val | Sort_var -> empty_mem in
+  let m = match t_sort with
+    | Sort_mem m -> m | Sort_val | Sort_var -> empty_mem in
  Sort_mem { m with m_mkind = Some(mkind) }
  
 let is_val = function | Sort_val -> true | _ -> false
