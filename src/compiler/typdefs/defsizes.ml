@@ -48,13 +48,19 @@ and rel = Eq | Lt | Lte
 let constraint_is_true sc = match sc with | True -> true | _ -> false
 
 (* the stack of size constraints *)
+(* [meta_variables] is the set of meta variables on sizes. They can *)
+(* be substituted by size expressions according to equality constraints *)
+(* by unification *)
 type stack_of_size_constraint =
   { stack: exp constraints Stack.t;
-    mutable current: exp constraints }
+    mutable current: exp constraints;
+    mutable meta_variables: Ident.S.t;
+  }
 
 (* the stack of constraints *)
 let c_stack : stack_of_size_constraint =
-  { stack = Stack.create (); current = True }
+  { stack = Stack.create (); current = True;
+    meta_variables = Ident.S.empty }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)

@@ -400,7 +400,8 @@ let localise f_env n_env sc =
        let rec for_all v f =
          if v <= 0 then true else (f v) && (for_all (v-1) f) in
        let v = eval n_env e in
-       for_all (v-1) (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc)
+       for_all (v-1)
+         (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc)
     | Loc(f_loc, sc) -> localise (f_loc :: f_loc_list) f_env n_env sc in
 
   try
@@ -422,7 +423,8 @@ let frac num denom =
 let rec subst_in_size env si =
   match si with
   | Sint _ -> si
-  | Sop(op, si1, si2) -> apply op (subst_in_size env si1) (subst_in_size env si2)
+  | Sop(op, si1, si2) ->
+     apply op (subst_in_size env si1) (subst_in_size env si2)
   | Sfrac { num; denom } -> frac (subst_in_size env num) denom
   | Svar(n) ->
      try Env.find n env with | Not_found -> si
