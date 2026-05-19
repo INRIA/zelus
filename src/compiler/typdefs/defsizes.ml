@@ -54,13 +54,13 @@ let constraint_is_true sc = match sc with | True -> true | _ -> false
 type stack_of_size_constraint =
   { stack: exp constraints Stack.t;
     mutable current: exp constraints;
-    mutable meta_variables: Ident.S.t;
+    mutable size_variables: Ident.S.t;
   }
 
 (* the stack of constraints *)
 let c_stack : stack_of_size_constraint =
   { stack = Stack.create (); current = True;
-    meta_variables = Ident.S.empty }
+    size_variables = Ident.S.empty }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
@@ -87,6 +87,13 @@ let pop () =
 let is_empty () =
   let c = c_stack.current in
   Stack.is_empty c_stack.stack && constraint_is_true c
+
+(* add fresh meta variables *)
+let add_size_variables set =
+  c_stack.size_variables <- Ident.S.union set c_stack.size_variables
+
+(* apply sustitution on size variables *)
+
 (* sequence of constraints *)
 let to_seq () =
   let l = Stack.to_seq c_stack.stack in
