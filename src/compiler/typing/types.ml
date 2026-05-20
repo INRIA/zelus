@@ -458,8 +458,9 @@ let rec unify expected_ty actual_ty =
  *- if the definitions are recursive:
  *- [id_1: <<n1,...>>.ty_1 with let rec f_list in id_1(n1,...); ...
  *- [id_k: <<n1,...>>.ty_k with let rec f_list in id_k(n1,...)]
- *- with f_list = id1(n1,...) = if (n1<0) then false else ...if (n_k<0) then false
- *-                             else constraint_1 and ...
+ *- with f_list = id1(n1,...) =
+ *-          if (n1<0) then false else ...if (n_k<0) then false
+ *-          else constraint_1 and ...
  *- if the definitions are not recursive:
  *- [id_1: <<n1,...>>.ty_1 with constraints_1;
  *- [id_k: <<n1,...>>.ty_k with constraints_k] *)
