@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -37,6 +37,7 @@ type error =
   | Eis_a_value of Ident.t
   | Einit_undefined of Ident.t
   | Elast_forbidden of Ident.t
+  | Eonly_last_is_allowed of Ident.t
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
   | Etype_clash of typ * typ
@@ -53,6 +54,7 @@ type error =
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
   | Epattern_not_total
+  | Eloop_index_is_missing of Ident.t
   | Enot_a_size_expression
   | Esize_is_undetermined 
   | Esize_of_vec_is_undetermined
@@ -148,6 +150,11 @@ let message loc kind =
        "@[%aType error: last %s is forbidden. This is either @,\
         because %s is not a state variable or next %s is defined.@.@]"
        output_location loc s s s
+  | Eonly_last_is_allowed(name) ->
+     let s = if !Misc.vverbose then Ident.name name else Ident.source name in
+     eprintf
+       "@[%aType error: only last %s is allowed.@.@]"
+       output_location loc s
   | Eshould_be_a_signal(name, expected_ty) ->
       eprintf "@[%aType error: the variable %s of type %a is defined by case \
                    but one case is missing. \n\
@@ -242,6 +249,13 @@ let message loc kind =
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \
        size cannot be determined at that point.@.@]"
       output_location loc
+ | Eloop_index_is_missing(name) ->
+    eprintf
+      "@[%aType error: whenever the array being constructed is named \n\
+      (here as %s in the return clause), the loop index must \
+      be given.@.@]"
+      output_location loc
+      (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Enot_a_size_expression ->
     eprintf
       "@[%aType error: this is not a size.@.@]"

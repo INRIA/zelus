@@ -257,7 +257,13 @@ let immediate = function
 
 (* Types for local identifiers *)
 let var loc h n =
-  try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
+  try
+    let { t_sort } as entry = Env.find n h in
+    match t_sort with
+    | Sort_val | Sort_var | Sort_mem { m_only_last = false } -> entry
+    | _ -> error loc (Eonly_last_is_allowed(n))
+  with
+  | Not_found -> error loc (Evar_undefined(n))
 
 let typ_of_var loc h n = let { t_tys } = var loc h n in t_tys
 
@@ -353,14 +359,17 @@ let check_definitions_for_every_name defined_names n_list =
     defined_names n_list
 
 (* Computes the type from a vardec list *)
-let type_of_vardec { var_info } = Typinfo.get_type var_info
-let type_of_n_list type_of n_list =
-  let ty_list = List.map type_of n_list in
+let type_of_ty_list ty_list =
   match ty_list with
   | [] -> Initial.typ_unit
   | [ty] -> ty
   | _ -> Types.product ty_list
-let type_of_vardec_list n_list = type_of_n_list type_of_vardec n_list
+let type_of_n_list type_of n_list =
+  let ty_list = List.map type_of n_list in
+  type_of_ty_list ty_list
+
+let get_type_of_vardec { var_info } = Typinfo.get_type var_info
+let get_type_of_vardec_list n_list = type_of_n_list get_type_of_vardec n_list
 
 (* make a function type from a function definition. *)
 (* remove useless dependences:
@@ -962,7 +971,9 @@ let intro_vardec expected_k var_init var_default var_init_in_eq =
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
 let rec vardec_list expected_k h v_list =
-  List.fold_left (vardec expected_k h) (Env.empty, Tfun(Tconst)) v_list
+  let ty_list, (acc_h, acc_k) =
+    Util.mapfold (vardec expected_k h) (Env.empty, Tfun(Tconst)) v_list in
+  ty_list, (acc_h, acc_k)
 
 and vardec expected_k h (acc_h, acc_k)
  ({ var_name; var_default; var_init; var_clock;
@@ -988,8 +999,9 @@ and vardec expected_k h (acc_h, acc_k)
     Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
   (* type annotation *)
   v.var_info <- Typinfo.set_type v.var_info expected_ty;
-  Env.add var_name entry acc_h,
-  Kind.sup actual_k (Kind.sup actual_k_init acc_k)
+  expected_ty,
+  (Env.add var_name entry acc_h,
+   Kind.sup actual_k (Kind.sup actual_k_init acc_k))
   
 (* [expression expected_k h e] returns the type for [e] and [actual kind] *)
 and expression expected_k h ({ e_desc; e_loc } as e) =
@@ -1291,8 +1303,8 @@ and funexp expected_k h
   let arg_list expected_k h f_args =
     (* typing an argument. An argument is a list of vardec declarations *)
     let arg (h, acc_h) v_list =
-      let h_arg, actual_k = vardec_list expected_k h v_list in
-      let ty = type_of_vardec_list v_list in
+      let ty_list, (h_arg, actual_k) = vardec_list expected_k h v_list in
+      let ty = type_of_ty_list ty_list in
       let n_opt =
         (* a dependence is allowed only when the input is a list made *)
         (* of a single argument. This may change in the future *)
@@ -1323,7 +1335,7 @@ and result expected_k h ({ r_desc } as r) =
        ty, actual_k
     | Returns ({ b_vars } as b) ->
        let _, new_h, _, actual_k = block_eq expected_k h b in
-       type_of_vardec_list b_vars, actual_k in
+       get_type_of_vardec_list b_vars, actual_k in
   (* type annotation *)
   r.r_info <- Typinfo.set_type r.r_info ty;
   ty, actual_k
@@ -1574,7 +1586,7 @@ and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
 
 
 and block_eq expected_k h ({ b_vars; b_body = { eq_write } as b_body } as b) =
-  let h0, actual_k_h0 = vardec_list expected_k h b_vars in
+  let ty_list, (h0, actual_k_h0) = vardec_list expected_k h b_vars in
   let h = Env.append h0 h in
   let defined_names, actual_k_body = equation expected_k h b_body in
   (* check that every name in [n_list] has a definition *)
@@ -1773,7 +1785,7 @@ and forloop_exp loc expected_k h
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
-    for_exp_t expected_k_for_body h size for_body in
+    for_exp_t loc expected_k_for_body h size for_index for_body in
   (* 1.2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
@@ -1790,7 +1802,7 @@ and forloop_exp loc expected_k h
   f.for_env <- h_env;
   actual_ty, actual_k
 
-and for_exp_t expected_k h size for_exp =
+and for_exp_t loc expected_k h size for_index for_exp =
   let ty_res, k = match for_exp with
     | Forexp { exp; default } ->
        let actual_ty, k_exp = expression expected_k h exp in
@@ -1799,8 +1811,8 @@ and for_exp_t expected_k h size for_exp =
            (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
        Types.vec actual_ty size, Kind.sup k_exp k_default
     | Forreturns({ r_returns; r_block } as r) ->
-       let h_returns, k_returns =
-         List.fold_left (for_vardec expected_k h)
+       let ty_list, (h_returns, k_returns) =
+         Util.mapfold (for_vardec loc expected_k for_index h)
            (Env.empty, Tfun(Tconst)) r_returns in
        let h = Env.append h_returns h in
        let h0, h, d_names, k_block = block_eq expected_k h r_block in
@@ -1809,12 +1821,33 @@ and for_exp_t expected_k h size for_exp =
        type_of_for_vardec_list size r_returns, Kind.sup k_returns k_block in
   ty_res, k
 
-and for_vardec expected_k h (acc_h, acc_k) { desc = { for_vardec } } =
-  vardec expected_k h (acc_h, acc_k) for_vardec
+and for_vardec loc expected_k for_index h (acc_h, acc_k)
+  { desc = { for_vardec; for_as } } =
+  (* type the return clause *)
+  let ty, (new_acc_h, new_acc_k) =
+    vardec expected_k h (acc_h, acc_k) for_vardec in
+  (* if [as x_] is given, enrich the type environment with *)
+  (* [last x : [for_index]ty *)
+  let new_acc_h =
+    match for_index, for_as with
+    | _, None -> new_acc_h
+    | Some(index), Some(as_name) ->
+       (* add an entry: only [last as_name] is allowed *)
+       (* its type is [index]ty *)
+       Env.add as_name
+         (Deftypes.entry expected_k
+            (Deftypes.Sort_mem memory_only_last)
+            (Deftypes.scheme (Types.vec ty (Sizes.var index)))) new_acc_h
+    | None, Some(as_name) ->
+       (* we impose that is [as x_] is used, the index [i] is given *)
+       (* this constraint is impose for diagnosis; it will be *)
+       (* removed later *)
+       error loc (Eloop_index_is_missing(as_name)) in
+  ty, (new_acc_h, new_acc_k)
 
 and type_of_for_vardec_list size n_list =
-  let type_of { desc = { for_array; for_vardec } } =
-    let ty = type_of_vardec for_vardec in
+  let type_of { desc = { for_array; for_vardec; for_as } } =
+    let ty = get_type_of_vardec for_vardec in
     Types.vec_n for_array ty size in
   type_of_n_list type_of n_list
 
@@ -1848,10 +1881,11 @@ and for_index_t expected_k for_index_opt =
         (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
-and for_eq_t expected_k size h ({ for_out; for_block } as f) =
+and for_eq_t loc expected_k size for_index h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
-      (for_out_t expected_k size h) (Env.empty, Tfun(Tconst)) for_out in
+      (for_out_t loc expected_k size for_index h)
+      (Env.empty, Tfun(Tconst)) for_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
@@ -1869,8 +1903,9 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   let name = match for_out_name with | None -> for_name | Some(x) -> x in
   Defnames.union (Defnames.singleton name) acc
 
-and for_out_t expected_k size h (acc_h, acc_k)
-      { desc = ({ for_name; for_out_name; for_init; for_default } as v); loc } =
+and for_out_t loc expected_k size for_index h (acc_h, acc_k)
+  { desc = ({ for_name; for_out_name; for_init; for_default;
+              for_as_name } as v); loc } =
   let ty = Types.new_var () in
   let actual_k_default =
     Util.optional_with_default
@@ -1888,6 +1923,25 @@ and for_out_t expected_k size h (acc_h, acc_k)
   let entry =
     Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
   let acc_h = Env.add for_name entry acc_h in
+
+  (* if [as x_] is given, enrich the type environment with *)
+  (* [last x : [for_index]ty *)
+  let acc_h =
+    match for_index, for_as_name with
+    | _, None -> acc_h
+    | Some(index), Some(as_name) ->
+       (* add an entry: only [last as_name] is allowed *)
+       (* its type is [index]ty *)
+       Env.add as_name
+         (Deftypes.entry expected_k
+            (Deftypes.Sort_mem memory_only_last)
+            (Deftypes.scheme (Types.vec ty (Sizes.var index)))) acc_h
+    | None, Some(as_name) ->
+       (* we impose that is [as x_] is used, the index [i] is given *)
+       (* this constraint is impose for diagnosis; it will be *)
+       (* removed later *)
+       error loc (Eloop_index_is_missing(as_name)) in
+
   let ty_out =
     Util.optional_with_default
       (fun x -> (* xi out x *)
@@ -1895,10 +1949,10 @@ and for_out_t expected_k size h (acc_h, acc_k)
         let ty_x = Types.instance (typ_of_var loc h x) in
         let ty_out = Types.vec ty size in
         unify loc ty_out ty_x; ty_out) ty for_out_name in
-    (* annotation *)
-    v.for_info <- Typinfo.set_type v.for_info ty_out;
-    let acc_k = Kind.sup acc_k actual_k in
-    acc_h, acc_k
+  (* annotation *)
+  v.for_info <- Typinfo.set_type v.for_info ty_out;
+  let acc_k = Kind.sup acc_k actual_k in
+  acc_h, acc_k
 
 and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
   match desc with
@@ -1971,7 +2025,7 @@ and forloop_eq loc expected_k h
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
-    for_eq_t expected_k_for_body size h for_body in
+    for_eq_t loc expected_k_for_body size for_index h for_body in
   (* 1.2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
