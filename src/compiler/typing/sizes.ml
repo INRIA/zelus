@@ -100,7 +100,7 @@ module SumOfProducts =
           fun sp -> M.for_all (fun _ p -> p < 0) sp
         
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
-        let explicit m =
+        let to_size_expression m =
           let v_list = M.to_list m in
           let sum s1 s2 =
             match s1 with | Sint(0) -> s2 | _ -> Sop(Splus, s1, s2) in
@@ -112,13 +112,13 @@ module SumOfProducts =
             (Sint(0)) v_list
 
         (* implicit representation *)
-        let rec make si =
+        let rec from_size_expression si =
           match si with
           | Sint(i) -> const i
           | Svar(x) -> var x
           | Sop(op, si1, si2) ->
-             let e1 = make si1 in
-             let e2 = make si2 in
+             let e1 = from_size_expression si1 in
+             let e2 = from_size_expression si2 in
              let op = 
                match op with Splus -> sum | Sminus -> minus | Smult -> mult in
              op e1 e2
@@ -184,7 +184,7 @@ let normalize si =
 (* for the moment, we do not use equations generated during the normalization *)
 let normalize si =
   let si, _ = normalize si in
-  SumOfProducts.SumProduct.make si
+  SumOfProducts.SumProduct.from_size_expression si
 
 (* decision algorithm on two size expression [si1] and [si2]. *)
 (* It is a very basic decision algorithm since constraints *)
