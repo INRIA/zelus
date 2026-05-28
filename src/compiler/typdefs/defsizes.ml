@@ -12,8 +12,10 @@
 (*                                                                     *)
 (* *********************************************************************)
 
+open Ident
+
 (* definition of sizes and size constraints *)
-type env = int Ident.Env.t
+type env = int Env.t
 
 type exp = 
   | Sint of int (* [42] *)
@@ -54,13 +56,14 @@ let constraint_is_true sc = match sc with | True -> true | _ -> false
 type stack_of_size_constraint =
   { stack: exp constraints Stack.t;
     mutable current: exp constraints;
-    mutable size_variables: Ident.S.t;
+    mutable size_variables: S.t;
+    mutable size_substitution: exp Env.t;
   }
 
 (* the stack of constraints *)
 let c_stack : stack_of_size_constraint =
   { stack = Stack.create (); current = True;
-    size_variables = Ident.S.empty }
+    size_variables = S.empty; size_substitution = Env.empty }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
@@ -68,12 +71,15 @@ let c_stack : stack_of_size_constraint =
 (* empty the stack of constraints *)
 let clear () =
   Stack.clear c_stack.stack;
-  c_stack.current <- True
+  c_stack.current <- True;
+  c_stack.size_variables <- S.empty;
+  c_stack.size_substitution <- Env.empty
 
 (* push an empty constraint *)
 let push () =
   Stack.push c_stack.current c_stack.stack;
   c_stack.current <- True
+
 let add c =
   c_stack.current <-
     match c_stack.current with | True -> c | c_old -> And [c;c_old]
@@ -89,10 +95,12 @@ let is_empty () =
   Stack.is_empty c_stack.stack && constraint_is_true c
 
 (* add fresh meta variables *)
-let add_size_variables set =
-  c_stack.size_variables <- Ident.S.union set c_stack.size_variables
+let add_size_variable n =
+  c_stack.size_variables <- S.add n c_stack.size_variables
 
-(* apply sustitution on size variables *)
+(* add sustitution on size variables *)
+let add_size_substitution n e =
+  c_stack.size_substitution <- Env.add n e c_stack.size_substitution
 
 (* sequence of constraints *)
 let to_seq () =

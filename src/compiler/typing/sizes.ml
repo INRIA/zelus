@@ -12,18 +12,19 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* decision for equality/inequalities constraints between sizes *)
+(* decision for equality/inequalities constraints between polymial sizes *)
 (* simple simplification functions *)
 (* sizes are of the form:  s ::= s + s | s * s | xi | v | xi/v *)
 (* constraints are: sc ::= sc & sc | if sc then sc else sc | true | false *)
 (*                      | forall i < s do sc | s = s | s <= s | s < s *)
+(*                      | let rec f(n1,...,nk) = c in c | f(s1,...,sn) *)
 open Ident
 open Defsizes
 
 exception Maybe
-(* cannot decide if a constraint [sc] is true or false *)
-(* e.g., [sc] contains a free variable and the resolution algorithm *)
-(* not good enough *)
+(* raise an exception when the decision algorithm fails to decide that [sc] is *)
+(* true or false. For example, [sc] containts a free variable and *)
+(* the decision algorithm is not good enough *)
   
 (* normal form for polynomial sizes : some of products *)
 module SumOfProducts =
@@ -185,6 +186,29 @@ let normalize si =
 let normalize si =
   let si, _ = normalize si in
   SumOfProducts.SumProduct.from_size_expression si
+
+(* substitution *)
+(* [subst env s] applies the substitution [env] to the size expression [si] *)
+let rec subst env si =
+  match si with
+  | Sint _ -> si
+  | Svar(n) ->
+     let si = try Env.find n env with Not_found -> si in
+     si
+  | Sfrac { num; denom } ->
+     let num = subst env num in
+     Sfrac { num; denom }
+  | Sop(op, si1, si2) ->
+     let si1 = subst env si1 in
+     let si2 = subst env si2 in
+     Sop(op, si1, si2)
+
+(* find a pivoting meta-variable n in a size equality [sp = 0] *)
+(* where [sp] is a sum of products. [sp = x - sp'] *)
+
+(* let pivot env sp =
+  let si = to_size_expression sp in
+ *)
 
 (* decision algorithm on two size expression [si1] and [si2]. *)
 (* It is a very basic decision algorithm since constraints *)

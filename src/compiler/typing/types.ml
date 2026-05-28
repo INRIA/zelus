@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -39,8 +39,7 @@ let make ty =
   { t_desc = ty; t_level = generic; t_index = symbol#name }
 let product ty_list =
   make (Tproduct(ty_list))
-(* vectors are of size zero at this stage *)
-let typ_vec ty = make (Tvec(ty, Sint 0))
+
 let vec ty e = make (Tvec(ty, e))
 (* <<id,...>>.t with f(id,...) *)
 let size_app sf_id id_list =
@@ -65,6 +64,7 @@ let rec arrow_type_list k ty_arg_list ty_res =
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
 
+(* introduce a fresh type variable *)
 let new_var () =
   { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
 let new_generic_var () =
@@ -74,6 +74,12 @@ let rec new_var_list n =
     0 -> []
   | n -> (new_var ()) :: new_var_list (n - 1)
 let forall l typ_body = { typ_vars = l; typ_body = typ_body }
+
+(* introduce a fresh size variable *)
+let new_size_var () =
+  let n = Ident.fresh "n" in
+  Defsizes.add_size_variable n;
+  Svar(n)
 
 (** Set of free size variables in a type *)
 let rec fv bounded acc { t_desc } =
@@ -429,6 +435,7 @@ let rec unify expected_ty actual_ty =
 	    else raise Unify
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
+           (* if [si1] and [si2] are surely not equal, raise an exception *)
            if not (Sizes.eq si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when
@@ -517,7 +524,11 @@ let filter_vec ty =
   let ty = typ_repr ty in
   match ty.t_desc with
   | Tvec(ty_arg, si) -> ty_arg, si
-  | _ -> raise Unify
+  | _ ->
+     let ty_arg = new_var () in
+     let si = new_size_var () in
+     unify ty (vec ty_arg si);
+     ty_arg, si
 
 let filter_actual_arrow ty =
   let ty = typ_repr ty in
