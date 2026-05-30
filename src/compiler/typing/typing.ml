@@ -201,7 +201,7 @@ and expansive_list eq_list = List.exists expansive eq_list
 let check_size_constraint loc sc =
   try
     let r = 
-      if Sizes.check Env.empty Env.empty sc then ()
+      if Sizes.eval_constraint Env.empty Env.empty sc then ()
       else 
         (* [sc] is surely false *)
         let f_loc_list, nested_env, nested_sc =
@@ -221,7 +221,7 @@ let check_size_constraint loc sc =
 let check_size_constraint_if_possible loc sc =
   try
     let r = 
-      if Sizes.check Env.empty Env.empty sc then ()
+      if Sizes.eval_constraint Env.empty Env.empty sc then ()
       else 
         (* [sc] is surely false *)
         let f_loc_list, nested_env, nested_sc =

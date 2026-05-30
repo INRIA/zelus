@@ -100,7 +100,11 @@ let add_size_variable n =
 
 (* add sustitution on size variables *)
 let add_size_substitution n e =
+  (* add it into the subsitution *)
   c_stack.size_substitution <- Env.add n e c_stack.size_substitution
+
+(* get the substitution for sizes *)
+let get_size_substitution () = c_stack.size_substitution
 
 (* sequence of constraints *)
 let to_seq () =

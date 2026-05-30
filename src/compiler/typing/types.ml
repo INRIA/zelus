@@ -75,12 +75,6 @@ let rec new_var_list n =
   | n -> (new_var ()) :: new_var_list (n - 1)
 let forall l typ_body = { typ_vars = l; typ_body = typ_body }
 
-(* introduce a fresh size variable *)
-let new_size_var () =
-  let n = Ident.fresh "n" in
-  Defsizes.add_size_variable n;
-  Svar(n)
-
 (** Set of free size variables in a type *)
 let rec fv bounded acc { t_desc } =
   match t_desc with
@@ -130,7 +124,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
          (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
          senv id_list id_fresh_list in
      sizefun id_fresh_list (subst_in_type senv ty)
-       (Sizes.subst senv constraints) is_rec
+       (Sizes.subst_in_constraint senv constraints) is_rec
 
 (** Remove dependences from a type *)
 (* [t1 -A-> t2] becomes [t1 -> t2];
@@ -436,6 +430,8 @@ let rec unify expected_ty actual_ty =
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
            (* if [si1] and [si2] are surely not equal, raise an exception *)
+           (* if they may be equal, add the equality to the set of *)
+           (* constraints *)
            if not (Sizes.eq si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when
@@ -526,7 +522,7 @@ let filter_vec ty =
   | Tvec(ty_arg, si) -> ty_arg, si
   | _ ->
      let ty_arg = new_var () in
-     let si = new_size_var () in
+     let si = Sizes.new_size_var () in
      unify ty (vec ty_arg si);
      ty_arg, si
 
