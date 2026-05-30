@@ -101,7 +101,9 @@ let add_size_variable n =
 (* add sustitution on size variables *)
 let add_size_substitution n e =
   (* add it into the subsitution *)
-  c_stack.size_substitution <- Env.add n e c_stack.size_substitution
+  c_stack.size_substitution <- Env.add n e c_stack.size_substitution;
+  (* remove it from the set of meta size-variables that are unbounded/unconstrained *)
+  c_stack.size_variables <- S.remove n c_stack.size_variables
 
 (* get the substitution for sizes *)
 let get_size_substitution () = c_stack.size_substitution
