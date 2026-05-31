@@ -56,14 +56,14 @@ let constraint_is_true sc = match sc with | True -> true | _ -> false
 type stack_of_size_constraint =
   { stack: exp constraints Stack.t;
     mutable current: exp constraints;
-    mutable size_variables: S.t;
+    mutable size_variables: Location.t Env.t;
     mutable size_substitution: exp Env.t;
   }
 
 (* the stack of constraints *)
 let c_stack : stack_of_size_constraint =
   { stack = Stack.create (); current = True;
-    size_variables = S.empty; size_substitution = Env.empty }
+    size_variables = Env.empty; size_substitution = Env.empty }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
@@ -72,7 +72,7 @@ let c_stack : stack_of_size_constraint =
 let clear () =
   Stack.clear c_stack.stack;
   c_stack.current <- True;
-  c_stack.size_variables <- S.empty;
+  c_stack.size_variables <- Env.empty;
   c_stack.size_substitution <- Env.empty
 
 (* push an empty constraint *)
@@ -95,18 +95,22 @@ let is_empty () =
   Stack.is_empty c_stack.stack && constraint_is_true c
 
 (* add fresh meta variables *)
-let add_size_variable n =
-  c_stack.size_variables <- S.add n c_stack.size_variables
+let add_size_variable n loc =
+  c_stack.size_variables <- Env.add n loc c_stack.size_variables
 
 (* add sustitution on size variables *)
 let add_size_substitution n e =
   (* add it into the subsitution *)
   c_stack.size_substitution <- Env.add n e c_stack.size_substitution;
-  (* remove it from the set of meta size-variables that are unbounded/unconstrained *)
-  c_stack.size_variables <- S.remove n c_stack.size_variables
+  (* remove it from the set of meta size-variables that are *)
+  (* unbounded/unconstrained *)
+  c_stack.size_variables <- Env.remove n c_stack.size_variables
 
 (* get the substitution for sizes *)
 let get_size_substitution () = c_stack.size_substitution
+
+(* get the set of size variables *)
+let get_size_variables () = c_stack.size_variables
 
 (* sequence of constraints *)
 let to_seq () =

@@ -590,8 +590,8 @@ let apply constraints actual_si_list =
   | _ -> assert false
 
 (* introduce a fresh size variable *)
-let new_size_var () =
+let new_size_var loc =
   let n = Ident.fresh "n" in
-  Defsizes.add_size_variable n;
+  Defsizes.add_size_variable n loc;
   Svar(n)
 

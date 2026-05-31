@@ -57,6 +57,7 @@ type error =
   | Eloop_index_is_missing of Ident.t
   | Enot_a_size_expression
   | Esize_is_undetermined 
+  | Esize_unbound_meta_variable of Ident.t
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
@@ -244,6 +245,12 @@ let message loc kind =
     eprintf
       "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
       output_location loc
+ | Esize_unbound_meta_variable(name) ->
+    eprintf
+      "@[<hov 0>%aType error: the size unknown variable %s has been \
+       introduced to type this expression but is unconstrained..@.@]"
+      output_location loc
+        (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Esize_of_vec_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \

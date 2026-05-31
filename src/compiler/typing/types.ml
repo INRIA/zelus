@@ -520,9 +520,15 @@ let filter_vec ty =
   let ty = typ_repr ty in
   match ty.t_desc with
   | Tvec(ty_arg, si) -> ty_arg, si
+  | _ -> raise Unify
+
+let filter_intro_vec loc ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tvec(ty_arg, si) -> ty_arg, si
   | _ ->
      let ty_arg = new_var () in
-     let si = Sizes.new_size_var () in
+     let si = Sizes.new_size_var loc in
      unify ty (vec ty_arg si);
      ty_arg, si
 

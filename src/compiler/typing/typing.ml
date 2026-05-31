@@ -73,7 +73,7 @@ let compare_sizes loc cmp left_size right_size =
   then error loc (Esize_clash(cmp, left_size, right_size))
 
 let check_is_vec loc actual_ty =
-    try Types.filter_vec actual_ty
+    try Types.filter_intro_vec loc actual_ty
     with
     | Unify ->
        error loc Esize_of_vec_is_undetermined
@@ -410,6 +410,13 @@ let env_of_pattern entry acc pat =
        List.fold_left (fun acc { arg } -> pattern acc arg) acc label_pat_list
   and pattern_list acc p_list = List.fold_left pattern acc p_list in
   pattern acc pat
+
+(* check that there is no remaining unbound size variables *)
+let check_no_unbound_size_variables () =
+  let env = Defsizes.get_size_variables () in
+  if Env.is_empty env then ()
+  else let n, loc = Env.choose env in
+       Typerrors.error loc (Typerrors.Esize_unbound_meta_variable(n))
 
 let size_entry vkind =
   Deftypes.size_entry vkind (Deftypes.scheme (Initial.typ_int))
