@@ -1,0 +1,8 @@
+let f(x:[1]_) returns (o:[3]_)
+  local y in
+  do y = [|1|] ++ x and o = y ++ [|3|] done
+
+let g<<n>>(x:[n]_) returns (o:[3]_)
+  local y in
+  do y = [|1|] ++ x and o = y ++ [|3|] done
+

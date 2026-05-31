@@ -522,6 +522,8 @@ let let_in env sc =
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
 
+(* add a subtitution for sizes into a constraint *)
+
 (* generate a conditional. Do a bit of by case definition to make functions *)
 (* that use it simpler *)
 let conditional sc sc_true sc_false =
