@@ -6,6 +6,6 @@ let g<<n>>(x:[n]_) returns (o:[3]_)
   local y in
   do y = [|1|] ++ x and o = y ++ [|3|] done
 
-let g1(x) returns (o)
-  forward (xi in x) returns (oi out o)
+let g1<<n>>(x) returns (o)
+  forward<<n>> (xi in x) returns (oi out o)
     do oi = xi done

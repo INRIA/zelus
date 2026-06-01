@@ -282,7 +282,7 @@ let message loc kind =
       "@[%aType error: the definition for %s has type@ %a,@ \
         which contains the size variable %s that is unbound.@.@]"
 	output_location loc
-        (Ident.name f)
+        (Ident.source f)
         Ptypes.ptype ty
 	(Ident.name n)
  | Esize_parameter_mutually_recursive_definitions
