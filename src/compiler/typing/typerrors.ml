@@ -57,7 +57,8 @@ type error =
   | Eloop_index_is_missing of Ident.t
   | Enot_a_size_expression
   | Esize_is_undetermined 
-  | Esize_unbound_meta_variable of Ident.t
+  | Esize_unbound_size_variable of Ident.t * Ident.t * typ
+  | Esize_unbound_meta_size_variable of Ident.t
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
@@ -70,7 +71,6 @@ type error =
         nested_sc: Defsizes.exp Defsizes.constraints;
         (* the nested unsatisfied constraint *)
       }
-  | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Esize_parameter_mutually_recursive_definitions of int * int
   | Esize_index_escape_in_environment of Ident.t * Ident.t * typ
   | Econstr_arity of Lident.t * int * int
@@ -245,10 +245,10 @@ let message loc kind =
     eprintf
       "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
       output_location loc
- | Esize_unbound_meta_variable(name) ->
+ | Esize_unbound_meta_size_variable(name) ->
     eprintf
-      "@[<hov 0>%aType error: the size unknown variable %s has been \
-       introduced to type this expression but is unconstrained..@.@]"
+      "@[<hov 0>%aType error: the size variable %s has been \
+       introduced to type this expression but is unbound.@.@]"
       output_location loc
         (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Esize_of_vec_is_undetermined ->
@@ -277,11 +277,12 @@ let message loc kind =
         Ptypes.psize actual_size
         s
         Ptypes.psize expected_size
- | Esize_parameter_cannot_be_generalized(n, ty) ->
-     eprintf
-       "@[%aType error: this pattern has type@ %a,@ \
-        which contains the variable %s that is unbounded.@.@]"
+ | Esize_unbound_size_variable(f, n, ty) ->
+    eprintf
+      "@[%aType error: the definition for %s has type@ %a,@ \
+        which contains the size variable %s that is unbound.@.@]"
 	output_location loc
+        (Ident.name f)
         Ptypes.ptype ty
 	(Ident.name n)
  | Esize_parameter_mutually_recursive_definitions

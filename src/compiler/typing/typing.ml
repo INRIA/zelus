@@ -122,18 +122,16 @@ let check_type_is_in_kind loc h actual_k vkind =
   Env.iter
     (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body vkind) h
 
-(* Check that there is no more free size variable in [ty] *)
+(* Check that there is no more free size variable in the environment [h] *)
 let check_no_more_unbound_size_variable_in_env loc h =
-  let check loc fv ty =
-    if not (S.is_empty fv)
+  let check loc f free ty =
+    if not (S.is_empty free)
     then
-      let n = S.choose fv in
-      error loc (Esize_parameter_cannot_be_generalized(n, ty)) in
-  
+      let n = S.choose free in
+      error loc (Esize_unbound_size_variable(f, n, ty)) in
   Env.iter
-    (fun _ { t_tys = { typ_body } } ->
-      check loc (Types.fv S.empty typ_body)
-        typ_body) h
+    (fun f { t_tys = { typ_body } } ->
+      check loc f (Types.fv S.empty typ_body) typ_body) h
 
 (* compare two kinds *)
 let less_than loc actual_k expected_k =
@@ -402,7 +400,7 @@ let check_no_more_unbound_size_variables () =
   let env = Defsizes.get_size_variables () in
   if Env.is_empty env then ()
   else let n, loc = Env.choose env in
-       Typerrors.error loc (Typerrors.Esize_unbound_meta_variable(n))
+       Typerrors.error loc (Typerrors.Esize_unbound_meta_size_variable(n))
 
 let size_entry vkind =
   Deftypes.size_entry vkind (Deftypes.scheme (Initial.typ_int))
