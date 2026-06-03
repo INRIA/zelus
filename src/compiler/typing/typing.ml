@@ -667,10 +667,31 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(* Typing a pattern matching of a size. Returns defined names *)
-(* the size will have to be known ultimately at compile-time *)
-(* (that is, it is a, not a symbolic expression with variables *)
-(* generates a size constraint [if si matches p1 then c1 else ... else cn] *)
+(* given a size expression [s] and a list of pairs *)
+(* [pat_0, ty_0; ...; pat_n, ty_n] *)
+(* computes a type [ty] such that [pat_i matches s => t matches ty_i] *)
+(* this function is used to type a pattern matching on a size *)
+(* [match size s with (| pat_i -> e_i : ty_i)_i] and generate a more *)
+(* general type than a types that unifies with all the ty_i *)
+let rec join_types loc si mh_list ty_list =
+  match mh_list, ty_list with
+  | [{ m_pat; m_loc }], [ty] -> ty
+  | { m_pat = p1; m_loc } :: mh_list, ty1 :: ty_list ->
+     let ty2 = join_types loc si mh_list ty_list in
+     let ty =
+       try
+         Types.join_two_types si p1 ty1 ty2
+       with
+       | Types.Unify ->
+          error loc (Etype_clash_in_handlers(m_loc, ty1, ty2)) in
+     ty
+  | _ -> assert false
+ 
+(* Typing a pattern matching on a size. It returns the set of *)
+(* defined names and the computed kind *)
+
+(* The typing rule generates a size constraint *)
+(* [if si matches p1 then c1 else ... else cn] *)
 (* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
 (* for body [b] *)
 (* this size constraint is added to the stack of constraints *)
@@ -689,22 +710,20 @@ let match_size_handlers
     let defined_names, actual_k = body expected_k h b new_ty_res in
     (* pop the current size constraint *)
     let constraints = Defsizes.pop () in
-    (defined_names, (actual_k, new_ty_res)), (Sizes.matches pat si, constraints) in
+    (defined_names, (actual_k, new_ty_res)),
+    (Sizes.matches pat si, constraints) in
   let defined_names_k_ty_res_c_list = List.map handler m_handlers in
   let defined_names_k_ty_res_list, c_list =
     List.split defined_names_k_ty_res_c_list in
-  let defined_names_list, k_ty_res_list = List.split defined_names_k_ty_res_list in
+  let defined_names_list, k_ty_res_list =
+    List.split defined_names_k_ty_res_list in
   let k_list, ty_res_list = List.split k_ty_res_list in
 
-  (* all the type results should unify with ty_res *)
-  List.iter2
-    (fun { m_loc } actual_ty_res ->
-      try
-        Types.unify ty_res actual_ty_res
-      with
-      | Types.Unify ->
-         error loc (Etype_clash_in_handlers(m_loc, actual_ty_res, ty_res)))
-    m_handlers ty_res_list;
+  (* find a more general type [ty[n]] such that [ty_i = ty[v_i]] where *)
+  (* [v_i] is the pattern of the i-th handler *)
+  let actual_ty_res =
+    join_types loc si m_handlers ty_res_list in
+  unify loc ty_res actual_ty_res;
   
   (* check partiality/redundancy of the pattern matching *)
 
