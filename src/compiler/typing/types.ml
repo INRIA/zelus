@@ -305,15 +305,6 @@ let rec copy ty =
        then sizefun id_list (copy ty_body) constraints is_rec
        else ty
 
-(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
-let rec sizes_per_dimension array_ty =
-  match array_ty.t_desc with
-  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
-  | Tlink(link) -> sizes_per_dimension link
-  | Tconstr _ -> []
-  | Tvec(ty, s) ->
-     s :: (sizes_per_dimension ty)
-
 (* instanciation *)
 let instance { typ_body } =
   let typ_body = copy typ_body in
@@ -483,7 +474,45 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
                         else constraints in
       (id, sizefun id_list ty constraints false))
     id_id_list_ty_constraints_list
-    
+
+(* given a size expression [s] and a list of pairs *)
+(* [pat_0, ty_0; ...; pat_n, ty_n] *)
+(* computes a type [ty] such that [pat_i matches s => t matches ty_i] *)
+(* this function is used to type a pattern matching on a size *)
+(* [match size s with (| pat_i -> e_i : ty_i)_i] and generate a more *)
+(* general type than a types that unifies with all the ty_i *)
+let rec join_types s p_ty_list =
+  match p_ty_list with
+  | [] -> assert false
+  | [p, ty] -> ty
+  | (p1, ty1) :: p_ty_list ->
+     let ty2 = join_types s p_ty_list in
+     join_two_types s p1 ty1 ty2
+
+and join_two_types s p1 ty1 ty2 =
+  let ty1 = typ_repr ty1 in
+  let ty2 = typ_repr ty2 in
+  match ty1.t_desc, ty2.t_desc with
+  | Tproduct(ty_list1), Tproduct(ty_list2) ->
+     let ty_list =
+       try List.map2 (join_two_types s p1) ty_list1 ty_list2
+       with | Invalid_argument _ -> raise Unify in
+     product ty_list
+  | Tconstr(n1, ty_list1, abbrev),
+    Tconstr(n2, ty_list2, _) when same_types n1 n2 ->
+     let ty_list =
+       try List.map2 (join_two_types s p1) ty_list1 ty_list2
+       with | Invalid_argument _ -> raise Unify in
+     constr n1 ty_list abbrev
+  | Tarrow { ty_kind = k1; ty_name_opt = None;
+             ty_arg = ty_arg1; ty_res = ty_res1 },
+    Tarrow { ty_kind = k2; ty_name_opt = None;
+             ty_arg = ty_arg2; ty_res = ty_res2 } when k1 = k2 ->
+     let ty_arg = join_two_types s p1 ty_arg1 ty_arg2 in
+     let ty_res = join_two_types s p1 ty_res1 ty_res2 in
+     arrow_type k1 None ty_arg ty_res
+  | _ -> unify ty1 ty2; ty1
+     
 let filter_product arity ty =
   let ty = typ_repr ty in
     match ty.t_desc with
@@ -538,6 +567,15 @@ let filter_actual_arrow ty =
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
      ty_kind, ty_name_opt, ty_arg, ty_res
   | _ -> assert false
+
+(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
+let rec sizes_per_dimension array_ty =
+  match array_ty.t_desc with
+  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
+  | Tlink(link) -> sizes_per_dimension link
+  | Tconstr _ -> []
+  | Tvec(ty, s) ->
+     s :: (sizes_per_dimension ty)
 
 (* Splits the list of arguments of a function application *)
 (* if [f e1 ... en] is an application with [f] of type
