@@ -520,8 +520,10 @@ and join_two_types s p1 ty1 ty2 =
 (* the join of two sizes is limited. It only treat a simple case *)
 (* where [s] is a variable name and [p1] a constant *)
 and join_two_sizes s p1 si1 si2 =
-  match s, p1, si1, si2 with
+  match s, p1.pat_desc, si1, si2 with
   | _, _, Sint(v1), Sint(v2) when v1 = v2 -> si1
+  | Size_var(n), Econstpat(Eint(v_p)), Sint(v), Svar(n_size)
+       when (v_p = v) && (n = n_size) -> Svar(n_size)     
   | _ -> si1
 
 let filter_product arity ty =
