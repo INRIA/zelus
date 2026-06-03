@@ -511,8 +511,19 @@ and join_two_types s p1 ty1 ty2 =
      let ty_arg = join_two_types s p1 ty_arg1 ty_arg2 in
      let ty_res = join_two_types s p1 ty_res1 ty_res2 in
      arrow_type k1 None ty_arg ty_res
+  | Tvec(ty1, si1), Tvec(ty2, si2) ->
+     let ty = join_two_types s p1 ty1 ty2 in
+     let si = join_two_sizes s p1 si1 si2 in
+     vec ty si
   | _ -> unify ty1 ty2; ty1
-     
+
+(* the join of two sizes is limited. It only treat a simple case *)
+(* where [s] is a variable name and [p1] a constant *)
+and join_two_sizes s p1 si1 si2 =
+  match s, p1, si1, si2 with
+  | _, _, Sint(v1), Sint(v2) when v1 = v2 -> si1
+  | _ -> si1
+
 let filter_product arity ty =
   let ty = typ_repr ty in
     match ty.t_desc with
