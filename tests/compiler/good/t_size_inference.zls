@@ -10,7 +10,10 @@ let g1<<n>>(x:[n]_) returns (o)
   forward<<n>> (xi in x) returns (oi out o)
     do oi = xi done
 
-let rec f<<n>> : unit -> [n]int = fun () ->
+let rec f<<n>>() =
   match size n with
   | 0 -> [||]
   | _ -> [|0|] ++ f<<n-1>>()
+
+f : <<n>>.unit -> a
+

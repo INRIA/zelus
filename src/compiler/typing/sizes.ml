@@ -591,7 +591,7 @@ let apply constraints actual_si_list =
 
 (* introduce a fresh size variable *)
 let new_size_var loc =
-  let n = Ident.fresh "n" in
+  let n = Ident.fresh "_n" in
   Defsizes.add_size_variable n loc;
   Svar(n)
 
