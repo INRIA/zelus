@@ -100,6 +100,8 @@ let stateful loc expected_k =
          (Ekind_clash(Deftypes.Tnode(Deftypes.Tdiscrete), expected_k))
 
 (* check that a size index [i_opt] does not appear in a type environment [h] *)
+(* this is done whenever typing the body of a for loop when the type of a *)
+(* local variable depends on a size index *)
 let check_size_index_not_in_h loc index_opt h =
   let check_one index x { t_tys = { typ_body } } =
     if S.mem index (Types.fv S.empty typ_body)
@@ -108,7 +110,7 @@ let check_size_index_not_in_h loc index_opt h =
   | None -> ()
   | Some(index) -> Env.iter (check_one index) h
 
-(* check that a type belong to a kind *)
+(* check that a type belong to a kind [vkind] *)
 let check_type_is_in_kind loc h actual_k vkind =
   let type_in_kind loc ty vkind =
     if not (Kind.in_vkind vkind ty)
@@ -120,19 +122,18 @@ let check_type_is_in_kind loc h actual_k vkind =
   Env.iter
     (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body vkind) h
 
-(* Check that there is no more free size variable in [ty] *)
-let check_no_unbounded_size_variable_in_env loc h =
-  let check_no_unbounded_size_variable loc fv ty =
-    if not (S.is_empty fv)
+(* Check that there is no more free size variable in the environment [h] *)
+let check_no_more_unbound_size_variable_in_env loc h =
+  let check loc f free ty =
+    if not (S.is_empty free)
     then
-      let n = S.choose fv in
-      error loc (Esize_parameter_cannot_be_generalized(n, ty)) in
-  
+      let n = S.choose free in
+      error loc (Esize_unbound_size_variable(f, n, ty)) in
   Env.iter
-    (fun _ { t_tys = { typ_body } } ->
-      check_no_unbounded_size_variable loc (Types.fv S.empty typ_body)
-        typ_body) h
+    (fun f { t_tys = { typ_body } } ->
+      check loc f (Types.fv S.empty typ_body) typ_body) h
 
+(* compare two kinds *)
 let less_than loc actual_k expected_k =
   if not (Kind.is_less_than actual_k expected_k)
   then error loc (Ekind_clash(actual_k, expected_k))
@@ -178,7 +179,7 @@ let kind_of_funexp loc expected_k arg_v expected_body_k =
     | _, Tany, _ -> Tfun(Tany) in
   actual_k, expected_body_k
            
-(* An equation is expansive if one is *)
+(* An equation is expansive if it contains an expansive expression *)
 let rec expansive { eq_desc } =
   (* an expression is expansive if it is an application *)
   let rec exp { e_desc } =
@@ -197,39 +198,21 @@ let rec expansive { eq_desc } =
   | _ -> true
 and expansive_list eq_list = List.exists expansive eq_list
 
-(* check size constraints *)
+(* check size constraints. It may raise [Sizes.Maybe] *)
 let check_size_constraint loc sc =
-  try
-    let r = 
-      if Sizes.eval_constraint Env.empty Env.empty sc then ()
-      else 
-        (* [sc] is surely false *)
-        let f_loc_list, nested_env, nested_sc =
-          Sizes.localise Env.empty Env.empty sc
-        in error loc 
-             (Esize_constraints_not_true
-                { f_loc_list; top_sc = sc; nested_env; nested_sc })
-    in r
-  with
-  | Sizes.Maybe ->
-     error loc 
-             (Esize_constraints_not_true
-                { f_loc_list = []; top_sc = sc; nested_env = Env.empty;
-                  nested_sc = sc })
+  if Sizes.eval_constraint Env.empty Env.empty sc then ()
+  else 
+    (* [sc] is surely false *)
+    let f_loc_list, nested_env, nested_sc =
+      Sizes.localise Env.empty Env.empty sc in
+    error loc (Esize_constraints_not_true
+                 { f_loc_list; top_sc = sc; nested_env; nested_sc })
 
-(* check size constraints *)
+(* check size constraints. if [sc] maybe true, add a constraint to the *)
+(* global stack of constraints *)
 let check_size_constraint_if_possible loc sc =
   try
-    let r = 
-      if Sizes.eval_constraint Env.empty Env.empty sc then ()
-      else 
-        (* [sc] is surely false *)
-        let f_loc_list, nested_env, nested_sc =
-          Sizes.localise Env.empty Env.empty sc
-        in error loc 
-             (Esize_constraints_not_true
-                { f_loc_list; top_sc = sc; nested_env; nested_sc })
-    in r
+    check_size_constraint loc sc
   with
   | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(Location.current_iname loc, sc))
 
@@ -412,11 +395,12 @@ let env_of_pattern entry acc pat =
   pattern acc pat
 
 (* check that there is no remaining unbound size variables *)
-let check_no_unbound_size_variables () =
+(* in the global stack of constraints *)
+let check_no_more_unbound_size_variables () =
   let env = Defsizes.get_size_variables () in
   if Env.is_empty env then ()
   else let n, loc = Env.choose env in
-       Typerrors.error loc (Typerrors.Esize_unbound_meta_variable(n))
+       Typerrors.error loc (Typerrors.Esize_unbound_meta_size_variable(n))
 
 let size_entry vkind =
   Deftypes.size_entry vkind (Deftypes.scheme (Initial.typ_int))
@@ -683,12 +667,34 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(* Typing a pattern matching of a size. Returns defined names *)
-(* the size must be known ultimately at compile-time (that is, it is a constant *)
-(* not an expression with variables *)
-(* generates a size constraint [if si matches p1 then c1 else ... else cn] *)
+(* given a size expression [s] and a list of pairs *)
+(* [pat_0, ty_0; ...; pat_n, ty_n] *)
+(* computes a type [ty] such that [pat_i matches s => t matches ty_i] *)
+(* this function is used to type a pattern matching on a size *)
+(* [match size s with (| pat_i -> e_i : ty_i)_i] and generate a more *)
+(* general type than a types that unifies with all the ty_i *)
+let rec join_types loc si mh_list ty_list =
+  match mh_list, ty_list with
+  | [{ m_pat; m_loc }], [ty] -> ty
+  | { m_pat = p1; m_loc } :: mh_list, ty1 :: ty_list ->
+     let ty2 = join_types loc si mh_list ty_list in
+     let ty =
+       try
+         Types.join_two_types si p1 ty1 ty2
+       with
+       | Types.Unify ->
+          error loc (Etype_clash_in_handlers(m_loc, ty1, ty2)) in
+     ty
+  | _ -> assert false
+ 
+(* Typing a pattern matching on a size. It returns the set of *)
+(* defined names and the computed kind *)
+
+(* The typing rule generates a size constraint *)
+(* [if si matches p1 then c1 else ... else cn] *)
 (* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
 (* for body [b] *)
+(* this size constraint is added to the stack of constraints *)
 let match_size_handlers
       body loc expected_k h is_total si m_handlers ty_res =
   let handler ({ m_pat = pat; m_body = b } as mh) =
@@ -704,22 +710,20 @@ let match_size_handlers
     let defined_names, actual_k = body expected_k h b new_ty_res in
     (* pop the current size constraint *)
     let constraints = Defsizes.pop () in
-    (defined_names, (actual_k, new_ty_res)), (Sizes.matches pat si, constraints) in
+    (defined_names, (actual_k, new_ty_res)),
+    (Sizes.matches pat si, constraints) in
   let defined_names_k_ty_res_c_list = List.map handler m_handlers in
   let defined_names_k_ty_res_list, c_list =
     List.split defined_names_k_ty_res_c_list in
-  let defined_names_list, k_ty_res_list = List.split defined_names_k_ty_res_list in
+  let defined_names_list, k_ty_res_list =
+    List.split defined_names_k_ty_res_list in
   let k_list, ty_res_list = List.split k_ty_res_list in
 
-  (* all the type results should unify with ty_res *)
-  List.iter2
-    (fun { m_loc } actual_ty_res ->
-      try
-        Types.unify ty_res actual_ty_res
-      with
-      | Types.Unify ->
-         error loc (Etype_clash_in_handlers(m_loc, actual_ty_res, ty_res)))
-    m_handlers ty_res_list;
+  (* find a more general type [ty[n]] such that [ty_i = ty[v_i]] where *)
+  (* [v_i] is the pattern of the i-th handler *)
+  let actual_ty_res =
+    join_types loc si m_handlers ty_res_list in
+  unify loc ty_res actual_ty_res;
   
   (* check partiality/redundancy of the pattern matching *)
 
@@ -2086,9 +2090,13 @@ let implementation ff is_first impl =
        (* static ones *)
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
 
-       (* check that there is no unbounded size variables *)
-       check_no_unbounded_size_variable_in_env loc new_h;
+       (* check that there is no unbounded size variables in the environment *)
+       check_no_more_unbound_size_variable_in_env loc new_h;
        
+       (* check that there is no remaining unbounded size variables *)
+       (* in the global stack of constraints *)
+       check_no_more_unbound_size_variables ();
+
        (* check that no size constraints remain in the stack *)
        let l = Defsizes.to_seq () in
        Seq.iter (check_size_constraint loc) l;

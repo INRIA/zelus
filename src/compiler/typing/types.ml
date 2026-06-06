@@ -305,15 +305,6 @@ let rec copy ty =
        then sizefun id_list (copy ty_body) constraints is_rec
        else ty
 
-(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
-let rec sizes_per_dimension array_ty =
-  match array_ty.t_desc with
-  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
-  | Tlink(link) -> sizes_per_dimension link
-  | Tconstr _ -> []
-  | Tvec(ty, s) ->
-     s :: (sizes_per_dimension ty)
-
 (* instanciation *)
 let instance { typ_body } =
   let typ_body = copy typ_body in
@@ -483,7 +474,50 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
                         else constraints in
       (id, sizefun id_list ty constraints false))
     id_id_list_ty_constraints_list
-    
+
+(* Given [si] and two handlers [p1 -> e1: ty1; _ -> e2: ty2] *)
+(* computes a type [ty] such that [ty1] and [ty2] are instances of [ty] *)
+(* by substituting a size variable. That is *)
+(* let rho = p1 matches si in rho(ty) = ty1 and ty = ty2 otherwise *)
+let rec join_two_types si p1 ty1 ty2 =
+  let ty1 = typ_repr ty1 in
+  let ty2 = typ_repr ty2 in
+  match ty1.t_desc, ty2.t_desc with
+  | Tproduct(ty_list1), Tproduct(ty_list2) ->
+     let ty_list =
+       try List.map2 (join_two_types si p1) ty_list1 ty_list2
+       with | Invalid_argument _ -> raise Unify in
+     product ty_list
+  | Tconstr(n1, ty_list1, abbrev),
+    Tconstr(n2, ty_list2, _) when same_types n1 n2 ->
+     let ty_list =
+       try List.map2 (join_two_types si p1) ty_list1 ty_list2
+       with | Invalid_argument _ -> raise Unify in
+     constr n1 ty_list abbrev
+  | Tarrow { ty_kind = k1; ty_name_opt = None;
+             ty_arg = ty_arg1; ty_res = ty_res1 },
+    Tarrow { ty_kind = k2; ty_name_opt = None;
+             ty_arg = ty_arg2; ty_res = ty_res2 } when k1 = k2 ->
+     let ty_arg = join_two_types si p1 ty_arg1 ty_arg2 in
+     let ty_res = join_two_types si p1 ty_res1 ty_res2 in
+     arrow_type k1 None ty_arg ty_res
+  | Tvec(ty1, si1), Tvec(ty2, si2) ->
+     let ty = join_two_types si p1 ty1 ty2 in
+     let si' = join_two_sizes si p1 si1 si2 in
+     vec ty si'
+  | _ -> unify ty1 ty2; ty1
+
+(* the join of two sizes is limited. It only treat a trivial situation *)
+and join_two_sizes si p1 si1 si2 =
+  match si, p1.pat_desc, si1, si2 with
+  | Svar(n), Econstpat(Eint(v_p)), Sint(v), Svar(n')
+       when (v_p = v) && (n = n') ->
+     (* the size of the first branch is a constant [v] and the pattern *)
+     (* is also [v]; the size of the second branch is [n] *)
+     Svar(n')     
+  | _ ->
+     if not (Sizes.eq si1 si2) then raise Unify else si1
+
 let filter_product arity ty =
   let ty = typ_repr ty in
     match ty.t_desc with
@@ -538,6 +572,15 @@ let filter_actual_arrow ty =
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
      ty_kind, ty_name_opt, ty_arg, ty_res
   | _ -> assert false
+
+(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
+let rec sizes_per_dimension array_ty =
+  match array_ty.t_desc with
+  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
+  | Tlink(link) -> sizes_per_dimension link
+  | Tconstr _ -> []
+  | Tvec(ty, s) ->
+     s :: (sizes_per_dimension ty)
 
 (* Splits the list of arguments of a function application *)
 (* if [f e1 ... en] is an application with [f] of type
