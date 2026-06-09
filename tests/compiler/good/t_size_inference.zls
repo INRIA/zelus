@@ -30,4 +30,9 @@ let rec fff<<n>>() =
   | 0 -> [||]
   | _ -> [|0|] ++ ff<<n-1>>()
 
+let gg<<n>>() = match size n with | 0 -> [|1|] | _ -> [|2|]
+
+let t: int -> int = let h : int -> int = fun x -> x in h
+
+let tt<<n>> : int -> int = fun x -> 1
 
