@@ -695,7 +695,7 @@ let join_types loc si mh_list def_cond_sc_list ty_list =
        Types.unify expected_ty actual_ty
      with
      | Types.Unify ->
-        error loc (Etype_clash_in_handlers(m_loc, expected_ty, actual_ty))
+        error loc (Etype_clash_in_handlers(m_loc, actual_ty, expected_ty))
      end;
      let sc = Defsizes.pop () in
      def_cond, sc in
