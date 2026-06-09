@@ -668,9 +668,13 @@ sizefun_definition:
 ;
 
 sizefun_definition_desc:
-  | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
-        e = seq_expression
-    { EQsizefun(ide, ide_list, e) }
+  | ide = ide LLESSER 
+    ide_list = list_of(COMMA, ide) GGREATER
+    ty_opt = optional(colon_type_expression) EQUAL e = seq_expression
+    { let e = match ty_opt with
+	| None -> e
+	| Some(ty) -> make (Etypeconstraint(e, ty)) $startpos(e) $endpos(e) in
+      EQsizefun(ide, ide_list, e) }
   | i = is_inline a = is_atomic k = fun_kind_opt ide = ide 
         LLESSER ide_list = list_of(COMMA, ide) GGREATER 
        v_p_list_list = param_list_list r = result
@@ -961,12 +965,11 @@ pattern_comma_list:
       { p :: pc }
 ;
 
-/* Patterns with a type expression */
 pattern_with_type_expression:
   | p = pattern { p }
-  | p = pattern t = colon_type_expression 
-      { make (Etypeconstraintpat(p, t)) $startpos $endpos }
-
+  | p = pattern ty = colon_type_expression
+    { make (Etypeconstraintpat(p, ty)) $startpos $endpos }
+;
 
 pattern_label_list :
   | p = pattern_label SEMI pl = pattern_label_list
