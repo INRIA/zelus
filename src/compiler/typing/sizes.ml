@@ -520,7 +520,8 @@ let localise f_env n_env sc =
            n_env id_e_list in
        localise f_loc_list f_env n_env sc
     | If(sc1, sc2, sc3) ->
-       if eval_constraint f_env n_env sc1 then localise f_loc_list f_env n_env sc2 
+       if eval_constraint f_env n_env sc1 then
+         localise f_loc_list f_env n_env sc2 
        else localise f_loc_list f_env n_env sc3
     | Fix(id_id_list_sc_list, sc) ->
        let f_env_final =
