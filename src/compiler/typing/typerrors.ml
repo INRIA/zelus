@@ -180,7 +180,7 @@ let message loc kind =
         Ptypes.ptype  expected_ty
   | Etype_clash_in_handlers(m_loc, actual_ty, expected_ty) ->
      eprintf "@[%aType error: the types for all the handlers do not agree.\n\
-                %aIn this handler, the result has type@ %a,@ \
+                %aIn this handler, the right-hand side has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         output_location loc
         output_location m_loc

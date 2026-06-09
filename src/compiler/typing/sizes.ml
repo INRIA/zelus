@@ -22,9 +22,9 @@ open Ident
 open Defsizes
 
 exception Maybe
-(* raise an exception when the decision algorithm fails to decide that [sc] is *)
-(* true or false. For example, [sc] containts a free variable and *)
-(* the decision algorithm is not good enough *)
+(* raise an exception when the decision algorithm fails to decide *)
+(* that [sc] is true or false. For example, [sc] containts a free *)
+(* variable and the decision algorithm is not good enough *)
   
 (* normal form for polynomial sizes : some of products *)
 module SumOfProducts =
@@ -284,9 +284,9 @@ let decompose env si =
 (* This is not a problem for correctness and completeness since *)
 (* size constraints that are not trivially true or false *)
 (* will be ultimately evaluated when size variables are known. *)
-(* Yet, we shall complement this stategy with more advanced decision algorithms *)
-(* to obtain better diagnostics and to find type errors early. *)
-let eq si1 si2 =
+(* Yet, we shall complement this stategy with a more advanced decision *)
+(* algorithms to detect errors early and improve diagnosis *)
+let equal si1 si2 =
   let open SumOfProducts in
   (* apply substitutions for meta size-variables *)
   let env = Defsizes.get_size_substitution () in
@@ -305,6 +305,30 @@ let eq si1 si2 =
     with
     | Not_found ->
        Defsizes.add (Rel { rel = Eq; lhs = si1; rhs = si2 }); true
+
+let surely_equal si1 si2 =
+  let open SumOfProducts in
+  (* apply substitutions for meta size-variables *)
+  let env = Defsizes.get_size_substitution () in
+  let si11 = subst_in_size env si1 in
+  let si22 = subst_in_size env si2 in
+  let sp = normalize (minus si11 si22) in
+  SumProduct.is_surely_zero sp
+
+(* is a pattern [p_i] in a [match size si with | (p_i -> e_i)_i] *)
+(* equal to a size [si] *)
+let rec pattern_equal { Zelus.pat_desc } si =
+  match pat_desc, si with
+  (* the cases where it returns [true] *)
+  | Ewildpat, _ -> true
+  | Econstpat(Eint(i)), Sint(j) when i = j -> true
+  | Evarpat(x), Svar(y) when Ident.compare x y = 0 -> true
+  | Ealiaspat(p, x), Svar(y) when Ident.compare x y = 0 -> true
+  | Etypeconstraintpat(p, _), _ -> pattern_equal p si
+  | Eorpat(p1, p2), _ ->
+     (pattern_equal p1 si) && (pattern_equal p2 si)
+  | Ealiaspat(p, _), _ -> pattern_equal p si
+  | _ -> false
 
 let compare loc cmp si1 si2 =
   let exception Maybe in

@@ -667,26 +667,48 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(* given a size expression [s] and a list of pairs *)
-(* [pat_0, ty_0; ...; pat_n, ty_n] *)
+(* given a size expression [si], a list of pairs *)
+(* [p_0 -> ty_0 | ... | pat_n -> ty_n] and [def_cond_sc_list], a list *)
+(* of handlers [(def_cond_1, sc_0);...;(def_cond_n, sc_n)] *)
 (* computes a type [ty] such that [pat_i matches s => t matches ty_i] *)
 (* this function is used to type a pattern matching on a size *)
 (* [match size s with (| pat_i -> e_i : ty_i)_i] and generate a more *)
 (* general type than a types that unifies with all the ty_i *)
-let rec join_types loc si mh_list ty_list =
-  match mh_list, ty_list with
-  | [{ m_pat; m_loc }], [ty] -> ty
-  | { m_pat = p1; m_loc } :: mh_list, ty1 :: ty_list ->
-     let ty2 = join_types loc si mh_list ty_list in
-     let ty =
-       try
-         Types.join_two_types si p1 ty1 ty2
-       with
-       | Types.Unify ->
-          error loc (Etype_clash_in_handlers(m_loc, ty1, ty2)) in
-     ty
-  | _ -> assert false
- 
+(* the list of handlers is updated with the generated size constraint *)
+(* for every branch *)
+let join_types loc si mh_list def_cond_sc_list ty_list =
+  (* first compute a type [ty] that is possibly more general than *)
+  (* the returned type for every handler of a pattern matching of a size *)
+  let rec join_types_from_handlers mh_list ty_list =
+    match mh_list, ty_list with
+    | [{ m_pat }], [ty] -> ty
+    | { m_pat } :: mh_list, ty_left :: ty_list ->
+       let ty_right = join_types_from_handlers mh_list ty_list in
+       Types.join_two_types si m_pat ty_left ty_right
+    | _ -> assert false in
+  
+  (* check that every handler has type [ty_res]*)
+  let check expected_ty { m_pat; m_loc } (def_cond, sc) actual_ty =
+    (* push constraint *)
+     Defsizes.push_c sc;
+     begin try
+       Types.unify expected_ty actual_ty
+     with
+     | Types.Unify ->
+        error loc (Etype_clash_in_handlers(m_loc, expected_ty, actual_ty))
+     end;
+     let sc = Defsizes.pop () in
+     def_cond, sc in
+
+  (* try to find a type [ty[si]] such that *)
+  (* [ty[p_0]] = ty_0;...;ty[p_n] = ty_n] *)
+  (* this function never fails *)
+  let expected_ty = join_types_from_handlers mh_list ty_list in
+  (* check it is indeed more general *)
+  let def_cond_sc_list =
+    Util.map3 (check expected_ty) mh_list def_cond_sc_list ty_list in
+  expected_ty, def_cond_sc_list
+
 (* Typing a pattern matching on a size. It returns the set of *)
 (* defined names and the computed kind *)
 
@@ -719,10 +741,11 @@ let match_size_handlers
     List.split defined_names_k_ty_res_list in
   let k_list, ty_res_list = List.split k_ty_res_list in
 
-  (* find a more general type [ty[n]] such that [ty_i = ty[v_i]] where *)
-  (* [v_i] is the pattern of the i-th handler *)
-  let actual_ty_res =
-    join_types loc si m_handlers ty_res_list in
+  (* find a more general type [ty[n]] such that [ty_i = ty[p_i]] where *)
+  (* [p_i] is the pattern of the i-th handler *)
+  (* warning: this imposes that [si = n] *)
+  let actual_ty_res, c_list =
+    join_types loc si m_handlers c_list ty_res_list in
   unify loc ty_res actual_ty_res;
   
   (* check partiality/redundancy of the pattern matching *)

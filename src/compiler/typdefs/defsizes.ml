@@ -75,10 +75,14 @@ let clear () =
   c_stack.size_variables <- Env.empty;
   c_stack.size_substitution <- Env.empty
 
-(* push an empty constraint *)
+(* push and start with an empty constraint *)
 let push () =
   Stack.push c_stack.current c_stack.stack;
   c_stack.current <- True
+(* push and start with constraint c *)
+let push_c c =
+  Stack.push c_stack.current c_stack.stack;
+  c_stack.current <- c
 
 let add c =
   c_stack.current <-

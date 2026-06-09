@@ -423,7 +423,7 @@ let rec unify expected_ty actual_ty =
            (* if [si1] and [si2] are surely not equal, raise an exception *)
            (* if they may be equal, add the equality to the set of *)
            (* constraints *)
-           if not (Sizes.eq si1 si2) then raise Unify
+           if not (Sizes.equal si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when
                (List.length id_list1) = (List.length id_list2) ->
@@ -475,48 +475,49 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
       (id, sizefun id_list ty constraints false))
     id_id_list_ty_constraints_list
 
-(* Given [si] and two handlers [p1 -> e1: ty1; _ -> e2: ty2] *)
-(* computes a type [ty] such that [ty1] and [ty2] are instances of [ty] *)
-(* by substituting a size variable. That is *)
-(* let rho = p1 matches si in rho(ty) = ty1 and ty = ty2 otherwise *)
+(* Given two types [ty1] and [ty] in two pattern matching handlers *)
+(* [p1 -> e1: ty1; _ -> e2: ty2, computes a more general *)
+(* type [ty[si]] such that [ty[p1] = ty1] and [ty[si] = ty2] *)
 let rec join_two_types si p1 ty1 ty2 =
-  let ty1 = typ_repr ty1 in
-  let ty2 = typ_repr ty2 in
-  match ty1.t_desc, ty2.t_desc with
-  | Tproduct(ty_list1), Tproduct(ty_list2) ->
-     let ty_list =
-       try List.map2 (join_two_types si p1) ty_list1 ty_list2
-       with | Invalid_argument _ -> raise Unify in
-     product ty_list
-  | Tconstr(n1, ty_list1, abbrev),
-    Tconstr(n2, ty_list2, _) when same_types n1 n2 ->
-     let ty_list =
-       try List.map2 (join_two_types si p1) ty_list1 ty_list2
-       with | Invalid_argument _ -> raise Unify in
-     constr n1 ty_list abbrev
-  | Tarrow { ty_kind = k1; ty_name_opt = None;
-             ty_arg = ty_arg1; ty_res = ty_res1 },
-    Tarrow { ty_kind = k2; ty_name_opt = None;
-             ty_arg = ty_arg2; ty_res = ty_res2 } when k1 = k2 ->
-     let ty_arg = join_two_types si p1 ty_arg1 ty_arg2 in
-     let ty_res = join_two_types si p1 ty_res1 ty_res2 in
-     arrow_type k1 None ty_arg ty_res
-  | Tvec(ty1, si1), Tvec(ty2, si2) ->
-     let ty = join_two_types si p1 ty1 ty2 in
-     let si' = join_two_sizes si p1 si1 si2 in
-     vec ty si'
-  | _ -> unify ty1 ty2; ty1
+  let rec join_two_types ty1 ty2 =
+    if ty1 == ty2 then ty1 else
+      let ty1 = typ_repr ty1 in
+      let ty2 = typ_repr ty2 in
+      match ty1.t_desc, ty2.t_desc with
+      | Tproduct(ty_list1), Tproduct(ty_list2) ->
+         let ty_list =
+           try List.map2 join_two_types ty_list1 ty_list2
+           with | Invalid_argument _ -> raise Unify in
+         product ty_list
+      | Tconstr(n1, ty_list1, abbrev),
+        Tconstr(n2, ty_list2, _) when same_types n1 n2 ->
+         let ty_list =
+           try List.map2 join_two_types ty_list1 ty_list2
+           with | Invalid_argument _ -> raise Unify in
+         constr n1 ty_list abbrev
+      | Tarrow { ty_kind = k1; ty_name_opt = None;
+                 ty_arg = ty_arg1; ty_res = ty_res1 },
+        Tarrow { ty_kind = k2; ty_name_opt = None;
+                 ty_arg = ty_arg2; ty_res = ty_res2 } when k1 = k2 ->
+         let ty_arg = join_two_types ty_arg1 ty_arg2 in
+         let ty_res = join_two_types ty_res1 ty_res2 in
+         arrow_type k1 None ty_arg ty_res
+      | Tvec(ty1, si1), Tvec(ty2, si2) ->
+         let ty = join_two_types ty1 ty2 in
+         let si' = join_two_sizes si p1 si1 in
+         vec ty si'
+      | Tvar, _ -> ty2
+      | _, Tvar -> ty1
+      | _ -> raise Unify in
+  join_two_types ty1 ty2
 
-(* the join of two sizes is limited. It only treat a trivial situation *)
-and join_two_sizes si p1 si1 si2 =
-  match si, p1.pat_desc, si1, si2 with
-  | Svar(n), Econstpat(Eint(v_p)), Sint(v), Svar(n')
-       when (v_p = v) && (n = n') ->
-     (* the size of the first branch is a constant [v] and the pattern *)
-     (* is also [v]; the size of the second branch is [n] *)
-     Svar(n')     
-  | _ ->
-     if not (Sizes.eq si1 si2) then raise Unify else si1
+(* the join of two size types is limited: *)
+(* if [si = si1] or the size [si1 = p1], that is, the value for *)
+(* the actual size [si] is [pi], return [si]. Return [si1] otherwise *)
+and join_two_sizes si p1 si1 =
+  if Sizes.surely_equal si si1 then si
+  else
+    if Sizes.pattern_equal p1 si1 then si else si1
 
 let filter_product arity ty =
   let ty = typ_repr ty in

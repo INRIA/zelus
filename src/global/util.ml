@@ -50,6 +50,13 @@ let rec iter f = function
 
 let fold f l = List.rev (List.fold_left f [] l)
 
+let rec map3 f l1 l2 l3 =
+  match l1, l2, l3 with
+  | [], [], [] -> []
+  | x1 :: l1, x2 :: l2, x3 :: l3 ->
+     f x1 x2 x3 :: (map3 f l1 l2 l3)
+  | _ -> raise (Invalid_argument "Util.map3")
+
 let from i =
   let rec fromrec acc i =
     match i with
