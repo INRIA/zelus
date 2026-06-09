@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -851,7 +851,8 @@ and type_of_for_vardec_list env n_list =
 (* size expression are executed atomically *)
 and for_size_t env c_free c_in for_size_opt =
   Util.optional_unit
-    (fun env e -> exp_less_than_on_c env c_free e c_in) env for_size_opt
+    (fun env { for_size_exp } ->
+      exp_less_than_on_c env c_free for_size_exp c_in) env for_size_opt
 
 and for_kind_t env c_free c_out for_kind =
   match for_kind with

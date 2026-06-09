@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -61,7 +61,6 @@ let find_label loc lname =
   try Modules.find_label lname
   with Not_found -> error loc (Eglobal_undefined(Label, lname))
 
-
 (* The main unification functions *)
 let unify loc expected_ty actual_ty =
   try
@@ -74,7 +73,7 @@ let compare_sizes loc cmp left_size right_size =
   then error loc (Esize_clash(cmp, left_size, right_size))
 
 let check_is_vec loc actual_ty =
-    try Types.filter_vec actual_ty
+    try Types.filter_intro_vec loc actual_ty
     with
     | Unify ->
        error loc Esize_of_vec_is_undetermined
@@ -100,7 +99,18 @@ let stateful loc expected_k =
   then error loc
          (Ekind_clash(Deftypes.Tnode(Deftypes.Tdiscrete), expected_k))
 
-(* check that a type belong to a kind *)
+(* check that a size index [i_opt] does not appear in a type environment [h] *)
+(* this is done whenever typing the body of a for loop when the type of a *)
+(* local variable depends on a size index *)
+let check_size_index_not_in_h loc index_opt h =
+  let check_one index x { t_tys = { typ_body } } =
+    if S.mem index (Types.fv S.empty typ_body)
+    then error loc (Esize_index_escape_in_environment(index, x, typ_body)) in
+  match index_opt with
+  | None -> ()
+  | Some(index) -> Env.iter (check_one index) h
+
+(* check that a type belong to a kind [vkind] *)
 let check_type_is_in_kind loc h actual_k vkind =
   let type_in_kind loc ty vkind =
     if not (Kind.in_vkind vkind ty)
@@ -112,19 +122,18 @@ let check_type_is_in_kind loc h actual_k vkind =
   Env.iter
     (fun _ { t_tys = { typ_body } } -> type_in_kind loc typ_body vkind) h
 
-(* Check that there is no more free size variable in [ty] *)
-let check_no_unbounded_size_variable_in_env loc h =
-  let check_no_unbounded_size_variable loc fv ty =
-    if not (S.is_empty fv)
+(* Check that there is no more free size variable in the environment [h] *)
+let check_no_more_unbound_size_variable_in_env loc h =
+  let check loc f free ty =
+    if not (S.is_empty free)
     then
-      let n = S.choose fv in
-      error loc (Esize_parameter_cannot_be_generalized(n, ty)) in
-  
+      let n = S.choose free in
+      error loc (Esize_unbound_size_variable(f, n, ty)) in
   Env.iter
-    (fun _ { t_tys = { typ_body } } ->
-      check_no_unbounded_size_variable loc (Types.fv S.empty typ_body)
-        typ_body) h
+    (fun f { t_tys = { typ_body } } ->
+      check loc f (Types.fv S.empty typ_body) typ_body) h
 
+(* compare two kinds *)
 let less_than loc actual_k expected_k =
   if not (Kind.is_less_than actual_k expected_k)
   then error loc (Ekind_clash(actual_k, expected_k))
@@ -170,7 +179,7 @@ let kind_of_funexp loc expected_k arg_v expected_body_k =
     | _, Tany, _ -> Tfun(Tany) in
   actual_k, expected_body_k
            
-(* An equation is expansive if one is *)
+(* An equation is expansive if it contains an expansive expression *)
 let rec expansive { eq_desc } =
   (* an expression is expansive if it is an application *)
   let rec exp { e_desc } =
@@ -189,39 +198,21 @@ let rec expansive { eq_desc } =
   | _ -> true
 and expansive_list eq_list = List.exists expansive eq_list
 
-(* check size constraints *)
+(* check size constraints. It may raise [Sizes.Maybe] *)
 let check_size_constraint loc sc =
-  try
-    let r = 
-      if Sizes.check Env.empty Env.empty sc then ()
-      else 
-        (* [sc] is surely false *)
-        let f_loc_list, nested_env, nested_sc =
-          Sizes.localise Env.empty Env.empty sc
-        in error loc 
-             (Esize_constraints_not_true
-                { f_loc_list; top_sc = sc; nested_env; nested_sc })
-    in r
-  with
-  | Sizes.Maybe ->
-     error loc 
-             (Esize_constraints_not_true
-                { f_loc_list = []; top_sc = sc; nested_env = Env.empty;
-                  nested_sc = sc })
+  if Sizes.eval_constraint Env.empty Env.empty sc then ()
+  else 
+    (* [sc] is surely false *)
+    let f_loc_list, nested_env, nested_sc =
+      Sizes.localise Env.empty Env.empty sc in
+    error loc (Esize_constraints_not_true
+                 { f_loc_list; top_sc = sc; nested_env; nested_sc })
 
-(* check size constraints *)
+(* check size constraints. if [sc] maybe true, add a constraint to the *)
+(* global stack of constraints *)
 let check_size_constraint_if_possible loc sc =
   try
-    let r = 
-      if Sizes.check Env.empty Env.empty sc then ()
-      else 
-        (* [sc] is surely false *)
-        let f_loc_list, nested_env, nested_sc =
-          Sizes.localise Env.empty Env.empty sc
-        in error loc 
-             (Esize_constraints_not_true
-                { f_loc_list; top_sc = sc; nested_env; nested_sc })
-    in r
+    check_size_constraint loc sc
   with
   | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(Location.current_iname loc, sc))
 
@@ -249,7 +240,13 @@ let immediate = function
 
 (* Types for local identifiers *)
 let var loc h n =
-  try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
+  try
+    let { t_sort } as entry = Env.find n h in
+    match t_sort with
+    | Sort_val | Sort_var | Sort_mem { m_only_last = false } -> entry
+    | _ -> error loc (Eonly_last_is_allowed(n))
+  with
+  | Not_found -> error loc (Evar_undefined(n))
 
 let typ_of_var loc h n = let { t_tys } = var loc h n in t_tys
 
@@ -345,14 +342,17 @@ let check_definitions_for_every_name defined_names n_list =
     defined_names n_list
 
 (* Computes the type from a vardec list *)
-let type_of_vardec { var_info } = Typinfo.get_type var_info
-let type_of_n_list type_of n_list =
-  let ty_list = List.map type_of n_list in
+let type_of_ty_list ty_list =
   match ty_list with
   | [] -> Initial.typ_unit
   | [ty] -> ty
   | _ -> Types.product ty_list
-let type_of_vardec_list n_list = type_of_n_list type_of_vardec n_list
+let type_of_n_list type_of n_list =
+  let ty_list = List.map type_of n_list in
+  type_of_ty_list ty_list
+
+let get_type_of_vardec { var_info } = Typinfo.get_type var_info
+let get_type_of_vardec_list n_list = type_of_n_list get_type_of_vardec n_list
 
 (* make a function type from a function definition. *)
 (* remove useless dependences:
@@ -393,6 +393,14 @@ let env_of_pattern entry acc pat =
        List.fold_left (fun acc { arg } -> pattern acc arg) acc label_pat_list
   and pattern_list acc p_list = List.fold_left pattern acc p_list in
   pattern acc pat
+
+(* check that there is no remaining unbound size variables *)
+(* in the global stack of constraints *)
+let check_no_more_unbound_size_variables () =
+  let env = Defsizes.get_size_variables () in
+  if Env.is_empty env then ()
+  else let n, loc = Env.choose env in
+       Typerrors.error loc (Typerrors.Esize_unbound_meta_size_variable(n))
 
 let size_entry vkind =
   Deftypes.size_entry vkind (Deftypes.scheme (Initial.typ_int))
@@ -659,12 +667,56 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(* Typing a pattern matching of a size. Returns defined names *)
-(* the size must be known ultimately at compile-time (that is, it is a constant *)
-(* not an expression with variables *)
-(* generates a size constraint [if si matches p1 then c1 else ... else cn] *)
+(* given a size expression [si], a list of pairs *)
+(* [p_0 -> ty_0 | ... | pat_n -> ty_n] and [def_cond_sc_list], a list *)
+(* of handlers [(def_cond_1, sc_0);...;(def_cond_n, sc_n)] *)
+(* computes a type [ty] such that [pat_i matches s => t matches ty_i] *)
+(* this function is used to type a pattern matching on a size *)
+(* [match size s with (| pat_i -> e_i : ty_i)_i] and generate a more *)
+(* general type than a types that unifies with all the ty_i *)
+(* the list of handlers is updated with the generated size constraint *)
+(* for every branch *)
+let join_types loc si mh_list def_cond_sc_list ty_list =
+  (* first compute a type [ty] that is possibly more general than *)
+  (* the returned type for every handler of a pattern matching of a size *)
+  let rec join_types_from_handlers mh_list ty_list =
+    match mh_list, ty_list with
+    | [{ m_pat }], [ty] -> ty
+    | { m_pat } :: mh_list, ty_left :: ty_list ->
+       let ty_right = join_types_from_handlers mh_list ty_list in
+       Types.join_two_types si m_pat ty_left ty_right
+    | _ -> assert false in
+  
+  (* check that every handler has type [ty_res]*)
+  let check expected_ty { m_pat; m_loc } (def_cond, sc) actual_ty =
+    (* push constraint *)
+     Defsizes.push_c sc;
+     begin try
+       Types.unify expected_ty actual_ty
+     with
+     | Types.Unify ->
+        error loc (Etype_clash_in_handlers(m_loc, actual_ty, expected_ty))
+     end;
+     let sc = Defsizes.pop () in
+     def_cond, sc in
+
+  (* try to find a type [ty[si]] such that *)
+  (* [ty[p_0]] = ty_0;...;ty[p_n] = ty_n] *)
+  (* this function never fails *)
+  let expected_ty = join_types_from_handlers mh_list ty_list in
+  (* check it is indeed more general *)
+  let def_cond_sc_list =
+    Util.map3 (check expected_ty) mh_list def_cond_sc_list ty_list in
+  expected_ty, def_cond_sc_list
+
+(* Typing a pattern matching on a size. It returns the set of *)
+(* defined names and the computed kind *)
+
+(* The typing rule generates a size constraint *)
+(* [if si matches p1 then c1 else ... else cn] *)
 (* where [si match p1] is a comparison and [ci] is the constraint on sizes *)
 (* for body [b] *)
+(* this size constraint is added to the stack of constraints *)
 let match_size_handlers
       body loc expected_k h is_total si m_handlers ty_res =
   let handler ({ m_pat = pat; m_body = b } as mh) =
@@ -680,22 +732,21 @@ let match_size_handlers
     let defined_names, actual_k = body expected_k h b new_ty_res in
     (* pop the current size constraint *)
     let constraints = Defsizes.pop () in
-    (defined_names, (actual_k, new_ty_res)), (Sizes.matches pat si, constraints) in
+    (defined_names, (actual_k, new_ty_res)),
+    (Sizes.matches pat si, constraints) in
   let defined_names_k_ty_res_c_list = List.map handler m_handlers in
   let defined_names_k_ty_res_list, c_list =
     List.split defined_names_k_ty_res_c_list in
-  let defined_names_list, k_ty_res_list = List.split defined_names_k_ty_res_list in
+  let defined_names_list, k_ty_res_list =
+    List.split defined_names_k_ty_res_list in
   let k_list, ty_res_list = List.split k_ty_res_list in
 
-  (* all the type results should unify with ty_res *)
-  List.iter2
-    (fun { m_loc } actual_ty_res ->
-      try
-        Types.unify ty_res actual_ty_res
-      with
-      | Types.Unify ->
-         error loc (Etype_clash_in_handlers(m_loc, actual_ty_res, ty_res)))
-    m_handlers ty_res_list;
+  (* find a more general type [ty[n]] such that [ty_i = ty[p_i]] where *)
+  (* [p_i] is the pattern of the i-th handler *)
+  (* warning: this imposes that [si = n] *)
+  let actual_ty_res, c_list =
+    join_types loc si m_handlers c_list ty_res_list in
+  unify loc ty_res actual_ty_res;
   
   (* check partiality/redundancy of the pattern matching *)
 
@@ -954,7 +1005,9 @@ let intro_vardec expected_k var_init var_default var_init_in_eq =
 (* Typing the declaration of variables. The result is a typing environment *)
 (* for names defined and a sort *)
 let rec vardec_list expected_k h v_list =
-  List.fold_left (vardec expected_k h) (Env.empty, Tfun(Tconst)) v_list
+  let ty_list, (acc_h, acc_k) =
+    Util.mapfold (vardec expected_k h) (Env.empty, Tfun(Tconst)) v_list in
+  ty_list, (acc_h, acc_k)
 
 and vardec expected_k h (acc_h, acc_k)
  ({ var_name; var_default; var_init; var_clock;
@@ -980,8 +1033,9 @@ and vardec expected_k h (acc_h, acc_k)
     Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
   (* type annotation *)
   v.var_info <- Typinfo.set_type v.var_info expected_ty;
-  Env.add var_name entry acc_h,
-  Kind.sup actual_k (Kind.sup actual_k_init acc_k)
+  expected_ty,
+  (Env.add var_name entry acc_h,
+   Kind.sup actual_k (Kind.sup actual_k_init acc_k))
   
 (* [expression expected_k h e] returns the type for [e] and [actual kind] *)
 and expression expected_k h ({ e_desc; e_loc } as e) =
@@ -1232,21 +1286,24 @@ and array_operator expected_k h loc op e_list =
        | Slice_both, [i1; i2] ->
           let actual_ki1 = expect expected_k h i1 Initial.typ_int in
           let actual_ki2 = expect expected_k h i2 Initial.typ_int in
-          (* [i1] and [i2] must be sizes; not index *)
-          let si1 = size_of_exp Tconst h i1 in
-          let si2 = size_of_exp Tconst h i2 in
+          (* [i1,i2] must be index, that is, positive integer bounded *)
+          (* by a size *)     
+          let si1 = size_of_exp (Kind.vkind_of_kind expected_k) h i1 in
+          let si2 = size_of_exp (Kind.vkind_of_kind expected_k) h i2 in
           let si_i = Sizes.plus (Sizes.minus si2 si1) Sizes.one in
           compare_sizes a.e_loc Defsizes.Lte si_i si;
           Types.vec ty si_i, Kind.sup actual_k (Kind.sup actual_ki1 actual_ki2)
        | Slice_left, [i1] ->
+          (* [i1] must be an index *)
           let actual_ki1 = expect expected_k h i1 Initial.typ_int in
-          let si1 = size_of_exp Tconst h i1 in
+          let si1 = size_of_exp (Kind.vkind_of_kind expected_k) h i1 in
           let si_i = Sizes.minus si si1 in
           compare_sizes a.e_loc Defsizes.Lte si1 si;
           Types.vec ty si_i, Kind.sup actual_k actual_ki1
        | Slice_right, [i2] ->
+          (* [i2] must be an index *)
           let actual_ki2 = expect expected_k h i2 Initial.typ_int in
-          let si2 = size_of_exp Tconst h i2 in
+          let si2 = size_of_exp (Kind.vkind_of_kind expected_k) h i2 in
           let si_i = Sizes.plus si2 Sizes.one in
           compare_sizes a.e_loc Defsizes.Lte si_i si;
           Types.vec ty si_i, Kind.sup actual_k actual_ki2
@@ -1280,8 +1337,8 @@ and funexp expected_k h
   let arg_list expected_k h f_args =
     (* typing an argument. An argument is a list of vardec declarations *)
     let arg (h, acc_h) v_list =
-      let h_arg, actual_k = vardec_list expected_k h v_list in
-      let ty = type_of_vardec_list v_list in
+      let ty_list, (h_arg, actual_k) = vardec_list expected_k h v_list in
+      let ty = type_of_ty_list ty_list in
       let n_opt =
         (* a dependence is allowed only when the input is a list made *)
         (* of a single argument. This may change in the future *)
@@ -1312,7 +1369,7 @@ and result expected_k h ({ r_desc } as r) =
        ty, actual_k
     | Returns ({ b_vars } as b) ->
        let _, new_h, _, actual_k = block_eq expected_k h b in
-       type_of_vardec_list b_vars, actual_k in
+       get_type_of_vardec_list b_vars, actual_k in
   (* type annotation *)
   r.r_info <- Typinfo.set_type r.r_info ty;
   ty, actual_k
@@ -1563,7 +1620,7 @@ and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
 
 
 and block_eq expected_k h ({ b_vars; b_body = { eq_write } as b_body } as b) =
-  let h0, actual_k_h0 = vardec_list expected_k h b_vars in
+  let ty_list, (h0, actual_k_h0) = vardec_list expected_k h b_vars in
   let h = Env.append h0 h in
   let defined_names, actual_k_body = equation expected_k h b_body in
   (* check that every name in [n_list] has a definition *)
@@ -1754,25 +1811,32 @@ and forloop_exp loc expected_k h
     match size_opt with | None -> error loc Esize_is_undetermined
                         | Some(size) -> size in
 
-  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
-  (* push an empty size constraint *)
+  (* if [for_index = Some(i)], [i] can appear in size constraints in *)
+  (* [for_exp] but it should not escape the scope of the for loop, that is *)
+  (* it must not happen in the typing environment nor the type of input *)
+  (* and output values of the loop *)
+  (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
-    for_exp_t expected_k_for_body h size for_body in
-  (* pop the current size constraint *)
+    for_exp_t loc expected_k_for_body h size for_index for_body in
+  (* 1.2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible loc (Sizes.forall i si sc)) () for_index;
+      check_size_constraint_if_possible
+        loc (Sizes.forall i si sc)) () for_index;
+  (* 2: check that the size index does not escape its scope *)
+  check_size_index_not_in_h loc for_index h;
+
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   actual_ty, actual_k
 
-and for_exp_t expected_k h size for_exp =
+and for_exp_t loc expected_k h size for_index for_exp =
   let ty_res, k = match for_exp with
     | Forexp { exp; default } ->
        let actual_ty, k_exp = expression expected_k h exp in
@@ -1781,8 +1845,8 @@ and for_exp_t expected_k h size for_exp =
            (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
        Types.vec actual_ty size, Kind.sup k_exp k_default
     | Forreturns({ r_returns; r_block } as r) ->
-       let h_returns, k_returns =
-         List.fold_left (for_vardec expected_k h)
+       let ty_list, (h_returns, k_returns) =
+         Util.mapfold (for_vardec loc expected_k for_index h)
            (Env.empty, Tfun(Tconst)) r_returns in
        let h = Env.append h_returns h in
        let h0, h, d_names, k_block = block_eq expected_k h r_block in
@@ -1791,21 +1855,42 @@ and for_exp_t expected_k h size for_exp =
        type_of_for_vardec_list size r_returns, Kind.sup k_returns k_block in
   ty_res, k
 
-and for_vardec expected_k h (acc_h, acc_k) { desc = { for_vardec } } =
-  vardec expected_k h (acc_h, acc_k) for_vardec
+and for_vardec loc expected_k for_index h (acc_h, acc_k)
+  { desc = { for_vardec; for_as } } =
+  (* type the return clause *)
+  let ty, (new_acc_h, new_acc_k) =
+    vardec expected_k h (acc_h, acc_k) for_vardec in
+  (* if [as x_] is given, enrich the type environment with *)
+  (* [last x : [for_index]ty *)
+  let new_acc_h =
+    match for_index, for_as with
+    | _, None -> new_acc_h
+    | Some(index), Some(as_name) ->
+       (* add an entry: only [last as_name] is allowed *)
+       (* its type is [index]ty *)
+       Env.add as_name
+         (Deftypes.entry expected_k
+            (Deftypes.Sort_mem memory_only_last)
+            (Deftypes.scheme (Types.vec ty (Sizes.var index)))) new_acc_h
+    | None, Some(as_name) ->
+       (* we impose that is [as x_] is used, the index [i] is given *)
+       (* this constraint is impose for diagnosis; it will be *)
+       (* removed later *)
+       error loc (Eloop_index_is_missing(as_name)) in
+  ty, (new_acc_h, new_acc_k)
 
 and type_of_for_vardec_list size n_list =
-  let type_of { desc = { for_array; for_vardec } } =
-    let ty = type_of_vardec for_vardec in
+  let type_of { desc = { for_array; for_vardec; for_as } } =
+    let ty = get_type_of_vardec for_vardec in
     Types.vec_n for_array ty size in
   type_of_n_list type_of n_list
 
 and for_size_t expected_k h for_size_opt =
   match for_size_opt with
   | None -> None, Tfun(Tconst)
-  | Some(e) ->
-     let actual_k = expect (Tfun(Tany)) h e Initial.typ_int in
-     let s = size_of_exp Tconst h e in
+  | Some { for_size_index; for_size_exp } ->
+     let actual_k = expect (Tfun(Tany)) h for_size_exp Initial.typ_int in
+     let s = size_of_exp Tconst h for_size_exp in
      Some(s), actual_k
 
 and for_kind_t loc expected_k h for_kind =
@@ -1830,10 +1915,11 @@ and for_index_t expected_k for_index_opt =
         (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
-and for_eq_t expected_k size h ({ for_out; for_block } as f) =
+and for_eq_t loc expected_k size for_index h ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
-      (for_out_t expected_k size h) (Env.empty, Tfun(Tconst)) for_out in
+      (for_out_t loc expected_k size for_index h)
+      (Env.empty, Tfun(Tconst)) for_out in
   let h = Env.append h_out h in
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
@@ -1851,8 +1937,9 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   let name = match for_out_name with | None -> for_name | Some(x) -> x in
   Defnames.union (Defnames.singleton name) acc
 
-and for_out_t expected_k size h (acc_h, acc_k)
-      { desc = ({ for_name; for_out_name; for_init; for_default } as v); loc } =
+and for_out_t loc expected_k size for_index h (acc_h, acc_k)
+  { desc = ({ for_name; for_out_name; for_init; for_default;
+              for_as_name } as v); loc } =
   let ty = Types.new_var () in
   let actual_k_default =
     Util.optional_with_default
@@ -1870,6 +1957,25 @@ and for_out_t expected_k size h (acc_h, acc_k)
   let entry =
     Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
   let acc_h = Env.add for_name entry acc_h in
+
+  (* if [as x_] is given, enrich the type environment with *)
+  (* [last x : [for_index]ty *)
+  let acc_h =
+    match for_index, for_as_name with
+    | _, None -> acc_h
+    | Some(index), Some(as_name) ->
+       (* add an entry: only [last as_name] is allowed *)
+       (* its type is [index]ty *)
+       Env.add as_name
+         (Deftypes.entry expected_k
+            (Deftypes.Sort_mem memory_only_last)
+            (Deftypes.scheme (Types.vec ty (Sizes.var index)))) acc_h
+    | None, Some(as_name) ->
+       (* we impose that is [as x_] is used, the index [i] is given *)
+       (* this constraint is impose for diagnosis; it will be *)
+       (* removed later *)
+       error loc (Eloop_index_is_missing(as_name)) in
+
   let ty_out =
     Util.optional_with_default
       (fun x -> (* xi out x *)
@@ -1877,10 +1983,10 @@ and for_out_t expected_k size h (acc_h, acc_k)
         let ty_x = Types.instance (typ_of_var loc h x) in
         let ty_out = Types.vec ty size in
         unify loc ty_out ty_x; ty_out) ty for_out_name in
-    (* annotation *)
-    v.for_info <- Typinfo.set_type v.for_info ty_out;
-    let acc_k = Kind.sup acc_k actual_k in
-    acc_h, acc_k
+  (* annotation *)
+  v.for_info <- Typinfo.set_type v.for_info ty_out;
+  let acc_k = Kind.sup acc_k actual_k in
+  acc_h, acc_k
 
 and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
   match desc with
@@ -1941,21 +2047,29 @@ and forloop_eq loc expected_k h
   
   (* the size must be determined at this point *)
   let size =
-    match size_opt with | None -> error loc Esize_is_undetermined
-                        | Some(size) -> size in
-
-  (* if [for_index = Some(i)], [i] can appear in size constraints in [for_exp] *)
-  (* push an empty size constraint *)
+    match size_opt with
+    | None -> error loc Esize_is_undetermined
+    | Some(size) -> size in
+  
+  (* if [for_index = Some(i)], [i] can appear in size constraints in *)
+  (* [for_exp] but it should not escape the scope of the for loop, that is *)
+  (* it must not happen in the typing environment nor the type of input *)
+  (* and output values of the loop *)
+  (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
-    for_eq_t expected_k_for_body size h for_body in
-  (* pop the current size constraint *)
+    for_eq_t loc expected_k_for_body size for_index h for_body in
+  (* 1.2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible loc (Sizes.forall i si sc)) () for_index;
+      check_size_constraint_if_possible
+        loc (Sizes.forall i si sc)) () for_index;
+  (* 2: check that the size index does not escape its scope *)
+  check_size_index_not_in_h loc for_index h;
+
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
@@ -1999,9 +2113,13 @@ let implementation ff is_first impl =
        (* static ones *)
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
 
-       (* check that there is no unbounded size variables *)
-       check_no_unbounded_size_variable_in_env loc new_h;
+       (* check that there is no unbounded size variables in the environment *)
+       check_no_more_unbound_size_variable_in_env loc new_h;
        
+       (* check that there is no remaining unbounded size variables *)
+       (* in the global stack of constraints *)
+       check_no_more_unbound_size_variables ();
+
        (* check that no size constraints remain in the stack *)
        let l = Defsizes.to_seq () in
        Seq.iter (check_size_constraint loc) l;

@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2025 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -188,7 +188,7 @@ module Make (Info: INFO) =
            EQassert({ a with a_body = expression a_body }), Defnames.empty
         | EQforloop({ for_size; for_kind; for_index;
                       for_input; for_body = { for_out; for_block } } as f) ->
-           let for_size = Util.optional_map expression for_size in
+           let for_size = Util.optional_map for_size_expression for_size in
            let for_kind =
              match for_kind with
              | Kforeach -> for_kind
@@ -361,7 +361,7 @@ module Make (Info: INFO) =
            Eassert({ a with a_body = expression a_body })
         | Eforloop
            ({ for_size; for_index; for_kind; for_input; for_body } as f) ->
-           let for_size = Util.optional_map expression for_size in
+           let for_size = Util.optional_map for_size_expression for_size in
            let for_kind =
              match for_kind with
              | Kforeach -> for_kind
@@ -385,6 +385,9 @@ module Make (Info: INFO) =
            Eforloop
              ({ f with for_size; for_kind; for_input; for_env; for_body }) in
       { e with e_desc = desc }
+
+    and for_size_expression ({ for_size_exp } as for_size) =
+      { for_size with for_size_exp = expression for_size_exp }
     
     and for_vardec acc ({ desc = ({ for_vardec } as v) } as fv) =
       let for_vardec, acc = vardec Defnames.empty acc for_vardec in

@@ -54,7 +54,7 @@ let kind k = match k with | Tfun(v) -> vkind v | Tnode(t) -> tkind t
 
 let arrow_tostring = function 
   | Tfun(k) ->
-     (match k with Tconst -> "-SC->" | Tstatic -> "-S->" | Tany -> "-A->")
+     (match k with Tconst -> "-SC->" | Tstatic -> "-S->" | Tany -> "->")
   | Tnode(k) ->
      (match k with Tdiscrete -> "-D->" | Tcont -> "-C->")
     

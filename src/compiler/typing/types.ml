@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -39,8 +39,7 @@ let make ty =
   { t_desc = ty; t_level = generic; t_index = symbol#name }
 let product ty_list =
   make (Tproduct(ty_list))
-(* vectors are of size zero at this stage *)
-let typ_vec ty = make (Tvec(ty, Sint 0))
+
 let vec ty e = make (Tvec(ty, e))
 (* <<id,...>>.t with f(id,...) *)
 let size_app sf_id id_list =
@@ -65,6 +64,7 @@ let rec arrow_type_list k ty_arg_list ty_res =
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
 
+(* introduce a fresh type variable *)
 let new_var () =
   { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
 let new_generic_var () =
@@ -124,7 +124,7 @@ let rec subst_in_type senv ({ t_desc } as ty) =
          (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
          senv id_list id_fresh_list in
      sizefun id_fresh_list (subst_in_type senv ty)
-       (Sizes.subst senv constraints) is_rec
+       (Sizes.subst_in_constraint senv constraints) is_rec
 
 (** Remove dependences from a type *)
 (* [t1 -A-> t2] becomes [t1 -> t2];
@@ -305,15 +305,6 @@ let rec copy ty =
        then sizefun id_list (copy ty_body) constraints is_rec
        else ty
 
-(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
-let rec sizes_per_dimension array_ty =
-  match array_ty.t_desc with
-  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
-  | Tlink(link) -> sizes_per_dimension link
-  | Tconstr _ -> []
-  | Tvec(ty, s) ->
-     s :: (sizes_per_dimension ty)
-
 (* instanciation *)
 let instance { typ_body } =
   let typ_body = copy typ_body in
@@ -429,7 +420,10 @@ let rec unify expected_ty actual_ty =
 	    else raise Unify
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
-           if not (Sizes.eq si1 si2) then raise Unify
+           (* if [si1] and [si2] are surely not equal, raise an exception *)
+           (* if they may be equal, add the equality to the set of *)
+           (* constraints *)
+           if not (Sizes.equal si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when
                (List.length id_list1) = (List.length id_list2) ->
@@ -458,8 +452,9 @@ let rec unify expected_ty actual_ty =
  *- if the definitions are recursive:
  *- [id_1: <<n1,...>>.ty_1 with let rec f_list in id_1(n1,...); ...
  *- [id_k: <<n1,...>>.ty_k with let rec f_list in id_k(n1,...)]
- *- with f_list = id1(n1,...) = if (n1<0) then false else ...if (n_k<0) then false
- *-                             else constraint_1 and ...
+ *- with f_list = id1(n1,...) =
+ *-          if (n1<0) then false else ...if (n_k<0) then false
+ *-          else constraint_1 and ...
  *- if the definitions are not recursive:
  *- [id_1: <<n1,...>>.ty_1 with constraints_1;
  *- [id_k: <<n1,...>>.ty_k with constraints_k] *)
@@ -479,7 +474,51 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
                         else constraints in
       (id, sizefun id_list ty constraints false))
     id_id_list_ty_constraints_list
-    
+
+(* Given two types [ty1] and [ty] in two pattern matching handlers *)
+(* [p1 -> e1: ty1; _ -> e2: ty2, computes a more general *)
+(* type [ty[si]] such that [ty[p1] = ty1] and [ty[si] = ty2] *)
+let rec join_two_types si p1 ty1 ty2 =
+  let rec join_two_types ty1 ty2 =
+    if ty1 == ty2 then ty1 else
+      let ty1 = typ_repr ty1 in
+      let ty2 = typ_repr ty2 in
+      match ty1.t_desc, ty2.t_desc with
+      | Tproduct(ty_list1), Tproduct(ty_list2) ->
+         let ty_list =
+           try List.map2 join_two_types ty_list1 ty_list2
+           with | Invalid_argument _ -> raise Unify in
+         product ty_list
+      | Tconstr(n1, ty_list1, abbrev),
+        Tconstr(n2, ty_list2, _) when same_types n1 n2 ->
+         let ty_list =
+           try List.map2 join_two_types ty_list1 ty_list2
+           with | Invalid_argument _ -> raise Unify in
+         constr n1 ty_list abbrev
+      | Tarrow { ty_kind = k1; ty_name_opt = None;
+                 ty_arg = ty_arg1; ty_res = ty_res1 },
+        Tarrow { ty_kind = k2; ty_name_opt = None;
+                 ty_arg = ty_arg2; ty_res = ty_res2 } when k1 = k2 ->
+         let ty_arg = join_two_types ty_arg1 ty_arg2 in
+         let ty_res = join_two_types ty_res1 ty_res2 in
+         arrow_type k1 None ty_arg ty_res
+      | Tvec(ty1, si1), Tvec(ty2, si2) ->
+         let ty = join_two_types ty1 ty2 in
+         let si' = join_two_sizes si p1 si1 in
+         vec ty si'
+      | Tvar, _ -> ty2
+      | _, Tvar -> ty1
+      | _ -> raise Unify in
+  join_two_types ty1 ty2
+
+(* the join of two size types is limited: *)
+(* if [si = si1] or the size [si1 = p1], that is, the value for *)
+(* the actual size [si] is [pi], return [si]. Return [si1] otherwise *)
+and join_two_sizes si p1 si1 =
+  if Sizes.surely_equal si si1 then si
+  else
+    if Sizes.pattern_equal p1 si1 then si else si1
+
 let filter_product arity ty =
   let ty = typ_repr ty in
     match ty.t_desc with
@@ -518,12 +557,31 @@ let filter_vec ty =
   | Tvec(ty_arg, si) -> ty_arg, si
   | _ -> raise Unify
 
+let filter_intro_vec loc ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tvec(ty_arg, si) -> ty_arg, si
+  | _ ->
+     let ty_arg = new_var () in
+     let si = Sizes.new_size_var loc in
+     unify ty (vec ty_arg si);
+     ty_arg, si
+
 let filter_actual_arrow ty =
   let ty = typ_repr ty in
   match ty.t_desc with
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
      ty_kind, ty_name_opt, ty_arg, ty_res
   | _ -> assert false
+
+(* given an array type [n1]([n2](...[nk]t)) returns [n1,...,nk] *)
+let rec sizes_per_dimension array_ty =
+  match array_ty.t_desc with
+  | Tvar | Tproduct _ | Tarrow _ | Tsizefun _ -> assert false
+  | Tlink(link) -> sizes_per_dimension link
+  | Tconstr _ -> []
+  | Tvec(ty, s) ->
+     s :: (sizes_per_dimension ty)
 
 (* Splits the list of arguments of a function application *)
 (* if [f e1 ... en] is an application with [f] of type

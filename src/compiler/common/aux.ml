@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -221,6 +221,7 @@ let opt_let_leq_in_eq leq_opt eq =
 
 let leq l_rec eq_list =
   { l_kind = Kany; l_rec; l_eq = par eq_list; l_loc = no_location;
+    l_attribute = [];
     l_env = env_of (Defnames.names S.empty (defnames eq_list)); }
 
 let let_leq_in_e ({ l_eq } as leq) e =

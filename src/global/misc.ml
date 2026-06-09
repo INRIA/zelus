@@ -1,11 +1,9 @@
 (***********************************************************************)
 (*                                                                     *)
 (*                                                                     *)
-(*                        The ZRun Interpreter                         *)
+(*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*                             Marc Pouzet                             *)
-(*                                                                     *)
-(*  (c) 2020-2025 Inria Paris                                          *)
+(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -16,9 +14,6 @@
 
 (* useful stuff *)
 
-let header_in_file =
-  let open Config in
-  "The Zelus compiler, version " ^ version ^ "-" ^subversion ^ "\n\  (" ^ date ^ ")"
 
 (* error during the whole process *)
 exception Error
@@ -44,14 +39,80 @@ let locate_stdlib () =
 let locate_load_path () =
   List.iter (fun p -> Printf.printf "%s\n" p) !load_path
 
+let header_in_file =
+  let open Config in
+  "The Zelus compiler, version " ^ version ^
+    "-" ^subversion ^ "\n\  (" ^ date ^ ")"
+
 let show_version () =
   let open Config in
-  Printf.printf "The ZRun Interpreter, version %s-%s (%s)\n"
+  Printf.printf "The Zelus Compiler, version %s-%s (%s)\n"
     version subversion date;
   Printf.printf "Std lib: "; locate_stdlib ();
   Printf.printf "\n";
   ()
 
+(* verbose *)
+let verbose = ref false
+let vverbose = ref false
+(* debug *)
+let debug = ref true
+
+
+let set_verbose () =
+  verbose := true;
+  Printexc.record_backtrace true
+
+let set_vverbose () =
+  vverbose := true;
+  set_verbose ()
+
+let set_debug () =
+  debug := true;
+  set_verbose ()
+
+(** Specific flags for ZRun *)
+(* the list of nodes to evaluate *)
+let main_nodes = ref ([] :string list)
+let set_main s = main_nodes := s :: !main_nodes
+
+(* evaluate all nodes *)
+let all = ref false
+                
+let print_values = ref false
+                 
+(* number of synchronous steps for the evaluation *)
+let number_of_steps = ref 0
+let set_number_of_steps n = number_of_steps := n
+
+let total_number_of_iterations_in_fixpoints = ref 0
+let compute_total_number_of_iterations_in_fixpoints = ref false
+let incr_total_number_of_iterations_in_fixpoints n =
+  total_number_of_iterations_in_fixpoints :=
+    !total_number_of_iterations_in_fixpoints + n
+let reset_total_number_of_iterations_in_fixpoints () = 
+  total_number_of_iterations_in_fixpoints := 0
+                    
+(* remove the check of assertions during evaluation *)
+let no_assert = ref false
+
+(* remove the check that fix-point equation produce non bottom values *)
+let no_causality = ref false
+
+(* sets the interpretation of the if/then/else to be strict *)
+(* w.r.t the first argument *)
+(* this is how the if/then/else is interpreted in Lustre *)
+(* if v1 then v2 else v3 = bot if (v1 = bot) or (v2 = bot) or (v3 = bot) *)
+let lustre = ref false
+
+(* sets the interpretation of the if/then/else to be such that *)
+(* if _ then v1 else v2 = v1 if v1 = v2 *)
+(* this is used to implement the constructive causality of Esterel *)
+(* instead of using the three-valued interpretation of the boolean *)
+(* operations or and and *)
+let esterel = ref false
+
+(** Specific flags for Zelus *)
 
 (* sets the main simulation node *)
 let simulation_node = ref None
@@ -78,28 +139,10 @@ let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
 let inline_all = ref false
 
-(* verbose *)
-let verbose = ref false
-let vverbose = ref false
-
-let set_verbose () =
-  verbose := true;
-  Printexc.record_backtrace true
-
-let set_vverbose () =
-  vverbose := true;
-  set_verbose ()
-
-(* debug *)
-let debug = ref true
-
-let set_debug () =
-  debug := true;
-  set_verbose ()
-
 (* output the result of successive the successive passes *)
 let print_passes = ref false
 
+let static_reduction = ref false
 let print_types = ref false
 let print_types_with_size_constraints = ref false
 let no_stdlib = ref false
@@ -121,56 +164,20 @@ let typeall = ref false
 let noassert = ref false
 let transparent = ref false
 
-
-(* two internal undocumented flags *)
-(* switch off some static verifications during typing *)
-(* temporary solution *)
-let allow_join_der_dv = ref false
-
-(* the list of nodes to evaluate *)
-let main_nodes = ref ([] :string list)
-let set_main s = main_nodes := s :: !main_nodes
-
-(* evaluate all nodes *)
-let all = ref false
-                
-let print_values = ref false
-
 (* print types with size constraints *)
 let set_types_with_size_constraints () =
   print_types := true; print_types_with_size_constraints := true
 
-(* number of synchronous steps for the evaluation *)
-let number_of_steps = ref 0
-let set_number_of_steps n = number_of_steps := n
-
-let number_of_fixpoint_iterations = ref 0
-let print_number_of_fixpoint_iterations = ref false
-let incr_number_of_fixpoint_iterations n =
-  number_of_fixpoint_iterations := !number_of_fixpoint_iterations + n
-let reset_number_of_fixpoint_iterations () = 
-  number_of_fixpoint_iterations := 0
-                    
-(* remove the check of assertions during evaluation *)
-let no_assert = ref false
-
-(* remove the check that fix-point equation produce non bottom values *)
-let no_causality = ref false
-
-(* sets the interpretation of the if/then/else to Esterel *)
-let esterel = ref false
-
-(* sets the interpretation of the if/then/else to Lustre *)
-let lustre = ref false
-
-(* static reduction *)
-let static_reduction = ref false
+(* An undocumented flag: *)
+(* switch off some static verifications during typing *)
+(* temporary solution *)
+let allow_join_der_dv = ref false
 
 (* check equivalence *)
 let n_steps = ref 0
 let set_check_equivalence_for_n_steps n = n_steps := n
 
-(* set on the specialization of size functions *)
+(* turns on the specialization of size functions *)
 let nosizerec = ref false
 
 (* sets the inline flags *)

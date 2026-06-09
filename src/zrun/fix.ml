@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -163,35 +163,45 @@ let eq genv env sem eq n s_eq bot =
     return ((Env.empty, env_eq), s_eq) in
   let* m, (_, env_eq), s_eq = 
     fixpoint eq.eq_loc n stop sem s_eq bot in
+  Debug.incr_total_number_of_iterations_in_fixpoints m;
   return (env_eq, s_eq)
 
 (* bounded fixpoint (at most [n]) for a local declaration. Equality *)
 (* is limited to the names defined locally in [local x1,...,xn do eq] *)
 (* [rec (env_not_x, env_x), s' = (sem genv (append env_x env) eq s)] *)
-let local genv env sem eq n s_eq bot_x =
+(* [bot_env_for_x] is the initial bottom environment for the x1,...,xn *)
+(* to start the fix point *)
+let local genv env sem eq n s_eq bot_env_for_x =
   let sem s_eq env_in_x =
-    Debug.print_ienv "Before step: env_in = " env_in_x;
     let env = Env.append env_in_x env in
     let* env_eq, s_eq = sem genv env eq s_eq in
     (* split the resulting environment *)
-    let env_eq_x, env_eq_not_x = 
+    let env_eq_in_x, env_eq_not_in_x = 
       Env.partition (fun x _ -> Env.mem x env_in_x) env_eq in
-    Debug.print_ienv "After step: env_eq_x = " env_eq_x;
-    let env_eq_x = complete env_in_x env_eq_x in
-    Debug.print_ienv "After step: env_eq_x = " env_eq_x;
-    Debug.print_ienv "After step: env_eq_not_x = " env_eq_not_x;
-    return ((env_eq_not_x, env_eq_x), s_eq) in
-  Debug.print_ienv "Before fixpoint: bot_x = " bot_x;
-  let* m, (env_eq_not_x, env_eq_x), s_eq = 
-    fixpoint eq.eq_loc n stop sem s_eq bot_x in
-  Debug.print_ienv "After fixpoint: env_eq_not_x = " env_eq_not_x;
-  Debug.print_ienv "After fixpoint: env_eq_x = " env_eq_x;  
-  Debug.print_state "After fixpoint: state = " s_eq;
-  return ((env_eq_not_x, env_eq_x), s_eq)
+    let env_eq_in_x = complete env_in_x env_eq_in_x in
+    
+    (* debug info *)
+    Debug.print_ienv "Before step: env_eq = " env_eq;
+    Debug.print_ienv "Before step: env_in_x = " env_in_x;
+    Debug.print_ienv "After step: env_eq_in_x = " env_eq_in_x;
+    Debug.print_ienv "After step: env_eq_not_in_x = " env_eq_not_in_x;
+    Debug.do_if
+      (fun _ ->
+        assert
+          (let set1 = S.domain S.empty env_in_x in
+           let set2 = S.domain S.empty env_eq_in_x in
+           S.equal set1 set2)) ();
+    
+    return ((env_eq_not_in_x, env_eq_in_x), s_eq) in
+  
+  Debug.print_ienv "Before fixpoint: bot_env_for_x = " bot_env_for_x;
 
-(* fixpoint for mutually recursive definitions of size parameterized functions *)
-(* [defs = [f1\Vsfun ...; fk\Vsfun ...]] *)
-let sizefixpoint defs =
-  Ident.Env.mapi 
-    (fun f entry -> Match.entry (Vsizefix { bound = None; name = f; defs })) 
-    defs
+  let* m, (env_eq_not_in_x, env_eq_in_x), s_eq = 
+    fixpoint eq.eq_loc n stop sem s_eq bot_env_for_x in
+
+  Debug.incr_total_number_of_iterations_in_fixpoints m;
+  Debug.print_ienv "After fixpoint: env_eq_not_in_x = " env_eq_not_in_x;
+  Debug.print_ienv "After fixpoint: env_eq_in_x = " env_eq_in_x;  
+  Debug.print_state "After fixpoint: state = " s_eq;
+  return ((env_eq_not_in_x, env_eq_in_x), s_eq)
+

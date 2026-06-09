@@ -1,0 +1,38 @@
+let f(x:[1]_) returns (o:[3]_)
+  local y in
+  do y = [|1|] ++ x and o = y ++ [|3|] done
+
+let id x = x
+
+let g<<n>>(x:[n]_) returns (o1)
+  local y in
+  do y = [|1|] ++ x and o1 = y ++ [|3|]
+  done
+
+
+let g1<<n>>(x:[n]_) returns (o)
+  forward<<n>> (xi in x) returns (oi out o)
+    do oi = xi done
+
+let make<<n>>() returns (o)
+  foreach<<n>>() returns (oi out o)
+    do oi = 0 done
+
+(* on commence par chercher un skelette. Ici t[n]. Puis on parcours *)
+(* chacune des branches pour voir si t[0] unif t_0 *)
+let ff<<n>>() =
+  match size n with
+  | 0 -> [|1|]
+  | _ -> make<<n>>()
+
+let rec fff<<n>>() =
+  match size n with
+  | 0 -> [||]
+  | _ -> [|0|] ++ ff<<n-1>>()
+
+let gg<<n>>() = match size n with | 0 -> [|1|] | _ -> [|2|]
+
+let t: int -> int = let h : int -> int = fun x -> x in h
+
+let tt<<n>> : int -> int = fun x -> 1
+

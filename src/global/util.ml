@@ -5,7 +5,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -49,6 +49,13 @@ let rec iter f = function
   | x :: l -> let y = f x in y :: iter f l
 
 let fold f l = List.rev (List.fold_left f [] l)
+
+let rec map3 f l1 l2 l3 =
+  match l1, l2, l3 with
+  | [], [], [] -> []
+  | x1 :: l1, x2 :: l2, x3 :: l3 ->
+     f x1 x2 x3 :: (map3 f l1 l2 l3)
+  | _ -> raise (Invalid_argument "Util.map3")
 
 let from i =
   let rec fromrec acc i =
@@ -94,6 +101,16 @@ let rec firsts = function
   | [] -> assert false
   | [p] -> [], p
   | p :: l -> let head, tail = firsts l in p :: head, tail
+
+let split_n n l =
+  let rec split_n n l =
+    match l with
+    | [] -> [], []
+    | p :: l_right ->
+       if n = 0 then [], l
+       else let l_left, l_right = split_n (n-1) l_right in
+            p :: l_left, l_right in
+  if n < 0 then raise (Stdlib.Invalid_argument("split_n")) else split_n n l
 
 (* takes the first patterns of the list, except the last one *)
 let rec firsts_n n l =

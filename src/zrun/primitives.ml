@@ -4,7 +4,7 @@
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
 (*                                                                     *)
-(*  (c) 2020-2024 Inria Paris                                          *)
+(*  (c) 2020-2026 Inria Paris                                          *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -30,8 +30,9 @@ let (let+) v f =
 
 let (let-) v f =
   match v with
-  | Vbot -> return Vbot
-  | _ -> f v
+  | Vbot -> Vbot
+  | Vnil -> Vnil
+  | Value(v) -> f v
 
 let (and+) v1 v2 =
   match v1, v2 with
@@ -51,6 +52,18 @@ let is_int v =
 let is_float v =
   match v with
   | Vfloat(i) -> return i | _ -> None
+
+let is_string v =
+  match v with
+  | Vstring(i) -> return i | _ -> None
+
+let is_char v =
+  match v with
+  | Vchar(i) -> return i | _ -> None
+
+let is_void v =
+  match v with
+  | Vvoid -> return () | _ -> None
 
 let is_vfloat v =
   match v with
@@ -72,7 +85,7 @@ let test v =
 
 let get_node v =
   match v with
-  | Vclosure ({ c_funexp = { f_kind = Knode _ } } as c) -> return c
+  | Vnode(instance) -> return instance
   | _ -> None
 
 let get_record r =
@@ -80,98 +93,53 @@ let get_record r =
   | Vrecord(l) -> return l
   | _ -> None
 
+let do_unop is_t box_t f v =
+  let* v = is_t v in
+  return (box_t (f v))
+
+let do_binop is_t box_t f v1 v2 =
+  let* v1 = is_t v1 in
+  let* v2 = is_t v2 in
+  return (box_t (f v1 v2))
+
 let ifthenelse_op v v1 v2 =
   let* b = is_bool v in
   if b then return v1 else return v2
 
-let not_op v =
-  let* v = is_bool v in
-  return (Vbool(not v))
-
-let uminus_op v =
-  let* v = is_int v in
-  return (Vint(- v))
-
-let and_op v1 v2 =
-  let* v1 = is_bool v1 in
-  let* v2 = is_bool v2 in
-  return (Vbool(v1 && v2))
-
-let or_op v1 v2 =
-  let* v1 = is_bool v1 in
-  let* v2 = is_bool v2 in
-  return (Vbool(v1 || v2))
-
+(* Boolean operators *)
+let not_op = do_unop is_bool (fun v -> Vbool(v)) Stdlib.not
+let and_op = do_binop is_bool (fun v -> Vbool(v)) Stdlib.(&&)
+let or_op = do_binop is_bool (fun v -> Vbool(v)) Stdlib.(||)
 let on_op v1 v2 = or_op v1 v2
 
-let add_op v1 v2 =
-  let* v1 = is_int v1 in
-  let* v2 = is_int v2 in
-  return (Vint(v1 + v2))
+(* Integer operators *)
+let uminus_int_op = do_unop is_int (fun v -> Vint(v)) Stdlib.(~-)
+let add_int_op = do_binop is_int (fun v -> Vint(v)) Stdlib.(+)
+let minus_int_op = do_binop is_int (fun v -> Vint(v)) Stdlib.(-)
+let mult_int_op = do_binop is_int (fun v -> Vint(v)) Stdlib.( * )
+let div_int_op = do_binop is_int (fun v -> Vint(v)) Stdlib.( / )
+let abs_int_op = do_unop is_int (fun v -> Vint(v)) Stdlib.(abs)
+let mod_int_op = do_binop is_int (fun v -> Vint(v)) Stdlib.(mod)
 
-let minus_op v1 v2 =
-  let* v1 = is_int v1 in
-  let* v2 = is_int v2 in
-  return (Vint(v1 - v2))
+(* Floatting point operators *)
+let uminus_float_op = do_unop is_float (fun v -> Vfloat(v)) Stdlib.(~-.)
+let add_float_op = do_binop is_float (fun v -> Vfloat(v)) Stdlib.(+.)
+let minus_float_op = do_binop is_float (fun v -> Vfloat(v)) Stdlib.(-.)
+let mult_float_op = do_binop is_float (fun v -> Vfloat(v)) Stdlib.( *. )
+let div_float_op = do_binop is_float (fun v -> Vfloat(v)) Stdlib.( /. )
+let sqrt_float_op = do_unop is_float (fun v -> Vfloat(v)) Float.sqrt
+let sin_float_op = do_unop is_float (fun v -> Vfloat(v)) Float.sin
+let cos_float_op = do_unop is_float (fun v -> Vfloat(v)) Float.cos
+let abs_float_op = do_unop is_float (fun v -> Vfloat(v)) Float.abs
+let is_nan_float_op = do_unop is_float (fun v -> Vbool(v)) Float.is_nan
+let is_infinite_float_op = do_unop is_float (fun v -> Vbool(v)) Float.is_infinite
 
-let mult_op v1 v2 =
-  let* v1 = is_int v1 in
-  let* v2 = is_int v2 in
-  return (Vint(v1 * v2))
-
-let div_op v1 v2 =
-  let* v1 = is_int v1 in
-  let* v2 = is_int v2 in
-  return (Vint(v1 / v2))
-
-let add_float_op v1 v2 =
-  let* v1 = is_float v1 in
-  let* v2 = is_float v2 in
-  return (Vfloat(v1 +. v2))
-
-let uminus_float_op v =
-  let* v = is_float v in
-  return (Vfloat(-. v))
-
-let minus_float_op v1 v2 =
-  let* v1 = is_float v1 in
-  let* v2 = is_float v2 in
-  return (Vfloat(v1 -. v2))
-
-let mult_float_op v1 v2 =
-  let* v1 = is_float v1 in
-  let* v2 = is_float v2 in
-  return (Vfloat(v1 *. v2))
-
-let div_float_op v1 v2 =
-  let* v1 = is_float v1 in
-  let* v2 = is_float v2 in
-  return (Vfloat(v1 /. v2))
-
-let sqrt_op v =
-  let* v = is_float v in
-  return (Vfloat(sqrt v))
-
-let sin_op v =
-  let* v = is_float v in
-  return (Vfloat(sin v))
-
-let cos_op v =
-  let* v = is_float v in
-  return (Vfloat(cos v))
-
-let abs_float_op v =
-  let* v = is_float v in
-  return (Vfloat(abs_float v))
-
-let abs_op v =
-  let* v = is_int v in
-  return (Vint(abs v))
-
-let mod_op v1 v2 =
-  let* v1 = is_int v1 in
-  let* v2 = is_int v2 in
-  return (Vint(v1 mod v2))
+(* Random generation for testing *)
+let _ = Random.init 0
+let random_bool_op () =
+  return (Vbool(Random.bool()))
+let random_int_op = do_unop is_int (fun v -> Vint(v)) Random.int
+let random_float_op = do_unop is_float (fun v -> Vfloat(v)) Random.float
 
 let length v =
   match v with
@@ -180,6 +148,20 @@ let length_op v =
   match v with
   | Varray(a) -> return (Vint(length a))
   | _ -> none
+
+(* warning: the following primitives are imperative; the semantics *)
+(* does not work correctly when operations have side effect. *)
+(* Experimental; use it carrefully *)
+let do_app is_t print v =
+  let* v = is_t v in
+  print v;
+  return Vvoid
+
+let print_int v = do_app is_int print_int v
+let print_float v = do_app is_float print_float v
+let print_string v = do_app is_string print_string v
+let print_char v = do_app is_char print_char v
+let print_newline v = do_app is_void print_newline v
 
 let rec compare_list compare p_list1 p_list2 =
   match p_list1, p_list2 with
@@ -195,11 +177,11 @@ let absent_name = Lident.Modname(stdlib_name "A")
 
 let rec compare_pvalue v1 v2 =
   match v1, v2 with
-  | Vint i1, Vint i2 -> return (compare i1 i2)
-  | Vbool b1, Vbool b2 -> return (compare b1 b2)
-  | Vfloat f1, Vfloat f2 -> return (compare f1 f2)
-  | Vchar c1, Vchar c2 -> return (compare c1 c2)
-  | Vstring s1, Vstring s2 -> return (compare s1 s2)
+  | Vint i1, Vint i2 -> return (Stdlib.compare i1 i2)
+  | Vbool b1, Vbool b2 -> return (Stdlib.compare b1 b2)
+  | Vfloat f1, Vfloat f2 -> return (Stdlib.compare f1 f2)
+  | Vchar c1, Vchar c2 -> return (Stdlib.compare c1 c2)
+  | Vstring s1, Vstring s2 -> return (Stdlib.compare s1 s2)
   | Vvoid, Vvoid -> return 0
   | Vconstr0(id1), Vconstr0(id2) -> return (Lident.compare id1 id2)
   | Vconstr1(id1, p_list1), Vconstr1(id2, p_list2) ->
@@ -222,8 +204,7 @@ let rec compare_pvalue v1 v2 =
   | Vrecord _, Vrecord _ -> none
   | Vtuple(v_list1), Vtuple(v_list2) ->
      compare_list compare_value v_list1 v_list2
-  | Vfun _, Vfun _ -> none
-  | Vclosure _, Vclosure _ -> none
+  | (Vifun _, Vifun _) | (Vfun _, Vfun _) | (Vnode _, Vnode _) -> none
   | _ -> none
 
 (* comparison of present/absent with one the representation of the other *)
@@ -260,12 +241,22 @@ and compare_array compare a1 a2 =
   | Vmap({ m_u = a1 }), Vmap({ m_u = a2 }) -> 
     compare_array_n n (get_i, a1) (get_i, a2)
 
+and eq_pvalue pv1 pv2 =
+  let* r = compare_pvalue pv1 pv2 in
+  return (r = 0)
+
+and eq_value v1 v2 =
+  match v1, v2 with
+  | (Vbot, Vbot) | (Vnil, Vnil) -> return true
+  | (Value(pv1), Value(pv2)) -> eq_pvalue pv1 pv2
+  | _ -> none
+
 and compare_value v1 v2 =
   match v1, v2 with
   | (Vbot, Vbot) | (Vnil, Vnil) -> return 0
-  | (Value(v1), Value(v2)) -> compare_pvalue v1 v2
+  | (Value(pv1), Value(pv2)) -> compare_pvalue pv1 pv2
   | _ -> none
-                                
+
 let eq_op v1 v2 =
   let* v = compare_pvalue v1 v2 in
   return (Vbool(v = 0))
@@ -285,14 +276,19 @@ let lte_op v1 v2 =
 let gte_op v1 v2 =
   let* v = compare_pvalue v1 v2 in
   return (Vbool(v >= 0))
-
        
 (* ifthenelse. this one is strict w.r.t all arguments *)
-let lustre_ifthenelse v1 v2 v3 =
+let strict_ifthenelse v1 v2 v3 =
+  let (let-) v f =
+  match v with
+  | Vbot -> return Vbot
+  | _ -> f v in
   let+ v1 = v1 in
   let- v2 = v2 in
   let- v3 = v3 in
   ifthenelse_op v1 v2 v3
+
+let lustre_ifthenelse = strict_ifthenelse
 
 (* ifthenelse. this one is strict w.r.t the first argument *)
 let lazy_ifthenelse v1 v2 v3 =
@@ -341,8 +337,12 @@ let esterel_ifthenelse v1 v2 v3 =
   | _ -> return (if v2 = v3 then v2 else v1)
 
 let esterel_ifthenelse v1 v2 v3 =
-  if v2 = v3 then return v2
-  else lazy_ifthenelse v1 v2 v3
+  match v1 with
+  | Value(v1) -> ifthenelse_op v1 v2 v3
+  | _ ->
+     let r = eq_value v2 v3 in
+     return (if Opt.value r ~default:false then v2 else v1)
+
 (* with it, we can define [or_gate] and [and_gate] *)
 (* with three values:
  *- or(x, true) = or(true, x) = true
@@ -354,16 +354,29 @@ let or_gate(x,y) = if x then true else y
 let and_gate(x,y) = if x then y else false
 Hence, [x = x or true] == [x = if x then true else true = true]
 *)
-let ifthenelse v1 v2 v3 =
-  if !lustre then lustre_ifthenelse v1 v2 v3 else
-    if !esterel then esterel_ifthenelse v1 v2 v3
-    else lazy_ifthenelse v1 v2 v3
 
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
   let+ v = v in
   let* v = op v in
   return (Value v)
+
+(* convert a value into a list of size n *)
+let list_of n v =
+  if n = 1 then [v]
+  else match v with
+  | Value(Vvoid) -> []
+  | Value(Vtuple(v_list)) -> v_list
+  | Value(Vstuple(v_list)) ->
+     List.map (fun v -> Value(v)) v_list
+  | Vbot | Vnil -> Util.list_of n v
+  | Value _ -> [v]
+
+(* gets the value *)
+let pvalue v =
+  match v with
+  | Vnil | Vbot -> None
+  | Value(v) -> return v
 
 (* lift a binary operator: [op bot _ = bot]; [op _ bot = bot]; same for nil *)
 let sapp op v1 v2 =
@@ -374,21 +387,6 @@ let sapp op v1 v2 =
 
 let lift2 op v1 v2 = return (sapp op v1 v2)
 
-(* convert a value into a list *)
-let list_of v =
-  match v with
-  | Value(Vvoid) -> []
-  | Value(Vtuple(v_list)) -> v_list
-  | Value(Vstuple(v_list)) ->
-     List.map (fun v -> Value(v)) v_list
-  | Vbot | Vnil | Value _ -> [v]
-
-(* gets the value *)
-let pvalue v =
-  match v with
-  | Vnil | Vbot -> None
-  | Value(v) -> return v
-
 (* if one is bot, return bot; if one is nil, return nil *)
 let rec slist v_list =
   match v_list with
@@ -397,7 +395,20 @@ let rec slist v_list =
      let v_r = slist v_list in
      sapp (fun x xs -> x :: xs) v v_r
 
-let stuple v_list =
+let rec atomic v =
+  let- p_value = v in
+  match p_value with
+  | Vtuple(v_list) ->
+     let- v_list = slist (List.map atomic v_list) in
+     Value(Vstuple(v_list))
+  | Vfun _ | Vnode _ -> v
+     (* we should make the function strict, that is *)
+     (* [atomic(f) = \v. f(atomic v)] *)
+     (* otherwise, the computation of [f f] with [f = \x.x] diverges *)
+     (* remind that the semantics applies to untyped or typed programs *)
+  | _ -> v
+
+and stuple v_list =
   let+ v_list = slist v_list in
   return (Value(Vstuple(v_list)))
 
@@ -420,18 +431,6 @@ let array v_list =
 let lift f v =
   match v with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(f v)
 
-let atomic v =
-  let+ v = v in
-  match v with
-  | Vtuple(l) -> stuple l
-  | Vclosure _ -> 
-      (* this part should be changed into [atomic(f) = lambda x.let+ x in f x] *)
-      (* that is, even if [f] is not strict, make it a strict function *)
-      (* this is necessary to avoid unbounded recursion with f = \x. x x and f f *)
-      (* this is because Zrun applies to untyped programs *)
-    return (Value v)
-  | _ -> return (Value v)
-
 (* void *)
 let void = Value(Vvoid)
 
@@ -439,12 +438,9 @@ let void = Value(Vvoid)
 let max_float = Value(Vfloat(max_float))
 let zero_float = Value(Vfloat(0.0))
 
-let zerop op = Vfun (fun _ -> op ())
-
-let unop op = Vfun op
-
-let binop op =
-  Vfun(fun v1 -> return (Vfun (fun v2 -> op v1 v2)))
+let zerop op = Vifun (fun _ -> op ())
+let unop op = Vifun op
+let binop op = Vifun(fun v1 -> return (Vifun (fun v2 -> op v1 v2)))
 
 (*
 (* state processes *)
@@ -462,49 +458,62 @@ let unop_process op s =
         fun s v -> let* v = lift1 (op s) v in return (v, s) }
  *)
 
-let _ = Random.init 0
+let binop_vfun f =
+  let open Error in
+  let typ_error = { kind = Etype None; loc = Location.no_location } in
+  let f_fun v_list =
+    match v_list with
+    | [v1;v2] -> f v1 v2 |> Opt.to_result ~none: typ_error
+    | _-> Result.error typ_error in
+  Vfun { f_arity = 2; f_no_input = false; f_fun }
 
-let random_bool_op _ =
-  return (Vbool(Random.bool()))
-let random_int_op v =
-  let* v = is_int v in
-  return (Vint(Random.int v))
-let random_float_op v =
-  let* v = is_float v in
-  return (Vfloat(Random.float v))
-
+let ternop_vfun f =
+  let open Error in
+  let typ_error = { kind = Etype None; loc = Location.no_location } in
+  let f_fun v_list =
+    match v_list with
+    | [v1;v2;v3] -> f v1 v2 v3 |> Opt.to_result ~none: typ_error
+    | _-> Result.error typ_error in
+  Vfun { f_arity = 3; f_no_input = false; f_fun }
 
 (* The initial Stdlib *)
 let list_of_primitives () =
-  ["+", binop add_op;
-   "-", binop minus_op;
-   "~-", unop uminus_op;
-   "-", binop minus_op;
-   "/", binop div_op;
-   "*", binop mult_op;
+  ["+", binop add_int_op;
+   "-", binop minus_int_op;
+   "~-", unop uminus_int_op;
+   "-", binop minus_int_op;
+   "/", binop div_int_op;
+   "*", binop mult_int_op;
    "+.", binop add_float_op;
    "-.", binop minus_float_op;
    "~-.", unop uminus_float_op;
    "-.", binop minus_float_op;
    "/.", binop div_float_op;
    "*.", binop mult_float_op;
-   "sqrt", unop sqrt_op;
-   "sin", unop sin_op;
-   "cos", unop cos_op;
+   "sqrt", unop sqrt_float_op;
+   "sin", unop sin_float_op;
+   "cos", unop cos_float_op;
    "abs_float", unop abs_float_op;
-   "abs", unop abs_op;
+   "is_nan", unop is_nan_float_op;
+   "is_infinite", unop is_infinite_float_op;
+   "abs", unop abs_int_op;
    "not", unop not_op;
    "&&", binop and_op;
    "&", binop and_op;
    "or", binop or_op;
    "||", binop or_op;
-   "mod", binop mod_op;
+   "mod", binop mod_int_op;
    "=", binop eq_op;
    "<", binop lt_op;
    ">", binop gt_op;
    "<=", binop lte_op;
    ">=", binop gte_op;
-   "length", unop length_op]
+   "length", unop length_op;
+   "print_int", unop print_int;
+   "print_float", unop print_float;
+   "print_string", unop print_string;
+   "print_char", unop print_char;
+   "print_newline", unop print_newline]
 
 let list_of_random_primitives () =
   ["random_bool", zerop random_bool_op;
@@ -513,13 +522,36 @@ let list_of_random_primitives () =
 
 let to_env acc l = List.fold_left (fun acc (n, v) -> Genv.E.add n v acc) acc l
 
-let list_of_esterel_primitives () =
-  if !esterel then ["or", esterel_or_op; "&", esterel_and_op] else []
+let esterel_or_and_primitives () =
+  if !esterel then
+    ["or", binop_vfun esterel_or_op;
+     "&", binop_vfun esterel_and_op] else []
 
+let add_lustre_ifthenelse_to_values values =
+  Genv.E.add "_ifthenelse" (ternop_vfun lustre_ifthenelse) values
+
+let add_esterel_ifthenelse_to_values values =
+  Genv.E.add "_ifthenelse" (ternop_vfun esterel_ifthenelse) values
+  
 let stdlib_env () =
+  let values =
+    to_env (to_env Genv.E.empty (list_of_primitives ()))
+      (list_of_random_primitives ()) in
+  (* change the interpretation of the [if/then/else] *)
+  (* if the compiler flag [-lustre] or [-esterel] is set *)
+  let values =
+    if !lustre then add_lustre_ifthenelse_to_values values else values in
+  let values =
+    if !esterel then add_esterel_ifthenelse_to_values values else values in
   { Genv.name = "Stdlib";
-    Genv.values =
-      to_env
-        (to_env Genv.E.empty (list_of_primitives ()))
-        (list_of_random_primitives ()) }
+    Genv.values = values }
 
+(* attributes in the source. They control the interpretation of *)
+(* the [@esterel] and [@lustre] flags *)
+let do_attribute a_list ({ Genv.current = { values } as current } as genv) =
+  let do_attribute values a =
+    if a = "lustre" then add_lustre_ifthenelse_to_values values
+    else if a = "esterel" then add_esterel_ifthenelse_to_values values
+    else values in
+  let values = List.fold_left do_attribute values a_list in
+  { genv with current = { current with values } }

@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -93,6 +93,7 @@ and mem =
     m_init: init; (* is-it initialized? *)
     m_default: init; (* default value *)
     m_shared: bool; (* [x] can be defined by more than one equations *)
+    m_only_last: bool; (* only [last x] is correct; writting [x] is forbidden *)
   }
 
 and init =
@@ -130,9 +131,10 @@ let no_abbrev () = ref Tnil
 (* basic entries for variables *)
 let empty_mem =
   { m_mkind = None; m_last = false; m_init = No; m_default = No;
-    m_shared = false }
+    m_shared = false; m_only_last = false }
 let initialized mem = { mem with m_init = Eq }
 let previous mem = { mem with m_last = true }
+let only_last mem = { mem with m_only_last = true }
 let zero mem = Sort_mem { mem with m_mkind = Some Zero }
 let horizon mem = Sort_mem { mem with m_mkind = Some Horizon }
 let major () = Sort_mem { empty_mem with m_mkind = Some Major }
@@ -141,9 +143,13 @@ let imem = initialized empty_mem
 let mem = previous imem
 let memory = Sort_mem mem
 let imemory = Sort_mem imem
-		   
-let entry v_kind sort t_tys = { t_path = Pkind(v_kind); t_sort = sort; t_tys }
-let size_entry v_kind t_tys = { t_path = Psize(v_kind); t_sort = Sort_val; t_tys }
+let memory_only_last = only_last empty_mem
+let as_variable = Sort_mem memory_only_last
+
+let entry v_kind sort t_tys =
+  { t_path = Pkind(v_kind); t_sort = sort; t_tys }
+let size_entry v_kind t_tys =
+  { t_path = Psize(v_kind); t_sort = Sort_val; t_tys }
 
 let last t_sort =
   match t_sort with
@@ -156,9 +162,10 @@ let init_in_eq t_sort =
   | Sort_val | Sort_var -> Sort_mem imem
 
 let sort_mem mkind t_sort =
- let m = match t_sort with | Sort_mem m -> m | Sort_val | Sort_var -> empty_mem in
+  let m = match t_sort with
+    | Sort_mem m -> m | Sort_val | Sort_var -> empty_mem in
  Sort_mem { m with m_mkind = Some(mkind) }
- 
+
 let is_val = function | Sort_val -> true | _ -> false
 
 let cont t_sort = sort_mem Cont t_sort

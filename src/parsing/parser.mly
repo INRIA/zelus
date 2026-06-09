@@ -210,6 +210,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token RBRACKET       /* "]" */
 %token LBRACKETBAR    /* "[|" */
 %token RBRACKETBAR    /* "|]" */
+%token LBRACKETAT     /* "[@" */
 %token LET            /* "let" */
 %token LESSMINUS      /* "<-" */
 %token LOCAL          /* "local" */
@@ -485,9 +486,21 @@ implementation:
     td = localized(type_declaration_desc)
     { Etypedecl
 	{ name = id; ty_params = tp; ty_decl = td } }
-  | LET v = vkind_opt i = is_rec let_eq = equation_and_list
+  | LET at = attribute_opt v = vkind_opt i = is_rec
+        let_eq = equation_and_list
     { Eletdecl(make 
-                 { l_rec = i; l_kind = v; l_eq = let_eq } $startpos $endpos) }
+                 { l_rec = i; l_kind = v; l_eq = let_eq; l_attribute = at }
+	       $startpos $endpos) }
+;
+
+attribute_opt:
+  | at_opt = optional(attribute)
+    { match at_opt with None -> [] | Some(l) -> l }
+;
+
+attribute:
+  | LBRACKETAT id_list = list_no_sep_of(IDENT) RBRACKET
+    { id_list }
 ;
 
 vkind:
@@ -528,9 +541,9 @@ result:
     EQUAL seq = seq_expression %prec prec_result
     { make (Exp(annotate_with_type t_opt seq)) $startpos(seq) $endpos(seq) }
   | t_opt = optional(colon_type_expression)
-    EQUAL seq = seq_expression WHERE 
+    EQUAL seq = seq_expression WHERE
       v = vkind_opt i = is_rec eq = where_equation_and_list %prec prec_result
-    { make (Exp(make (Elet(make { l_rec = i; l_kind = v; l_eq = eq }
+    { make (Exp(make (Elet(make { l_rec = i; l_kind = v; l_eq = eq; l_attribute = [] }
 			   $startpos(eq) $endpos(eq),
 			   annotate_with_type t_opt seq))
 		$startpos(seq) $endpos(eq)))
@@ -559,8 +572,11 @@ for_returns:
 ;
 
 for_vardec:
-  | p = array_of(vardec)
-    { make { for_array = fst p; for_vardec = snd p } $startpos $endpos }
+  | p = array_of(vardec) as_opt = as_ide
+    { make { for_array = fst p;
+	     for_vardec = snd p;
+	     for_as = as_opt }
+      $startpos $endpos }
 ;
 
 equation_and_list:
@@ -603,7 +619,7 @@ stream_equation_desc:
   | RESET eq = equation_and_list EVERY e = expression
     { EQreset(eq, e) }
   | LET v = vkind_opt i = is_rec let_eq = equation_and_list IN eq = equation
-    { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq}
+    { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq; l_attribute = [] }
 	    $startpos $endpos(let_eq), eq) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) opt_end
     { EQautomaton(List.rev a, None) } 
@@ -652,9 +668,13 @@ sizefun_definition:
 ;
 
 sizefun_definition_desc:
-  | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER EQUAL 
-        e = seq_expression
-    { EQsizefun(ide, ide_list, e) }
+  | ide = ide LLESSER 
+    ide_list = list_of(COMMA, ide) GGREATER
+    ty_opt = optional(colon_type_expression) EQUAL e = seq_expression
+    { let e = match ty_opt with
+	| None -> e
+	| Some(ty) -> make (Etypeconstraint(e, ty)) $startpos(e) $endpos(e) in
+      EQsizefun(ide, ide_list, e) }
   | i = is_inline a = is_atomic k = fun_kind_opt ide = ide 
         LLESSER ide_list = list_of(COMMA, ide) GGREATER 
        v_p_list_list = param_list_list r = result
@@ -787,7 +807,7 @@ let_list:
 
 one_let:
   | LET v = vkind_opt i = is_rec eq = equation_and_list
-    { make { l_rec = i; l_kind = v; l_eq = eq } $startpos $endpos }
+    { make { l_rec = i; l_kind = v; l_eq = eq; l_attribute = [] } $startpos $endpos }
 ;
 
 local_list:
@@ -945,12 +965,11 @@ pattern_comma_list:
       { p :: pc }
 ;
 
-/* Patterns with a type expression */
 pattern_with_type_expression:
   | p = pattern { p }
-  | p = pattern t = colon_type_expression 
-      { make (Etypeconstraintpat(p, t)) $startpos $endpos }
-
+  | p = pattern ty = colon_type_expression
+    { make (Etypeconstraintpat(p, ty)) $startpos $endpos }
+;
 
 pattern_label_list :
   | p = pattern_label SEMI pl = pattern_label_list
@@ -1166,7 +1185,8 @@ expression_desc:
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
   | LET v = vkind_opt i = is_rec eq = equation_and_list IN e = seq_expression
-    { Elet(make { l_rec = i; l_kind = v; l_eq = eq } $startpos $endpos(eq), e) }
+    { Elet(make { l_rec = i; l_kind = v; l_eq = eq; l_attribute = [] }
+	   $startpos $endpos(eq), e) }
   | LOCAL v_list = vardec_comma_list
     DO eq = equation_and_list IN e = seq_expression
     { Elocal(v_list, eq, e) }  
@@ -1224,7 +1244,7 @@ expression_desc:
 /* Loops for equations */
 foreach_loop_exp:
   /* foreach (size) [i] (xi in ei,...) do e [default e] */
-  | s_opt = optional_size_expression
+  | s_opt = optional(for_size_expression)
     i_opt = optional(index)
     li = input_list
     DO e = expression
@@ -1233,7 +1253,7 @@ foreach_loop_exp:
     { (s_opt, i_opt, li, Forexp { exp = e; default = d_opt }) }
   | /* foreach (size) [i] (xi in ei,...) returns (...) do
        eq done */
-    s_opt = optional_size_expression
+    s_opt = optional (for_size_expression)
     i_opt = optional(index)
     li = input_list
     RETURNS p = for_returns
@@ -1244,7 +1264,7 @@ foreach_loop_exp:
 
 forward_loop_exp:
   /* forward (size) [i] (xi in ei,...) do e [default e] [while/unless/until e] done */
-  | s_opt = optional_size_expression
+  | s_opt = optional(for_size_expression)
     i_opt = optional(index)
     li = input_list
     DO e = expression
@@ -1254,7 +1274,7 @@ forward_loop_exp:
     { (s_opt, i_opt, li, o_opt, Forexp { exp = e; default = d_opt }) }
   | /* forward (size) [i] (xi in ei,...) returns (...) do
        eq [while/unless/until e] done */
-    s_opt = optional_size_expression
+    s_opt = optional(for_size_expression)
     i_opt = optional(index)
     li = input_list
     RETURNS p = for_returns
@@ -1266,7 +1286,7 @@ forward_loop_exp:
 
 /* Loops for equations */
 foreach_loop_eq:
-  s_opt = optional_size_expression i_opt = optional(index)
+  s_opt = optional(for_size_expression) i_opt = optional(index)
     li = input_list RETURNS 
     lo = output_list f = block(equation_empty_and_list)
     DONE
@@ -1274,7 +1294,7 @@ foreach_loop_eq:
 ;
 
 forward_loop_eq:
-  | s_opt = optional_size_expression i_opt = optional(index)
+  | s_opt = optional(for_size_expression) i_opt = optional(index)
     li = input_list RETURNS 
     lo = output_list 
     f = block(equation_empty_and_list)
@@ -1283,9 +1303,11 @@ forward_loop_eq:
     { (s_opt, i_opt, li, o_opt, { for_out = lo; for_block = f }) }
 ;
  
-%inline optional_size_expression:
-  | { None }
-  | LPAREN e = expression RPAREN { Some(e) }
+%inline for_size_expression:
+  | LPAREN e = expression RPAREN
+    { { for_size_index = true; for_size_exp = e } }
+  | LLESSER e = expression GGREATER
+    { { for_size_index = false; for_size_exp = e } }
 ;
 
 index:
@@ -1333,28 +1355,36 @@ out_ide:
     { ide }
 ;
 
+/* the value of the array output at the previous iteration */
+as_ide:
+  /* nothing */
+  | { None }
+  | AS i = ide
+    { Some(i) }
+;
+
 output_desc:
-  /* xi */
-  | ide = ide
+  /* xi [as o_] */
+  | ide = ide as_opt = as_ide
     { { for_name = ide; for_out_name = None;
-        for_init = None; for_default = None } }
-  /* xi out x */
-  | ide = ide o = out_ide 
+        for_init = None; for_default = None; for_as_name = as_opt } }
+  /* xi out x [as o_] */
+  | ide = ide o = out_ide as_opt = as_ide
     { { for_name = ide; for_out_name = Some(o);
-	for_init = None; for_default = None } }
-  /* xi init e [out x] */
-  | ide = ide i = init_expression o_opt = optional(out_ide)
+	for_init = None; for_default = None; for_as_name  = as_opt } }
+  /* xi init e [out x] [as o_] */
+  | ide = ide i = init_expression o_opt = optional(out_ide) as_opt = as_ide
     { { for_name = ide; for_out_name = o_opt;
-	for_init = Some(i); for_default = None } }
-  /* xi default e [out x] */
-  | ide = ide d = default_expression o_opt = optional(out_ide)
+	for_init = Some(i); for_default = None; for_as_name  = as_opt } }
+  /* xi default e [out x] [as o_] */
+  | ide = ide d = default_expression o_opt = optional(out_ide) as_opt = as_ide
     { { for_name = ide; for_out_name = o_opt;
-	for_init = None; for_default = Some(d) } }
-  /* xi init e default e [out x] */
+	for_init = None; for_default = Some(d); for_as_name  = as_opt } }
+  /* xi init e default e [out x] [as o_] */
   | ide = ide i = init_expression d = default_expression 
-  o_opt = optional(out_ide)
+    o_opt = optional(out_ide) as_opt = as_ide
     { { for_name = ide; for_out_name = o_opt;
-	for_init = Some(i); for_default = Some(d) } }
+	for_init = Some(i); for_default = Some(d); for_as_name  = as_opt } }
 ;
 
 /* Periods */

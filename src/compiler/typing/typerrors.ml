@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -37,6 +37,7 @@ type error =
   | Eis_a_value of Ident.t
   | Einit_undefined of Ident.t
   | Elast_forbidden of Ident.t
+  | Eonly_last_is_allowed of Ident.t
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
   | Etype_clash of typ * typ
@@ -53,8 +54,11 @@ type error =
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
   | Epattern_not_total
+  | Eloop_index_is_missing of Ident.t
   | Enot_a_size_expression
   | Esize_is_undetermined 
+  | Esize_unbound_size_variable of Ident.t * Ident.t * typ
+  | Esize_unbound_meta_size_variable of Ident.t
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
@@ -67,8 +71,8 @@ type error =
         nested_sc: Defsizes.exp Defsizes.constraints;
         (* the nested unsatisfied constraint *)
       }
-  | Esize_parameter_cannot_be_generalized of Ident.t * typ
   | Esize_parameter_mutually_recursive_definitions of int * int
+  | Esize_index_escape_in_environment of Ident.t * Ident.t * typ
   | Econstr_arity of Lident.t * int * int
   | Esizefun_and_equations_are_mixed
 
@@ -147,6 +151,11 @@ let message loc kind =
        "@[%aType error: last %s is forbidden. This is either @,\
         because %s is not a state variable or next %s is defined.@.@]"
        output_location loc s s s
+  | Eonly_last_is_allowed(name) ->
+     let s = if !Misc.vverbose then Ident.name name else Ident.source name in
+     eprintf
+       "@[%aType error: only last %s is allowed.@.@]"
+       output_location loc s
   | Eshould_be_a_signal(name, expected_ty) ->
       eprintf "@[%aType error: the variable %s of type %a is defined by case \
                    but one case is missing. \n\
@@ -171,7 +180,7 @@ let message loc kind =
         Ptypes.ptype  expected_ty
   | Etype_clash_in_handlers(m_loc, actual_ty, expected_ty) ->
      eprintf "@[%aType error: the types for all the handlers do not agree.\n\
-                %aIn this handler, the result has type@ %a,@ \
+                %aIn this handler, the right-hand side has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         output_location loc
         output_location m_loc
@@ -236,11 +245,24 @@ let message loc kind =
     eprintf
       "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
       output_location loc
+ | Esize_unbound_meta_size_variable(name) ->
+    eprintf
+      "@[<hov 0>%aType error: the size variable %s has been \
+       introduced to type this expression but is unbound.@.@]"
+      output_location loc
+        (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Esize_of_vec_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \
        size cannot be determined at that point.@.@]"
       output_location loc
+ | Eloop_index_is_missing(name) ->
+    eprintf
+      "@[%aType error: whenever the array being constructed is named \n\
+      (here as %s in the return clause), the loop index must \
+      be given.@.@]"
+      output_location loc
+      (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Enot_a_size_expression ->
     eprintf
       "@[%aType error: this is not a size.@.@]"
@@ -255,11 +277,12 @@ let message loc kind =
         Ptypes.psize actual_size
         s
         Ptypes.psize expected_size
- | Esize_parameter_cannot_be_generalized(n, ty) ->
-     eprintf
-       "@[%aType error: this pattern has type@ %a,@ \
-        which contains the variable %s that is unbounded.@.@]"
+ | Esize_unbound_size_variable(f, n, ty) ->
+    eprintf
+      "@[%aType error: the definition for %s has type@ %a,@ \
+        which contains the size variable %s that is unbound.@.@]"
 	output_location loc
+        (Ident.source f)
         Ptypes.ptype ty
 	(Ident.name n)
  | Esize_parameter_mutually_recursive_definitions
@@ -297,20 +320,28 @@ let message loc kind =
          (Sizes.fv_constraints Ident.S.empty Ident.S.empty nested_sc)
        (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env
        output_location_list f_loc_list
+ | Esize_index_escape_in_environment(index, x, ty) ->
+    eprintf
+      "@[%aType error: the size index %s of this loop \n\
+       escape its scope. It appears in the type of %s which is:\
+       %a@.@]"
+      output_location loc
+      (Ident.name index) (Ident.name x)
+      Ptypes.ptype ty
  | Econstr_arity(ln, expected_arity, actual_arity) ->
-     let module Printer = Printer.Make(Ptypinfo) in
-     eprintf
-       "@[%aType error: the type constructor %a expects %d argument(s),@ \
-        but is here given %d arguments(s).@.@]"
-       output_location loc
-       Printer.longname ln
-       expected_arity
-       actual_arity
+    let module Printer = Printer.Make(Ptypinfo) in
+    eprintf
+      "@[%aType error: the type constructor %a expects %d argument(s),@ \
+       but is here given %d arguments(s).@.@]"
+      output_location loc
+      Printer.longname ln
+      expected_arity
+      actual_arity
  | Esizefun_and_equations_are_mixed ->
     eprintf
       "@[%aType error: definitions of (stream) equations and size functions \
        are mixed.@.@]"
-       output_location loc
+      output_location loc
   end;
   raise Misc.Error
 

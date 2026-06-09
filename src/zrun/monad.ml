@@ -33,6 +33,8 @@ module Opt =
 
     let return v = Some(v)
 
+    let value = Option.value
+
     let rec map f x_list =
       match x_list with
       | [] -> return []

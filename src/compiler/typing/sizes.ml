@@ -12,18 +12,19 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* decision for equality/inequalities constraints between sizes *)
+(* decision for equality/inequalities constraints between polymial sizes *)
 (* simple simplification functions *)
 (* sizes are of the form:  s ::= s + s | s * s | xi | v | xi/v *)
 (* constraints are: sc ::= sc & sc | if sc then sc else sc | true | false *)
 (*                      | forall i < s do sc | s = s | s <= s | s < s *)
+(*                      | let rec f(n1,...,nk) = c in c | f(s1,...,sn) *)
 open Ident
 open Defsizes
 
 exception Maybe
-(* cannot decide if a constraint [sc] is true or false *)
-(* e.g., [sc] contains a free variable and the resolution algorithm *)
-(* not good enough *)
+(* raise an exception when the decision algorithm fails to decide *)
+(* that [sc] is true or false. For example, [sc] containts a free *)
+(* variable and the decision algorithm is not good enough *)
   
 (* normal form for polynomial sizes : some of products *)
 module SumOfProducts =
@@ -100,7 +101,7 @@ module SumOfProducts =
           fun sp -> M.for_all (fun _ p -> p < 0) sp
         
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
-        let explicit m =
+        let to_size_expression m =
           let v_list = M.to_list m in
           let sum s1 s2 =
             match s1 with | Sint(0) -> s2 | _ -> Sop(Splus, s1, s2) in
@@ -112,13 +113,13 @@ module SumOfProducts =
             (Sint(0)) v_list
 
         (* implicit representation *)
-        let rec make si =
+        let rec from_size_expression si =
           match si with
           | Sint(i) -> const i
           | Svar(x) -> var x
           | Sop(op, si1, si2) ->
-             let e1 = make si1 in
-             let e2 = make si2 in
+             let e1 = from_size_expression si1 in
+             let e2 = from_size_expression si2 in
              let op = 
                match op with Splus -> sum | Sminus -> minus | Smult -> mult in
              op e1 e2
@@ -141,6 +142,7 @@ let one = const 1
 let var x = Svar(x)
 let plus si1 si2 = Sop(Splus, si1, si2)
 let minus si1 si2 = Sop(Sminus, si1, si2)
+let uminus si = Sop(Sminus, zero, si)
 let mult si1 si2 = Sop(Smult, si1, si2)
 
 (* elimination of div operations in size expressions *)
@@ -181,32 +183,160 @@ let normalize si =
       table [] in
   si, eqs
 
+(* build size expressions *)
+let apply op si1 si2 =
+  match si1, si2 with
+  | Sint(v1), Sint(v2) ->
+     let op = match op with | Splus -> (+) | Sminus -> (-) | Smult -> ( * ) in
+     Sint(op v1 v2)
+  | _ -> Sop(op, si1, si2)
+
+let frac num denom =
+  match num with | Sint(vi) -> Sint(vi / denom) | _ -> Sfrac { num; denom }
+
+(* substitution in a size expression *)
+let rec subst_in_size env si =
+  match si with
+  | Sint _ -> si
+  | Sop(op, si1, si2) ->
+     apply op (subst_in_size env si1) (subst_in_size env si2)
+  | Sfrac { num; denom } -> frac (subst_in_size env num) denom
+  | Svar(n) ->
+     try Env.find n env with | Not_found -> si
+
+(* substitution in a constraint. Assume that there is no name conflict *)
+(* that is, free variables in [env] do not appear in [sc] *)
+let rec subst_in_constraint env sc =
+  match sc with
+  | True | False -> sc
+  | And(sc_list) -> And(List.map (subst_in_constraint env) sc_list)
+  | Rel { rel; lhs; rhs } -> 
+     Rel { rel; lhs = subst_in_size env lhs; rhs = subst_in_size env rhs }
+  | If(sc1, sc2, sc3) ->
+     If(subst_in_constraint env sc1,
+        subst_in_constraint env sc2, subst_in_constraint env sc3)
+  | App(n, e_list) ->
+     App(n, List.map (subst_in_size env) e_list)
+  | Let(id_e_list, sc) ->
+     Let(List.map (fun (id, e) -> (id, subst_in_size env e)) id_e_list,
+         subst_in_constraint env sc)
+  | Fix(id_id_list_sc_list, sc) ->
+     Fix(List.map 
+           (fun (id, id_list, sc) -> (id, id_list, subst_in_constraint env sc)) 
+           id_id_list_sc_list,
+         subst_in_constraint env sc)
+  | Forall(id, e, sc) ->
+     Forall(id, subst_in_size env e, subst_in_constraint env sc)
+  | Loc(loc, sc) -> Loc(loc, subst_in_constraint env sc)
+
 (* for the moment, we do not use equations generated during the normalization *)
 let normalize si =
   let si, _ = normalize si in
-  SumOfProducts.SumProduct.make si
+  SumOfProducts.SumProduct.from_size_expression si
 
-(* decision algorithm on two size expression [si1] and [si2]. *)
-(* It is a very basic decision algorithm since constraints *)
-(* are not taken into account. *)
+(* given a size equality [si], try to decompose it into a sum [n - si'] *)
+(* x must be a meta size-variable that appear in [env] *)
+(* [raise Not_found] is it fails *)
+let decompose env si =
+  (* [sign = true] iff [si = (n + si')] and [si = (n - si')] otherwise *)
+  let rec decompose_rec si =
+    match si with
+    | Svar(n) when Env.mem n env -> n, false, Sint(0)
+    | Sop(Splus, Svar(n), si') when Env.mem n env -> n, true, si'
+    | Sop(Splus, si', Svar(n)) when Env.mem n env -> n, true, si'
+    | Sop(Sminus, Svar(n), si') when Env.mem n env -> n, false, si'
+    | Sop(Sminus, si', Svar(n)) when Env.mem n env -> n, false, si'
+    | Sop(Splus, si1, si2) ->
+       begin try
+           (* (n + si) + si2 = 0 iff n = - (si + si2) *)
+           (* (n - si) + si2 = 0 iff n = si - si2 *)
+           let n, sign, si = decompose_rec si1 in
+           n, not sign, Sop((if sign then Splus else Sminus), si, si2)
+         with
+         | Not_found ->
+            (* si1 + (n + si) = 0 iff n = - (si + si1) *)
+            (* si1 + (n - si) = 0 iff n = si - si1 *)
+            let n, sign, si = decompose_rec si2 in
+            n, not sign, Sop((if sign then Splus else Sminus), si, si1)
+       end
+    | Sop(Sminus, si1, si2) ->
+       begin try
+           (* (n + si) - si2 = 0 iff n = si2 - si *)
+           (* (n - si) - si2 = 0 iff n = si2 + si *)
+           let n, sign, si = decompose_rec si1 in
+           n, true, Sop((if sign then Sminus else Splus), si2, si)
+         with
+         | Not_found ->
+            (* si1 - (n + si) = 0 iff n = si1 - si *)
+            (* si1 - (n - si) = 0 iff n = si1 + si *)
+            let n, sign, si = decompose_rec si2 in
+           n, true, Sop((if sign then Sminus else Splus), si1, si)
+       end
+    | _ -> raise Not_found in
+  let n, sign, si = decompose_rec si in
+  n, if sign then uminus si else si
+           
+(* Decision algorithm for equality for two size expression [si1] and [si2]. *)
+(* It is a very basic decision algorithm since inequality constraints *)
+(* are not taken into account and equalities are only taken into account *)
+(* when they are of the form [n = si] *)
+
 (* This is not a problem for correctness and completeness since *)
-(* since size constraints which are not trivially true nor false *)
-(* will be ultimately evaluated. *)
-(* In practice, this can be nonetheless problematic because diagnostic *)
-(* could certainly better if the decision algorithm was better (detecting *)
-(* at the earlier stage that a constraint is true or false *)
-let eq si1 si2 =
+(* size constraints that are not trivially true or false *)
+(* will be ultimately evaluated when size variables are known. *)
+(* Yet, we shall complement this stategy with a more advanced decision *)
+(* algorithms to detect errors early and improve diagnosis *)
+let equal si1 si2 =
   let open SumOfProducts in
-  let sp = normalize (minus si1 si2) in
+  (* apply substitutions for meta size-variables *)
+  let env = Defsizes.get_size_substitution () in
+  let si11 = subst_in_size env si1 in
+  let si22 = subst_in_size env si2 in
+  let sp = normalize (minus si11 si22) in
   if SumProduct.is_surely_zero sp then true
   else if SumProduct.is_surely_not_zero sp then false
   else (* add it to the constraint environment *)
-    (Defsizes.add (Rel { rel = Eq; lhs = si1; rhs = si2 }); true)
+    try
+      let si = SumProduct.to_size_expression sp in
+      let env = Defsizes.get_size_substitution () in
+      let n, si = decompose env si in
+      Defsizes.add_size_substitution n si;
+      true
+    with
+    | Not_found ->
+       Defsizes.add (Rel { rel = Eq; lhs = si1; rhs = si2 }); true
+
+let surely_equal si1 si2 =
+  let open SumOfProducts in
+  (* apply substitutions for meta size-variables *)
+  let env = Defsizes.get_size_substitution () in
+  let si11 = subst_in_size env si1 in
+  let si22 = subst_in_size env si2 in
+  let sp = normalize (minus si11 si22) in
+  SumProduct.is_surely_zero sp
+
+(* is a pattern [p_i] in a [match size si with | (p_i -> e_i)_i] *)
+(* equal to a size [si] *)
+let rec pattern_equal { Zelus.pat_desc } si =
+  match pat_desc, si with
+  (* the cases where it returns [true] *)
+  | Ewildpat, _ -> true
+  | Econstpat(Eint(i)), Sint(j) when i = j -> true
+  | Evarpat(x), Svar(y) when Ident.compare x y = 0 -> true
+  | Ealiaspat(p, x), Svar(y) when Ident.compare x y = 0 -> true
+  | Etypeconstraintpat(p, _), _ -> pattern_equal p si
+  | Eorpat(p1, p2), _ ->
+     (pattern_equal p1 si) && (pattern_equal p2 si)
+  | Ealiaspat(p, _), _ -> pattern_equal p si
+  | _ -> false
 
 let compare loc cmp si1 si2 =
   let exception Maybe in
   let open SumOfProducts in
   try
+    let env = Defsizes.get_size_substitution () in
+    let si1 = subst_in_size env si1 in
+    let si2 = subst_in_size env si2 in
     let result = match cmp with
       | Eq ->
          let sp = normalize (minus si1 si2) in
@@ -279,7 +409,7 @@ let letrec check f_env n_env id_id_list_sc_list =
 
 (* evaluation of constraints. *)
 (* [f_env]: environment of functions; [n_env]: environment of sizes *)
-let rec check f_env n_env sc =
+let rec eval_constraint f_env n_env sc =
   match sc with
   | True -> true
   | False -> false
@@ -288,29 +418,29 @@ let rec check f_env n_env sc =
      let v2 = eval n_env rhs in
      let op = match rel with | Eq -> (=) | Lt -> (<) | Lte -> (<=) in
      op v1 v2
-  | And(sc_list) -> List.for_all (check f_env n_env) sc_list
+  | And(sc_list) -> List.for_all (eval_constraint f_env n_env) sc_list
   | Let(id_e_list, sc) ->
      let n_env =
        List.fold_left
          (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
          n_env id_e_list in
-     check f_env n_env sc
+     eval_constraint f_env n_env sc
   | If(sc1, sc2, sc3) ->
-     if check f_env n_env sc1 then check f_env n_env sc2 
-     else check f_env n_env sc3
+     if eval_constraint f_env n_env sc1 then eval_constraint f_env n_env sc2 
+     else eval_constraint f_env n_env sc3
   | App(f, e_list) ->
      let v_list = List.map (eval n_env) e_list in
      let v = try Env.find f f_env with Not_found -> raise Maybe in
      v v_list
   | Fix(id_id_list_sc_list, sc) ->
-     let f_env_final = letrec check f_env n_env id_id_list_sc_list in
-     check f_env_final n_env sc
+     let f_env_final = letrec eval_constraint f_env n_env id_id_list_sc_list in
+     eval_constraint f_env_final n_env sc
   | Forall(id, e, sc) ->
      let rec for_all v f =
        if v <= 0 then true else (f v) && (for_all (v-1) f) in
      let v = eval n_env e in
-     for_all (v-1) (fun v -> check f_env (Env.add id v n_env) sc)
-  | Loc(_, sc) -> check f_env n_env sc
+     for_all (v-1) (fun v -> eval_constraint f_env (Env.add id v n_env) sc)
+  | Loc(_, sc) -> eval_constraint f_env n_env sc
 
 
 (* free variables *)
@@ -377,7 +507,7 @@ let localise f_env n_env sc =
   let rec localise f_loc_list f_env n_env sc =
     match sc with
     | True | False | Rel _ | App _ ->
-       let v = check f_env n_env sc in
+       let v = eval_constraint f_env n_env sc in
        let n_env = clear n_env sc in
        if v then true
        else raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
@@ -390,7 +520,8 @@ let localise f_env n_env sc =
            n_env id_e_list in
        localise f_loc_list f_env n_env sc
     | If(sc1, sc2, sc3) ->
-       if check f_env n_env sc1 then localise f_loc_list f_env n_env sc2 
+       if eval_constraint f_env n_env sc1 then
+         localise f_loc_list f_env n_env sc2 
        else localise f_loc_list f_env n_env sc3
     | Fix(id_id_list_sc_list, sc) ->
        let f_env_final =
@@ -400,7 +531,8 @@ let localise f_env n_env sc =
        let rec for_all v f =
          if v <= 0 then true else (f v) && (for_all (v-1) f) in
        let v = eval n_env e in
-       for_all (v-1) (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc)
+       for_all (v-1)
+         (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc)
     | Loc(f_loc, sc) -> localise (f_loc :: f_loc_list) f_env n_env sc in
 
   try
@@ -409,53 +541,13 @@ let localise f_env n_env sc =
     Error { f_loc_list; nested_env; nested_sc } ->
     f_loc_list, nested_env, nested_sc
 
-let apply op si1 si2 =
-  match si1, si2 with
-  | Sint(v1), Sint(v2) ->
-     let op = match op with | Splus -> (+) | Sminus -> (-) | Smult -> ( * ) in
-     Sint(op v1 v2)
-  | _ -> Sop(op, si1, si2)
-
-let frac num denom =
-  match num with | Sint(vi) -> Sint(vi / denom) | _ -> Sfrac { num; denom }
-
-let rec subst_in_size env si =
-  match si with
-  | Sint _ -> si
-  | Sop(op, si1, si2) -> apply op (subst_in_size env si1) (subst_in_size env si2)
-  | Sfrac { num; denom } -> frac (subst_in_size env num) denom
-  | Svar(n) ->
-     try Env.find n env with | Not_found -> si
-
-(* substitution in a constraint. Assume that there is no name conflict *)
-(* that is, free variables in [env] do not appear in [sc] *)
-let rec subst env sc =
-  match sc with
-  | True | False -> sc
-  | And(sc_list) -> And(List.map (subst env) sc_list)
-  | Rel { rel; lhs; rhs } -> 
-     Rel { rel; lhs = subst_in_size env lhs; rhs = subst_in_size env rhs }
-  | If(sc1, sc2, sc3) ->
-     If(subst env sc1, subst env sc2, subst env sc3)
-  | App(n, e_list) ->
-     App(n, List.map (subst_in_size env) e_list)
-  | Let(id_e_list, sc) ->
-     Let(List.map (fun (id, e) -> (id, subst_in_size env e)) id_e_list,
-         subst env sc)
-  | Fix(id_id_list_sc_list, sc) ->
-     Fix(List.map 
-           (fun (id, id_list, sc) -> (id, id_list, subst env sc)) 
-           id_id_list_sc_list,
-         subst env sc)
-  | Forall(id, e, sc) ->
-     Forall(id, subst_in_size env e, subst env sc)
-  | Loc(loc, sc) -> Loc(loc, subst env sc)
-
 let let_in env sc =
   if Env.is_empty env then sc
   else
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
+
+(* add a subtitution for sizes into a constraint *)
 
 (* generate a conditional. Do a bit of by case definition to make functions *)
 (* that use it simpler *)
@@ -521,4 +613,10 @@ let apply constraints actual_si_list =
      conditional (decreases actual_si_list expected_si_list)
        (App(f, actual_si_list)) False
   | _ -> assert false
+
+(* introduce a fresh size variable *)
+let new_size_var loc =
+  let n = Ident.fresh "_n" in
+  Defsizes.add_size_variable n loc;
+  Svar(n)
 
