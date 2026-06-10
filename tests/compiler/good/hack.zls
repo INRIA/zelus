@@ -36,7 +36,6 @@ let dmux4(input, a1, a0) returns (s0, s1, s2, s3)
          else (input, false, false, false)
 
 (* section 1.2.3 *)
-
 let rec not_rec<<n>>(x:[n]bool) returns (y:[n]bool)
   match size n with
   | 0 -> y = [| |]

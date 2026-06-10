@@ -286,13 +286,9 @@ let decompose env si =
 (* will be ultimately evaluated when size variables are known. *)
 (* Yet, we shall complement this stategy with a more advanced decision *)
 (* algorithms to detect errors early and improve diagnosis *)
-let equal si1 si2 =
+let simple_equal si1 si2 =
   let open SumOfProducts in
-  (* apply substitutions for meta size-variables *)
-  let env = Defsizes.get_size_substitution () in
-  let si11 = subst_in_size env si1 in
-  let si22 = subst_in_size env si2 in
-  let sp = normalize (minus si11 si22) in
+  let sp = normalize (minus si1 si2) in
   if SumProduct.is_surely_zero sp then true
   else if SumProduct.is_surely_not_zero sp then false
   else (* add it to the constraint environment *)
@@ -305,6 +301,13 @@ let equal si1 si2 =
     with
     | Not_found ->
        Defsizes.add (Rel { rel = Eq; lhs = si1; rhs = si2 }); true
+
+let equal si1 si2 =
+  (* apply substitutions for meta size-variables *)
+  let env = Defsizes.get_size_substitution () in
+  let si1 = subst_in_size env si1 in
+  let si2 = subst_in_size env si2 in
+  simple_equal si1 si2
 
 let surely_equal si1 si2 =
   let open SumOfProducts in
@@ -339,10 +342,8 @@ let compare loc cmp si1 si2 =
     let si2 = subst_in_size env si2 in
     let result = match cmp with
       | Eq ->
-         let sp = normalize (minus si1 si2) in
-         if SumProduct.is_surely_zero sp then true
-         else if SumProduct.is_surely_not_zero sp then false
-         else raise Maybe
+         (* equality of two sizes is treated specially *)
+         simple_equal si1 si2
       | (* si1 < si2, that is, si1 + 1 <= si2, that is, si2 - (si1 + 1) *)
         Lt ->
          let sp = normalize (minus si2 (plus si1 one)) in

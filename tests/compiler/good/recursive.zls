@@ -7,23 +7,26 @@
 let rec add_vec<<n>>(x: [n]_,y: [n]_) returns (o:[n]_) 
   match size n with
   | 0 -> o = [||]
-  | _ -> o = [| x.(0) +. y.(0) |] ++ (add_vec<<n-1>>(x.(1 ..), y.(1 ..)))
+  | _ -> o = [| x.(0) +. y.(0) |] ++
+         (add_vec<<n-1>>(x.(1 ..), y.(1 ..)))
   end
 
-let rec add_vec'<<n>>(x: [n]_,y: [n]_) =
+(* let rec add_vec'<<n>>(x: [n]_,y: [n]_) =
   let o = match size n with
   | 0 -> [||]
   | _ -> [| x.(0) +. y.(0) |] ++ (add_vec'<<n-1>>(x.(1 ..), y.(1 ..)))
   end in
-  (o: [n]_)
+  (o: [n]_) *)
 
 (* Vector difference *)
+(*
 let rec sub_vec<<n>>(x: [n]_,y: [n]_) =
   let o = match size n with
   | 0 -> [||]
-  | _ -> [| x.(0) -. y.(0) |] ++ (sub_vec<<n-1>>(x.(1 ..), y.(1 ..)))
+  | _ -> [| x.(0) -. y.(0) |] ++
+         (sub_vec<<n-1>>(x.(1 ..), y.(1 ..)))
   end in
-  (o: [n]_)
+  (o: [n]_) *)
 
 (* Element-wise vector product *)
 let rec mul_ew_vec<<n>>(x: [n]_,y: [n]_) =

@@ -36,7 +36,7 @@ and typ_desc =
   | Tarrow of { ty_kind: kind; ty_name_opt: Ident.t option;
                 ty_arg: typ; ty_res: typ } (* (n: ty1) -k-> ty2 *)
   | Tvec of typ * Defsizes.exp (* [e]t - array of length [e] *)
-  | Tsizefun of (* size function <<i1:n1,...,ik:nk>>.ty with constraints *)
+  | Tsizefun of (* size function <<n1,...,nk>>.ty with constraints *)
       { id_list: Ident.t list; (* [k > 0] *)
         ty: typ; (* the type of the body *)
         constraints: Defsizes.exp Defsizes.constraints;

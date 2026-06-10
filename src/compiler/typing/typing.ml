@@ -1820,14 +1820,14 @@ and forloop_exp loc expected_k h
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
     for_exp_t loc expected_k_for_body h size for_index for_body in
-  (* 1.2: pop the current size constraint *)
+  (* 2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
       check_size_constraint_if_possible
         loc (Sizes.forall i si sc)) () for_index;
-  (* 2: check that the size index does not escape its scope *)
+  (* 3: check that the size index does not escape its scope *)
   check_size_index_not_in_h loc for_index h;
 
   let actual_k =
@@ -1998,7 +1998,8 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
      (* check that the size of arguments is [actual_size] *)
      Util.optional_unit 
        (fun _ expected_size ->
-          compare_sizes e.e_loc Defsizes.Eq expected_size actual_size) () size_opt;
+         compare_sizes e.e_loc Defsizes.Eq expected_size actual_size) ()
+       size_opt;
      let actual_k =
        match by with 
        | None -> actual_k 
@@ -2060,14 +2061,14 @@ and forloop_eq loc expected_k h
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
     for_eq_t loc expected_k_for_body size for_index h for_body in
-  (* 1.2: pop the current size constraint *)
+  (* 2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
       let sc = Defsizes.pop () in
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
       check_size_constraint_if_possible
         loc (Sizes.forall i si sc)) () for_index;
-  (* 2: check that the size index does not escape its scope *)
+  (* 3: check that the size index does not escape its scope *)
   check_size_index_not_in_h loc for_index h;
 
   let actual_k =

@@ -1,5 +1,18 @@
-let node f(x) returns (o)
+let f x = x
+
+let node f1(x) returns (o)
+  forward<<4>>[j](xi in x) returns (oi out o)
+    do oi = xi + 1 done
+  
+let node f2(x) returns (o)
+  foreach<<4>>[j](xi in x) returns (oi out o)
+    do oi = xi + 1 done
+  
+let node f3(x) returns (o)
   foreach(4)[j](xi in x) returns (oi out o)
     do oi = xi + 1 done
   
+let node f4(x) returns (o)
+  foreach(4)[j](xi in x) returns (oi out o)
+    do oi = xi + 1 done
   
