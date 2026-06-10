@@ -241,6 +241,13 @@ let message loc kind =
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
        output_location loc
+ | Eloop_index_is_missing(name) ->
+    eprintf
+      "@[%aType error: whenever the array being constructed is named \n\
+      (here as %s in the return clause), the loop index must \
+      be given.@.@]"
+      output_location loc
+      (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Esize_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
@@ -256,13 +263,6 @@ let message loc kind =
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \
        size cannot be determined at that point.@.@]"
       output_location loc
- | Eloop_index_is_missing(name) ->
-    eprintf
-      "@[%aType error: whenever the array being constructed is named \n\
-      (here as %s in the return clause), the loop index must \
-      be given.@.@]"
-      output_location loc
-      (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Enot_a_size_expression ->
     eprintf
       "@[%aType error: this is not a size.@.@]"
@@ -279,8 +279,8 @@ let message loc kind =
         Ptypes.psize expected_size
  | Esize_unbound_size_variable(f, n, ty) ->
     eprintf
-      "@[%aType error: the definition for %s has type@ %a,@ \
-        which contains the size variable %s that is unbound.@.@]"
+      "@[%aType error: the type for %s is@ %a,@ \
+       which contains the size variable %s that is unbound.@.@]"
 	output_location loc
         (Ident.source f)
         Ptypes.ptype ty

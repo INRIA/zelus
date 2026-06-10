@@ -65,6 +65,7 @@ module SumOfProducts =
     
     (* a multi-variate polynomial [sp] is an ordered sum of products [p . mi] *)
     (* [p0 . m0 + ... + pn . mn] where [pi] is an integer and [mi] a monomial *)
+    (* to [mi] is associated the coefficient [pi] *)
     (* [sp] is represented as a map *)
     module SumProduct =
       struct
@@ -77,7 +78,9 @@ module SumOfProducts =
         let is_surely_not_zero sp = 
           (* if [sp = p] with [p an integer] *)
           if M.cardinal sp = 1 then M.mem Product.one sp else false
-        let const v = if v = 0 then zero else M.singleton Product.one v
+        let const v =
+          (* [v] is represented as v * one *)
+          if v = 0 then zero else M.singleton Product.one v
 
         let var x = M.singleton (Product.var x) 1
         
@@ -107,10 +110,12 @@ module SumOfProducts =
             match s1 with | Sint(0) -> s2 | _ -> Sop(Splus, s1, s2) in
           let mult p m =
             match p with
-            | 0 -> assert false | 1 -> m | _ -> Sop(Smult, Sint(p), m) in
+            | 0 -> assert false
+            | 1 -> Product.explicit m
+            | _ -> if Product.is_one m then Sint(p) else
+                     Sop(Smult, Sint(p), Product.explicit m) in
           List.fold_left
-            (fun acc (m, p) -> sum acc (mult p (Product.explicit m)))
-            (Sint(0)) v_list
+            (fun acc (m, p) -> sum acc (mult p m)) (Sint(0)) v_list
 
         (* implicit representation *)
         let rec from_size_expression si =
@@ -144,6 +149,21 @@ let plus si1 si2 = Sop(Splus, si1, si2)
 let minus si1 si2 = Sop(Sminus, si1, si2)
 let uminus si = Sop(Sminus, zero, si)
 let mult si1 si2 = Sop(Smult, si1, si2)
+
+let _ =
+  let n1 = plus(var (Ident.fresh "n")) (const 4) in
+  let n2 = minus(var (Ident.fresh "n")) (const 4) in
+  let n3 = const 4 in
+  let sp1 = SumOfProducts.SumProduct.from_size_expression n1 in
+  let sp2 = SumOfProducts.SumProduct.from_size_expression n2 in
+  let sp3 = SumOfProducts.SumProduct.from_size_expression n3 in
+  let n1_simple = SumOfProducts.SumProduct.to_size_expression sp1 in
+  let n2_simple  = SumOfProducts.SumProduct.to_size_expression sp2 in
+  let n3_simple  = SumOfProducts.SumProduct.to_size_expression sp3 in
+  let n4 = minus n2 n2_simple in
+  let sp4 = SumOfProducts.SumProduct.from_size_expression n4 in
+  let n4_simple = SumOfProducts.SumProduct.to_size_expression sp4 in
+  n4_simple
 
 (* elimination of div operations in size expressions *)
 let normalize si =
@@ -294,6 +314,7 @@ let simple_equal si1 si2 =
   else (* add it to the constraint environment *)
     try
       let si = SumProduct.to_size_expression sp in
+      (* the environment is used to know which size variable is a meta variable *)
       let env = Defsizes.get_size_substitution () in
       let n, si = decompose env si in
       Defsizes.add_size_substitution n si;
