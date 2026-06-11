@@ -150,21 +150,6 @@ let minus si1 si2 = Sop(Sminus, si1, si2)
 let uminus si = Sop(Sminus, zero, si)
 let mult si1 si2 = Sop(Smult, si1, si2)
 
-let _ =
-  let n1 = plus(var (Ident.fresh "n")) (const 4) in
-  let n2 = minus(var (Ident.fresh "n")) (const 4) in
-  let n3 = const 4 in
-  let sp1 = SumOfProducts.SumProduct.from_size_expression n1 in
-  let sp2 = SumOfProducts.SumProduct.from_size_expression n2 in
-  let sp3 = SumOfProducts.SumProduct.from_size_expression n3 in
-  let n1_simple = SumOfProducts.SumProduct.to_size_expression sp1 in
-  let n2_simple  = SumOfProducts.SumProduct.to_size_expression sp2 in
-  let n3_simple  = SumOfProducts.SumProduct.to_size_expression sp3 in
-  let n4 = minus n2 n2_simple in
-  let sp4 = SumOfProducts.SumProduct.from_size_expression n4 in
-  let n4_simple = SumOfProducts.SumProduct.to_size_expression sp4 in
-  n4_simple
-
 (* elimination of div operations in size expressions *)
 let normalize si =
   let module Table =
@@ -295,7 +280,24 @@ let decompose env si =
     | _ -> raise Not_found in
   let n, sign, si = decompose_rec si in
   n, if sign then uminus si else si
-           
+
+let _ =
+  let n = Ident.fresh "n" in
+  let n1 = plus(var n) (const 4) in
+  let n2 = minus(var n) (const 4) in
+  let n3 = const 4 in
+  let sp1 = SumOfProducts.SumProduct.from_size_expression n1 in
+  let sp2 = SumOfProducts.SumProduct.from_size_expression n2 in
+  let sp3 = SumOfProducts.SumProduct.from_size_expression n3 in
+  let n1_simple = SumOfProducts.SumProduct.to_size_expression sp1 in
+  let n2_simple  = SumOfProducts.SumProduct.to_size_expression sp2 in
+  let n3_simple  = SumOfProducts.SumProduct.to_size_expression sp3 in
+  let n4 = minus n2 n2_simple in
+  let sp4 = SumOfProducts.SumProduct.from_size_expression n4 in
+  let n4_simple = SumOfProducts.SumProduct.to_size_expression sp4 in
+  let n, n2_d = decompose (Env.singleton n (Location.no_location)) n2 in
+  n4_simple
+
 (* Decision algorithm for equality for two size expression [si1] and [si2]. *)
 (* It is a very basic decision algorithm since inequality constraints *)
 (* are not taken into account and equalities are only taken into account *)
