@@ -301,7 +301,6 @@ let decompose meta_size_variables si =
 (* It is a very basic decision algorithm since inequality constraints *)
 (* are not taken into account and equalities are only taken into account *)
 (* when they are of the form [n = si] *)
-
 (* This is not a problem for correctness and completeness since *)
 (* size constraints that are not trivially true or false *)
 (* will be ultimately evaluated when size variables are known. *)
