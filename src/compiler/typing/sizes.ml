@@ -106,16 +106,25 @@ module SumOfProducts =
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
         let to_size_expression m =
           let v_list = M.to_list m in
-          let sum s1 s2 =
-            match s1 with | Sint(0) -> s2 | _ -> Sop(Splus, s1, s2) in
+          let sum positive acc s2 =
+            (* if [positive] then [acc + s2] else [acc - s2] *)
+            match s2 with
+            | Sint(0) -> acc
+            | _ -> let op = if positive then Splus else Sminus in
+                   Sop(op, acc, s2) in
           let mult p m =
             match p with
             | 0 -> assert false
-            | 1 -> Product.explicit m
-            | _ -> if Product.is_one m then Sint(p) else
-                     Sop(Smult, Sint(p), Product.explicit m) in
+            | 1 -> (* [1 * m = m] *)
+               Product.explicit m
+            | _ ->
+               (* [p * 1 = p] *)
+               if Product.is_one m then Sint(p) else
+                 Sop(Smult, Sint(p), Product.explicit m) in
           List.fold_left
-            (fun acc (m, p) -> sum acc (mult p m)) (Sint(0)) v_list
+            (fun acc (m, p) ->
+              let positive, p = if p >= 0 then true, p else false, - p in
+              sum positive acc (mult p m)) (Sint(0)) v_list
 
         (* implicit representation *)
         let rec from_size_expression si =
@@ -239,64 +248,54 @@ let normalize si =
   let si, _ = normalize si in
   SumOfProducts.SumProduct.from_size_expression si
 
-(* given a size equality [si], try to decompose it into a sum [n - si'] *)
-(* x must be a meta size-variable that appear in [env] *)
-(* [raise Not_found] is it fails *)
-let decompose env si =
-  (* [sign = true] iff [si = (n + si')] and [si = (n - si')] otherwise *)
+(* given a size expression [si], try to decompose it into [n = si'] *)
+(* such that [n - si' = 0 where [n] is a meta size-variable that appear in [env] *)
+(* [raise Fail_to_decompose] is it fails *)
+exception Fail_to_decompose
+
+let decompose meta_size_variables si =
+  (* [positive = true] iff [si = n + si'] and [si = n - si'] otherwise *)
   let rec decompose_rec si =
     match si with
-    | Svar(n) when Env.mem n env -> n, false, Sint(0)
-    | Sop(Splus, Svar(n), si') when Env.mem n env -> n, true, si'
-    | Sop(Splus, si', Svar(n)) when Env.mem n env -> n, true, si'
-    | Sop(Sminus, Svar(n), si') when Env.mem n env -> n, false, si'
-    | Sop(Sminus, si', Svar(n)) when Env.mem n env -> n, false, si'
+    | Svar(n) when Env.mem n meta_size_variables -> n, true, Sint(0)
+    | Sop(Splus, Svar(n), si') when Env.mem n meta_size_variables -> n, true, si'
+    | Sop(Splus, si', Svar(n)) when Env.mem n meta_size_variables -> n, true, si'
+    | Sop(Sminus, Svar(n), si') when Env.mem n meta_size_variables -> n, false, si'
+    | Sop(Sminus, si', Svar(n)) when Env.mem n meta_size_variables -> n, false, si'
     | Sop(Splus, si1, si2) ->
        begin try
-           (* (n + si) + si2 = 0 iff n = - (si + si2) *)
-           (* (n - si) + si2 = 0 iff n = si - si2 *)
-           let n, sign, si = decompose_rec si1 in
-           n, not sign, Sop((if sign then Splus else Sminus), si, si2)
+           (* if [si1 = n + si11] then [si = n + (si11 + si2)] *)
+           (* if [si1 = n - si11] then [si = n + (si2 - si11)] *)
+           let n, positive, si11 = decompose_rec si1 in
+           n, true,
+           if positive then Sop(Splus, si11, si2) else Sop(Sminus, si2, si11)
          with
-         | Not_found ->
-            (* si1 + (n + si) = 0 iff n = - (si + si1) *)
-            (* si1 + (n - si) = 0 iff n = si - si1 *)
-            let n, sign, si = decompose_rec si2 in
-            n, not sign, Sop((if sign then Splus else Sminus), si, si1)
+         | Fail_to_decompose ->
+            (* if [si2 = (n + si22) then [si = n + (si1 + si22)] *)
+            (* if [si2 = (n - si22) then [si = n + (si1 - si22)] *)
+            let n, positive, si22 = decompose_rec si2 in
+            n, true, Sop((if positive then Splus else Sminus), si1, si22)
        end
     | Sop(Sminus, si1, si2) ->
        begin try
-           (* (n + si) - si2 = 0 iff n = si2 - si *)
-           (* (n - si) - si2 = 0 iff n = si2 + si *)
-           let n, sign, si = decompose_rec si1 in
-           n, true, Sop((if sign then Sminus else Splus), si2, si)
+           (* if [si1 = n + si11] then [si = n + (si11 - si2)] *)
+           (* if [si1 = n - si11] then [si = n - (si11 + si2)] *)
+           let n, positive, si11 = decompose_rec si1 in
+           n, positive,
+           if positive then Sop(Sminus, si11, si2) else Sop(Splus, si11, si2)
          with
-         | Not_found ->
-            (* si1 - (n + si) = 0 iff n = si1 - si *)
-            (* si1 - (n - si) = 0 iff n = si1 + si *)
-            let n, sign, si = decompose_rec si2 in
-           n, true, Sop((if sign then Sminus else Splus), si1, si)
+         | Fail_to_decompose ->
+            (* [si1 - (n + si22) = 0] iff [n + (si22 - si1)] = 0 *)
+            (* [si1 - (n - si22) = 0] iff [n + (si1 - si22) = 0 *)
+            (* that is: if [si2 = (n + si22) then [si = n + (si22 - si1)] *)
+            (* that is: if [si2 = (n - si22) then [si = n + (si1 - si22)] *)
+            let n, positive, si22 = decompose_rec si2 in
+            n, true,
+            if positive then Sop(Sminus, si22, si1) else Sop(Sminus, si1, si22)
        end
-    | _ -> raise Not_found in
-  let n, sign, si = decompose_rec si in
-  n, if sign then uminus si else si
-
-let _ =
-  let n = Ident.fresh "n" in
-  let n1 = plus(var n) (const 4) in
-  let n2 = minus(var n) (const 4) in
-  let n3 = const 4 in
-  let sp1 = SumOfProducts.SumProduct.from_size_expression n1 in
-  let sp2 = SumOfProducts.SumProduct.from_size_expression n2 in
-  let sp3 = SumOfProducts.SumProduct.from_size_expression n3 in
-  let n1_simple = SumOfProducts.SumProduct.to_size_expression sp1 in
-  let n2_simple  = SumOfProducts.SumProduct.to_size_expression sp2 in
-  let n3_simple  = SumOfProducts.SumProduct.to_size_expression sp3 in
-  let n4 = minus n2 n2_simple in
-  let sp4 = SumOfProducts.SumProduct.from_size_expression n4 in
-  let n4_simple = SumOfProducts.SumProduct.to_size_expression sp4 in
-  let n, n2_d = decompose (Env.singleton n (Location.no_location)) n2 in
-  n4_simple
+    | _ -> raise Fail_to_decompose in
+  let n, positive, si = decompose_rec si in
+  n, if positive then uminus si else si
 
 (* Decision algorithm for equality for two size expression [si1] and [si2]. *)
 (* It is a very basic decision algorithm since inequality constraints *)
@@ -317,17 +316,19 @@ let simple_equal si1 si2 =
     try
       let si = SumProduct.to_size_expression sp in
       (* the environment is used to know which size variable is a meta variable *)
-      let env = Defsizes.get_size_substitution () in
-      let n, si = decompose env si in
-      Defsizes.add_size_substitution n si;
+      let meta_size_variables = Defsizes.get_unconstrained_size_variables () in
+      let n, si = decompose meta_size_variables si in
+      Defsizes.intro_substitution_for_size_variables n si;
+      let l1 = Ident.Env.to_list (Defsizes.get_unconstrained_size_variables ()) in
+      let l2 = Ident.Env.to_list (Defsizes.get_substitution_for_size_variables ()) in
       true
     with
-    | Not_found ->
+    | Fail_to_decompose ->
        Defsizes.add (Rel { rel = Eq; lhs = si1; rhs = si2 }); true
 
 let equal si1 si2 =
   (* apply substitutions for meta size-variables *)
-  let env = Defsizes.get_size_substitution () in
+  let env = Defsizes.get_substitution_for_size_variables () in
   let si1 = subst_in_size env si1 in
   let si2 = subst_in_size env si2 in
   simple_equal si1 si2
@@ -335,7 +336,7 @@ let equal si1 si2 =
 let surely_equal si1 si2 =
   let open SumOfProducts in
   (* apply substitutions for meta size-variables *)
-  let env = Defsizes.get_size_substitution () in
+  let env = Defsizes.get_substitution_for_size_variables () in
   let si11 = subst_in_size env si1 in
   let si22 = subst_in_size env si2 in
   let sp = normalize (minus si11 si22) in
@@ -360,7 +361,7 @@ let compare loc cmp si1 si2 =
   let exception Maybe in
   let open SumOfProducts in
   try
-    let env = Defsizes.get_size_substitution () in
+    let env = Defsizes.get_substitution_for_size_variables () in
     let si1 = subst_in_size env si1 in
     let si2 = subst_in_size env si2 in
     let result = match cmp with
@@ -641,6 +642,6 @@ let apply constraints actual_si_list =
 (* introduce a fresh size variable *)
 let new_size_var loc =
   let n = Ident.fresh "_n" in
-  Defsizes.add_size_variable n loc;
+  Defsizes.intro_size_variable n loc;
   Svar(n)
 
