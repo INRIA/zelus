@@ -75,27 +75,23 @@ let rec new_var_list n =
   | n -> (new_var ()) :: new_var_list (n - 1)
 let forall l typ_body = { typ_vars = l; typ_body = typ_body }
 
-(** Set of free size variables in a type *)
-let rec fv bounded acc { t_desc } =
+(* Set of free size variables in a type *)
+let rec free_size_variables bounded acc { t_desc } =
   match t_desc with
   | Tvar -> acc
   | Tproduct(ty_list) | Tconstr(_, ty_list, _) ->
-     List.fold_left (fv bounded) acc ty_list
-  | Tvec(ty_arg, size) -> fv bounded (Sizes.fv bounded acc size) ty_arg
-  | Tarrow { ty_name_opt; ty_arg; ty_res } ->
-     let acc =
-       match ty_name_opt with
-       | None -> fv bounded acc ty_res
-       | Some(n) -> fv (S.add n bounded) acc ty_res in
-     fv bounded acc ty_arg
+     List.fold_left (free_size_variables bounded) acc ty_list
+  | Tvec(ty_arg, size) ->
+     free_size_variables bounded (Sizes.fv bounded acc size) ty_arg
+  | Tarrow { ty_arg; ty_res } ->
+     free_size_variables bounded acc ty_arg
   | Tsizefun { id_list; ty; constraints } ->
      let bounded =
        List.fold_left (fun acc id -> S.add id acc) bounded id_list in
-     Sizes.fv_constraints bounded (fv bounded acc ty) constraints
-  | Tlink(ty_link) -> fv bounded acc ty_link
+     Sizes.fv_constraints bounded (free_size_variables bounded acc ty) constraints
+  | Tlink(ty_link) -> free_size_variables bounded acc ty_link
 
-
-let fv acc ty = fv S.empty acc ty
+let free_size_variables acc ty = free_size_variables S.empty acc ty
 
 (* replace size variables in [ty] by their value in the environment [senv] *)
 let rec subst_in_type senv ({ t_desc } as ty) =
