@@ -104,7 +104,7 @@ let stateful loc expected_k =
 (* local variable depends on a size index *)
 let check_size_index_not_in_h loc index_opt h =
   let check_one index x { t_tys = { typ_body } } =
-    if S.mem index (Types.fv S.empty typ_body)
+    if S.mem index (Types.free_size_variables S.empty typ_body)
     then error loc (Esize_index_escape_in_environment(index, x, typ_body)) in
   match index_opt with
   | None -> ()
@@ -124,14 +124,18 @@ let check_type_is_in_kind loc h actual_k vkind =
 
 (* Check that there is no more free size variable in the environment [h] *)
 let check_no_more_unbound_size_variable_in_env loc h =
-  let check loc f free ty =
+  let check loc f ({ t_tys = ({ typ_body } as t_tys) } as t_entry) =
+    (* first saturate [ty] with size substitutions in the *)
+    (* global stack of constraints *)
+    let env = Defsizes.get_substitution_for_size_variables () in
+    let typ_body = Types.subst_in_type env typ_body in
+    let free = Types.free_size_variables S.empty typ_body in
     if not (S.is_empty free)
     then
       let n = S.choose free in
-      error loc (Esize_unbound_size_variable(f, n, ty)) in
-  Env.iter
-    (fun f { t_tys = { typ_body } } ->
-      check loc f (Types.fv S.empty typ_body) typ_body) h
+      error loc (Esize_unbound_size_variable(f, n, typ_body))
+    else { t_entry with t_tys = { t_tys with typ_body } } in
+  Env.mapi (check loc) h
 
 (* compare two kinds *)
 let less_than loc actual_k expected_k =
@@ -368,9 +372,10 @@ let arrow_type loc expected_k name_ty_list ty_res =
        | Some(n) ->
           let n_opt, fv = if S.mem n fv then n_opt, S.remove n fv
                           else None, fv in
-          let fv = Types.fv fv ty in
+          let fv = Types.free_size_variables fv ty in
           (n_opt, ty) :: p_ty_list, fv in
-  let name_ty_list, fv = arg name_ty_list (Types.fv S.empty ty_res) in
+  let name_ty_list, fv =
+    arg name_ty_list (Types.free_size_variables S.empty ty_res) in
   Types.arrow_type_list expected_k name_ty_list ty_res
 
 (* add a new entry in the typing environment *)
@@ -2115,7 +2120,7 @@ let implementation ff is_first impl =
        let new_h, actual_k = leq (Tfun(Tstatic)) Env.empty d_leq in
 
        (* check that there is no unbounded size variables in the environment *)
-       check_no_more_unbound_size_variable_in_env loc new_h;
+       let new_h = check_no_more_unbound_size_variable_in_env loc new_h in
        
        (* check that there is no remaining unbounded size variables *)
        (* in the global stack of constraints *)
