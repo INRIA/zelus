@@ -50,20 +50,24 @@ and rel = Eq | Lt | Lte
 let constraint_is_true sc = match sc with | True -> true | _ -> false
 
 (* the stack of size constraints *)
-(* [meta_variables] is the set of meta variables on sizes. They can *)
+(* [currentmeta_variables] is the set of meta variables on sizes. They can *)
 (* be substituted by size expressions according to equality constraints *)
 (* by unification *)
-type stack_of_size_constraint =
+type stack_of_size_constraints =
   { stack: exp constraints Stack.t;
     mutable current: exp constraints;
-    mutable size_variables: Location.t Env.t;
-    mutable size_substitution: exp Env.t;
+    (* the current set of constraints on sizes *)
+    mutable unconstrained_size_variables: Location.t Env.t;
+    (* some meta size variable are associated to a substitution *)
+    mutable substitution_for_size_variables: exp Env.t;
+    (* the other meta size varibles that are not associated to a substitution *)
   }
 
 (* the stack of constraints *)
-let c_stack : stack_of_size_constraint =
+let c_stack : stack_of_size_constraints =
   { stack = Stack.create (); current = True;
-    size_variables = Env.empty; size_substitution = Env.empty }
+    unconstrained_size_variables = Env.empty;
+    substitution_for_size_variables = Env.empty }
 
 (* A size function [fun <<n1,...,nk>>. e] has type [<<n1,...,nk>>.t with c] *)
 (* the body is typed with an empty constraint pushed on to of [c_stack] *)
@@ -72,8 +76,8 @@ let c_stack : stack_of_size_constraint =
 let clear () =
   Stack.clear c_stack.stack;
   c_stack.current <- True;
-  c_stack.size_variables <- Env.empty;
-  c_stack.size_substitution <- Env.empty
+  c_stack.unconstrained_size_variables <- Env.empty;
+  c_stack.substitution_for_size_variables <- Env.empty
 
 (* push and start with an empty constraint *)
 let push () =
@@ -99,25 +103,29 @@ let is_empty () =
   Stack.is_empty c_stack.stack && constraint_is_true c
 
 (* add fresh meta variables *)
-let add_size_variable n loc =
-  c_stack.size_variables <- Env.add n loc c_stack.size_variables
+let intro_size_variable n loc =
+  c_stack.unconstrained_size_variables <-
+    Env.add n loc c_stack.unconstrained_size_variables
 
 (* add sustitution on size variables *)
-let add_size_substitution n e =
+let intro_substitution_for_size_variables n e =
   (* add it into the subsitution *)
-  c_stack.size_substitution <- Env.add n e c_stack.size_substitution;
+  c_stack.substitution_for_size_variables <-
+    Env.add n e c_stack.substitution_for_size_variables;
   (* remove it from the set of meta size-variables that are *)
   (* unbounded/unconstrained *)
-  c_stack.size_variables <- Env.remove n c_stack.size_variables
+  c_stack.unconstrained_size_variables <-
+    Env.remove n c_stack.unconstrained_size_variables
 
 (* get the substitution for sizes *)
-let get_size_substitution () = c_stack.size_substitution
+let get_substitution_for_size_variables () = c_stack.substitution_for_size_variables
 
-(* get the set of size variables *)
-let get_size_variables () = c_stack.size_variables
+(* get the set of free size variables *)
+let get_unconstrained_size_variables () = c_stack.unconstrained_size_variables
 
 (* sequence of constraints *)
-let to_seq () =
+let get_stack_of_constraints () =
   let l = Stack.to_seq c_stack.stack in
-  Seq.cons c_stack.current l 
+  Seq.cons c_stack.current l
+
 
