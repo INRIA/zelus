@@ -397,7 +397,7 @@ let env_of_pattern entry acc pat =
 (* check that there is no remaining unbound size variables *)
 (* in the global stack of constraints *)
 let check_no_more_unbound_size_variables () =
-  let env = Defsizes.get_size_variables () in
+  let env = Defsizes.get_unconstrained_size_variables () in
   if Env.is_empty env then ()
   else let n, loc = Env.choose env in
        Typerrors.error loc (Typerrors.Esize_unbound_meta_size_variable(n))
@@ -2122,7 +2122,7 @@ let implementation ff is_first impl =
        check_no_more_unbound_size_variables ();
 
        (* check that no size constraints remain in the stack *)
-       let l = Defsizes.to_seq () in
+       let l = Defsizes.get_stack_of_constraints () in
        Seq.iter (check_size_constraint loc) l;
        
        (* add entry [n : tys] for every [n in d_names] in the global env. *)
