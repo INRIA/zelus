@@ -288,6 +288,20 @@ let output_value_type_declaration ff global_list =
     (print_list_l print_value_type_declaration """""")
     global_list
 
-
+(* print the stack of size constraints *)
+let output_stack_of_size_constraints ff () =
+  let unconstrained_size_variables =
+    Ident.Env.to_list (Defsizes.get_unconstrained_size_variables ()) in
+  let substitution_for_size_variables =
+    Ident.Env.to_list (Defsizes.get_substitution_for_size_variables ()) in
+  let l = List.of_seq (Defsizes.get_stack_of_constraints ()) in
+  fprintf ff
+    "@[<hov 2>The stack of size constraints contains:@ %a@ %a@ %a@.@]"
+    (Pp_tools.print_list_r
+       (fun ff (x, _) -> Ident.fprint_t ff x) "{" ";" "}")   unconstrained_size_variables
+    (Pp_tools.print_list_r
+       (fun ff (x, si) -> fprintf ff "@[<hov 2>%a \\@ %a@]" Ident.fprint_t x psize si) "{" ";" "}")
+    substitution_for_size_variables
+    (Pp_tools.print_list_r constraints_t "{" ";" "}") l
 
 
