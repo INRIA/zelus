@@ -128,6 +128,7 @@ let check_no_more_unbound_size_variable_in_env loc h =
     (* first saturate [ty] with size substitutions in the *)
     (* global stack of constraints *)
     let env = Defsizes.get_substitution_for_size_variables () in
+    let l = Env.to_list env in
     let typ_body = Types.subst_in_type env typ_body in
     let free = Types.free_size_variables S.empty typ_body in
     if not (S.is_empty free)

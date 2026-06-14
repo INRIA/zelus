@@ -93,34 +93,29 @@ let rec free_size_variables bounded acc { t_desc } =
 
 let free_size_variables acc ty = free_size_variables S.empty acc ty
 
-(* replace size variables in [ty] by their value in the environment [senv] *)
-let rec subst_in_type senv ({ t_desc } as ty) =
+(* replace size variables in [ty] by their value in the environment [env] *)
+(* assumption: all names in [env] should be distinct from bounded names in [ty] *)
+let rec subst_in_type env ({ t_desc } as ty) =
   match t_desc with
   | Tvar -> ty
-  | Tproduct(ty_list) -> product (List.map (subst_in_type senv) ty_list)
+  | Tproduct(ty_list) -> product (List.map (subst_in_type env) ty_list)
   | Tconstr(gl, ty_list, abbrev) ->
-     constr gl (List.map (subst_in_type senv) ty_list) abbrev
+     constr gl (List.map (subst_in_type env) ty_list) abbrev
   | Tvec(ty_arg, si) ->
-     vec (subst_in_type senv ty_arg) (Sizes.subst_in_size senv si)
-  | Tlink(ty_link) -> subst_in_type  senv ty_link
+     vec (subst_in_type env ty_arg) (Sizes.subst_in_size env si)
+  | Tlink(ty_link) -> subst_in_type  env ty_link
   | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
-     let ty_arg = subst_in_type senv ty_arg in
+     let ty_arg = subst_in_type env ty_arg in
      let ty_name_opt, ty_res =
        match ty_name_opt with
-       | None -> ty_name_opt, subst_in_type senv ty_res
+       | None -> ty_name_opt, subst_in_type env ty_res
        | Some(n) ->
 	  let m = Ident.fresh (Ident.source n) in
-	  Some(m), subst_in_type (Env.add n (Svar m) senv) ty_res in
+	  Some(m), subst_in_type (Env.add n (Svar m) env) ty_res in
      arrow_type ty_kind ty_name_opt ty_arg ty_res
   | Tsizefun { id_list; ty; constraints; is_rec } ->
-     let id_fresh_list =
-       List.map (fun id -> Ident.fresh (Ident.source id)) id_list in
-     let senv =
-       List.fold_left2
-         (fun acc id id_fresh -> Env.add id (Svar(id_fresh)) acc)
-         senv id_list id_fresh_list in
-     sizefun id_fresh_list (subst_in_type senv ty)
-       (Sizes.subst_in_constraint senv constraints) is_rec
+     sizefun id_list (subst_in_type env ty)
+       (Sizes.subst_in_constraint env constraints) is_rec
 
 (** Remove dependences from a type *)
 (* [t1 -A-> t2] becomes [t1 -> t2];

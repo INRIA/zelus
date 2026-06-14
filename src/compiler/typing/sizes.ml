@@ -318,8 +318,6 @@ let simple_equal si1 si2 =
       let meta_size_variables = Defsizes.get_unconstrained_size_variables () in
       let n, si = decompose meta_size_variables si in
       Defsizes.intro_substitution_for_size_variables n si;
-      let l1 = Ident.Env.to_list (Defsizes.get_unconstrained_size_variables ()) in
-      let l2 = Ident.Env.to_list (Defsizes.get_substitution_for_size_variables ()) in
       true
     with
     | Fail_to_decompose ->
@@ -398,7 +396,7 @@ let syntactic_equal si1 si2 =
     | _ -> false in
   equal si1 si2
 
-(* evaluation of sizes *)
+(* evaluation of sizes. Raises Maybe if it contains un unbound variable *)
 let rec eval n_env si =
   match si with
   | Sint(i) -> i
@@ -416,7 +414,7 @@ let rec eval n_env si =
 
 (* fix-point computation of an environment of functions *)
 (* [let rec f1 n1... = sc1 and f2 n2... = sc2 and ... in sc] *)
-let letrec check f_env n_env id_id_list_sc_list =
+let letrec eval_constraint f_env n_env id_id_list_sc_list =
   let rec f_env_fix =
     lazy (List.fold_left 
             (fun f_acc (id, id_list, sc) -> 
@@ -425,7 +423,7 @@ let letrec check f_env n_env id_id_list_sc_list =
                   let n_env = 
                     List.fold_left2 (fun acc id v -> Env.add id v acc)
                       n_env id_list v_list in
-                  check (Lazy.force f_env_final) n_env sc)
+                  eval_constraint (Lazy.force f_env_final) n_env sc)
                  f_acc)
             Env.empty id_id_list_sc_list)
   and f_env_final = lazy (Env.append (Lazy.force f_env_fix) f_env) in
