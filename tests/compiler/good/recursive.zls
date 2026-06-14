@@ -11,12 +11,12 @@ let rec add_vec<<n>>(x: [n]_,y: [n]_) returns (o:[n]_)
          (add_vec<<n-1>>(x.(1 ..), y.(1 ..)))
   end
 
-(* let rec add_vec'<<n>>(x: [n]_,y: [n]_) =
+let rec add_vec'<<n>>(x: [n]_,y: [n]_) =
   let o = match size n with
   | 0 -> [||]
   | _ -> [| x.(0) +. y.(0) |] ++ (add_vec'<<n-1>>(x.(1 ..), y.(1 ..)))
   end in
-  (o: [n]_) *)
+  (o: [n]_)
 
 (* Vector difference *)
 (*

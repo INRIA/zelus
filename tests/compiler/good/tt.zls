@@ -1,20 +1,7 @@
-let rec not_rec<<n>>(x:[n]bool) returns (y:[n]bool)
-  match size n with
-  | 0 -> y = [| |]
-  | _ -> y = [| not (x.(0)) |] ++
-             (not_rec<<n-1>>(x.(1 .. (n-1))))
-  end
-
-let not8(x) = not_rec<<8>>(x)
-
-(*
 let f1<<a,b>>(x) returns (z)
   forward<<a>> [i] (xi in x) returns (zi out z)
     do zi = xi + x.(i) done
     
-let f12(x,y) returns (z)
-  z = f11<<12, 11>>(x, y)
-
 let f11<<a,b>>(x, y) returns (z)
   forward<<a>> [i] (xi in x, yi in y) returns (zi out z)
     do forward<<b>> [j] (xij in xi, yij in yi) returns (zij out zi)
@@ -24,16 +11,7 @@ let f11<<a,b>>(x, y) returns (z)
 let f12(x,y) returns (z)
   z = f11<<12, 11>>(x, y)
 
-let rec not_rec<<n>>(x:[n]bool) returns (y:[n]bool)
-  match size n with
-  | 0 -> y = [| |]
-  | _ -> y = [| not (x.(0)) |] ++
-             (not_rec<<n-1>>(x.(1 .. (n-1))))
-  end
-
-let not8(x) = not_rec<<8>>(x)
-
 let f<<k,m>>(x:[k]int) = x.(m-1)
 
 let main(x:[42]int) = f<<42,1>>(x)
-*)
+

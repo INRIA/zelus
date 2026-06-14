@@ -467,8 +467,9 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
     id_id_list_ty_constraints_list
 
 (* Given two types [ty1] and [ty] in two pattern matching handlers *)
-(* [p1 -> e1: ty1; _ -> e2: ty2, computes a more general *)
-(* type [ty[si]] such that [ty[p1] = ty1] and [ty[si] = ty2] *)
+(* [p1 -> e1: ty1; _ -> e2: ty2, computes a type [ty'] *)
+(* if ty1 = ty'[p1] and ty2 = ty'[si] it returns [ty'] *)
+(* otherwise, it returns type [ty2] *)
 let rec join_two_types si p1 ty1 ty2 =
   let rec join_two_types ty1 ty2 =
     if ty1 == ty2 then ty1 else
