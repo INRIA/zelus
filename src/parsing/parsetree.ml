@@ -46,6 +46,8 @@ and type_expression_desc =
   | Etypetuple : type_expression list -> type_expression_desc
   | Etypefun : kind * name option * type_expression * type_expression ->
                type_expression_desc
+  | Etypesizefun : name list * type_expression ->
+               type_expression_desc (* <<n1,...,nk>>.ty *)
   | Etypevec : type_expression * size -> type_expression_desc
 
 and size = size_desc localized

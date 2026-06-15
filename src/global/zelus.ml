@@ -48,6 +48,8 @@ and type_expression_desc =
       { ty_kind: kind; ty_name_opt: Ident.t option;
         ty_arg : type_expression; ty_res : type_expression }
   (* array: [size]t defines an array of size [t] with values of type [t] *)
+  | Etypesizefun of { id_list: Ident.t list;
+                      ty: type_expression } (* <<n1,...,nk>>.ty *)
   | Etypevec of type_expression * size_expression
 
 and is_singleton = bool

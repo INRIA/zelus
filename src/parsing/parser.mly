@@ -673,7 +673,11 @@ sizefun_definition_desc:
     ty_opt = optional(colon_type_expression) EQUAL e = seq_expression
     { let e = match ty_opt with
 	| None -> e
-	| Some(ty) -> make (Etypeconstraint(e, ty)) $startpos(e) $endpos(e) in
+	| Some(ty) ->
+	   make (Etypeconstraint(e,
+				 make (Etypesizefun(ide_list, ty))
+				 $startpos(ide_list) $endpos(e)))
+	        $startpos(e) $endpos(e) in
       EQsizefun(ide, ide_list, e) }
   | i = is_inline a = is_atomic k = fun_kind_opt ide = ide 
         LLESSER ide_list = list_of(COMMA, ide) GGREATER 
