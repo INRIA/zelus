@@ -314,7 +314,8 @@ let simple_equal si1 si2 =
   else (* add it to the constraint environment *)
     try
       let si = SumProduct.to_size_expression sp in
-      (* the environment is used to know which size variable is a meta variable *)
+      (* the environment is used to know which size variable *)
+      (* is a meta variable *)
       let meta_size_variables = Defsizes.get_unconstrained_size_variables () in
       let n, si = decompose meta_size_variables si in
       Defsizes.intro_substitution_for_size_variables n si;

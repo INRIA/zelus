@@ -177,7 +177,9 @@ let message loc kind =
                but is expected to have type@ %a.@.@]"
         output_location loc
         Ptypes.ptype  actual_ty
-        Ptypes.ptype  expected_ty
+        Ptypes.ptype  expected_ty;
+        if !Misc.vverbose then
+          eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
   | Etype_clash_in_handlers(m_loc, actual_ty, expected_ty) ->
      eprintf "@[%aType error: the types for all the handlers do not agree.\n\
                 %aIn this handler, the right-hand side has type@ %a,@ \

@@ -572,7 +572,8 @@ let size_of_exp expected_vkind h e =
     | _ -> error e_loc Enot_a_size_expression in
   size e
 
-(* Typing patterns. Pre-condition: [h] must contains names that appear in [pat] *)
+(* Typing patterns. Pre-condition: [h] must contains names that appear *)
+(* in [pat] *)
 let rec pattern h ({ pat_desc; pat_loc; pat_info } as pat) ty =
   (* type annotation *)
   pat.pat_info <- Typinfo.set_type pat_info ty;
@@ -683,14 +684,18 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
 (* for every branch *)
 let join_types loc si mh_list def_cond_sc_list ty_list =
   (* first compute a type [ty] that is possibly more general than *)
-  (* the returned type for every handler of a pattern matching of a size *)
-  let rec join_types_from_handlers mh_list ty_list =
-    match mh_list, ty_list with
-    | [{ m_pat }], [ty] -> ty
-    | { m_pat } :: mh_list, ty_left :: ty_list ->
-       let ty_right = join_types_from_handlers mh_list ty_list in
-       Types.join_two_types si m_pat ty_left ty_right
-    | _ -> assert false in
+  (* the type for each handler of a pattern matching of a size *)
+  let join_types_from_handlers mh_list ty_list =
+    let rec join_rec mh_list ty_list =
+      match mh_list, ty_list with
+      | [{ m_pat }], [ty] -> ty, []
+      | { m_pat } :: mh_list, ty_left :: ty_list ->
+         let ty_right, ty_res_list = join_rec mh_list ty_list in
+       let ty_res = Types.join_two_types si m_pat ty_left ty_right in
+       ty_res, ty_right :: ty_res_list
+      | _ -> assert false in
+    let ty_right, ty_res_list = join_rec mh_list ty_list in
+    ty_right, ty_right :: ty_res_list in
   
   (* check that every handler has type [ty_res]*)
   let check expected_ty { m_pat; m_loc } (def_cond, sc) actual_ty =
@@ -708,7 +713,7 @@ let join_types loc si mh_list def_cond_sc_list ty_list =
   (* try to find a type [ty[si]] such that *)
   (* [ty[p_0]] = ty_0;...;ty[p_n] = ty_n] *)
   (* this function never fails *)
-  let expected_ty = join_types_from_handlers mh_list ty_list in
+  let expected_ty, ty_list = join_types_from_handlers mh_list ty_list in
   (* check it is indeed more general *)
   let def_cond_sc_list =
     Util.map3 (check expected_ty) mh_list def_cond_sc_list ty_list in
