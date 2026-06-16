@@ -691,14 +691,21 @@ let check_no_unbounded_size_variables loc ty =
 (* general type than a types that unifies with all the ty_i *)
 (* the list of handlers is updated with the generated size constraint *)
 (* for every branch *)
-let join_types loc si mh_list def_cond_sc_list ty_list =
+(* The function checks that no unbounded meta size variable appear in *)
+(* every type [ty_i]. Otherwise, type errors are weard and hard to understand *)
+let join_types_in_match_size loc si mh_list def_cond_sc_list ty_list =
   (* first compute a type [ty] that is possibly more general than *)
   (* the type for each handler of a pattern matching of a size *)
-  let join_types_from_handlers mh_list ty_list =
+  let join_types_in_handlers mh_list ty_list =
     let rec join_rec mh_list ty_list =
       match mh_list, ty_list with
-      | [{ m_pat }], [ty] -> ty, []
-      | { m_pat } :: mh_list, ty_left :: ty_list ->
+      | [{ m_pat; m_loc }], [ty] ->
+         (* check that no unbound meta size variable appears in [ty] *)
+         check_no_unbounded_size_variables m_loc ty;
+         ty, []
+      | { m_pat; m_loc } :: mh_list, ty_left :: ty_list ->
+         (* check that no unbound meta size variable appears in [ty_left] *)
+         check_no_unbounded_size_variables m_loc ty_left;
          let ty_right, ty_res_list = join_rec mh_list ty_list in
        let ty_res = Types.join_two_types si m_pat ty_left ty_right in
        ty_res, ty_right :: ty_res_list
@@ -722,7 +729,7 @@ let join_types loc si mh_list def_cond_sc_list ty_list =
   (* try to find a type [ty[si]] such that *)
   (* [ty[p_0]] = ty_0;...;ty[p_n] = ty_n] *)
   (* this function never fails *)
-  let expected_ty, ty_list = join_types_from_handlers mh_list ty_list in
+  let expected_ty, ty_list = join_types_in_handlers mh_list ty_list in
   (* check it is indeed more general *)
   let def_cond_sc_list =
     Util.map3 (check expected_ty) mh_list def_cond_sc_list ty_list in
@@ -764,7 +771,7 @@ let match_size_handlers
   (* [p_i] is the pattern of the i-th handler *)
   (* warning: this imposes that [si = n] *)
   let actual_ty_res, c_list =
-    join_types loc si m_handlers c_list ty_res_list in
+    join_types_in_match_size loc si m_handlers c_list ty_res_list in
   unify loc ty_res actual_ty_res;
   
   (* check partiality/redundancy of the pattern matching *)

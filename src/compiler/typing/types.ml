@@ -470,8 +470,6 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
 (* [p1 -> e1: ty1; _ -> e2: ty2, computes a type [ty'] *)
 (* if ty1 = ty'[p1] and ty2 = ty'[si] it returns [ty'] *)
 (* otherwise, it returns type [ty2] *)
-exception NoJoin
-
 let rec join_two_types si p1 ty1 ty2 =
   let rec join_two_types ty1 ty2 =
     if ty1 == ty2 then ty1 else
