@@ -263,8 +263,9 @@ let message loc kind =
         (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Esize_type_contains_an_unbound_meta_size_variable(name, ty) ->
     eprintf
-      "@[<hov 0>%aType error: the type of this expression, that is\n\
-       %a, contains the size variable %s that is unbound.@.@]"
+      "@[<hov 0>%aType error: in this handler, \
+       the type of the expression on the right-hand side, that is,\
+       %a, contains the unbound size variable %s.@.@]"
       output_location loc
       Ptypes.ptype ty
       (if !Misc.vverbose then Ident.name name else Ident.source name)

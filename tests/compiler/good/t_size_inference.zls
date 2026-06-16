@@ -30,33 +30,6 @@ let rec fff<<n>> : unit -> [n]int = fun () ->
   | 0 -> [||]
   | _ -> [|1|] ++ fff<<n-1>>()
 
-fff : <<n>>.unit -> [n]int
-
-(1+(n-1)]int
-[0]a
-
-[n]a
-
-[0]a
-[2+X]a
-
-[n]a
-
-
-2+X = n
-
-
-t(n)
-
-p0 -> t[p0] | _ -> t[n]
-
-t[n
-
-[0]a
-[n]a
-
-[n]a
-
 let main_fff() = fff<<42>>()
 
 let gg<<n>>() = match size n with | 0 -> [|1|] | _ -> [|2|]
