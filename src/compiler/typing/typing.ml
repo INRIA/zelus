@@ -474,6 +474,8 @@ let rec intro_skeleton_type_of_expression expected_k { e_desc } =
      let name_ty_arg_list = arg_list f_args in
      let ty_res = skeleton_type_of_result expected_k f_body in
      arrow_type f_loc expected_body_k name_ty_arg_list ty_res
+  | Etypeconstraint(_, typ_expr) ->
+     Types.instance (Interface.scheme_of_type typ_expr)
   | _ -> Types.new_var ()
 
 (* introduce a typing environment according to [expected_k] for an equation *)
@@ -1716,9 +1718,9 @@ and sizefun_list_t l_rec h sizefun_list =
     (List.tl sizefun_list);
     
   (* types [ty_body_1;...;ty_body_k] for functions [f1;...;f_k] *)
-  let expected_ty_list =
+  let expected_ty_body_list =
     List.map
-      (fun { sf_e } -> intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
+      (fun { sf_e } ->intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
       sizefun_list in
   (* initial typing environment *)
   (* [f_1: <<n_11,...>>.t_1 with [is_rec] f_1(id_rec_list);...;
@@ -1728,7 +1730,7 @@ and sizefun_list_t l_rec h sizefun_list =
       (fun acc { sf_id; sf_id_list; sf_loc } ty_body ->
         let ty = Types.intro_sizefun sf_id sf_id_list id_rec_list ty_body in
         env_of sf_id ty acc)
-      Env.empty sizefun_list expected_ty_list in
+      Env.empty sizefun_list expected_ty_body_list in
   let id_id_list_ty_constraints, defined_names =
     Util.mapfold2
       (fun acc ({ sf_id; sf_id_list; sf_loc } as sizefun) ty_body ->
@@ -1736,7 +1738,7 @@ and sizefun_list_t l_rec h sizefun_list =
           if l_rec then Env.append (h0 sf_id_list) h else h in
         sizefun_t new_h sizefun ty_body,
         Total.join sf_loc (Defnames.singleton sf_id) acc)
-      Defnames.empty sizefun_list expected_ty_list in
+      Defnames.empty sizefun_list expected_ty_body_list in
   let id_ty_list =
     Types.gen_sizefun_constraint_list l_rec id_id_list_ty_constraints in
   let h0 =

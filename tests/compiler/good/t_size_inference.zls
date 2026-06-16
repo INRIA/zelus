@@ -25,12 +25,12 @@ let ff<<n>>() =
   | 0 -> [|1|]
   | _ -> make<<n>>()
 
-let rec fff<<n>> : unit -> [n]int = fun () ->
+let rec fff<<n>> : _ -> [n]_ = fun () ->
   match size n with
   | 0 -> [||]
-  | _ -> [|1|] ++ fff<<n-1>>()
+  | _ -> [|1|] ++ ((fff<<n-1>>()):[n-1]_)
 
-let main_fff() = fff<<42>>()
+let main_ff() = fff<<42>>()
 
 let gg<<n>>() = match size n with | 0 -> [|1|] | _ -> [|2|]
 

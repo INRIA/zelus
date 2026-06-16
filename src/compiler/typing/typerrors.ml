@@ -268,7 +268,9 @@ let message loc kind =
        %a, contains the unbound size variable %s.@.@]"
       output_location loc
       Ptypes.ptype ty
-      (if !Misc.vverbose then Ident.name name else Ident.source name)
+      (if !Misc.vverbose then Ident.name name else Ident.source name);
+    if !Misc.vverbose then
+      eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
  | Esize_of_vec_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \

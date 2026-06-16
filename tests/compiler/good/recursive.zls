@@ -11,98 +11,88 @@ let rec add_vec<<n>>(x: [n]_,y: [n]_) returns (o:[n]_)
          (add_vec<<n-1>>(x.(1 ..), y.(1 ..)))
   end
 
-let rec add_vec'<<n>>(x: [n]_,y: [n]_) =
-  let o = match size n with
+let rec add_vec'<<n>>(x: [n]_,y: [n]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| x.(0) +. y.(0) |] ++ (add_vec'<<n-1>>(x.(1 ..), y.(1 ..)))
-  end in
-  (o: [n]_)
+  end
 
 (* Vector difference *)
-(*
-let rec sub_vec<<n>>(x: [n]_,y: [n]_) =
-  let o = match size n with
+let rec sub_vec<<n>>(x: [n]_,y: [n]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| x.(0) -. y.(0) |] ++
          (sub_vec<<n-1>>(x.(1 ..), y.(1 ..)))
-  end in
-  (o: [n]_) *)
+  end
 
 (* Element-wise vector product *)
-let rec mul_ew_vec<<n>>(x: [n]_,y: [n]_) =
-  let o = match size n with
+let rec mul_ew_vec<<n>>(x: [n]_,y: [n]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| x.(0) *. y.(0) |] ++ (mul_ew_vec<<n-1>>(x.(1 ..), y.(1 ..)))
-  end in
-  (o: [n]_)
+  end
 
 (* Element-wise vector division *)
-let rec div_ew_vec<<n>>(x: [n]_,y: [n]_) =
-  let o = match size n with
+let rec div_ew_vec<<n>>(x: [n]_,y: [n]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| x.(0) /. y.(0) |] ++ (div_ew_vec<<n-1>>(x.(1 ..), y.(1 ..)))
-  end in
-  (o: [n]_)
+  end
 
 (* Matrix sum *)
-let rec add_mat<<n,m>>(x: [n][m]_, y: [n][m]_) =
-  let o = match size n with
+let rec add_mat<<n,m>>(x: [n][m]_, y: [n][m]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| add_vec<<m>>(x.(0),y.(0)) |] ++ add_mat<<n-1,m>>(x.(1 ..), y.(1 ..))
-  end in
-  (o: [n][m]_)
+  end
 
 (* Matrix difference *)
-let rec sub_mat<<n,m>>(x: [n][m]_, y: [n][m]_) =
-  let o = match size n with
+let rec sub_mat<<n,m>>(x: [n][m]_, y: [n][m]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| sub_vec<<m>>(x.(0),y.(0)) |] ++ sub_mat<<n-1,m>>(x.(1 ..), y.(1 ..))
-  end in
-  (o: [n][m]_)
+  end
 
 (* Vector dot product *)
 let rec dot_product<<n>>(x: [n]_, y: [n]_) =
-  let o = match size n with
+  match size n with
   | 0 -> 0.0
   | _ -> x.(0) *. y.(0) +. dot_product<<n-1>>(x.(1 ..), y.(1 ..))
-  end in
-  (o: _)
+  end
 
 (* Sum of element-wise products for 3 vectors *)
 let rec dot_product3<<n>>(x: [n]_, y: [n]_, z: [n]_) =
-  let o = match size n with
+  match size n with
   | 0 -> 0.0
-  | _ -> x.(0) *. y.(0) *. z.(0) +. dot_product3<<n-1>>(x.(1 ..), y.(1 ..), z.(1 ..))
-  end in
-  (o: _)
+  | _ -> x.(0) *. y.(0) *. z.(0) +.
+         dot_product3<<n-1>>(x.(1 ..), y.(1 ..), z.(1 ..))
+  end
 
 (* Vector filled with zeros *)
-let rec zeros_vec<<n>>() =
-  let o = match size n with
+let rec zeros_vec<<n>>() : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [| 0.0 |] ++ zeros_vec<<n-1>>()
-  end in
-  (o: [n]_)
-
+  end
+  
 (* Matrix filled with zeros *)
-let rec zeros_mat<<n, m>>() =
-  let o = match size n with
+let rec zeros_mat<<n, m>>() : [n][m]_ =
+  match size n with
   | 0 -> [||]
   | _ -> [|zeros_vec<<m>>()|] ++ zeros_mat<<n-1, m>>()
-  end in
-  (o: [n][m]_)
+  end
 
 (* Cons *)
 let cons_vec<<n>>(left: _, right: [n]_) = [|left|] ++ right
 
 (* Inverse of cons *)
-let uncons_vec<<n>>(v: [n+1]_) =
+let uncons_vec<<n>>(v: [n+1]_) : _ * ([n]_) =
   let left = v.(0) in
   let right = match size n with
   | 0 -> [||]
   | _ -> v.(1 ..)
   end in
-  (left: _), (right: [n]_)
+  left, right
 
 (* Reverse cons *)
 let snoc_vec<<n>>(left: [n]_, right: _) = left ++ [|right|]

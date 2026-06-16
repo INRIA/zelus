@@ -271,7 +271,6 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token EOF
 
 %right MINUSGREATER VFUN SFUN DFUN CFUN AFUN
-%nonassoc RBRACKET
 %nonassoc prec_result
 %left WHERE AND
 %nonassoc EMIT
@@ -461,7 +460,7 @@ label_type:
 constr_decl_desc:
   | c = CONSTRUCTOR
       { Econstr0decl(c) }
-  | c = CONSTRUCTOR OF l = list_of(STAR, simple_type)
+  | c = CONSTRUCTOR OF l = list_of(STAR, simple_type_expression)
       { Econstr1decl(c, l) }
 ;
 
@@ -673,11 +672,7 @@ sizefun_definition_desc:
     ty_opt = optional(colon_type_expression) EQUAL e = seq_expression
     { let e = match ty_opt with
 	| None -> e
-	| Some(ty) ->
-	   make (Etypeconstraint(e,
-				 make (Etypesizefun(ide_list, ty))
-				 $startpos(ide_list) $endpos(e)))
-	        $startpos(e) $endpos(e) in
+	| Some(ty) -> make (Etypeconstraint(e, ty)) $startpos(e) $endpos(e) in
       EQsizefun(ide, ide_list, e) }
   | i = is_inline a = is_atomic k = fun_kind_opt ide = ide 
         LLESSER ide_list = list_of(COMMA, ide) GGREATER 
@@ -1484,7 +1479,7 @@ infx:
 
 /* Type expressions */
 type_expression:
-  | t = simple_type
+  | t = simple_type_expression
       { t }
   | tl = type_star_list
       { make(Etypetuple(List.rev tl)) $startpos $endpos }
@@ -1493,40 +1488,43 @@ type_expression:
   | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
 			    a = arrow t_res = type_expression
     { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos }
-  | LBRACKET s = size_expression RBRACKET t = type_expression
+;
+
+simple_type_expression:
+  | t = atomic_type_expression
+      { t }
+  | t = simple_type_expression i = ext_ident
+      { make (Etypeconstr(i, [t])) $startpos $endpos }
+  | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
+      { make (Etypeconstr(i, t :: tl)) $startpos $endpos }
+  | LBRACKET s = size_expression RBRACKET t = atomic_type_expression
     { make(Etypevec(t, s)) $startpos $endpos }
 ;
 
-simple_type:
+atomic_type_expression:
   | t = type_var
       { make (Etypevar t) $startpos $endpos }
   | UNDERSCORE
     { make (Etypewildcard) $startpos $endpos }
   | i = ext_ident
       { make (Etypeconstr(i, [])) $startpos $endpos }
-  | t = simple_type i = ext_ident
-      { make (Etypeconstr(i, [t])) $startpos $endpos }
-  | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
-      { make (Etypeconstr(i, t :: tl)) $startpos $endpos }
-  | t_arg = simple_type LBRACKET s = size_expression RBRACKET
-      { make(Etypevec(t_arg, s)) $startpos $endpos}
   | LPAREN t = type_expression RPAREN
       { t }
 ;
 
 type_star_list:
-  | t1 = simple_type STAR t2 = simple_type
+  | t1 = simple_type_expression STAR t2 = simple_type_expression
       { [t2; t1] }
-  | tsl = type_star_list STAR t = simple_type
+  | tsl = type_star_list STAR t = simple_type_expression
       { t :: tsl }
 ;
 
-type_var :
+type_var:
   | QUOTE i = IDENT
       { i }
 ;
 
-type_comma_list :
+type_comma_list:
   | te = type_expression COMMA tl = type_comma_list
       { te :: tl }
   | te = type_expression
