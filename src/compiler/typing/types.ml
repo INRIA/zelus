@@ -51,15 +51,15 @@ let sizefun id_list ty constraints is_rec =
   make (Tsizefun { id_list; ty; constraints; is_rec })
 let rec vec_n n ty size =
   if n <= 0 then ty else vec_n (n-1) (vec ty size) size
-let arrow_type ty_kind ty_name_opt ty_arg ty_res =
+let arrow ty_kind ty_name_opt ty_arg ty_res =
   make (Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res })
-let rec arrow_type_list k ty_arg_list ty_res =
+let rec arrow_list k ty_arg_list ty_res =
   match ty_arg_list with
   | [] -> ty_res
-  | [n_opt, ty] -> arrow_type k n_opt ty ty_res
+  | [n_opt, ty] -> arrow k n_opt ty ty_res
   | (n_opt, ty) :: ty_arg_list ->
      let k_left = match k with | Tnode _ -> Tfun(Tany) | _ -> k in
-     arrow_type k_left n_opt ty (arrow_type_list k ty_arg_list ty_res)
+     arrow k_left n_opt ty (arrow_list k ty_arg_list ty_res)
 
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
@@ -76,22 +76,22 @@ let rec new_var_list n =
 let forall l typ_body = { typ_vars = l; typ_body = typ_body }
 
 (* Set of free size variables in a type *)
-let rec free_size_variables bounded acc { t_desc } =
+let rec size_variables bounded acc { t_desc } =
   match t_desc with
   | Tvar -> acc
   | Tproduct(ty_list) | Tconstr(_, ty_list, _) ->
-     List.fold_left (free_size_variables bounded) acc ty_list
+     List.fold_left (size_variables bounded) acc ty_list
   | Tvec(ty_arg, size) ->
-     free_size_variables bounded (Sizes.fv bounded acc size) ty_arg
+     size_variables bounded (Sizes.fv bounded acc size) ty_arg
   | Tarrow { ty_arg; ty_res } ->
-     free_size_variables bounded acc ty_arg
+     size_variables bounded acc ty_arg
   | Tsizefun { id_list; ty; constraints } ->
      let bounded =
        List.fold_left (fun acc id -> S.add id acc) bounded id_list in
-     Sizes.fv_constraints bounded (free_size_variables bounded acc ty) constraints
-  | Tlink(ty_link) -> free_size_variables bounded acc ty_link
+     Sizes.fv_constraints bounded (size_variables bounded acc ty) constraints
+  | Tlink(ty_link) -> size_variables bounded acc ty_link
 
-let free_size_variables acc ty = free_size_variables S.empty acc ty
+let size_variables acc ty = size_variables S.empty acc ty
 
 (* replace size variables in [ty] by their value in the environment [env] *)
 (* assumption: all names in [env] should be distinct from bounded names in [ty] *)
@@ -112,7 +112,7 @@ let rec subst_in_type env ({ t_desc } as ty) =
        | Some(n) ->
 	  let m = Ident.fresh (Ident.source n) in
 	  Some(m), subst_in_type (Env.add n (Svar m) env) ty_res in
-     arrow_type ty_kind ty_name_opt ty_arg ty_res
+     arrow ty_kind ty_name_opt ty_arg ty_res
   | Tsizefun { id_list; ty; constraints; is_rec } ->
      sizefun id_list (subst_in_type env ty)
        (Sizes.subst_in_constraint env constraints) is_rec
@@ -135,7 +135,7 @@ let rec remove_dependences ({ t_desc } as ty) =
        Tcons(List.map remove_dependences ty_list, remove_dependences ty) in
   match t_desc with
   | Tvar -> ty
-  | Tproduct(ty_list) -> product(List.map remove_dependences ty_list)
+  | Tproduct(ty_list) -> product (List.map remove_dependences ty_list)
   | Tconstr(gl, ty_list, a) ->
      constr gl (List.map remove_dependences ty_list) (ref (abbrev !a))
   | Tvec(ty_arg, _) -> Initial.typ_array (remove_dependences ty_arg)
@@ -144,12 +144,12 @@ let rec remove_dependences ({ t_desc } as ty) =
      let ty_arg = remove_dependences ty_arg in
      let ty_res = remove_dependences ty_res in
      let ty = match ty_kind with
-       | Tfun _ -> arrow_type (Tfun(Tany)) None ty_arg ty_res
+       | Tfun _ -> arrow (Tfun(Tany)) None ty_arg ty_res
        | Tnode(Tdiscrete) -> typ_node ty_arg ty_res
        | Tnode(Tcont) -> typ_hybrid ty_arg ty_res in
      ty
   | Tsizefun { id_list; ty } ->
-     arrow_type_list (Tfun(Tconst))
+     arrow_list (Tfun(Tconst))
        (List.map (fun _ -> (None, Initial.typ_int)) id_list) ty     
 			    
 (* typing errors *)
@@ -158,7 +158,7 @@ exception Unify
 let run_type expected_k =
   let ty_arg = new_var () in
   let ty_res = new_var () in
-  arrow_type expected_k None ty_arg ty_res
+  arrow expected_k None ty_arg ty_res
 
 (* The type of zero-crossing condition. *)
 (* [zero] when [expected_k = Tnode(Tcont)] *)
@@ -286,7 +286,7 @@ let rec copy ty =
         else ty
     | Tarrow { ty_kind; ty_name_opt; ty_arg; ty_res } ->
        if level = generic
-       then arrow_type ty_kind ty_name_opt (copy ty_arg) (copy ty_res)
+       then arrow ty_kind ty_name_opt (copy ty_arg) (copy ty_res)
        else ty
     | Tvec(ty_body, si) ->
        if level = generic then vec (copy ty_body) si
@@ -495,7 +495,7 @@ let rec join_two_types si p1 ty1 ty2 =
                  ty_arg = ty_arg2; ty_res = ty_res2 } when k1 = k2 ->
          let ty_arg = join_two_types ty_arg1 ty_arg2 in
          let ty_res = join_two_types ty_res1 ty_res2 in
-         arrow_type k1 None ty_arg ty_res
+         arrow k1 None ty_arg ty_res
       | Tvec(ty1, si1), Tvec(ty2, si2) ->
          let ty = join_two_types ty1 ty2 in
          let si' = join_two_sizes si p1 si1 in
@@ -535,7 +535,7 @@ let filter_arrow expected_k ty =
   | _ ->
      let ty_arg = new_var () in
      let ty_res = new_var () in
-     unify ty (arrow_type expected_k None ty_arg ty_res);
+     unify ty (arrow expected_k None ty_arg ty_res);
      expected_k, None, ty_arg, ty_res
 
 let filter_sizefun ty =

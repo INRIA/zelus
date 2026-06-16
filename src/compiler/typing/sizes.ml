@@ -258,10 +258,14 @@ let decompose meta_size_variables si =
   let rec decompose_rec si =
     match si with
     | Svar(n) when Env.mem n meta_size_variables -> n, true, Sint(0)
-    | Sop(Splus, Svar(n), si') when Env.mem n meta_size_variables -> n, true, si'
-    | Sop(Splus, si', Svar(n)) when Env.mem n meta_size_variables -> n, true, si'
-    | Sop(Sminus, Svar(n), si') when Env.mem n meta_size_variables -> n, false, si'
-    | Sop(Sminus, si', Svar(n)) when Env.mem n meta_size_variables -> n, false, si'
+    | Sop(Splus, Svar(n), si') when Env.mem n meta_size_variables ->
+       n, true, si'
+    | Sop(Splus, si', Svar(n)) when Env.mem n meta_size_variables ->
+       n, true, si'
+    | Sop(Sminus, Svar(n), si') when Env.mem n meta_size_variables ->
+       n, false, si'
+    | Sop(Sminus, si', Svar(n)) when Env.mem n meta_size_variables ->
+       n, false, si'
     | Sop(Splus, si1, si2) ->
        begin try
            (* if [si1 = n + si11] then [si = n + (si11 + si2)] *)

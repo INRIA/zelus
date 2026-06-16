@@ -127,6 +127,10 @@ module Make (Info: INFO) =
               (match k with
                | Kdiscrete -> "-D->" | Kcont -> "-C->") in
          fprintf ff "@[<hov2>%a %s %a@]" pas (ty_name_opt, ty_arg) s ptype ty_res
+      | Etypesizefun { id_list; ty } ->
+         fprintf ff "@[<hov2>%a.%a@]"
+           (print_list_r Ident.fprint_t "<<" "," ">>") id_list
+           ptype ty
       | Etypevec(ty, s) -> fprintf ff "@[[%a]]%a@]" size s ptype ty
 
     let opt_ptype ff ty_opt =

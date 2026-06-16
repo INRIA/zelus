@@ -59,6 +59,7 @@ type error =
   | Esize_is_undetermined 
   | Esize_unbound_size_variable of Ident.t * Ident.t * typ
   | Esize_unbound_meta_size_variable of Ident.t
+  | Esize_type_contains_an_unbound_meta_size_variable of Ident.t * typ
   | Esize_of_vec_is_undetermined
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
@@ -260,6 +261,13 @@ let message loc kind =
        introduced to type this expression but is unbound.@.@]"
       output_location loc
         (if !Misc.vverbose then Ident.name name else Ident.source name)
+ | Esize_type_contains_an_unbound_meta_size_variable(name, ty) ->
+    eprintf
+      "@[<hov 0>%aType error: the type of this expression, that is\n\
+       %a, contains the size variable %s that is unbound.@.@]"
+      output_location loc
+      Ptypes.ptype ty
+      (if !Misc.vverbose then Ident.name name else Ident.source name)
  | Esize_of_vec_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: this expression is either not a vector@ or its \

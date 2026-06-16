@@ -180,6 +180,9 @@ module Make (Info: INFO) =
     
     (* translate types. [env] is used to renames dependent variables *)
     let rec types env { desc; loc } =
+      let rename env n =
+        let m = fresh n in
+        m, Env.add n m env in
       let desc = match desc with
         | Etypevar(n) -> Zelus.Etypevar(n)
         | Etypewildcard -> Zelus.Etypewildcard
@@ -192,10 +195,14 @@ module Make (Info: INFO) =
 	     match n_opt with
 	     | None -> None, env
 	     | Some(n) ->
-                let m = fresh n in Some(m), Env.add n m env in
+                let m, env = rename env n in Some(m), env in
            let ty_res = types env ty_res in
            Zelus.Etypefun
              { ty_kind = kind k; ty_name_opt = n_opt; ty_arg; ty_res }
+        | Etypesizefun(id_list, ty) ->
+           let id_list, env = Util.mapfold rename env id_list in
+           let ty = types env ty in
+           Zelus.Etypesizefun { id_list; ty }
         | Etypevec(ty_arg, si) ->
            Zelus.Etypevec(types env ty_arg, size env si) in
       { Zelus.desc = desc; Zelus.loc = loc }

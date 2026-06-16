@@ -381,6 +381,11 @@ and type_expression global_funs acc ({ desc } as ty) =
      let ty1, acc = type_expression_it global_funs acc ty_arg in
      let ty2, acc = type_expression_it global_funs acc ty_res in
      Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res }, acc
+  | Etypesizefun { id_list; ty } ->
+     let id_list, acc =
+       Util.mapfold (intro_ident_it global_funs) acc id_list in
+     let ty, acc = type_expression_it global_funs acc ty in
+     Etypesizefun { id_list; ty }, acc
   | Etypevec(ty, si) ->
     let ty, acc = type_expression_it global_funs acc ty in
     let si, acc = size_it global_funs acc si in

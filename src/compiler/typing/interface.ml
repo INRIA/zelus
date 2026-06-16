@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -109,17 +109,20 @@ let make desc = { desc = desc; loc = no_location }
 (* type checking of type declarations *)
 let global n desc = { qualid = Modules.qualify n; info = desc }
 		      
-let rec free_of_type v ty =
-  match ty.desc with
-  | Etypevar(x) -> if List.mem x v then v else x :: v
-  | Etypewildcard -> v
+(* free type variables in [ty] *)
+let rec free_of_type acc { desc } =
+  match desc with
+  | Etypevar(x) -> if List.mem x acc then acc else x :: acc
+  | Etypewildcard -> acc
   | Etypetuple(ty_list) ->
-     List.fold_left free_of_type v ty_list
+     List.fold_left free_of_type acc ty_list
   | Etypeconstr(_,ty_list) ->
-     List.fold_left free_of_type v ty_list
+     List.fold_left free_of_type acc ty_list
   | Etypefun { ty_arg; ty_res } ->
-     free_of_type (free_of_type v ty_arg) ty_res
-  | Etypevec(ty_arg, _) -> free_of_type v ty_arg
+     free_of_type (free_of_type acc ty_arg) ty_res
+  | Etypesizefun { ty } ->
+     free_of_type acc ty
+  | Etypevec(ty_arg, _) -> free_of_type acc ty_arg
   					
 (* checks that every type is defined *)
 (* and used with the correct arity *)
@@ -155,8 +158,8 @@ let kindoftype = function
 (* [typ_vars] is an environment [name -> typ_var] *)
 (* [typ_vars_wildcard] is a list of fresh and unique type variables *)
 let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
-  let rec typrec acc typ =
-    match typ.desc with
+  let rec typrec acc { desc } =
+    match desc with
     | Etypevar(s) ->
        begin try
            List.assoc s typ_vars, typ_vars_wildcard 
@@ -177,8 +180,11 @@ let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
     | Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res } ->
        let ty_arg, acc = typrec acc ty_arg in
        let ty_res, acc = typrec acc ty_res in
-       Types.arrow_type
+       Types.arrow
          (kindtype ty_kind) ty_name_opt ty_arg ty_res, acc
+    | Etypesizefun { id_list; ty } ->
+       let ty, acc = typrec acc ty in
+       Types.sizefun id_list ty Defsizes.True false, acc
     | Etypevec(ty, si) ->
        let ty, acc = typrec acc ty in
        Types.vec ty (size si), acc
@@ -216,6 +222,10 @@ let check_no_unbounded_size_variable_in_type_expr h ty_exp =
        let bounded =
          match ty_name_opt with None -> bounded | Some(x) -> S.add x bounded in
        check bounded ty_res
+    | Etypesizefun { id_list; ty } ->
+       let bounded =
+         List.fold_left (fun acc n -> S.add n acc) bounded id_list in
+       check bounded ty
     | Etypevec(ty, si) ->
        check bounded ty;
        check_size bounded si

@@ -118,7 +118,8 @@ let intro_substitution_for_size_variables n e =
     Env.remove n c_stack.unconstrained_size_variables
 
 (* get the substitution for sizes *)
-let get_substitution_for_size_variables () = c_stack.substitution_for_size_variables
+let get_substitution_for_size_variables () =
+  c_stack.substitution_for_size_variables
 
 (* get the set of free size variables *)
 let get_unconstrained_size_variables () = c_stack.unconstrained_size_variables

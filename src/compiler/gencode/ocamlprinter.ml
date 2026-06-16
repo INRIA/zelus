@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -26,13 +26,15 @@ let longname ln = Oprinter.longname ln
 (* [t1 -D-> t2] is [(t1, t2) node] *)
 (* [t1 -C-> t2] is [(t1, t2) hnode] *)
 (* [t1 -A-> t2], [t1 -S-> t2] are [t1 -> t2] *)
-(* dependences are discarded *)
+(* dependences are discared, that is: (n:ty1) -> ty2 and *)
+(* and <<n1,...,nk>>.ty with ... are printed ty1 -> ty2 and *)
+(* int * ... * int -> ty *)
 let ptype ff typ_exp =
   let open Zelus in
   let priority desc =
     match desc with
     | Etypevar _ | Etypewildcard | Etypeconstr _ | Etypevec _ -> 2 
-    | Etypetuple _ -> 2 | Etypefun _ -> 1 in
+    | Etypetuple _ -> 2 | Etypefun _ | Etypesizefun _ -> 1 in
   let rec ptype prio ff { desc } =
     let prio_ty = priority desc in
     if prio_ty < prio then fprintf ff "(";
@@ -58,6 +60,11 @@ let ptype ff typ_exp =
     | Etypevec(ty_arg, _) ->
        fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
                longname (Lident.Modname Initial.array_ident)
+    | Etypesizefun { id_list; ty } ->
+       fprintf ff "@[%a %a@]"
+         (Pp_tools.print_list_r (fun ff _ -> fprintf ff "int") "" " * " "")
+         id_list
+         (ptype prio_ty) ty
     end;
     if prio_ty < prio then fprintf ff ")" in
   ptype 0 ff typ_exp

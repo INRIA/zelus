@@ -104,7 +104,7 @@ let stateful loc expected_k =
 (* local variable depends on a size index *)
 let check_size_index_not_in_h loc index_opt h =
   let check_one index x { t_tys = { typ_body } } =
-    if S.mem index (Types.free_size_variables S.empty typ_body)
+    if S.mem index (Types.size_variables S.empty typ_body)
     then error loc (Esize_index_escape_in_environment(index, x, typ_body)) in
   match index_opt with
   | None -> ()
@@ -129,7 +129,7 @@ let check_no_more_unbound_size_variable_in_env loc h =
     (* global stack of constraints *)
     let env = Defsizes.get_substitution_for_size_variables () in
     let typ_body = Types.subst_in_type env typ_body in
-    let free = Types.free_size_variables S.empty typ_body in
+    let free = Types.size_variables S.empty typ_body in
     if not (S.is_empty free)
     then
       let n = S.choose free in
@@ -372,11 +372,11 @@ let arrow_type loc expected_k name_ty_list ty_res =
        | Some(n) ->
           let n_opt, fv = if S.mem n fv then n_opt, S.remove n fv
                           else None, fv in
-          let fv = Types.free_size_variables fv ty in
+          let fv = Types.size_variables fv ty in
           (n_opt, ty) :: p_ty_list, fv in
   let name_ty_list, fv =
-    arg name_ty_list (Types.free_size_variables S.empty ty_res) in
-  Types.arrow_type_list expected_k name_ty_list ty_res
+    arg name_ty_list (Types.size_variables S.empty ty_res) in
+  Types.arrow_list expected_k name_ty_list ty_res
 
 (* add a new entry in the typing environment *)
 let typ_entry k sort ty = Deftypes.entry k sort (Deftypes.scheme ty)
@@ -603,7 +603,7 @@ let rec pattern h ({ pat_desc; pat_loc; pat_info } as pat) ty =
      unify_pat pat ty actual_ty
   | Etuplepat(pat_list) ->
      let ty_list = List.map (fun _ -> new_var ()) pat_list in
-     unify_pat pat ty (product ty_list);
+     unify_pat pat ty (Types.product ty_list);
      List.iter2 (pattern h) pat_list ty_list
   | Etypeconstraintpat(p, typ_expr) ->
      Interface.check_no_unbounded_size_variable_in_type_expr h typ_expr;
@@ -673,6 +673,15 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
+(* check that a type does not contain any unbounded size variables *)
+let check_no_unbounded_size_variables loc ty =
+  let env = Defsizes.get_unconstrained_size_variables () in
+  let s_set = Types.size_variables S.empty ty in
+  let s_set = S.filter (fun n -> Env.mem n env) s_set in
+  if not (S.is_empty s_set) then
+    let n = S.choose s_set in
+    error loc (Esize_type_contains_an_unbound_meta_size_variable(n, ty))
+               
 (* given a size expression [si], a list of pairs *)
 (* [p_0 -> ty_0 | ... | pat_n -> ty_n] and [def_cond_sc_list], a list *)
 (* of handlers [(def_cond_1, sc_0);...;(def_cond_n, sc_n)] *)
@@ -1072,7 +1081,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
     | Etuple(e_list) ->
        let ty_k_list = List.map (expression expected_k h) e_list in
        let ty_list, k_list = List.split ty_k_list in
-       product ty_list, Kind.sup_list k_list
+       Types.product ty_list, Kind.sup_list k_list
     | Eop(op, e_list) ->
        operator expected_k h e_loc op e_list
     | Eapp { f; arg_list } ->
@@ -1220,7 +1229,7 @@ and operator expected_k h loc op e_list =
           stateful loc expected_k;
           let ty_arg = new_var () in
           let ty_res = new_var () in
-          let ty_f = Types.arrow_type expected_k None ty_arg ty_res in
+          let ty_f = Types.arrow expected_k None ty_arg ty_res in
           expected_k, [ty_f; ty_arg], ty_res
        | Eseq ->
           let ty_1 = new_var () in
