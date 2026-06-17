@@ -119,16 +119,17 @@ let rec cons_mat<<n, m>>(upper_left: _, lower_left: [n]_, upper_right: [m]_, low
   cons_vec<<n>>(upper, lower)
 
 (* Inverse of 2D cons *)
-let rec uncons_mat<<n, m>>(mat: [n+1][m+1]_) =
+let rec uncons_mat<<n, m>>(mat: [n+1][m+1]_) : (_ * [n]_ * [m]_ * [n][m]_) =
   let (upper: [m+1]_), (lower: [n][m+1]_) = uncons_vec<<n>>(mat) in
   let upper_left, upper_right = uncons_vec<<m>>(upper) in
   let lower_left, lower_right = match size n with
     | 0 -> ([||], [||])
     | _ ->
-      let (ul: _), (ll: [n-1]_), (ur: [m]_), (lr: [n-1][m]_) = uncons_mat<<n-1, m>>(lower) in
+      let (ul: _), (ll: [n-1]_), (ur: [m]_), (lr: [n-1][m]_) =
+          uncons_mat<<n-1, m>>(lower) in
       (cons_vec<<n-1>>(ul, ll), cons_vec<<n-1>>(ur, lr))
   end in
-  ((upper_left: _), (lower_left: [n]_), (upper_right: [m]_), (lower_right: [n][m]_))
+  upper_left, lower_left, upper_right, lower_right
 
 (* 2D reverse cons *)
 let rec snoc_mat<<n, m>>(upper_left: [n][m]_, lower_left: [m]_, upper_right: [n]_, lower_right: _) =
@@ -136,67 +137,67 @@ let rec snoc_mat<<n, m>>(upper_left: [n][m]_, lower_left: [m]_, upper_right: [n]
   let upper: [n][m+1]_ = match size n with
     | 0 -> [||]
     | _ ->
-      let ((ul: [n-1][m]_), (ll: [m]_)), ((ur: [n-1]_), (lr: _)) = unsnoc_vec<<n-1>>(upper_left), unsnoc_vec<<n-1>>(upper_right) in
+      let ((ul: [n-1][m]_), (ll: [m]_)), ((ur: [n-1]_), (lr: _)) =
+         unsnoc_vec<<n-1>>(upper_left), unsnoc_vec<<n-1>>(upper_right) in
       snoc_mat<<n-1, m>>(ul, ll, ur, lr)
   end in
   ((snoc_vec<<n>>(upper, lower)): [n+1][m+1]_)
 
 (* Inverse of 2D reverse cons *)
-let rec unsnoc_mat<<n, m>>(mat: [n+1][m+1]_) =
+let rec unsnoc_mat<<n, m>>(mat: [n+1][m+1]_) : ([n][m]_ * [m]_ * [n]_ * _) =
   let (upper: [n][m+1]_), (lower: [m+1]_) = unsnoc_vec<<n>>(mat) in
   let (lower_left, lower_right) = unsnoc_vec<<m>>(lower) in
   let (upper_left, upper_right) = match size n with
     | 0 -> ([||], [||])
     | _ ->
-      let (ul: [n-1][m]_), (ll: [m]_), (ur: [n-1]_), (lr: _) = unsnoc_mat<<n-1, m>>(upper) in
+      let (ul: [n-1][m]_), (ll: [m]_), (ur: [n-1]_), (lr: _) =
+        unsnoc_mat<<n-1, m>>(upper) in
       (snoc_vec<<n-1>>(ul, ll), snoc_vec<<n-1>>(ur, lr))
   end in
-  (upper_left: [n][m]_), (lower_left: [m]_), (upper_right: [n]_), (lower_right: _)
+  upper_left, lower_left, upper_right, lower_right
 
 (* Identity matrix *)
-let rec eye<<n>>() =
+let rec eye<<n>>() : [n]_ =
   match size n with
   | 0 -> [||]
-  | _ -> snoc_mat<<n-1, n-1>>(eye<<n-1>>(), zeros_vec<<n-1>>(), zeros_vec<<n-1>>(), 1.0)
+  | _ -> snoc_mat<<n-1, n-1>>
+            (eye<<n-1>>(), zeros_vec<<n-1>>(), zeros_vec<<n-1>>(), 1.0)
 
 (* Matrix vector product *)
-let rec mul_mat_vec<<n, m>>(l: [n][m]_, r: [m]_) =
-  let o = match size n with
+let rec mul_mat_vec<<n, m>>(l: [n][m]_, r: [m]_) : [n] _ =
+  match size n with
   | 0 -> [||]
   | _ ->
     let l_l, l_r = unsnoc_vec<<n-1>>(l) in
     let o_l = mul_mat_vec<<n-1, m>>(l_l, r) in
     let o_r = dot_product<<m>>(l_r, r) in
     snoc_vec<<n-1>>(o_l, o_r)
-  end in
-  (o: [n]_)
+  end
 
 (* Matrix product *)
-let rec mul_mat_mat<<n, m, p>>(l: [n][m]_, r: [m][p]_) =
-  let o = match size n with
+let rec mul_mat_mat<<n, m, p>>(l: [n][m]_, r: [m][p]_) : [n][p]_ =
+  match size n with
   | 0 -> [||]
   | _ ->
     let l_l, l_r = unsnoc_vec<<n-1>>(l) in
     let o_l = mul_mat_mat<<n-1, m, p>>(l_l, r) in
     let o_r = mul_mat_vec<<p, m>>(r.T, l_r) in
     snoc_vec<<n-1>>(o_l, o_r)
-  end in
-  (o: [n][p]_)
+  end
 
 (* Matrix diagonal matrix product *)
-let rec mul_mat_diag<<n, m>>(l: [n][m]_, d: [m]_) =
-  let o = match size n with
+let rec mul_mat_diag<<n, m>>(l: [n][m]_, d: [m]_) : [n][m]_ =
+  match size n with
   | 0 -> [||]
   | _ ->
     let l_l, l_r = unsnoc_vec<<n-1>>(l) in
     let o_l = mul_mat_diag<<n-1, m>>(l_l, d) in
     let o_r = mul_ew_vec<<m>>(l_r, d) in
     snoc_vec<<n-1>>(o_l, o_r)
-  end in
-  (o: [n][m]_)
+  end
 
 (* Decompose a symmetric positive-definite matrix into an LDLt product *)
-let rec decompose_LDLt<<n>>(mat: [n][n]_) =
+let rec decompose_LDLt<<n>>(mat: [n][n]_) : [n][n]_ * [n]_ =
   let (l, d) = match size n with
   | 0 -> ([||], [||])
   | _ ->
@@ -204,19 +205,22 @@ let rec decompose_LDLt<<n>>(mat: [n][n]_) =
     let l_ul, d_l = decompose_LDLt<<n-1>>(m_ul) in
     let l_lr = 1.0 in
     let l_ur = zeros_vec<<n-1>>() in
-    (* j < i: l[i][j] * d[j] = mat[i][j] - sum {k < j} (l[i][k] * l[j][k] * d[k]) *)
-    let rec decompose_line<<k>>(m_i_LEj: [k]_, l_AEj_LEj: [k][k]_, d_LEj: [k]_) =
+    (* j < i: l[i][j] * d[j] =
+       mat[i][j] - sum {k < j} (l[i][k] * l[j][k] * d[k]) *)
+    let rec decompose_line<<k>>
+        (m_i_LEj: [k]_, l_AEj_LEj: [k][k]_, d_LEj: [k]_) : [k] _ =
       let l_i_LEj = match size k with
       | 0 -> [||]
       | _ ->
-        let l_Aj_Lj, l_j_Lj, _(*0s*), _(*1*) = unsnoc_mat<<k-1, k-1>>(l_AEj_LEj) in
+        let l_Aj_Lj, l_j_Lj, _(*0s*), _(*1*) =
+	        unsnoc_mat<<k-1, k-1>>(l_AEj_LEj) in
         let m_i_Lj, m_i_j = unsnoc_vec<<k-1>>(m_i_LEj) in
         let d_Lj, d_j = unsnoc_vec<<k-1>>(d_LEj) in
         let l_i_Lj = decompose_line<<k-1>>(m_i_Lj, l_Aj_Lj, d_Lj) in
         let l_i_j = (m_i_j -. dot_product3<<k-1>>(l_i_Lj, l_j_Lj, d_Lj)) /. d_j in
         snoc_vec<<k-1>>(l_i_Lj, l_i_j)
       end in
-      (l_i_LEj: [k]_)
+      l_i_LEj
     in
     let l_ll = decompose_line<<n-1>>(m_ll, l_ul, d_l) in
     (* d[j] = mat[j][j] - sum {k < j} (l[j][k] * l[j][k] * d[k]) *)
@@ -225,10 +229,10 @@ let rec decompose_LDLt<<n>>(mat: [n][n]_) =
     let d = snoc_vec<<n-1>>(d_l, d_r) in
     (l, d)
   end in
-  (l: [n][n]_), (d: [n]_)
+  l, d
 
 (* Inverse of a lower-triangular matrix *)
-let rec inverse_L<<n>>(l: [n][n]_) =
+let rec inverse_L<<n>>(l: [n][n]_) : [n][n] _ =
   let lI = match size n with
   | 0 -> [||]
   | _ ->
@@ -239,7 +243,8 @@ let rec inverse_L<<n>>(l: [n][n]_) =
       let lI_i_REj = match size m with
       | 0 -> [||]
       | _ ->
-        let _(*1*), lI_Bj_j, _(*0s*), lI_Bj_Rj = uncons_mat<<m-1, m-1>>(lI_BEj_REj) in
+        let _(*1*), lI_Bj_j, _(*0s*), lI_Bj_Rj =
+	                         uncons_mat<<m-1, m-1>>(lI_BEj_REj) in
         let l_i_j, l_i_Rj = uncons_vec<<m-1>>(l_i_REj) in
         let lI_i_Rj = inverse_line<<m-1>>(l_i_Rj, lI_Bj_Rj) in
         let lI_i_j = 0.0 -. (l_i_j +. dot_product<<m-1>>(l_i_Rj, lI_Bj_j)) in
@@ -252,33 +257,32 @@ let rec inverse_L<<n>>(l: [n][n]_) =
     let lI_i_i = 1.0 in
     snoc_mat<<n-1, n-1>>(lI_Ai_Li, lI_i_Li, lI_Ai_i, lI_i_i)
   end in
-  (lI: [n][n]_)
+  lI
 
 (* Inverse of a diagonal matrix *)
-let rec inverse_D<<n>>(d: [n]_) =
-  let dI = match size n with
+let rec inverse_D<<n>>(d: [n]_) : [n]_ =
+  match size n with
   | 0 -> [||]
   | _ ->
     let d_i, d_Ri = uncons_vec<<n-1>>(d) in
     let dI_Ri = inverse_D<<n-1>>(d_Ri) in
     let dI_i = 1.0 /. d_i in
     cons_vec<<n-1>>(dI_i, dI_Ri)
-  end in
-  (dI: [n]_)
+  end
 
 (* Inverse of an LDLt product *)
-let inverse_LDLt<<n>>(l: [n][n]_, d: [n]_) =
+let inverse_LDLt<<n>>(l: [n][n]_, d: [n]_) : [n][n]_ =
   let lI = inverse_L<<n>>(l) in
   let dI = inverse_D<<n>>(d) in
   let lIT_dI = mul_mat_diag<<n, n>>(lI.T, dI) in
   let o = mul_mat_mat<<n, n, n>>(lIT_dI, lI) in
-  (o: [n][n]_)
+  o
 
 (* Inverse a symmetric positive-definite matrix *)
-let inverse_P<<n>>(p: [n][n]_) =
+let inverse_P<<n>>(p: [n][n]_) : [n][n]_ =
   let l, d = decompose_LDLt<<n>>(p) in
   let o = inverse_LDLt<<n>>(l, d) in
-  (o: [n][n]_)
+  o
 
 
 let test_1 () =
@@ -307,7 +311,8 @@ let test_4 () =
 
 let test_decompose_LDLt_3x3 () =
   assert (
-    decompose_LDLt<<3>>([|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|])
+    decompose_LDLt<<3>>
+          ([|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|])
     = ([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
   )
 
@@ -325,20 +330,23 @@ let test_inverse_D_3 () =
 
 let test_mul_mat_diag_3x3 () =
   assert (
-    mul_mat_diag<<3, 3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
+    mul_mat_diag<<3, 3>>
+       ([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
     = [|[|2.0;0.0;0.0|];[|6.0;4.0;0.0|];[|120.0;8.0;8.0|]|]
   )
 
 let test_inverse_LDLt_3x3 () =
   assert (
-    inverse_LDLt<<3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
+    inverse_LDLt<<3>>
+       ([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
     = [|[|367.25;12.75;-6.75|]; [|12.75;0.75;-0.25|]; [|-6.75;-0.25;0.125|]|]
   )
 
 let test_inverse_P_3x3 () =
   (* TODO: assertion fails because of precision error *)
   (*assert ( *)
-    inverse_P<<3>>([|[|367.25;12.75;-6.75|]; [|12.75;0.75;-0.25|]; [|-6.75;-0.25;0.125|]|])
+    inverse_P<<3>>
+       ([|[|367.25;12.75;-6.75|]; [|12.75;0.75;-0.25|]; [|-6.75;-0.25;0.125|]|])
   (*  = [|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|]
   )*)
 
@@ -354,9 +362,12 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
     let sigma_thdg = 0.01 in
     let sigma_bias_initial = 0.5 in
     let sigma_bias_drift = 0.0001 in
-    let h = [|[|1.0; 0.0; 0.0; 0.0; 0.0; 0.0|]; [|0.0; 1.0; 0.0; 0.0; 0.0; 0.0|]|] in
-    let r = [|[|(sigma_gps *. sigma_gps); 0.0|]; [|0.0; (sigma_gps *. sigma_gps)|]|] in
-    let q_pos = (sigma_process *. dt *. dt /. 2.0) *. (sigma_process *. dt *. dt /. 2.0) in
+    let h = [|[|1.0; 0.0; 0.0; 0.0; 0.0; 0.0|];
+            [|0.0; 1.0; 0.0; 0.0; 0.0; 0.0|]|] in
+    let r = [|[|(sigma_gps *. sigma_gps); 0.0|];
+              [|0.0; (sigma_gps *. sigma_gps)|]|] in
+    let q_pos = (sigma_process *. dt *. dt /. 2.0) *.
+                (sigma_process *. dt *. dt /. 2.0) in
     let q_vel = (sigma_process *. dt) *. (sigma_process *. dt) in
     let q_bias = sigma_bias_drift *. sigma_bias_drift *. dt in
     let q = [|[|q_pos; 0.0; 0.0; 0.0; 0.0; 0.0|];
@@ -415,7 +426,10 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
         [|0.0; 0.0; 0.0; 0.0; 0.0; 1.0|]
     |] in
 
-    let p_k_km1 = add_mat<<6, 6>>(mul_mat_mat<<6, 6, 6>>(mul_mat_mat<<6, 6, 6>>(f_k, p_km1_km1), f_k.T), q) in
+    let p_k_km1 =
+      add_mat<<6, 6>>
+        (mul_mat_mat<<6, 6, 6>>
+	     (mul_mat_mat<<6, 6, 6>>(f_k, p_km1_km1), f_k.T), q) in
 
     let h_prot, z_k_prot = let rec prot<<n>>(h: [n][6]_, z: [n]_) =
         match size n with
@@ -431,7 +445,10 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
     in
 
     let y_k = sub_vec<<2>>(z_k_prot, mul_mat_vec<<2, 6>>(h_prot, x_k_km1)) in
-    let s_k = add_mat<<2, 2>>(mul_mat_mat<<2, 6, 2>>(mul_mat_mat<<2, 6, 6>>(h_prot, p_k_km1), h_prot.T), r) in
+    let s_k =
+       add_mat<<2, 2>>
+          (mul_mat_mat<<2, 6, 2>>
+               (mul_mat_mat<<2, 6, 6>>(h_prot, p_k_km1), h_prot.T), r) in
     let (l, d) = decompose_LDLt<<2>>(s_k) in
 
     let protect = let rec any_non_positive<<n>>(d: [n]_) =
@@ -447,12 +464,19 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
 
     let si_k = inverse_LDLt<<2>>(l_prot, d_prot) in
     let si_kp = if protect then zeros_mat<<2, 2>>() else si_k in
-    let k_k = mul_mat_mat<<6, 2, 2>>(mul_mat_mat<<6, 6, 2>>(p_k_km1, h_prot.T), si_kp) in
+    let k_k = mul_mat_mat<<6, 2, 2>>
+                 (mul_mat_mat<<6, 6, 2>>(p_k_km1, h_prot.T), si_kp) in
 
     do x_k_k = add_vec<<6>>(x_k_km1, mul_mat_vec<<6, 2>>(k_k, y_k))
 
-    and let gamma_k = sub_mat<<6, 6>>(eye<<6>>(), mul_mat_mat<<6, 2, 6>>(k_k, h_prot)) in
-    p_k_k = add_mat<<6, 6>>(mul_mat_mat<<6, 6, 6>>(mul_mat_mat<<6, 6, 6>>(gamma_k, p_k_km1), gamma_k.T), mul_mat_mat<<6, 2, 6>>(mul_mat_mat<<6, 2, 2>>(k_k, r), k_k.T))
+    and let gamma_k =
+          sub_mat<<6, 6>>(eye<<6>>(), mul_mat_mat<<6, 2, 6>>(k_k, h_prot)) in
+    p_k_k = add_mat<<6, 6>>
+              (mul_mat_mat<<6, 6, 6>>
+	         (mul_mat_mat<<6, 6, 6>>
+		     (gamma_k, p_k_km1), gamma_k.T),
+		        mul_mat_mat<<6, 2, 6>>
+			  (mul_mat_mat<<6, 2, 2>>(k_k, r), k_k.T))
     done
 
 let node test_kalman_filter () =
