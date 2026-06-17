@@ -1491,14 +1491,20 @@ type_expression:
 ;
 
 simple_type_expression:
-  | t = atomic_type_expression
-      { t }
   | t = simple_type_expression i = ext_ident
       { make (Etypeconstr(i, [t])) $startpos $endpos }
   | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
       { make (Etypeconstr(i, t :: tl)) $startpos $endpos }
-  | LBRACKET s = size_expression RBRACKET t = atomic_type_expression
+  | t = array_type_expression
+    { t }
+;
+
+/* t or [n]...[m]t */
+array_type_expression:
+  | LBRACKET s = size_expression RBRACKET t = array_type_expression
     { make(Etypevec(t, s)) $startpos $endpos }
+  | t = atomic_type_expression
+    { t }
 ;
 
 atomic_type_expression:
