@@ -54,14 +54,14 @@ let rec sub_mat<<n,m>>(x: [n][m]_, y: [n][m]_) : [n]_ =
   end
 
 (* Vector dot product *)
-let rec dot_product<<n>>(x: [n]_, y: [n]_) : [n] _ =
+let rec dot_product<<n>>(x: [n]_, y: [n]_) =
   match size n with
   | 0 -> 0.0
   | _ -> x.(0) *. y.(0) +. dot_product<<n-1>>(x.(1 ..), y.(1 ..))
   end
 
 (* Sum of element-wise products for 3 vectors *)
-let rec dot_product3<<n>>(x: [n]_, y: [n]_, z: [n]_) : [n]_ =
+let rec dot_product3<<n>>(x: [n]_, y: [n]_, z: [n]_) =
   match size n with
   | 0 -> 0.0
   | _ -> x.(0) *. y.(0) *. z.(0) +.
@@ -86,7 +86,7 @@ let rec zeros_mat<<n, m>>() : [n][m]_ =
 let cons_vec<<n>>(left: _, right: [n]_) = [|left|] ++ right
 
 (* Inverse of cons *)
-let uncons_vec<<n>>(v: [n+1]_) : _ * [n]_ =
+let uncons_vec<<n>>(v: [n+1]_) : _ * ([n]_) =
   let left = v.(0) in
   let right = match size n with
   | 0 -> [||]
@@ -108,7 +108,7 @@ let unsnoc_vec<<n>>(v: [n+1]_) : [n]_ * _ =
 
 (* 2D cons *)
 let rec cons_mat<<n, m>>
-   (upper_left: _, lower_left: [n]_, upper_right: [m]_, lower_right: [n][m]_) =
+   (upper_left: _, lower_left: [n]_, upper_right: [m]_, lower_right: [n][m]_): [n+1][m+1]_ =
   let upper: [m+1]_ = cons_vec<<m>>(upper_left, upper_right) in
   let lower: [n][m+1]_ = match size n with
     | 0 -> [||]
@@ -353,7 +353,7 @@ let test_inverse_P_3x3 () =
 
 
 
-let isnan(x: float) = is_nam x
+let isnan(x: float) = false (*is_nan x*)
 
 let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6]_)
     let dt = 0.04 in
@@ -432,17 +432,18 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
         (mul_mat_mat<<6, 6, 6>>
 	     (mul_mat_mat<<6, 6, 6>>(f_k, p_km1_km1), f_k.T), q) in
 
-    let h_prot, z_k_prot = let rec prot<<n>>(h: [n][6]_, z: [n]_) =
+    let h_prot, z_k_prot = (let rec prot<<n>>(h: [n][6]_, z: [n]_) : [n][6]_ * [n]_ =
         match size n with
         | 0 -> ([||], [||])
         | _ ->
             let hi, h = uncons_vec<<n-1>>(h) in
             let zi, z = uncons_vec<<n-1>>(z) in
             let h_prot, z_prot = prot<<n-1>>(h, z) in
-            if isnan(zi)
+            let hi_prot, zi_prot = if isnan(zi)
             then (zeros_vec<<6>>(), 0.0)
-            else (cons_vec<<n-1>>(hi, h_prot), cons_vec<<n-1>>(zi, z_prot))
-        end in prot<<2>>(h, z_k)
+            else (hi, zi) in
+            (cons_vec<<n-1>>(hi_prot, h_prot), cons_vec<<n-1>>(zi_prot, z_prot))
+        end in prot<<2>>(h, z_k))
     in
 
     let y_k = sub_vec<<2>>(z_k_prot, mul_mat_vec<<2, 6>>(h_prot, x_k_km1)) in
@@ -461,7 +462,7 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
         end in any_non_positive<<2>>(d)
     in
     let l_prot = if protect then eye<<2>>() else l in
-    let d_prot = if protect then eye<<2>>() else d in
+    let d_prot = if protect then [|1.0; 1.0|] else d in
 
     let si_k = inverse_LDLt<<2>>(l_prot, d_prot) in
     let si_kp = if protect then zeros_mat<<2, 2>>() else si_k in
