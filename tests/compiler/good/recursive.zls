@@ -54,14 +54,14 @@ let rec sub_mat<<n,m>>(x: [n][m]_, y: [n][m]_) : [n]_ =
   end
 
 (* Vector dot product *)
-let rec dot_product<<n>>(x: [n]_, y: [n]_) =
+let rec dot_product<<n>>(x: [n]_, y: [n]_) : [n] _ =
   match size n with
   | 0 -> 0.0
   | _ -> x.(0) *. y.(0) +. dot_product<<n-1>>(x.(1 ..), y.(1 ..))
   end
 
 (* Sum of element-wise products for 3 vectors *)
-let rec dot_product3<<n>>(x: [n]_, y: [n]_, z: [n]_) =
+let rec dot_product3<<n>>(x: [n]_, y: [n]_, z: [n]_) : [n]_ =
   match size n with
   | 0 -> 0.0
   | _ -> x.(0) *. y.(0) *. z.(0) +.
@@ -86,7 +86,7 @@ let rec zeros_mat<<n, m>>() : [n][m]_ =
 let cons_vec<<n>>(left: _, right: [n]_) = [|left|] ++ right
 
 (* Inverse of cons *)
-let uncons_vec<<n>>(v: [n+1]_) : _ * ([n]_) =
+let uncons_vec<<n>>(v: [n+1]_) : _ * [n]_ =
   let left = v.(0) in
   let right = match size n with
   | 0 -> [||]
@@ -98,16 +98,17 @@ let uncons_vec<<n>>(v: [n+1]_) : _ * ([n]_) =
 let snoc_vec<<n>>(left: [n]_, right: _) = left ++ [|right|]
 
 (* Inverse of reverse cons *)
-let unsnoc_vec<<n>>(v: [n+1]_) =
+let unsnoc_vec<<n>>(v: [n+1]_) : [n]_ * _ =
   let left = match size n with
     | 0 -> [||]
     | _ -> v.(.. (n-1))
   end in
   let right = v.(n) in
-  (left: [n]_), (right: _)
+  left, right
 
 (* 2D cons *)
-let rec cons_mat<<n, m>>(upper_left: _, lower_left: [n]_, upper_right: [m]_, lower_right: [n][m]_) =
+let rec cons_mat<<n, m>>
+   (upper_left: _, lower_left: [n]_, upper_right: [m]_, lower_right: [n][m]_) =
   let upper: [m+1]_ = cons_vec<<m>>(upper_left, upper_right) in
   let lower: [n][m+1]_ = match size n with
     | 0 -> [||]
@@ -132,7 +133,7 @@ let rec uncons_mat<<n, m>>(mat: [n+1][m+1]_) : (_ * [n]_ * [m]_ * [n][m]_) =
   upper_left, lower_left, upper_right, lower_right
 
 (* 2D reverse cons *)
-let rec snoc_mat<<n, m>>(upper_left: [n][m]_, lower_left: [m]_, upper_right: [n]_, lower_right: _) =
+let rec snoc_mat<<n, m>>(upper_left: [n][m]_, lower_left: [m]_, upper_right: [n]_, lower_right: _) : [n+1][m+1]_ =
   let lower: [m+1]_ = snoc_vec<<m>>(lower_left, lower_right) in
   let upper: [n][m+1]_ = match size n with
     | 0 -> [||]
@@ -141,7 +142,8 @@ let rec snoc_mat<<n, m>>(upper_left: [n][m]_, lower_left: [m]_, upper_right: [n]
          unsnoc_vec<<n-1>>(upper_left), unsnoc_vec<<n-1>>(upper_right) in
       snoc_mat<<n-1, m>>(ul, ll, ur, lr)
   end in
-  ((snoc_vec<<n>>(upper, lower)): [n+1][m+1]_)
+  snoc_vec<<n>>(upper, lower)
+
 
 (* Inverse of 2D reverse cons *)
 let rec unsnoc_mat<<n, m>>(mat: [n+1][m+1]_) : ([n][m]_ * [m]_ * [n]_ * _) =
@@ -157,7 +159,7 @@ let rec unsnoc_mat<<n, m>>(mat: [n+1][m+1]_) : ([n][m]_ * [m]_ * [n]_ * _) =
   upper_left, lower_left, upper_right, lower_right
 
 (* Identity matrix *)
-let rec eye<<n>>() : [n]_ =
+let rec eye<<n>>() : [n][n]_ =
   match size n with
   | 0 -> [||]
   | _ -> snoc_mat<<n-1, n-1>>
@@ -239,7 +241,7 @@ let rec inverse_L<<n>>(l: [n][n]_) : [n][n] _ =
     let l_Ai_Li, l_i_Li, _(*0s*), _(*1*) = unsnoc_mat<<n-1, n-1>>(l) in
     let lI_Ai_Li = inverse_L<<n-1>>(l_Ai_Li) in
     (* j < i: lI[i][j] = -(l[i][j] + sum {j < k < i} (l[i][k] * lI[k][j])) *)
-    let rec inverse_line<<m>>(l_i_REj: [m]_, lI_BEj_REj: [m][m]_) =
+    let rec inverse_line<<m>>(l_i_REj: [m]_, lI_BEj_REj: [m][m]_) : [m]_ =
       let lI_i_REj = match size m with
       | 0 -> [||]
       | _ ->
@@ -250,8 +252,7 @@ let rec inverse_L<<n>>(l: [n][n]_) : [n][n] _ =
         let lI_i_j = 0.0 -. (l_i_j +. dot_product<<m-1>>(l_i_Rj, lI_Bj_j)) in
         cons_vec<<m-1>>(lI_i_j, lI_i_Rj)
       end in
-      (lI_i_REj: [m]_)
-    in
+      lI_i_REj in
     let lI_i_Li = inverse_line<<n-1>>(l_i_Li, lI_Ai_Li) in
     let lI_Ai_i = zeros_vec<<n-1>>() in
     let lI_i_i = 1.0 in
