@@ -164,8 +164,10 @@ let check_path_is_a_size loc expected_vkind path =
     | Pkind _ -> error loc Enot_a_size_expression in
   check path
 
-(* returns the sort of the function value (either constant or static) *)
-(* and that of the body of the function *)
+(* returns the sort [actual_k] of the function value itself *)
+(* that is either constant, static or any. It must such that *)
+(* [actual_k <: expected_k]*)
+(* It also returns the sort [expected_body_k] of the body of the function *)
 let kind_of_funexp loc expected_k arg_v expected_body_k =
   let expected_body_k =
     match arg_v, expected_body_k with
@@ -174,8 +176,8 @@ let kind_of_funexp loc expected_k arg_v expected_body_k =
     | _ -> error loc (Ekind_clash(expected_k, Tfun(arg_v))) in
   let actual_k =
     match expected_k, arg_v, expected_body_k with
+    | Tfun(Tconst), _, _ -> Tfun(Tconst)
     | _, Tconst, _ -> Tfun(Tconst)
-    | Tfun(Tconst), Tstatic, _ -> Tfun(Tconst)
     | Tfun(Tstatic), _, _ -> Tfun(Tstatic)
     | _, Tstatic, _ -> Tfun(Tstatic)
     | Tfun(Tany), Tany, Tfun _ -> Tfun(Tany)
@@ -1410,18 +1412,22 @@ and expect expected_k h e expected_ty =
 
 (* Typing an application *)
 (*
+ *- k: expected kind; k': actual kind
+ *-
  *-   H |-{k2}{k2'} f : t1 -k0|k0'-> t2    H |-{k1}{k1'} e : t1
  *-  -----------------------------------------------------------
  *-                   H |-{k}{k'} f e : t2
  *-
- *-  k1' <: k1, k2' <: k2, k' <: k
+ *-  rule (1): k1 <: min(k, k0). E.g., t1 -S|S-> t2 alors k1 = S1.
  *-
- *-  k' = sup (k2', k'1, if k2' = const then if k'0 = any then const
- *-                                          else k'0
+ *-  rule (2): k1' <: k1, k2' <: k2, k' <: k
+ *-
+ *-  rule (3): k' = sup (k2', k'1, 
+ *-                      if k2' = const then if k'0 = any then const else k'0
  *-                      else if k2' = static then if k0' = any then static
  *-                                                else k'0
  *-                           else k2')
- *-  + if k0' = D or C then k2' <: static
+ *-  rule (4): if k0' = D or C then k2' <: static
  *)
 and apply loc expected_k h f arg_list =
   (* first type the function body *)
