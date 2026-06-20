@@ -1,0 +1,45 @@
+(* verification of the typing for const and static annotations *)
+let node seq (const f) x = f x
+
+let node main4 x = seq (fun x -> x + 1) x
+
+let const f (const g) x = g x
+
+let main1 x z = f (fun x -> x+1) z
+
+let const g x = x + 1
+
+let main2 x z = f g z
+
+
+(*
+
+let const g x = x + 1
+
+let const node lift (const f) x = f x 
+
+let const greater_x (x,y,z) = x >= 0
+let const lesser_y (x,y,z) = y <= 0
+let const greater_z (x,y,z) = z >= 2
+
+let node seq (const f) (const g) x returns o
+  automaton
+  | First -> do o = run f x then Then
+  | Then -> do o = run g x done
+
+let node main () =
+  seq (lift (fun (x, y, z) -> x >= 0)) (lift lesser_y)
+  
+let f1 x () =
+  let static g y = y, x in
+  g
+
+let f2 x () =
+  let const g = x in
+  g
+
+let f3 x () =
+  let static g y x = y + x in
+  g
+
+*)

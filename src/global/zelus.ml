@@ -467,7 +467,7 @@ and 'a default = | Init of 'a | Else of 'a | NoDefault
 and is_atomic = bool
 
 and ('info, 'ienv) funexp =
-  { f_vkind: vkind; (* the kind of arguments *)
+  { f_vkind: vkind; (* the kind for the arguments *)
     f_kind: kind; (* the kind of the body *)
     f_atomic: is_atomic; (* when true, outputs depend strictly on all inputs *)
     f_inline: is_inline; (* when true, the function application is inlined *)
