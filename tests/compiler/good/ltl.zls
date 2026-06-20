@@ -1,4 +1,12 @@
 (* Modeling of bounded LTL *)
+
+(* L'ecriture est trop lourde. Il faut jongler avec les "const", les *)
+(* "node", les definitions a top level, etc. *)
+(* il faut revoir le typage pour pouvoir determiner si un lambda term est *)
+(* clos ou non; en particulier s'il depend de variables qui ne sont pas *)
+(* des valeurs constantes. Il faudrait faire cela par une analyse de causalite *)
+(* plutot qu'au moment du typage pour avoir quelque chose de plus simple *)
+
 let const node always (const f) x =
   reset run f x every true
 
@@ -21,17 +29,18 @@ let const rec node until_<<n>> (const f) (const g) x =
   | 0 -> true
   | _ -> or_ f (next (until_<<n-1>> f g)) x
 
-
 let const node lift (const f) x = f x 
 
-let const greater (x,y,z) = x >= 0
+let const greater_x (x,y,z) = x >= 0
+let const lesser_y (x,y,z) = y <= 0
+let const greater_z (x,y,z) = z >= 2
 
 (* Example : \(x,y). (x >= 0) until[4] ((y <= 0) until[5] (z >= 2)) *)
 (* is represented as *)
 let node example (x,y,z) =
   until_<<4>>
-    (lift greater)
+    (lift greater_x)
     (until_<<5>>
-       (lift (fun (x,y,z) -> y <= 0))
-       (lift (fun (x,y,z) -> z >= 2)))
+       (lift lesser_y)
+       (lift greater_z))
     (x,y,z)
