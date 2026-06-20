@@ -25,7 +25,8 @@ let type_check _ p = Typing.program Format.std_formatter false p
     
 (* source-to-source transformations *)
 let default_list =
-  ["sizerec", "Specialization of size functions (done if option -sizerec is set). \
+  ["sizerec", "Specialization of size functions. Not done
+               option -nosizerec is set). \
                See below:", 
    nothing,
    Sizerec.program;
