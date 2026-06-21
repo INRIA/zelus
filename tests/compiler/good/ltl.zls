@@ -39,8 +39,8 @@ let const greater_z (x,y,z) = z >= 2
 (* is represented as *)
 let node example (x,y,z) =
   until_<<4>>
-    (lift greater_x)
+    (lift (fun (x, y, z) -> x >= 0))
     (until_<<5>>
-       (lift lesser_y)
-       (lift greater_z))
+       (lift (fun (x, y, z) -> y <= 0))
+       (lift (fun (x, y, z) -> z >= 2)))
     (x,y,z)
