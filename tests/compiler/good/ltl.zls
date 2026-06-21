@@ -1,35 +1,41 @@
 (* Modeling of bounded LTL *)
 
-(* L'ecriture est trop lourde. Il faut jongler avec les "const", les *)
-(* "node", les definitions a top level, etc. *)
-(* il faut revoir le typage pour pouvoir determiner si un lambda term est *)
-(* clos ou non; en particulier s'il depend de variables qui ne sont pas *)
-(* des valeurs constantes. Il faudrait faire cela par une analyse de causalite *)
-(* plutot qu'au moment du typage pour avoir quelque chose de plus simple *)
-
-let const node always (const f) x =
-  reset run f x every true
-
-let const node once (const f) x returns o
+(* given a temporal formula [f], [first f] checks that *)
+(* [f] is true at the very first instant *)
+let const node first (const f) x returns o
   automaton
   | First -> do o = run f x then Second
   | Second -> do o = true done
 
+(* [next f] is true after the very first instant, strictly *)
 let const node next (const f) x returns o
   automaton
   | Await -> do o = true then Always
   | Always -> do o = run f x done
 
+(* a property [f] must be true at every instant *)
+(* the following resets it at every instant *)
+let const node resart (const f) x =
+  reset run f x every true
+
+(* [or], [and], [not] operations *)
 let const node or_ (const f) (const g) x = (run f x) || (run g x)
 
 let const node and_ (const f) (const g) x = (run f x) && (run g x)
 
+let const node not_ (const f) x = not (run f x)
+
+(* bounded until. [until_<<n>> f g x] means that [f x] is true until [g x] *)
+(* is true but it waits at most [n] instants *)
 let const rec node until_<<n>> (const f) (const g) x =
   match size n with
   | 0 -> true
   | _ -> or_ f (next (until_<<n-1>> f g)) x
 
+(* simple lifting and wiring primitives *)
 let const node lift (const f) x = f x 
+let const fst (x, y) = x
+let const snd (x, y) = y
 
 let const greater_x (x,y,z) = x >= 0
 let const lesser_y (x,y,z) = y <= 0
