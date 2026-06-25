@@ -1292,6 +1292,21 @@ foreach_loop_eq:
     { (s_opt, i_opt, li, { for_out = lo; for_block = f }) }
 ;
 
+/* [let [rec] E1 in ... let [rec] E2 in]
+   [eq | do eq1 [and eq2]* [done | [while|until|unless c]]] */
+
+/*
+loop_body:
+  let_list = let_list
+eq = simple_equation
+    { ...}
+DO eq_list = equation_list o_opt = optional(loop_exit_condition)
+    {
+f = block(equation_empty_and_list)
+  o_opt = optional(loop_exit_condition)
+  DONE
+;*/
+
 forward_loop_eq:
   | s_opt = optional(for_size_expression) i_opt = optional(index)
     li = input_list RETURNS 
