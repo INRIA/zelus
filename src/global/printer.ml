@@ -585,7 +585,7 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov>reset@   @[%a@]@ @[<hov 2>every@ %a@]@]"
            equation eq expression e
       | EQlet(l_eq, eq) ->
-         fprintf ff "@[<hov1>(%a in@ %a)@]" leq l_eq equation eq
+         fprintf ff "@[<hov0>%a in@ %a@]" leq l_eq equation eq
       | EQlocal(b_eq) -> block_of_equation ff b_eq
       | EQand { ordered; eq_list } ->
          fprintf ff "@[<hov0>%a@]"
