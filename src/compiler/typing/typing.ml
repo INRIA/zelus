@@ -1924,7 +1924,8 @@ and for_size_t expected_k h for_size_opt =
   | None -> None, Tfun(Tconst)
   | Some { for_size_index; for_size_exp } ->
      let actual_k = expect (Tfun(Tany)) h for_size_exp Initial.typ_int in
-     let s = size_of_exp Tconst h for_size_exp in
+     let s =
+       size_of_exp (if for_size_index then Tany else Tconst) h for_size_exp in
      Some(s), actual_k
 
 and for_kind_t loc expected_k h for_kind =
