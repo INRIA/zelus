@@ -9,7 +9,7 @@ let node sum_(s)() returns (o)
 let node main() = run (sum_(4)) ()
 
 let node scalar(x, y) returns (o)
-  forward xi in x, yi in y returns (o init 0)
+  forward (xi in x, yi in y) returns (o init 0)
     do o = p(xi, yi) done
 
 let node main42() =
@@ -17,13 +17,13 @@ let node main42() =
 	 [|1.0; 2.0; 3.0|])
 
 let node sum(x, y) returns (z)
-    forward xi in x, yi in y returns (zi out z) do
+    forward (xi in x, yi in y) returns (zi out z) do
       zi = xi +. yi
     done
 
 let node map2(f)(x, y)
     returns (z)
-    forward xi in x, yi in y returns (zi out z) do
+    forward (xi in x, yi in y) returns (zi out z) do
       zi = f(xi, yi)
     done
 
@@ -54,7 +54,7 @@ let node f x = foreach(4) do x done
 let node main0 () =
   let x = f 4 in
   let y = f1 x in
-  let v = foreach(4) yi in y do yi done in
+  let v = foreach(4)(yi in y) do yi done in
   x, y, v
 
 let node f2 x =
@@ -68,14 +68,14 @@ let node main00 () =
   assert (v = ([|42;4;4;4|], [|42;43;4;4|]))
 
 let node g x =
-  forward(4) xi in x do
+  forward(4) (xi in x) do
     let rec cpt = (0 fby cpt) + xi in
     cpt
   done
 
 let node gg x =
   let rec o =
-    (forward(4) xi in x do
+    (forward(4) (xi in x) do
       let rec cpt = (0 fby cpt) + xi in
       cpt
      done) + (0 fby o) in
@@ -91,22 +91,21 @@ let node main1_1 () =
 
 (* scalar product *)
 let node scalar0 (x, y) =
-  forward xi in x, yi in y returns (cpt init 0)
+  forward (xi in x, yi in y) returns (cpt init 0)
     do cpt = last cpt + xi * yi done
 
 let node scalar01 (x, y) =
-  forward xi in x, yi in y returns (cpt)
+  forward (xi in x, yi in y) returns (cpt)
     do cpt = (0 fby cpt) + xi * yi done
 
 let node sum(xi, yi) = cpt where
   rec cpt = (0 fby cpt) + xi * yi
 
 let node scalar00 (x, y) =
-  forward xi in x, yi in y
-     do sum(xi, yi) default 0 done
+  forward (xi in x, yi in y) do sum(xi, yi) default 0 done
 
 let node scalar1 (x, y) =
-  forward(4) xi in x, yi in y returns (cpt init 0)
+  forward(4) (xi in x, yi in y) returns (cpt init 0)
      do cpt = sum(xi, yi) done
 
 let node main2 () =
@@ -118,18 +117,18 @@ let node main22 () =
   foreach(4) do 2 done
 
 let node plus1 x =
-  foreach(4) xi in x do xi + 1 done
+  foreach(4) (xi in x) do xi + 1 done
 
 let node plus (x, y) =
-  foreach(4) xi in x, yi in y do xi + yi done
+  foreach(4) (xi in x, yi in y) do xi + yi done
 
 let node plus11 x =
-  foreach(4) xi in x do
+  foreach(4) (xi in x) do
     let rec cpt = xi fby cpt + 1 in cpt
   done
 
 let node copy x =
-  foreach(4) xi in x do
+  foreach(4) (xi in x) do
     let rec cpt = (0 fby cpt) + xi in
     cpt
   done
@@ -157,11 +156,11 @@ let node main6 () =
 
 (* scalar product using index x.(i) instead of xi (where xi in x) *)
 let node scalar2 (x, y) =
-  forward i in 0 to length x - 1 returns (m init 0)
+  forward (i in 0 to length x - 1) returns (m init 0)
     do m = last m + x.(i) * y.(i) done
 
 let node scalar2_eq (x, y) returns (m)
-  forward(4) i in 0 to 3 returns (m init 0)
+  forward(4) (i in 0 to 3) returns (m init 0)
     do m = last m + x.(i) * y.(i) done
 
  
@@ -186,11 +185,11 @@ let node main10 () =
 
 (* computes the array of partial sums *)
 let node sum0 (x) =
-  forward(6) xi in x returns ([|o init 0|])
+  forward(6) (xi in x) returns ([|o init 0|])
      do o = last o + xi done
 
 let node sum1 (x) =
-  forward(6) xi in x returns (r, o init 0)
+  forward(6) (xi in x) returns (r, o init 0)
      do o = last o + xi and r = o done
 
 let node main11 () =
@@ -201,16 +200,16 @@ let node main11 () =
 let node sum m returns (o)
   do
     o =
-      forward(4) mi in m returns (o init 0)
+      forward(4) (mi in m) returns (o init 0)
         do o =
-           forward(4) mij in mi returns (o' init last o)
+           forward(4) (mij in mi) returns (o' init last o)
              do o' = last o' + mij done
         done
   done
 		 
 let node sum_eq m returns (o)
-  forward mi in m returns (o init 0) do
-    forward mij in mi returns (o init last o) do
+  forward (mi in m) returns (o init 0) do
+    forward (mij in mi) returns (o init last o) do
       o = last o + mij done
     done
 
@@ -224,7 +223,7 @@ let node main12 () =
 
 (* sum_{i < n} i *)
 let node g () =
-  forward(4) i in 0 to 3 returns (cpt init 0)
+  forward(4) (i in 0 to 3) returns (cpt init 0)
     do cpt = last cpt + i
     done
 
@@ -236,22 +235,22 @@ let node main13 () =
     
 (* transposition *)
 let node transpose_n_m(n)(m)(a) =
-  foreach(m) i in 0 to m-1 do
-    foreach(n) j in 0 to n-1 do
+  foreach(m) (i in 0 to m-1) do
+    foreach(n) (j in 0 to n-1) do
       a.(j).(i)
     done
     done
 
 let node transpose_3_4(a) =
-  foreach(4) i in 0 to 3 do
-    foreach(3) j in 0 to 2 do
+  foreach(4) (i in 0 to 3) do
+    foreach(3) (j in 0 to 2) do
       a.(j).(i)
     done
     done
 
 let node transpose_4_3(m) =
-  foreach(3) i in 0 to 2 do
-    foreach(4) j in 0 to 3 do
+  foreach(3) (i in 0 to 2) do
+    foreach(4) (j in 0 to 3) do
       m.(j).(i)
     done
   done
@@ -267,9 +266,9 @@ let node main14 () =
     
 (* matrix product *)
 let node prod_matrix0(a_3_4, b_4_5) = r where rec
-  r = forward(3) i in 0 to 2, ai in a_3_4 returns (ri)
-       do ri = forward(5) j in 0 to 4 returns (rij)
-                do rij = forward(4) k in 0 to 3, bk in b_4_5 returns (cpt init 0)
+  r = forward(3)(i in 0 to 2, ai in a_3_4) returns (ri)
+       do ri = forward(5)(j in 0 to 4) returns (rij)
+                do rij = forward(4)(k in 0 to 3, bk in b_4_5) returns (cpt init 0)
                           do cpt = last cpt + ai.(k) * bk.(j) done
                 done
        done
@@ -285,18 +284,18 @@ let node main15 () =
   prod_matrix0 (m1, id)
 
 let node prod_matrix1(a_3_4, b_4_5) = r where rec
-  r = forward(3) i in 0 to 2 returns (ri)
-       do ri = forward(5) j in 0 to 4 returns (rij)
-                do rij = forward(4) k in 0 to 3 returns (cpt init 0)
+  r = forward(3) (i in 0 to 2) returns (ri)
+       do ri = forward(5) (j in 0 to 4) returns (rij)
+                do rij = forward(4) (k in 0 to 3) returns (cpt init 0)
                            do cpt = last cpt +
                                a_3_4.(i).(k) * b_4_5.(k).(j) done
                 done
        done
 
 let node prod_matrix11(n,m,p)(a, b) returns (r)
-  forward i in 0 to n-1 returns (ri out r) do
-    forward j in 0 to m-1 returns (rji out ri) do
-      forward k in 0 to p - 1 returns (rji init 0) do
+  forward (i in 0 to n-1) returns (ri out r) do
+    forward (j in 0 to m-1) returns (rji out ri) do
+      forward (k in 0 to p - 1) returns (rji init 0) do
         rji = last rji + a.(i).(k) * b.(k).(j)
       done
     done
@@ -313,25 +312,25 @@ let node main16 () =
   run (prod_matrix11(3, 5, 4))(m1, id)
     
 let node transpose_4_5(m) =
-  foreach(5) i in 0 to 4 do
-    foreach(4) j in 0 to 3 do
+  foreach(5) (i in 0 to 4) do
+    foreach(4) (j in 0 to 3) do
       m.(j).(i)
     done
   done
 
 (* the same with a transpose in between *)
 let node prod_matrix2(a_3_4, b_4_5) = r where rec
-  r = forward(3) i in 0 to 2, ai in a_3_4 returns (ri)
-       do ri = forward(5) j in 0 to 4, bj in transpose_4_5(b_4_5) returns (rij)
-                do rij = forward(4) aik in ai, bkj in bj returns (cpt init 0)
+  r = forward(3) (i in 0 to 2, ai in a_3_4) returns (ri)
+       do ri = forward(5) (j in 0 to 4, bj in transpose_4_5(b_4_5)) returns (rij)
+                do rij = forward(4) (aik in ai, bkj in bj) returns (cpt init 0)
                           do cpt = last cpt + aik * bkj done
                 done
        done
 
 let node prod_matrix3(l)(m)(n)(a_l_m, b_m_n) = r where rec
-  r = forward(l) i in 0 to l-1, ai in a_l_m returns (ri)
-       do ri = forward(n) j in 0 to n-1, bj in transpose_n_m(b_m_n) returns (rij)
-                do rij = forward(m) aik in ai, bkj in bj returns (cpt init 0)
+  r = forward(l) (i in 0 to l-1, ai in a_l_m) returns (ri)
+       do ri = forward(n) (j in 0 to n-1, bj in transpose_n_m(b_m_n)) returns (rij)
+                do rij = forward(m) (aik in ai, bkj in bj) returns (cpt init 0)
                           do cpt = last cpt + aik * bkj done
                 done
        done

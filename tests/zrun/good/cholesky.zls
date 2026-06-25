@@ -3,7 +3,7 @@
 (* not very elegant. Repetitions. Not efficient because [n x n] steps *)
 (* instead of [n x n-1 / 2] *)
 let mat = fun (n, v) -> node () ->
-  foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
+  foreach(n)[i] do foreach(n)[i] do v done done
 
 let node main14() = run (mat(5, 0.0))()
 
@@ -22,11 +22,11 @@ let node main_17() =
 (* cholesky *)
 let node cholesky_exp(n)(a) returns (l)
   do l =
-    forward i in 0 to n-1, ai in a returns (l1 init (run (mat (n, 0.0)) ()))
-      do l1 = forward j in 0 to n-1, aij in ai returns (l init last l1)
+    forward(n)[i](ai in a) returns (l1 init (run (mat (n, 0.0)) ()))
+      do l1 = forward(n)[j](aij in ai) returns (l init last l1)
               do
                 let tmp_sum =
-                  forward k in 0 to i-1 returns (cpt init 0.0)
+                  forward(k in 0 to i-1) returns (cpt init 0.0)
                     do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
                     done in
                 let lij = if i = j then sqrt(aij -. tmp_sum)
@@ -40,10 +40,10 @@ let node cholesky_exp(n)(a) returns (l)
 
 (* in equational form *)
 let node cholesky(n)(a) returns (l)
-  forward i in 0 to n-1, ai in a returns (l init (run (mat (n, 0.0)) ())) do
-    forward j in 0 to n-1, aij in ai returns (l init last l) do
+  forward(n)[i](ai in a) returns (l init (run (mat (n, 0.0)) ())) do
+    forward(n)[j](aij in ai) returns (l init last l) do
       let tmp_sum =
-            forward k in 0 to i-1 returns (cpt init 0.0)
+            forward(k in 0 to i-1) returns (cpt init 0.0)
                do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
                done in
       let lij = if i = j then sqrt(aij -. tmp_sum)
@@ -106,7 +106,7 @@ let vec_vec <<n>> (u,v) = (a)
  *)
 
 let node vec_vec(u, v) returns (a)
-  forward ui in u, vi in v returns (a init 0.0)
+  forward(ui in u, vi in v) returns (a init 0.0)
     do a = last a +. ui *. vi done
 
 let node main() returns (a)
@@ -124,9 +124,10 @@ let cholesky <<n>> (A:[n,n]float) = (L:[n,n]float)
     b = map <<_>> (fun a l -> (a - vec_vec (l,ld)) / d) (ab,lb);
     mj = t ++[ d ]++ b; 
  *)
+ 
 let node transpose(n,m)(a) =
-    foreach i in 0 to n - 1 do
-      foreach j in 0 to m - 1 do
+    foreach(n)[i] () do
+      foreach(m)[j] () do
 	a.(j).(i)
       done
     done
@@ -135,7 +136,7 @@ let node chauds_les_skis(n)(a) =
   let rec
       l = transpose(n, n, m)
   and
-      forward j in 0 to n - 1, aj in transpose(n, n, a) returns (mj out m) do
+      forward(n)[j](aj in transpose(n, n, a)) returns (mj out m) do
        at = aj.(0 .. (j-1))
      and
 	 ad = aj.(j)
@@ -150,13 +151,13 @@ let node chauds_les_skis(n)(a) =
      and
 	 lb = t_last_m.((j+1) .. (n-1))
      and
-	 t = foreach k in 0 to j - 1 do 0 done
+	 t = foreach(k in 0 to j - 1) do 0 done
      and
          d = sqrt (ad - vec_vec(ld, ld))
      and
-         b = foreach a in ab, l in lb do (a -. vec_vec (l, ld)) / d done
+         b = foreach(a in ab, l in lb) do (a -. vec_vec (l, ld)) / d done
      and
-         mj = [| t ++ [| d |] ++ b |]
+         mj = t ++ [| d |] ++ b 
      done in
   l
 

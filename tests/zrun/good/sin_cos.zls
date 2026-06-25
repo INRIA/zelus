@@ -1,5 +1,8 @@
 (* sinus/cosinus *)
 (* file sin_cos.zls *)
+(* test with ../../zrun.exe -s main -n 100 sin_cos.zls *)
+(* to draw: ../../zrun.exe -s main -n 100 sin_cos.zls | feedgnuplot --stream --domain --lines
+*)
 
 (* forward Euler *)
 let node euler_forward(h, x0, xprime) returns (x)
@@ -21,14 +24,19 @@ let h = 0.1
 (* This is not a problem in an interpreter. This program executes with *)
 (* no deadlock *)
 let node sin_cos() returns (sin, cos)
-  do sin = euler_forward(h, 0.0, cos)
-  and cos = euler_backward(h, 1.0, -. sin) done
+  do sin = euler_backward(h, 0.0, cos)
+  and cos = euler_forward(h, 1.0, -. sin) done
+
+(* Note that if euler_forward is used twice, then, the assertion fails! This *)
+(* is because floatting point errors do not compensate with each others. *)
+(* If euler_backward is used twice, the program contains an instantaneous algebraic *)
+(* loop (a causality loop) and zrun complains with a run-time errors *)
+(* Said diffently, there should be at least a pre and at most one *)
 
 let b = 0.1
 
 let node main() returns
-    (sin_val, sin_ref, cos_val, cos_ref, diff_sin, diff_cos)
-  local time
+    (time, sin_val, sin_ref, cos_val, cos_ref, diff_sin, diff_cos)
   do (sin_val, cos_val) = sin_cos()
   and sin_ref = sin time
   and cos_ref = cos time
@@ -38,4 +46,3 @@ let node main() returns
   and assert (diff_sin <= b) && (diff_cos <= b)
   done
   
-	

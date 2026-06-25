@@ -1,0 +1,38 @@
+(* This example is due to Adrien Guatto *)
+(* - It is not causally correct in Lustre because 
+*- the mux (if/then/else) is strict in all branch
+*- It is not causally correct with a lazy interpretation of the mux
+*- operator if/then/else that is strict w.r.t the condition only
+*- It is correct in Esterel that considers that the semantics of the or (||)
+*- and and (&) is that of three-valued logic.
+*- for ZRun, use option -esterel.
+*- this changes the semantics of the if/then/else on expressions
+*- which is lazy w.r.t the first argument and is such that in case the possible
+*- outputs agree on the same value, it returns this value, that is:
+*- 
+*-  mux(x, y, z) = if y = z then y else mux_lazy(x, y, z)
+*-  or
+*-  mux(x, y, z) = (x & y) || (not x & y) where the & and || would be
+*- interpreted with three-valued logic.
+*)
+
+(* to compute 10 steps, type: zrun.exe -n 10 -esterel -s main *)
+
+(* the attribute [@esterel] turns on the flag -esterel *)
+(* warning; for the moment, this is a global switch *)
+
+let [@esterel] node h x = o where
+  rec y1 = if true fby y1 then true else y1
+  and y2 = if y2 then true else true fby y2
+  and o = if x then y1 else y2
+
+let  node main () =
+  let rec i = true fby not i in
+  h i
+
+let [@esterel] main2() =
+  let rec o = if o then true else true in o
+  
+let [@lustre] node main3() =
+  let rec o = true -> if pre o then true else pre o in o
+  

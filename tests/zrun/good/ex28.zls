@@ -1,5 +1,5 @@
 (* Classical operations on matrices *)
-let vec n = node v -> foreach i in 0 to n-1 do v done
+let vec n = node v -> foreach (i in 0 to n-1) do v done
 let node id v = v
 
 (* Cholesky. [a] is a [n x n] definite positive matrix. [l] is a *)
@@ -9,18 +9,18 @@ let node id v = v
 (* left triangular matrix *)
 
 let mat = fun (n,v) -> node () ->
-  foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
+  foreach (i in 0 to n-1) do foreach (i in 0 to n-1) do v done done
 
 let node main1() = run (mat(5, 0.0))()
 
 (* cholesky *)
 let node cholesky_exp(n)(a) returns (l)
   do l =
-   forward i in 0 to n-1, ai in a returns (l1 init run (mat(n, 0.0)) ())
-     do l1 = forward j in 0 to n-1, aij in ai returns (l init last l1)
+   forward(i in 0 to n-1, ai in a) returns (l1 init run (mat(n, 0.0)) ())
+     do l1 = forward(j in 0 to n-1, aij in ai) returns (l init last l1)
               do
                 let tmp_sum =
-                  forward k in 0 to i-1 returns (cpt init 0.0)
+                  forward (k in 0 to i-1) returns (cpt init 0.0)
                     do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
                     done in
                 let lij = if i = j then sqrt(aij -. tmp_sum)
@@ -34,10 +34,10 @@ let node cholesky_exp(n)(a) returns (l)
 
 (* in equational form *)
 let node cholesky(n)(a) returns (l)
-  forward i in 0 to n-1, ai in a returns (l init run (mat(n, 0.0))()) do
-    forward j in 0 to n-1, aij in ai returns (l init last l) do
+  forward(i in 0 to n-1, ai in a) returns (l init run (mat(n, 0.0))()) do
+    forward(j in 0 to n-1, aij in ai) returns (l init last l) do
       let tmp_sum =
-            forward k in 0 to i-1 returns (cpt init 0.0)
+            forward(k in 0 to i-1) returns (cpt init 0.0)
                do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
                done in
       let lij = if i = j then sqrt(aij -. tmp_sum)
@@ -92,16 +92,16 @@ let node main18() =
        [| -8.;  5.;  3. |] |] in
   assert (m_result = m_expected)
 
-let vec n = node v -> foreach i in 0 to n-1 do v done
+let vec n = node v -> foreach (i in 0 to n-1) do v done
 
 (* https://en.wikipedia.org/wiki/Triangular_matrix#Forward_and_back_substitution*)
 (* Forward subsitution *)
 (* L is a lower triangular matrix *)
 (* solve Lx = b *)
 let node forward_substitution(n)(l, b) returns (x)
-  forward i in 0 to n - 1 returns (x init run (vec n)(0.0)) do
+  forward (i in 0 to n - 1) returns (x init run (vec n)(0.0)) do
     let r =
-      forward j in 0 to i - 1 returns (cpt init 0.0)
+      forward (j in 0 to i - 1) returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
     do
       x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
@@ -112,9 +112,9 @@ let node forward_substitution(n)(l, b) returns (x)
 (* U is an upper triangular matrix *)
 (* solve Ux = b *)
 let node backward_substitution(n)(l, b) returns (x)
-  forward i in n - 1 downto 0 returns (x init run (vec n)(0.0)) do
+  forward (i in n - 1 downto 0) returns (x init run (vec n)(0.0)) do
     let r =
-      forward j in 0 to i - 1 returns (cpt init 0.0)
+      forward (j in 0 to i - 1) returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
     do
       x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]

@@ -1,0 +1,122 @@
+let main__0 =
+  forward<<4>>[i]() returns (o)
+    do let o1 = forward(i)() returns ([|o|])
+                do o = 1 done in
+    let o2 = forward(4-i) returns ([|o|])
+                do o = 2 done in
+    do o = o1 ++ o2 done done
+
+let main2() returns ()
+  local low
+  do
+    forward <<0>>[i]() returns (low_i out low)
+      do low_i = i done
+  and assert (low = [||])
+  done
+  
+let x = [|[|1;2;3|];
+          [|4;5;6|];
+	  [|7;8;9|]|]
+	  
+let sym_x =
+        [|[|1;4;7|];
+	  [|4;5;8|];
+	  [|7;8;9|]|]
+
+let eye <<n>>() returns (o: [n][n]_)
+  forward<<n>>[i]() returns (oi out o)
+    local o_left, o_right
+    do
+     forward(i)() returns (o_lefti out o_left)
+       do o_lefti = 0 done
+    and
+     forward(n-i-1)() returns (o_righti out o_right)
+       do o_righti = 0 done
+    and oi = o_left ++ [|1|] ++ o_right
+    done
+
+let eye_5 = eye<<5>>()
+
+let symmetric_lower_if <<n>>(m: [n][n]_) returns (o: [n][n]_)
+  forward<<n>>[i] returns (oi out o)
+    do forward<<n>>[j] returns (oij out oi)
+         do oij = if j <= i then m.(j).(i) else 0.0 done
+    done
+
+let symmetric_lower_until_default <<n>>(m: [n][n]_) returns (o: [n][n]_)
+  forward<<n>>[i] returns (oi  out o)
+    do forward<<n>>[j] returns (oij default 0.0 out oi)
+         do oij = m.(j).(i) until j = i done
+    done
+
+let symmetric_lower_3_until_default =
+  let m = [| [|1.0;2.0;3.0|]; [|2.0;3.0;4.0|]; [|5.0;6.0;7.0|] |] in
+  m, symmetric_lower_until_default<<3>>(m)
+
+let lower_until <<n>>() returns (o: [n][n]_)
+  forward<<n>>[i] returns (oi  out o)
+    do forward<<n>>[j] returns (oij default 0.0 out oi)
+         do oij = 1.0 until j = i done
+    done
+
+let lower_3_until = lower_until <<3>>()
+
+let symmetric_lower_if_transp <<n>>(m: [n][n]_) returns (o: [n][n]_)
+  forward<<n>>[i](mTi in m.T) returns (oi out o)
+    do forward<<n>>[j](mTij in mTi) returns (oij out oi)
+         do oij = if j <= i then mTij else 0.0 done
+    done
+
+let symmetric_lower_3_if =
+  let m = [| [|1.0;2.0;3.0|]; [|2.0;3.0;4.0|]; [|5.0;6.0;7.0|] |] in
+  m, symmetric_lower_if<<3>>(m)
+
+let symmetric_lower_3_if_transp =
+  let m = [| [|1.0;2.0;3.0|]; [|2.0;3.0;4.0|]; [|5.0;6.0;7.0|] |] in
+  m, symmetric_lower_if_transp<<3>>(m)
+
+let symmetric_low_check_3 () returns ()
+  let m = [| [|1.0;2.0;3.0|]; [|2.0;3.0;4.0|]; [|5.0;6.0;7.0|] |] in
+  do assert(symmetric_lower_if<<3>>(m) =
+            symmetric_lower_if_transp<<3>>(m)) done
+
+(* This version is buggy for the moment *)
+let f <<n>>() returns (o)
+  forward<<n>>[i]() returns (o init 0)
+    do forward(i)[j]() returns (o init last o)
+        do o = j + last o done
+    done
+
+let main_f = f<<5>>
+
+let eye_5 = eye<<5>>()
+
+let eye_with_if<<n>>() returns (o: [n][n]_)
+  forward<<n>>[i]() returns (oi out o)
+    do forward<<n>>[j]() returns (oij out oi)
+         do oij = if i = j then 1.0 else 0.0 done
+    done
+
+let eye_with_if_5 = eye_with_if<<5>>()
+
+let zeros <<n>>() returns (o: [n][n]_)
+    forward<<n>> returns (oi out o)
+       do forward<<n>> returns (oij out oi)
+            do oij = 0.0 done
+       done
+
+let eye_with_update<<n>>() returns (o: [n][n]_)
+  forward<<n>>[i]() returns (o init (zeros<<n>>()))
+    do o = [| last o with i,i <- 1.0 |] done
+
+let eye_with_update_5 = eye_with_update<<5>>()
+
+let ff<<n>>() returns (low)
+  forward<<n>>[i]() returns (lowi out low)
+    do foreach(i)[j]() returns (l1 out lowi)
+          do l1 = j done
+    done
+
+let fff<<n>>() returns (low)
+  forward<<n>>[i]() returns (lowi out low)
+    do lowi = i done

@@ -1,0 +1,41 @@
+(* An example where the fix-point computation is exponential *)
+let main () =
+  let rec x1 =
+    let rec x2 =
+      let rec x3 =
+        let rec x4 =
+	  let rec x5 =
+	    let rec x6 =
+	      let rec x7 =
+	        let rec x8 =
+		  let rec x9 =
+		    let rec x10 =
+		       let rec x1 =
+    		       let rec x2 =
+      		       let rec x3 =
+        	       let rec x4 =
+	  	       let rec x5 =
+	    	       let rec x6 =
+	      	       let rec x7 =
+	               let rec x8 =
+		       let rec x9 =
+		         x11 and x11 = 42 in
+		       x9 in
+		       x8 in
+	      	       x7 in
+	     	       x6 in
+	   	       x5 in
+	 	       x4 in
+        	       x3 in
+      		       x2 in
+ 		       x1 in
+ 		     x10 in
+		   x9 in
+		x8 in
+	      x7 in
+	     x6 in
+	   x5 in
+	 x4 in
+        x3 in
+      x2 in
+      x1

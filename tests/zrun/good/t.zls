@@ -1,0 +1,7 @@
+let rec add_n11<<n>>(x) returns (o)
+  o = match size n with
+         | 0 -> 0
+         | k -> 1 + add_n11<<n-1>>(x.(1 .. k-1))
+  
+let main10() returns (r1)
+  r1 = add_n11<<4>>([|0;1;2;3|])

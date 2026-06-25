@@ -1,7 +1,7 @@
 let rec or_<<n>> = fun (x) returns (o)
-  if n = 0 then
-      o = false
-  else if n = 1 then o = x.(0)
-  else do o = or_<<n/2>>(x.(0 .. n/2-1)) || or_<<n/2>>(x.(n/2 .. n-1)) done
+  match size n with
+  | 0 -> o = false
+  | 1 -> o = x.(0)
+  | _ -> do o = or_<<n/2>>(x.(0 .. n/2-1)) || or_<<n/2>>(x.(n/2 .. n-1)) done
 
 let main2 () = or_ <<4>> [|true; false; false; false |]

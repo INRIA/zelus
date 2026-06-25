@@ -1,0 +1,31 @@
+(* recursive functions defined at top level *)
+let rec f<<n>>(x) returns o
+  match size n with
+  | 0 -> do o = x done
+  | _ -> do o = g<<n-1>>(x+1) done
+  
+and g<<n>> (x) = f<<n-1>> (x-1)
+
+let main1 () returns (o)
+  do o = f<<4>>(0) and assert (o = 0) done
+
+(* sum of an array in two ways *)
+let rec sum<<n>>(x:[n]_) returns (s)
+  match size n with
+  | 0 -> do s = 0 done
+  | _ -> do s = x.(0) + sum<<n-1>>(x.(1 ..)) done
+  end
+
+let rec iota<<n>>() returns (o:[n]_)
+  match size n with
+  | 0 -> do o = [||] done
+  | n -> do o = [|n|] ++ iota<<n-1>>() done
+  end
+  
+let main2 () returns (o1, o2)
+  let i = iota<<4>>() in
+  do o1 = sum<<4>>(i)
+  and o2 = sum<<4>>(i.R)
+  and assert(o1 = o2)
+  done
+  

@@ -1,7 +1,7 @@
-let node f k x = o where
+let node f (static k) x = o where
 rec o = pre x + k
 
-let atomic node g k () = o where
+let atomic node g (static k) () = o where
 rec o = 0 -> f k o + f k o + f k o
 
 let node main () =

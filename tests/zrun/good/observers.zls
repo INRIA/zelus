@@ -55,6 +55,17 @@ let node not_between_and (a,b,c) returns (x)
   do x =  implies(c, not ( once_since(a,b)))
   done
 
+(* generate a sequence of booleans where 1s are always separated by *)
+(* an arbitrary (but bounded by n) number of 0s *)
+let node gen_alternating<<n>>() returns (o)
+  let v = random_bool() in
+  do automaton
+  | False -> let v = random_int(n) in
+             let rec cpt = v -> pre v - 1 in
+	     do o = false until (cpt <= 0) then True
+  | True -> do o = true then False
+  end done
+
 let node main() returns (x1, x2, x3, x4, x5)
   local a, b, c
   do

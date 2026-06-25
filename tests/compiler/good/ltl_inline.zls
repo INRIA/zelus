@@ -1,5 +1,13 @@
 (* Modeling of bounded LTL *)
 
+(* phi ::= phi or phi | not phi | phi && phi |
+        |  next phi | first phi | phi until<<n>> phi | e >= 0 | true | false
+	|  repeat phi
+*)
+
+(* The principle is to interpret [phi] as a stream function which takes *)
+(* the input environment as input *)
+
 (* given a temporal formula [f], [first f] checks that *)
 (* [f] is true at the very first instant *)
 let inline node first (static f) x returns o
@@ -7,15 +15,23 @@ let inline node first (static f) x returns o
   | First -> do o = run f x then Second
   | Second -> do o = true done
 
+let inline node first_ (static f) x returns (o)
+  o = (run f x) -> true
+
 (* [next f] is true after the very first instant, strictly *)
 let inline node next (static f) x returns o
   automaton
   | Await -> do o = true then Always
   | Always -> do o = run f x done
 
+let rec node next_<<n>> (static f) x =
+  match size n with
+  | 0 -> f x
+  | _ -> next (next_<<n-1>> f) x
+  
 (* a property [f] must be true at every instant *)
 (* the following resets it at every instant *)
-let inline node resart (static f) x =
+let inline node restart (static f) x =
   reset run f x every true
 
 (* [or], [and], [not] operations *)
@@ -27,10 +43,32 @@ let inline node not_ (static f) x = not (run f x)
 
 (* bounded until. [until_<<n>> f g x] means that [f x] is true until [g x] *)
 (* is true but it waits at most [n] instants *)
+(*
+f = f0 f1 f2 f3 f4 f5 f6 ...
+g = g0 g1 g2 g3 g4 g5 g6 ...
+i = 0  1  2  3  4  5  6 ...
+
+1. f /\ next g
+
+2. f /\ (next(g \/ (f /\ next g)))
+
+3. f /\ (next(g \/ (f /\ next(g \/ (f /\ next g))))
+
+until<<0>>(f)(g)(x) = g x
+until<<n>>(f)(g)(x) =
+  (f /\ (next (g \/ until<<n-1>>(f)(g))))(x)
+*)
+
 let rec inline node until_<<n>> (static f) (static g) x =
   match size n with
-  | 0 -> true
-  | _ -> or_ f (next (until_<<n-1>> f g)) x
+  | 0 -> run g x
+  | _ -> and_ f (next (or_ g (until_<<n-1>>(f)(g)))) x
+
+(* let node until f g x returns ok
+  let y = f x in
+  let z = g x in
+  let ok_z = have_been_true z in
+  y or ok_z *)
 
 (* simple lifting and wiring primitives *)
 let inline node lift (static f) x = f x 
@@ -41,7 +79,7 @@ let inline greater_x (x,y,z) = x >= 0
 let inline lesser_y (x,y,z) = y <= 0
 let inline greater_z (x,y,z) = z >= 2
 
-(* Example : \(x,y). (x >= 0) until<<4>> ((y <= 0) until<<5>> (z >= 2)) *)
+(* Example : \(x,y,z). (x >= 0) until<<4>> ((y <= 0) until<<5>> (z >= 2)) *)
 (* is represented as *)
 let inline node example (x,y,z) =
   until_<<4>>

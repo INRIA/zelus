@@ -3,7 +3,7 @@ let node m1() returns (o)
   let m = r + 2 in
   do o = 42 done
 
-let node make(n)() = foreach(n) i in 0 to n-1 do i done
+let node make(n)() = foreach(n)[i] do i done
 
 let node f x = x.(4 .. 5)
 
@@ -13,7 +13,7 @@ let node main0 () =
   assert (v = [| 4; 5 |])
   
 let f () =
-  forward(10) i in 0 to 9 returns (o init 0)
+  forward(10)[i] returns (o init 0)
     do o = 0 -> pre o + i done
 
 let node main1 () =
@@ -29,7 +29,7 @@ let main2 () =
   v
 
 let node f x =
-  forward(10) xi in x returns (o default 0)
+  forward(10)(xi in x) returns (o default 0)
     do o = (0 fby o) + xi done 
 
 let node main3 () =
@@ -39,7 +39,7 @@ let node main3 () =
 let node f x = foreach(4) do x done
 
 let node ff x =
-  foreach(4) xi in x returns ([|cpti init 0|], [|mi|])
+  foreach(4)(xi in x) returns ([|cpti init 0|], [|mi|])
   local s do
     cpti = last cpti + x
   and
@@ -49,8 +49,8 @@ let node ff x =
   done
 
 let node ff x = m where rec
-  foreach(4) xi in x returns (m init 0) do
-    foreach(4) xij in xi returns (m init last m) do
+  foreach(4)(xi in x) returns (m init 0) do
+    foreach(4)(xij in xi) returns (m init last m) do
       m = last m + xij
     done
   done
@@ -70,24 +70,24 @@ let node sum(xi, yi) = cpt where
   rec cpt = (0 fby cpt) + xi * yi
 
 let node scalar (x, y) =
-  forward(4) xi in x, yi in y do sum(xi, yi) done
+  forward(4) (xi in x, yi in y) do sum(xi, yi) done
    
 let node main () =
   scalar (foreach(4) do 2 done, foreach(4) do 2 done)
 
 let node plus1 x =
-  foreach(4) xi in x do xi + 1 done
+  foreach(4) (xi in x) do xi + 1 done
 
 let node plus (x, y) =
-  foreach(4) xi in x, yi in y do xi+yi done
+  foreach(4) (xi in x, yi in y) do xi+yi done
 
 let node plus11 x =
-  foreach(4) xi in x do
+  foreach(4) (xi in x) do
     let rec cpt = xi fby cpt + 1 in cpt
   done
 
 let node copy x =
-  foreach(4) xi in x do
+  foreach(4) (xi in x) do
     let rec cpt = (0 fby cpt) + xi in
     cpt
   done
@@ -108,7 +108,7 @@ let node main8 () =
 (* sequential search in a array *)
 let node find0 (x, a) returns (index, found)
   (index, found) =
-    forward(5) i in 0 to 4, ai in a returns (index init 0, c init false)
+    forward(5)[i](ai in a) returns (index init 0, c init false)
       do index = i and c = (ai = x) while not (last c) done
 
 let node main9 () =
@@ -116,7 +116,7 @@ let node main9 () =
   assert (v = (3, true))
 
 let node find1 (x, a) returns (index, found)
-  forward i in 0 to length a - 1, ai in a returns (index init 0, found init false)
+  forward(i in 0 to length a - 1, ai in a) returns (index init 0, found init false)
      do index = i and found = (ai = x) while not (last found) done
 
 let node main10 () =
@@ -125,7 +125,7 @@ let node main10 () =
 
 
 let node fill_up0 (max_i) returns (s)
-    s = forward(5) i in 0 to 4 returns ([|a init 0|])
+    s = forward(5) (i in 0 to 4) returns ([|a init 0|])
            do a = i while i < max_i done
 
 let node main11 () =
@@ -133,7 +133,7 @@ let node main11 () =
   assert (v = [|0;1;1;1;1|])
 
 let node fill_up1 (max_i) returns (s)
-    forward(5) i in 0 to 4 returns (si init 0 out s)
+    forward(5)[i] returns (si init 0 out s)
            do si = i while i < max_i done
 
 let node main12 () =
@@ -142,15 +142,15 @@ let node main12 () =
 
 
 let node scalar_10 (x, y) returns (o)
-    forward(10) xi in x, yi in y returns (o init 0)
+    forward(10) (xi in x, yi in y) returns (o init 0)
       do o = last o + xi * yi done
 
 let node scalar_n n (x, y) returns (o)
-    forward(n) xi in x, yi in y returns (o init 0)
+    forward(n) (xi in x, yi in y) returns (o init 0)
       do o = last o + xi * yi done
 
 let node main13 () =
-  let v1 = foreach(10) i in 0 to 9 do i done in
-  let v2 = foreach(10) i in 0 to 9 do i done in
+  let v1 = foreach(10)[i] do i done in
+  let v2 = foreach(10)[i] do i done in
   let v = run (scalar_n (10)) (v1, v2) in
   assert (v = scalar_10 (v1, v2))

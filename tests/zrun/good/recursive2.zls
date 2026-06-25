@@ -1,13 +1,40 @@
 (* recursive functions defined at top level *)
-let rec f<<n>>(x) =
-  let rec if n=0 then do o = x done
-  else do o = g<<n-1>>(x+1) done in
-  o
+let rec f1<<n>>(x) =
+  match size n with
+  | 0 -> x
+  | _ -> g1<<n-1>>(x+1)
   
-and g<<n>> (x) = f<<n-1>> (x-1)
+and g1<<n>> (x) = f1<<n>>(x-1)
 
-let h = f
+let h1 = f1
 
-let main1 () = f<<4>>(0)
+let main1 () = h1<<10>>(0)
+
+
+(* recursive functions defined at top level *)
+let rec f2<<n>>(x) returns o
+  match size n with
+  | 0 -> do o = x done
+  | _ -> do o = g2<<n-1>>(x+1) done
+  
+and g2<<n>> (x) = f3<<n>>(x-1)
+
+and f3<<n>>(x) = f2<<n>>(x)
+
+let h2 = f2
+
+let main2 () = h2<<10>>(0)
+
+(* recursive functions defined at top level *)
+let rec node f3<<n>>(x) returns o
+  match size n with
+  | 0 -> do o = x done
+  | _ -> do o = run (g3<<n-1>>)(x+1) done
+  
+and node g3<<n>> (x) = run (f3<<n-1>>) (x-1)
+
+let h3 = f3
+
+let node main3 () = run (h3<<10>>)(0)
 
 

@@ -1,5 +1,4 @@
 let rec f1<<n>> = fun x returns o
-  if n = 0 then o = 1
-  else o = f1<<n-1>>(x + 1)
+  match size n with | 0 -> o = 1 | n -> o = f1<<n-1>>(x + 1)
       
 let main1 () = f1<<4>> (0)

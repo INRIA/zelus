@@ -1,0 +1,8 @@
+let uncons<<n>>(v: [n+1]_) returns (left: [n]_, right:_)
+  do left = v.(1 ..) and right = v.(0) done
+
+let main () returns ()
+  let x = [|1.0;2.0;3.0|] in
+  let left, right = uncons<<2>>(x) in
+  do assert x = [| right |] ++ left done
+

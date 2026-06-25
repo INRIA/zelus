@@ -31,14 +31,14 @@ and
   | Unselected ->
       do
       unless (lock) then WaitUnlock
-      unless (button) then Preselected
+      else (button) then Preselected
 
     (* -- Preselect : wait for lock, or deselection by itself or other *)
   | Preselected ->
       do
        sigLightPresel =  true
       unless (lock) then Locked
-      unless (deselect) then Unselected
+      else (deselect) then Unselected
       
     (* -- Locked state : wait for unlock only, and returns in Preselected *)
   | Locked ->

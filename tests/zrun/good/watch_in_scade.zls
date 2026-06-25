@@ -34,7 +34,7 @@ and
 	m, s, d = (0, 0, 0) -> (last m, last s, last d)
       unless
         (stst && not is_w) continue Start
-      unless (rst && not (false -> pre l_) && not is_w) then Stop
+      else (rst && not (false -> pre l_) && not is_w) then Stop
   | Start ->
       do
         d = (last d + 1) mod 100

@@ -16,7 +16,7 @@ local
 	d = 0 -> last d
       unless
         (go1 && not go2) continue Start
-      unless (go2)  then Stop
+      else (go2)  then Stop
   | Start ->
       do
         d = (last d + 1) mod 5

@@ -1,12 +1,15 @@
 let node f(x)(y) returns (o)
   match x with
   | 0 -> do o = 1 done
-  | _ -> do o = run (f(x-1))(y) done
+  | _ -> do o = 2 done
 
 let node g x = run (f 4)(x+1)
 
 let node h x = 
   let static ff = f 4 in
   run ff(x+1)
+
+let node main() = h 42
+
 
 

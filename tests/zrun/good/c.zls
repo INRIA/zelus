@@ -1,0 +1,19 @@
+let node sum(x) returns (o)
+  o = (0 fby o) + x
+
+let node main () =
+  sum 1
+  
+let main2 (t) =
+  forward(ti in t)
+  returns ([|oi|])
+    do oi = sum(ti) done
+
+let main2 (t) =
+  forward(ti in t)
+  returns ([|oi|])
+    do oi = sum(ti) done
+
+let main3 () =
+  main2 ([|1;2;3;4;5|])
+  

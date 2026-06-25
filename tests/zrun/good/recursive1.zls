@@ -1,22 +1,38 @@
 (* recursive functions defined at top level *)
 let rec f1<<n>>(x) returns o 
-  if n=0 then o = x
-  else o = g1<<n-1>>(x+1)
+ match size n with | 0 -> o = x | _ -> o = f1<<n-1>>(x+1)
 and g1<<n>>(x) = f1<<n-1>>(x)
 
 let rec f2<<n>>(x) =
   match n with
   | 0 -> x
   | _ -> f2<<n-1>>(x+1)
-  
+
+
 let f4 () =
-    let rec ff<<n>>(x) = 
-      match n with | 0 -> x | n -> gg<<n-1>>(x+1)
-    and gg<<n>>(x) = ff<<n-1>>(x) in
-    ff<<10>>(0)
+    let rec fff<<n>>(x) = 
+      match n with | 0 -> x | n -> fff<<n-1>>(x+1)
+    and gg<<n>>(x) = fff<<n-1>>(x) in
+    fff<<10>>(0)
+
+let rec node buff<<n>>(x0, x) returns (o)
+  match size n with | 0 -> o = x | _ -> o = x0 fby (run (buff<<n-1>>)(x0, x))
+
+(* this one is not correct. Unbounded recursion *)
+let rec node buff2<<n>>(x0, x) returns (o)
+  match n with | 0 -> o = x
+  | _ -> o = x0 fby (run (buff2<<n-1>>)(x0, x))
+
+(* let node main6 () = run (buff2<<5>>)(0, 1) *)
+
+let rec node ff<<n>> () returns o
+  match size n with
+  | 0 -> o = 0
+  | _ -> o = (run (ff<<n-1>>) ())
 
 let node main1 () = f1<<10>>(0)
 let node main2 () = f2<<10>>(0)
 let node main5 () = f4 ()
-
+let node main6 () = run (buff<<5>>)(0, 1)
+let node main7() = run (ff<<10>>)()
 

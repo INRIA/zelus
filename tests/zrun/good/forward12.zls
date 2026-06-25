@@ -1,0 +1,9 @@
+let zeros_vec<<n>>() =
+  foreach<<n>> [j] returns ([|oi|]) do oi = 0.0 done
+
+let bug() returns ()
+  local a, b
+  do a = zeros_vec<<3>>()
+  and forward<<3>> [i] (ai in a) returns (bi out b)
+    do bi = 1.0 done
+  done

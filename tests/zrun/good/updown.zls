@@ -1,0 +1,59 @@
+(*
+node First( X : int ) returns ( o : int );
+var up: bool;
+let
+  o = 0 ->
+      if pre up then pre o + 1
+      else pre o - 1;
+  up = (o <= 5) ->
+        if pre up then not (o >= 5)
+        else o <= 0;
+  --%PROPERTY (0 <= o) and (o <= 5);
+tel
+*)
+
+let node main() returns o
+  local u
+  do
+   o = 0 ->
+      if pre u then pre o + 1
+      else pre o - 1
+  and
+   u = (o <= 5) ->
+        if pre u then not (o >= 5)
+        else o <= 0
+  and
+   assert ((0 <= o) & (o <= 5))
+  done
+
+let node main2() returns (o init -1)
+ do
+  automaton
+   | Up -> do o = last o + 1 unless (last o >= 5) then Down
+   | Down -> do o = last o - 1 unless (last o <= 0) then Up
+   end
+ and
+  assert ((0 <= o) & (o <= 5))
+ done
+ 
+(*
+let node main3() returns (o init 0)
+   automaton
+   | Up -> do next o = o + 1 unless (o >= 5) then Down
+   | Down -> do next o = o - 1 unless (o <= 0) then Up
+   end
+*)
+
+let node main4() returns (o init 1)
+ do
+  automaton
+   | Down -> do o = last o - 1 unless (last o <= 0) then Up
+   | Up -> do o = last o + 1 unless (last o >= 5) then Down
+   end
+ and
+  assert ((0 <= o) & (o <= 5))
+ done
+
+let node eq() returns ()
+  assert (main() = main2())
+  

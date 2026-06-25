@@ -7,8 +7,8 @@ let node monotonic (last a) returns (o default true)
 	do unless true continue Constant
     | Constant ->
 	do unless (a > last a) continue Increasing
-           unless (a < last a) continue Decreasing
-	   unless (a = last a) continue Constant
+           else (a < last a) continue Decreasing
+	   else (a = last a) continue Constant
     | Increasing ->
 	do unless (a < last a) continue NonMonotonic
     | Decreasing ->
@@ -18,7 +18,7 @@ let node monotonic (last a) returns (o default true)
     end
 
 let node root(a) returns (o)
-    o = forward ai in a do monotonic ai done
+    o = forward (ai in a) do monotonic ai done
 
 let node main() =
   let a = [| 1; 2; 3; 4; 4; 4; 3; 2; 1; 5; 6 |] in

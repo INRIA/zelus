@@ -5,12 +5,12 @@
 (* sortie: un tableau y = [|y(0);...;y(n-1)|] ou *)
 (* y(i) = sigma_{k = 0}{i-1} y(k) * x(k) *)
 let node scalar(x,y) returns (o)
-  forward xi in x, yi in y returns (o init 0.0)
+  forward (xi in x, yi in y) returns (o init 0.0)
     do o = last o +. xi *. yi
     done
 
 let node acc(x) returns (y)
-  forward i in 0 to length x - 1, xi in x returns (yi out y) do
+  forward (i in 0 to length x - 1, xi in x) returns (yi out y) do
     (* a chaque iteration, on definit l'element yi de la sortie y *)
     (* que contient [last y] ? *)
     yi = scalar(last y, x.(0 .. i))

@@ -1,0 +1,68 @@
+(* simple uses of the construct [as ...] in for loops *)
+(* this construct is useful to program classical algorithms of *)
+(* linear algebra; the typical ones are the triangular matrix inversion *)
+(* and Cholesky decomposition. In some cases, it allows replacing a sequence *)
+(* of updates of an array or matrix initialized with 0s and have a more *)
+(* declarative form, with a single definition per element *)
+
+(* we illustrate here with very simple examples; with a form that use [as ...] *)
+(* and a form with an update of a vector or matrix that is first initialized *)
+
+(* input: x: [n]int *)
+(* output: s: [n]int such that s.(i) = (sum_{j = 0}{i-1} s.(j)) + x.(i) *)
+let sum_sum<<n>>(x:[n]_) =
+  forward<<n>>[i] (xi in x) returns ([|si|] as s)
+    (* inside the body, [s] is undefined. *)
+    (* in iteration [i], [last s] is the partial array of length [i] that *)
+    (* contains [|s.(0);...;s.(i-1)|] *)
+    do si = (forward[j](sj in last s) returns (si init 0)
+              do si = last si + sj done) + xi
+    done
+
+let x = [|1;2;3;4;5|]
+let main1_x = [|1;3;7;15;31|]
+        
+let main1() = sum_sum<<5>>(x)
+
+(* an equivalent form but with a slightly different syntax where the loop *)
+(* in equational form *)
+(* the return clause [si out s as s_] is not very elegant. Could we *)
+(* consider that [si out s] defines an s partially, as if it were [si as s] *)
+(* except that [s] is finally an output defined by the loop? *)
+let sum_sum_eq<<n>>(x:[n]_) returns (s)
+  forward<<n>>[i] (xi in x) returns (si out s as s_)
+    (* inside the body, [s_] is undefined. *)
+    (* in iteration [i], [last s_] is the partial array of length [i] that *)
+    (* contains [|s.(0);...;s.(i-1)|] *)
+    do si = (forward[j](sj in last s_) returns (si init 0)
+              do si = last si + sj done) + xi
+    done
+
+let x = [|1;2;3;4;5|]
+
+let main11() = sum_sum_eq<<5>>(x)
+
+let check1() = assert (sum_sum<<5>>(x) = sum_sum_eq<<5>>(x))
+
+(* initialize a vector with 0s *)
+let zero<<n>>() returns (o)
+  forward<<n>>() returns (oi out o)
+    do oi = 0.0 done
+
+(* a solution that is less elegant that the solution that uses [as ...] *)
+(* It consists in initializing the output array [s] with 0s and to update it *)
+(* sequentially in every iteration of the nested for loop *)
+(* if the compiler is smart enough, there is no copy in the generated code, *)
+(* that is, the update [o = [| last o with i <- e|] is implemented by an *)
+(* assignment *)
+let sum_sum_with_update<<n>>(x:[n]_) returns (s)
+  forward<<n>>[i](xi in x) returns (s init (zero<<n>>()))
+    do
+      s = [| last s with i <-
+               (forward(i)[j]() returns (si init 0)
+                  do si = last si + (last s).(j) done) + xi |]
+    done
+
+let main2() = sum_sum_with_update<<5>>(x)
+
+let check2() = assert (sum_sum<<5>>(x) = sum_sum_with_update<<5>>(x))

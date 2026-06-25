@@ -1,6 +1,17 @@
+let f (static g) x y = g x y
+
+let g (static x) y = x + y
+
+(*
+val f : forall 'a, 'b, 'c.('a -> 'b -> 'c) -S-> 'a -> 'b -> 'c
+val g : int -S-> int -> int
+*)
+
+let h y = f g
+
 let ff<<n>>(x:[n]_) = x.(0)
 
-let main_ff() = ff<<2>> [||]
+let main_ff() = ff<<1>> [|1|]
 
 let node main1(x) =
   let rec o = x + 1 + 0 fby y

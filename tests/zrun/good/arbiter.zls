@@ -1,15 +1,63 @@
-(* The example of a cyclic token ring arbiter from Robert de Simone (mentionned in
- *- the Esterel primer V5, Berry). Used as an example to illustrate the
- *- fixpoint semantics presented in the paper:
- *- The semantics and execution of a synchronous block-diagram language,
- *- Stephen Edwards and Edward Lee, SCP, 2003 *)
+(* The example of a cyclic token ring arbiter from Robert de Simone *)
+(*- this is an example originaly written in Esterel that is described
+ *- in the Esterel primer V5, by Gerard Berry 
+ *- This example is used to illustrate the "constructive semantics" 
+ *- of Esterel when interpreting an Esterel program as a circuit and 
+ *- using a three-value logic for boolean operations (or, &&) 
+ *- This example is written in a data-flow form in the paper:
+ *- "The semantics and execution of a synchronous block-diagram language",
+ *- by Stephen Edwards and Edward Lee, SCP, 2003
+ *- it is used to illustrate the fix-point semantics given in their paper *)
 
-(* The semantics we have defined is Kahnian. In particular, *)
-(* all imported functions are strict, i.e., if one of the xi in *)
-(* f(x1,...,xn)) is bot, then the result is also bot. *)
-(* This is also true for boolean functions: it is not possible to have *)
-(* or(true, _) = or(_, true) = true nor &(false, _) = &(_, false) *)
-(* even when _ is bot. *)
+(* The program, written here in the syntax of Zelus, is the direct
+ *- transcription of the Edwards and Lee's version.
+ *- Note that, in the ZRun interpreter, all imported functions are strict,
+ *- that is, if f is an imported combinational function, f(e1,...,en)
+ *- evaluates to bottom as soon as one of the ei evaluates to bottom.
+ *- in particular if f is a boolean function (e.g., not, or, &&). *)
+ 
+(* By default, the semantics for the mux [if/then/else] is lazy, i.e.,
+ *- it is strict w.r.t the condition only, that is:
+ *- if_lazy(bot, _, _) = bot
+ *- if_lazy(true, x, _) = x
+ *- if_lazy(false, _, y) = y *)
+
+(* The arbiter.zls is not causal. It would be causal if boolean
+ *- operation were interpreted in three-valued logic:
+ *- true or _ = _ or true = true
+ *- false && _ = _ && false = false
+ *- x && y = x && y = if x then y else false
+ *- x or y = y or x = if x then true else y
+*)
+
+(* To achieve that, replace [or] and [&&] by user-defined versions such that
+ *- or(x, y) = if x then true else y
+ *- &&(x, y) = if x then y else false
+ *-
+ *- and take the -esterel option such that the semantics of the mux is:
+ *-
+ *- if _ then x else x = x
+ *- if x then y else z = if_lazy(x, y, z)
+*)
+
+(* Surprisingly, this example is causal using the simple lazy mux, that is,
+ *- a simple sequential version of the or and of the && ! This is because
+ *- [token_in] is the output of a unit delay, hence looking at its output
+ *- first is enough. That is:
+
+ *- o = sequential_or_gate (token_in, pass_in) first reads the value
+ *- of token_in. If this equation is replaced by:
+ *- o = sequential_or_gate (pass_in, token_in), that is, first read the
+ *- value of pass_in, then there is a causality loop (o = bottom).
+ *- Surprising isn't-it?
+ *- This example of an bus arbiter was (at least, to me) a prototypical
+ *- example of a valid synchronous circuit that needs the expressiveness
+ *- of constructive causality. In fact, no; a lazy semantics is enough.
+ *- yet, the writting with symetric operators (or, and) is far more
+ *- elegant. If we want to model multi-emission, then we need the
+ *- constructive definitions for or and and.
+*)
+
 
 let node sequential_and_gate(x,y) returns (z)
     if x then z = y else z = false
@@ -68,7 +116,7 @@ let node arbiter_three(request1, request2, request3)
        arbiter(false, request3, pass_out2, token_out2)
   done
 
-let node main() returns (grant1, grant2, grant3) 
+let node main1() returns (grant1, grant2, grant3) 
   local request1, request2, request3
   do
     request1 = true
@@ -79,4 +127,31 @@ let node main() returns (grant1, grant2, grant3)
   and
     grant1, grant2, grant3 =  arbiter_three(request1, request2, request3)
   done
- 
+
+(* the property that the arbiter must verify *)
+(* No matter is the values for the three inputs *)
+(* [request1, request2, request3] *)
+(* at most one of the three output [grant1, grant2, grant3] can be true *)
+(* at the same time *)
+let safe (request1, request2, request3,
+          grant1, grant2, grant3) returns (ok)
+  ok = match grant1, grant2, grant3 with
+       | (true, true, _) | (false, true, true) | (true, _, true) -> false
+       | _ -> true
+
+let node main() returns (request1, request2, request3)
+  local grant1, grant2, grant3
+  do
+    request1 = random_bool()
+  and
+    request2 = random_bool()
+  and
+    request3 = random_bool()
+  and
+    grant1, grant2, grant3 =  arbiter_three(request1, request2, request3)
+  and
+    assert safe(request1, request2, request3,
+                grant1, grant2, grant3)
+  done
+  
+

@@ -1,7 +1,68 @@
-let node make(n)() = foreach(n) i in 0 to n-1 do i done
+let f x =
+  let y = 1 and z = x and t = x in
+  let m = y in
+  m + y + z + t
 
-let f x = x + 1
+let f1 x =
+  let m = inline fun x -> x in
+  let g = inline fun x y -> x + 1 in
+  let z = (g 1) 2 in
+  let h = m (g (1+2) 2) in
+  h
 
-let g y = inline f y + 1
+let f3 x =
+  let g = inline fun f x -> f (x+1) in
+  let h = inline fun x -> x+2 in
+  let m v = g h v in
+  m 2
 
-let main () = inline g(f(0))
+let main1 () =
+  let x = 1 in
+  f3 1
+  
+let inline node prop h u = h *. u
+
+let inline node integr h u =
+    let rec o = 0.0 -> pre o +. h *. u in o
+    
+let inline node derivative h u = 0.0 -> (u -. pre(u)) /. h
+
+let inline node pid h prop int derivative (p, i, d) u =
+   run (int h)(i *. u) +. run (derivative h)(d *. u) +.
+   run (prop h)(p *. u)
+
+let node my_pid h (p, i, d) u =
+  run (pid h prop integr derivative (p, i, d)) u
+
+let h = 0.1
+let p = 0.1
+let i = 0.1
+let d = 0.0
+
+let node main2 () =
+  (* a step. [u = 1.0] *)
+  let u = 1.0 in
+  let o = run (my_pid h (p, i, d)) u in
+  o
+  
+let node controller h (p, i, d) u =
+  let inline node prop h u = u in
+
+  let inline node int h u =
+    let rec o = 0.0 -> pre o +. h *. u in o in
+
+  let inline node derivative h u = 0.0 -> (u -. pre(u)) /. h in
+
+  let inline node pid h prop int derivative (p, i, d) u =
+   run (int h)(i *. u) +.
+   run (derivative h)(d *. u) +. run (prop h)(p *. u) in
+
+  run (pid h prop int derivative (p, i, d)) u
+
+(*
+let node main () =
+  (* a step. [u = 1.0] *)
+  let u = 1.0 in
+  let o = controller h (p, i, d) u in
+  o
+*)

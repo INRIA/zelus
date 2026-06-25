@@ -1,31 +1,31 @@
 let node main1() =
-  let t = foreach i in 0 to 4 returns ([|o|]) do o = 42 done in
+  let t = foreach(5)[i] returns ([|o|]) do o = 42 done in
   t
 
 let node main2() =
-  let t = foreach i in 0 to 4 do 42 done in
+  let t = foreach(5)[i] do 42 done in
   t
 
 let node main3() returns o
-    forward i in 0 to 41 returns (o init 0 fby 1 fby 2)
+    forward(42)[i] returns (o init 0 fby 1 fby 2)
       do o = last o + 1 done
 
 let node main4() returns o
-    forward i in 0 to 41 returns (o init (0.0 fby 1.0 fby 2.0))
+    forward(42)[i] returns (o init (0.0 fby 1.0 fby 2.0))
       do o = last o +. 1.0 done
 
 let node main5() returns o
-  let m = foreach i in 0 to 4 do foreach j in 0 to 5 do 0.0 done done in
-  forward mi in m returns (o init 0.0) do
-    forward mij in mi returns (o init last o) do
+  let m = foreach(5)[i] do foreach(6)[j] do 0.0 done done in
+  forward (mi in m) returns (o init 0.0) do
+    forward (mij in mi) returns (o init last o) do
       o = last o +. mij
     done
   done
 
 let node main6() returns l
-  let m = foreach i in 0 to 4 do foreach j in 0 to 5 do 0.0 done done in
-  forward i in 0 to 4 returns (l init m) do
-    forward j in 0 to 5 returns (l init last l) do
+  let m = foreach(5)[i] do foreach(6)[j] do 0.0 done done in
+  forward(5)[i] returns (l init m) do
+    forward(6)[j] returns (l init last l) do
       let lij = if i = j then 42.0 else 32.0 in
       do l = [| last l with i, j <- lij |] done
     done

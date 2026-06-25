@@ -1,0 +1,60 @@
+(* The Gilbreath trick; paper by Gerard Huet; the encoding was done *)
+(* by JL. Colaco. *)
+
+(* The way it is written in Scade 6 with clocks *)
+(*
+node Gilbreath_stream (clock c : bool) returns (prop: bool; o:bool);
+var
+s1 : bool when c;
+s2 : bool when not c;
+half : bool;
+let
+s1 = (false when c)−> not (pre s1);
+s2 = (true when not c)−> not (pre s2);
+o = merge (c; s1; s2);
+half = false−> (not pre half);
+prop = true−> not (half and (o = pre o));
+tel;
+*)
+
+(* The way it is written in Lustre *)
+(*
+node Gilbreath_stream (c:bool) returns (OK: bool; o:bool);
+var ps1, s1 : bool;
+    ps2, s2 : bool;
+    half : bool;
+let
+  s1 = if c then not ps1 else ps1;
+  ps1 = false -> pre s1;
+  s2 = if not c then not ps2 else ps2;
+  ps2 = true -> pre s2;
+  o = if c then s1 else s2;
+  half = false -> not (pre half);
+  OK = true -> not (half and (o = pre o));
+  --%PROPERTY (OK = true);
+tel;
+*)
+
+let node gilbreath_stream (c:bool) returns (ok, o)
+ local ps1, s1, ps2, s2, half
+ do
+   s1 = if c then not ps1 else ps1
+ and
+   ps1 = false -> pre s1
+ and
+   s2 = if not c then not ps2 else ps2
+ and
+   ps2 = true -> pre s2
+ and
+   o = if c then s1 else s2
+ and
+   half = false -> not (pre half)
+ and
+   ok = true -> not (half && (o = pre o))
+ (*   --% PROPERTY ok *)
+ done
+ 
+let node main() =
+  let rec c = true -> not (pre c) in
+  let ok, _ = gilbreath_stream(c) in
+  assert ok

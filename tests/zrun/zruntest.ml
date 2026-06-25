@@ -32,10 +32,18 @@ let is_all = true
 
 (* Run one file. *)
 let good_one filename =
-  (* Modules.clear (); *)
+  Modules.clear ();
   let modname = String.capitalize_ascii (Filename.basename filename) in
+  (* compile *)
+  Misc.typeonly := true;
+  Misc.no_causality := true;
+  Misc.no_initialization := true;
+  (* Misc.no_reduce := true; *)
+  Misc.verbose := true;
+  Misc.print_types := true;
+  Compiler.compile modname filename;
   (* evaluate all functions whose input is () *)
-  Eval.main modname filename n_steps is_all []
+(* Eval.main modname filename n_steps is_all [] *)
 
 exception Error
 

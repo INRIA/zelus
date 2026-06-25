@@ -140,55 +140,51 @@ let node compare() returns ()
      do o = true or o done
 
    is causally correct (and the output [o] is [true])
+*)
 
- *)
-
-(* Instead of defining two different interpretations for boolean operators,
-   we follow a different approach that extend the interpretation of the
-   conditional. *)
+(* Instead of defining different interpretations for boolean operators
+   or and &&, we change the interpretation of the conditional. *)
 
 (* defines the sequential or and and operators as *)
-let node or_gate(x, y) returns (o)
+let [@esterel] node or_gate(x, y) returns (o)
   o = if x then true else y
 
-let node and_gate(x, y) returns (o)
+let [@esterel] node and_gate(x, y) returns (o)
    o = if x then y else false
 
-(**
    let node is_causal_in_esterel() returns (o)
    (* true is put purposely on the right of the argument. Otherwise *)
    (* the lazy interpretation would give solution [o = true] *)
    (* instead of [o = bot] *)
    o = or_gate(o, true)
- **)
      
-(* To run it for 10 steps with an interpretation of the conditional such that:
+(* The interpretation of the conditional becomes:
 
    if _ then v else v = v
    if bot then _ else _ = bot
    if true then v else _ = v
    if false then _ else v = v
 
-   Type:
 
- *- zrun.exe -esterel -s is_causal_in_esterel -n 10
+*- To test it, type:
+
+ *- zrun.exe -s is_causal_in_esterel -n 10
    lustre_versus_lucid_synchrone_versus_esterel.zls *)
 
    (* This interpretation is not exactly that of Esterel because Esterel
    builds the [if/then/else] (mux) from the [or] and [and] gate
    whereas we build the [or] and [and] from the conditional. The consequence
-      if that some programs that we consider causal are not in Esterel. E.g. *)
+   if that some programs that we consider causal are not in Esterel. E.g. *)
 
-(**
-   let node is_not_causal_in_esterel() returns (o)
+   let [@esterel] node is_not_causal_in_esterel() returns (o)
    o = if o then true else true
- **)
+ 
     
 (* that is not causal in Esterel because the boolean conditional
    [mux(c, x, y) = if c then x else y is translated into (c /\ x) \/
    (not c /\ y)] whose result is [bot] when [c = bot] and [x = y =
-   true] where as [zrun -esterel] returns true. This is
-   because the translation of the boolean conditional corresponds to
+   true] where as [zrun -esterel] returns true. The translation of the
+   boolean conditional we define corresponds to
    [(c /\ x) \/ (not c /\ y) \/ (x /\ y)] *)
 
 (* type:

@@ -1,19 +1,72 @@
-   (* 
-  This example is taken from:  S. Malik "Analysis of cyclic combinational 
-  circuits" 1994 
-  It is the prototypical example of a cyclic circuit that is constructively 
-  causal but not causal in the Scade/Lustre/Zelus sense. 
-*)
+ (* This example is adapted from: "Analysis of cyclic combinational
+  circuits", S. Malik, ICCAD, 1993.  It gives examples of
+  combinational cyclic circuits.
 
-let node mux1(c, x, y) returns (o)
-  if c then o = x else o = y
+  1/ This model cannot be programmed in Lustre because all imported
+  combinational functions are considered strict, i.e., f(..,bot,..) =
+  bot.  It is rejected by the compiler that implements a graph-based
+  static analysis and rejects programs for which this dependence graph
+  is cyclic.
+  
+  2/ If programmed in Esterel, this model is correct because the
+  boolean operators "or" and "&&" are interpreted in three-valued
+  logic. The Esterel compiler implements a more expressive causality
+  analysis and it is accepted by the compiler. The model is said to be
+  "constructively causal".
 
+  3/ This model does not need a three-valued interpretation of the
+  boolean operators but only a mux (if/then/else) that is lazy, that
+  is, that is strict w.r.t the first argument only. Note that this is
+  the default interpretation of the if/then/else in ZRun.
+
+  This program is also rejected by the compile-time causality analyses
+  of Lustre, Scade and Zelus compilers. They implement an over
+  approximation of dependences which doesn't do any boolean reasoning:
+  the or, & and if/then/else that are considered to be strict. Scade
+  and Zelus are a bit more powerful than Lustre because they treat
+  specifically the by-case definition of signals.
+
+  This example highlight a key feature and use of ZRun w.r.t existing
+  synchronous languages and their compilers. The interpreter is able
+  to evaluate programs that are rejected by the compilers and to
+  illustrate the differences between Lustre, Esterel, Scade and Zelus.
+
+  In ZRun, the differences betwee those languages in term of causality
+  can be illustrated by changing the interpretation of the
+  if/then/else, either with compiler flags or attributes.
+
+  By default, the if/then/else is interpreted lazilly, that is:
+
+  lazy_if(bot, _, _) = bot
+  lazy_if(true, x, _) = x
+  lazy_if(false, _, y) = y
+
+  The compiler flag -lustre means that the if/then/else is interpreted strictly:
+
+  lustre_if(bot, _, _) = lustre_if(_, bot, _) = lustre_if(_, _, bot) = bot
+  lustre_if(true, x, _) = x
+  lustre_if(false, _, y) = y
+
+  The compiler flag -esterel means that the if/then/else is interpreted:
+
+  esterel_if(_, v, v) = v
+  esterel_if(x, y, z) = lazy_if(x, y, z)
+
+  It is also possible to control the interpretation of the
+  if/then/else using the two attributes [@esterel] and [@lustre] *)
+
+(* the mux below is lazy (this is the default mode) *)
 let node mux(c, x, y) returns (o)
   o = if c then x else y
 
-(* or equivalently, because [x] and [y] are variable *)
-(* let node mux(c, x, y) = if c then x else y *)
-  
+(* below, the if/then/else is interpreted as the [esterel_if] above *)
+let [@esterel] node esterel_mux(c, x, y) returns (o)
+  o = if c then x else y
+
+(* below, the if/then/else is interpreted strictly *)
+let [@lustre] node lustre_mux(c, x, y) returns (o)
+  o = if c then x else y
+
 let node f(x) returns (o) o = 2 * x
 let node g(x) returns (o) o = x - 1
     
@@ -29,13 +82,25 @@ let node constructive1(c, x) returns (y)
 let node constructive2(c, x) returns (y)
   y =  mux (c, g(f(x)), f( g(x)))
 
-let node main() returns (ok)
-  local c, x, y1, y2
+(* to test this program, type *)
+(*
+   zrun.exe -n 100 -s main malik.zls
+-* or
+   zrun.exe -n 100 -all malik.zls
+*)
+   
+(* generate a random boolean sequence *)
+(* and check that both functions compute the same result *)
+let node main() returns (c)
+  local x, y1, y2
   do  y1 =  constructive1(c, x)
   and y2 =  constructive2(c, x)
-  and c = true fby true fby not c
-  and x = 0 -> pre x + 1
-  and ok = (y1 = y2)
+  and c = random_bool ()
+  and x = random_int 42 (* 0 -> pre x + 1 *)
+  and assert (y1 = y2)
   done
 
+(* the program is also causally correct (that is, producing non bottom
+values for signals) if [mux] is replaced by [esterel_mux]. It is not
+if [mux] is replaced by [lustre_mux] *)
 

@@ -4,7 +4,6 @@
  (modules zruntest)
  ; ml file test runner
  (deps (glob_files good/*.zls) (glob_files bad/*.zls))
- ; files dependencies
- (libraries
-   zelus.global_lib zelus.zrun_lib alcotest))
+ ; librairies dependencies
+ (libraries zelus.compiler_lib zelus.zrun_lib alcotest))
  ; libraries dependencies

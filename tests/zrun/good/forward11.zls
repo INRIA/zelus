@@ -1,0 +1,23 @@
+(* an example with a triangular traversal, that is,
+   forall i in [0..n-1] do
+     forall j in [0..i-1] do ... *)
+
+let f<<n>>() returns (o)
+  forward<<n>>[i]() returns (oi init 0 out o)
+    do
+      oi = last oi + forward(i)() returns (oi init 0)
+                       do oi = last oi + 1 done
+    done
+    
+let main1() = f<<4>>()
+
+(*
+let g<<n>>() returns (o)
+  forward(n)[i]() returns (o init 0)
+    do
+      forward(n)[j]() returns (o init 0)
+             do o = last o + 1 done
+    done
+
+let main4() = f<<4>>()
+*)
