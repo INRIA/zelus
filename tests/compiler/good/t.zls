@@ -1,3 +1,7 @@
+let main__ () returns (o)
+  forward<<2>>() returns (oi out o)
+    let z = 1 in oi = 1
+    
 let f (static g) x y = g x y
 
 let g (static x) y = x + y

@@ -122,21 +122,27 @@ and funexp is_inline is_atomic kind v_p_list_list result startpos endpos =
     (funexp_desc is_inline is_atomic kind v_p_list_list result startpos endpos)
     startpos endpos
 
+(* build a block from an equation *)
+let block_of_equation eq start_pos end_pos =
+  make { b_vars = []; b_body = eq } start_pos end_pos
 
 (* building a for loop *)
-let forward_loop resume (size_opt, index_opt, input_list, opt_cond, body) =
+let forward_loop resume
+		 (size_opt, index_opt, input_list, opt_cond, let_list, body) =
   { for_size = size_opt;
     for_kind = Kforward(opt_cond);
     for_index = index_opt;
     for_input = input_list;
+    for_let = let_list;
     for_body = body;
     for_resume = resume }
 
-let foreach_loop resume (size_opt, index_opt, input_list, body) =
+let foreach_loop resume (size_opt, index_opt, input_list, let_list, body) =
   { for_size = size_opt;
     for_kind = Kforeach;
     for_index = index_opt;
     for_input = input_list;
+    for_let = let_list;
     for_body = body;
     for_resume = resume }
 
@@ -312,7 +318,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %right PRE TEST UP DISC
 %left TRANSPOSE FLATTEN REVERSE
 %left DOT
-%left INIT DEFAULT
+%right INIT DEFAULT
 
 %start implementation_file
 %type <Parsetree.implementation list> implementation_file
@@ -398,7 +404,7 @@ scalar_interface_file:
       { List.rev (List.flatten il) }
   ;
 
-scalar_interface :
+scalar_interface:
   | OPEN c = CONSTRUCTOR
       { [make (Einter_open(c)) $startpos $endpos] }
   | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
@@ -429,12 +435,12 @@ type_declaration_desc:
       { Eabbrev(t) }
 ;
 
-val_or_const :
+val_or_const:
   | VAL { false }
   | VAL CONST { true }
 ;
 
-type_params :
+type_params:
   | LPAREN tvl = list_of(COMMA, type_var) RPAREN
       { tvl }
   | tv = type_var
@@ -564,8 +570,6 @@ where_equation_and_list_aux:
 ;
 
 for_returns:
-  | fv = for_vardec
-    { [fv] }
   | LPAREN l = optional(list_of(COMMA, for_vardec)) RPAREN
     { match l with None -> [] | Some(l) -> l }
 ;
@@ -603,24 +607,16 @@ equation:
     { eq }
 ;
 
-stream_equation:
-   eq = localized(stream_equation_desc) { eq }
+simple_stream_equation:
+   eq = localized(simple_stream_equation_desc) { eq }
 ;
 
 /* an equation; either ended by a terminal or an expression */
-stream_equation_desc:
-  | LOCAL v_list = vardec_comma_list IN eq = equation
-    { EQlocal(v_list, eq) } 
-  | LOCAL v_list = vardec_comma_list DO eq = equation_empty_and_list DONE
-    { EQlocal(v_list, eq) } 
-  | DO eq = equation_empty_and_list DONE
-    { eq.desc }
+simple_stream_equation_desc:
   | RESET eq = equation_and_list EVERY e = expression
     { EQreset(eq, e) }
-  | LET v = vkind_opt i = is_rec let_eq = equation_and_list IN eq = equation
-    { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq; l_attribute = [] }
-	    $startpos $endpos(let_eq), eq) }
-  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) opt_end
+  | AUTOMATON opt_bar
+      a = automaton_handlers(equation_empty_and_list) opt_end
     { EQautomaton(List.rev a, None) } 
     %prec prec_automaton
   | AUTOMATON opt_bar
@@ -632,9 +628,11 @@ stream_equation_desc:
     { EQmatch(s, e, List.rev m) }
   | IF e = seq_expression THEN eq1 = equation opt_end
     { EQif(e, eq1, no_eq $endpos $endpos) }
-  | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation opt_end
+  | IF e = seq_expression THEN eq1 = equation
+    ELSE eq2 = equation opt_end
     { EQif(e, eq1, eq2) }
-  | PRESENT opt_bar p = present_handlers(equation) opt_end %prec prec_present
+  | PRESENT opt_bar
+      p = present_handlers(equation) opt_end %prec prec_present
     { EQpresent(List.rev p, NoDefault) }
   | PRESENT opt_bar p = present_handlers(equation) 
     ELSE eq = equation opt_end %prec prec_present
@@ -660,6 +658,25 @@ stream_equation_desc:
     { EQforloop (forward_loop false f) }
   | FORWARD RESUME f = forward_loop_eq
     { EQforloop (forward_loop true f) }
+;
+
+stream_equation:
+   eq = localized(stream_equation_desc) { eq }
+;
+
+stream_equation_desc:
+  | eq = simple_stream_equation
+    { eq.desc }
+  | DO eq = equation_empty_and_list DONE
+    { eq.desc }
+  | LOCAL v_list = vardec_comma_list IN eq = stream_equation
+    { EQlocal(v_list, eq) } 
+  | LOCAL v_list = vardec_comma_list DO eq = equation_empty_and_list DONE
+    { EQlocal(v_list, eq) } 
+  | LET v = vkind_opt i = is_rec let_eq = equation_and_list
+    IN eq = stream_equation
+    { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq; l_attribute = [] }
+	    $startpos $endpos(let_eq), eq) }
 ;
 
 sizefun_definition:
@@ -1242,81 +1259,92 @@ expression_desc:
 
 /* Loops for equations */
 foreach_loop_exp:
-  /* foreach (size) [i] (xi in ei,...) do e [default e] */
   | s_opt = optional(for_size_expression)
     i_opt = optional(index)
     li = input_list
     DO e = expression
     d_opt = optional(default_expression)
     DONE
-    { (s_opt, i_opt, li, Forexp { exp = e; default = d_opt }) }
-  | /* foreach (size) [i] (xi in ei,...) returns (...) do
-       eq done */
-    s_opt = optional (for_size_expression)
+    { (s_opt, i_opt, li, [], Forexp { exp = e; default = d_opt }) }
+  | s_opt = optional (for_size_expression)
     i_opt = optional(index)
     li = input_list
     RETURNS p = for_returns
+    l = let_list
+    eq = simple_stream_equation
+    { (s_opt, i_opt, li, l,
+       Forreturns { r_returns = p;
+		    r_block = block_of_equation eq
+			       ($startpos(eq)) ($endpos(eq)) }) }
+  | s_opt = optional (for_size_expression)
+    i_opt = optional(index)
+    li = input_list
+    RETURNS p = for_returns
+    l = let_list
     b = block(equation_empty_and_list)
     DONE
-    { (s_opt, i_opt, li, Forreturns { r_returns = p; r_block = b }) }
+    { (s_opt, i_opt, li, l, Forreturns { r_returns = p; r_block = b }) }
 ;
 
 forward_loop_exp:
-  /* forward (size) [i] (xi in ei,...) do e [default e] [while/unless/until e] done */
   | s_opt = optional(for_size_expression)
     i_opt = optional(index)
     li = input_list
+    l = let_list
     DO e = expression
     d_opt = optional(default_expression)
     o_opt = optional(loop_exit_condition)
     DONE
-    { (s_opt, i_opt, li, o_opt, Forexp { exp = e; default = d_opt }) }
-  | /* forward (size) [i] (xi in ei,...) returns (...) do
-       eq [while/unless/until e] done */
-    s_opt = optional(for_size_expression)
+    { (s_opt, i_opt, li, o_opt, l, Forexp { exp = e; default = d_opt }) }
+  | s_opt = optional(for_size_expression)
     i_opt = optional(index)
     li = input_list
     RETURNS p = for_returns
+    l = let_list
+    eq = simple_stream_equation
+    { (s_opt, i_opt, li, None, l,
+       Forreturns { r_returns = p;
+		    r_block = block_of_equation eq
+	                        ($startpos(eq)) ($endpos(eq)) }) }
+  | s_opt = optional(for_size_expression)
+    i_opt = optional(index)
+    li = input_list
+    RETURNS p = for_returns
+    l = let_list
     b = block(equation_empty_and_list)
     o_opt = optional(loop_exit_condition)
     DONE
-    { (s_opt, i_opt, li, o_opt, Forreturns { r_returns = p; r_block = b }) }
+    { (s_opt, i_opt, li, o_opt, l, Forreturns { r_returns = p; r_block = b }) }
 ;
 
 /* Loops for equations */
 foreach_loop_eq:
-  s_opt = optional(for_size_expression) i_opt = optional(index)
-    li = input_list RETURNS 
-    lo = output_list f = block(equation_empty_and_list)
-    DONE
-    { (s_opt, i_opt, li, { for_out = lo; for_block = f }) }
+  | s_opt = optional(for_size_expression) i_opt = optional(index)
+    li = input_list RETURNS lo = output_list
+    l = let_list
+    eq = simple_stream_equation
+    { (s_opt, i_opt, li, l,
+       { for_out = lo;
+	 for_block = block_of_equation eq ($startpos(eq)) ($endpos(eq)) }) }
 ;
-
-/* [let [rec] E1 in ... let [rec] E2 in]
-   [eq | do eq1 [and eq2]* [done | [while|until|unless c]]] */
-
-/*
-loop_body:
-  let_list = let_list
-eq = simple_equation
-    { ...}
-DO eq_list = equation_list o_opt = optional(loop_exit_condition)
-    {
-f = block(equation_empty_and_list)
-  o_opt = optional(loop_exit_condition)
-  DONE
-;*/
 
 forward_loop_eq:
   | s_opt = optional(for_size_expression) i_opt = optional(index)
-    li = input_list RETURNS 
-    lo = output_list 
+    li = input_list RETURNS lo = output_list 
+    l = let_list
     f = block(equation_empty_and_list)
     o_opt = optional(loop_exit_condition)
     DONE
-    { (s_opt, i_opt, li, o_opt, { for_out = lo; for_block = f }) }
+    { (s_opt, i_opt, li, o_opt, l, { for_out = lo; for_block = f }) }
+  | s_opt = optional(for_size_expression) i_opt = optional(index)
+    li = input_list RETURNS lo = output_list
+    l = let_list
+    eq = simple_stream_equation
+    { (s_opt, i_opt, li, None, l,
+       { for_out = lo;
+	 for_block = block_of_equation eq ($startpos(eq)) ($endpos(eq)) }) }
 ;
- 
+
 %inline for_size_expression:
   | LPAREN e = expression RPAREN
     { { for_size_index = true; for_size_exp = e } }

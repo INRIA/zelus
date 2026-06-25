@@ -267,15 +267,17 @@ and eq_desc =
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
   | EQforloop : for_eq forloop -> eq_desc
-  (* [foreach(s) [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
-  (* forward [e]* [id in e..e]* [id in e [by e],]* returns (vardec_list) do
-     [until/unless e] done] *)
+(* [foreach(s) [id in e..e]* [id in e [by e],]* returns (vardec_list) *)
+(*   [let [rec] eq in]* eq ] *)
+(* [forward [e]* [id in e..e]* [id in e [by e],]* returns (vardec_list)
+     [let [rec] eq in]*] do eq [and eq]* [until/unless e] done] *)
 
 and 'body forloop =
   { for_size : for_size option;
     for_kind : for_kind;
     for_index : name option;
     for_input : for_input_desc localized list;
+    for_let : leq list;
     for_body : 'body;
     for_resume : bool; (* resume or restart *)
   }
