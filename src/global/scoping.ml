@@ -643,7 +643,7 @@ module Make (Info: INFO) =
     
     (* translation of for loops *)
     and forloop_eq env_pat env
-       { for_size; for_kind; for_index; for_input; for_resume;
+       { for_size; for_kind; for_index; for_input; for_resume; for_let;
          for_body = { for_out; for_block } } =
       let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
@@ -653,7 +653,8 @@ module Make (Info: INFO) =
       let for_input, i_env =
         for_input_t env i_env for_input in
       let env = Env.append i_env env in
-      (* here, we check that names introduces in the [returns] clause *)
+      let for_let, env = leqs env for_let in
+      (* here, we check that names introduced in the [returns] clause *)
       (* are pair-wise distinct from names for inputs *)
       let for_out, local_env = for_out_t env i_env for_out in
       let env = Env.append local_env env in
@@ -668,6 +669,7 @@ module Make (Info: INFO) =
         Zelus.for_kind = for_kind;
         Zelus.for_index = for_index;
         Zelus.for_input = for_input;
+        Zelus.for_let = for_let;
         Zelus.for_body = { for_out; for_block; for_out_env = Ident.Env.empty };
         Zelus.for_resume = for_resume;
         Zelus.for_env = Ident.Env.empty }
@@ -942,7 +944,8 @@ module Make (Info: INFO) =
       { Zelus.e_desc = desc; Zelus.e_loc = loc; Zelus.e_info = Info.no_info }
     
     and forloop_exp env 
-          { for_size; for_kind; for_index; for_input; for_body; for_resume } =
+      { for_size; for_kind; for_index; for_input; for_let;
+        for_body; for_resume } =
       let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
         match for_index with
@@ -951,6 +954,7 @@ module Make (Info: INFO) =
       let for_input, i_env =
         for_input_t env i_env for_input in
       let env = Env.append i_env env in
+      let for_let, env = leqs env for_let in
       let env_body, for_body = match for_body with
         | Forexp { exp; default } ->
            let exp = expression env exp in
@@ -969,6 +973,7 @@ module Make (Info: INFO) =
            Zelus.Kforward(Util.optional_map (exit_expression env_body) e_opt) in
       { Zelus.for_size = for_size; Zelus.for_kind = for_kind;
         Zelus.for_index = for_index; Zelus.for_input = for_input; 
+        Zelus.for_let = for_let;
         Zelus.for_body = for_body;
         Zelus.for_resume = for_resume;
         Zelus.for_env = Ident.Env.empty }

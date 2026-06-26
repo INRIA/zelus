@@ -1,6 +1,23 @@
-let main__ () returns (o)
+let main__1 () returns (o)
   forward<<2>>() returns (oi out o)
     let z = 1 in oi = 1
+
+let main__2 () returns (o)
+  forward<<2>>() returns (oi out o)
+    oi = 1
+
+let main__3 () returns (o)
+  forward<<2>>() returns (oi out o)
+    let x = 1 in if true then oi = 1 else oi = 2
+
+let main__4 () returns (o)
+  forward<<2>>() returns (oi out o)
+    forward<<3>>() returns (oij out oi)
+      oij = 1
+
+let main__5 () =
+  forward<<2>>() returns ([|oi|])
+    let x = 1 in oi = 1
     
 let f (static g) x y = g x y
 

@@ -704,7 +704,8 @@ and expression funs acc ({ e_desc; e_loc } as e) =
      let f, acc = funexp_it funs acc f in
      { e with e_desc = Efun f }, acc
   | Eforloop
-     ({ for_size; for_kind; for_index; for_input; for_body; for_env } as f) ->
+     ({ for_size; for_kind; for_index; for_input;
+        for_let; for_body; for_env } as f) ->
      let for_env, acc = build_it funs.global_funs acc for_env in
      let for_index, acc =
        Util.optional_with_map (var_ident_it funs.global_funs) acc for_index in
@@ -712,13 +713,14 @@ and expression funs acc ({ e_desc; e_loc } as e) =
        Util.optional_with_map (for_size_t funs) acc for_size in
      let for_input, acc =
        Util.mapfold (for_input_t funs) acc for_input in
+     let for_let, acc = slet_it funs acc for_let in
      let for_body, acc = for_exp_it funs acc for_body in
      (* the exit condition can depend on output variables of the loop *)
      let for_kind, acc = for_kind_t funs acc for_kind in
      { e with e_desc =
                 Eforloop
                   { f with for_size; for_kind; for_index; for_input;
-                           for_body; for_env } }, acc
+                           for_let; for_body; for_env } }, acc
 
 (* Assert *)
 and assert_it funs acc a = funs.assert_t funs acc a
@@ -843,7 +845,8 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
        let a, acc = assert_it funs acc a in
        { eq with eq_desc = EQassert(a) }, acc
     | EQforloop
-       ({ for_size; for_kind; for_index; for_input; for_body; for_env } as f) ->
+       ({ for_size; for_kind; for_index; for_input; for_let;
+          for_body; for_env } as f) ->
       let for_env, acc = build_it funs.global_funs acc for_env in
        let for_index, acc =
          Util.optional_with_map (var_ident_it funs.global_funs) acc for_index in
@@ -851,13 +854,14 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
          Util.optional_with_map (for_size_t funs) acc for_size in
        let for_input, acc =
          Util.mapfold (for_input_t funs) acc for_input in
+       let for_let, acc = slet_it funs acc for_let in
        let for_body, acc = for_eq_it funs acc for_body in
        (* the exit condition can depend on output variables of the loop *)
        let for_kind, acc = for_kind_t funs acc for_kind in
        { eq with eq_desc =
                    EQforloop
                      { f with for_size; for_kind; for_index; for_input;
-                              for_body; for_env } }, acc
+                              for_let; for_body; for_env } }, acc
     | EQreset(eq, e_c) ->
        let eq, acc = reset_eq_it funs acc eq in
        let e_c, acc = expression_it funs acc e_c in
@@ -913,7 +917,8 @@ and escape funs acc ({ e_cond; e_let; e_body; e_next_state; e_env } as esc) =
 and automaton_handler_it funs acc handler =
   funs.automaton_handler funs acc handler
 
-and automaton_handler funs acc ({ s_state; s_let; s_body; s_trans; s_env } as h) =
+and automaton_handler funs acc
+     ({ s_state; s_let; s_body; s_trans; s_env } as h) =
   let s_env, acc = build_it funs.global_funs acc s_env in
   let s_state, acc = statepat funs acc s_state in
   let s_let, acc = slet_it funs acc s_let in

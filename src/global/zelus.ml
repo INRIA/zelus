@@ -280,22 +280,12 @@ and ('info, 'ienv) exp_desc =
   | Eforloop of
       ('info, 'ienv, ('info, 'ienv) for_exp) forloop 
 
-(* assertions *)
-and ('info, 'ienv) assertion =
-  { a_body: ('info, 'ienv) exp; (* the body of the assertion *)
-    (* an auxiliary mapping for hidden state variables; this appears only *)
-    (* in continuous-time models. It is empty in the surface language (Zelus) *)
-    (* and is generated during some of the rewriting steps *)
-    (* only useful for transparent assertions *)
-    mutable a_hidden_env: 'ienv Ident.Env.t;
-    mutable a_free_vars: Ident.S.t; (* its free variables in [a_body] *)
-  }
-
 and ('info, 'ienv, 'body) forloop =
   { for_size : ('info, 'ienv) for_size option;
     for_kind : ('info, 'ienv) exp for_kind;
     for_index : Ident.t option;
     for_input : ('info, 'ienv) exp for_input list;
+    for_let : ('info, 'ienv) leq list; (* [let [rec] eq in]* *)
     for_body : 'body;
     for_resume : bool; (* resume or restart *)
     mutable for_env : 'ienv Ident.Env.t; (* names (index and inputs) *)
@@ -351,6 +341,17 @@ and ('info, 'ienv) for_vardec_desc =
     for_vardec : ('info, ('info, 'ienv) exp) vardec;
     (* [x [init e] [default e]] *)
     for_as : Ident.t option; (* [as o_] *)
+  }
+
+(* assertions *)
+and ('info, 'ienv) assertion =
+  { a_body: ('info, 'ienv) exp; (* the body of the assertion *)
+    (* an auxiliary mapping for hidden state variables; this appears only *)
+    (* in continuous-time models. It is empty in the surface language (Zelus) *)
+    (* and is generated during some of the rewriting steps *)
+    (* only useful for transparent assertions *)
+    mutable a_hidden_env: 'ienv Ident.Env.t;
+    mutable a_free_vars: Ident.S.t; (* its free variables in [a_body] *)
   }
 
 and is_rec = bool

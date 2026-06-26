@@ -1826,7 +1826,8 @@ and state_expression h env_of_states actual_reset { desc; loc } =
 
 (* Typing of a for loop *)
 and forloop_exp loc expected_k h
-  ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
+({ for_size; for_kind; for_index; for_input;
+   for_let; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
   let expected_k_for_body =
@@ -1851,6 +1852,9 @@ and forloop_exp loc expected_k h
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+  (* type check the sequence of local equations *)
+  let h, actual_k_let = leqs expected_k h for_let in
+  (* type check the exit conditions *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
     for_exp_t loc expected_k_for_body h size for_index for_body in
@@ -1865,7 +1869,9 @@ and forloop_exp loc expected_k h
   check_size_index_not_in_h loc for_index h;
 
   let actual_k =
-    if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
+    if for_resume then
+      Kind.sup k_kind
+        (Kind.sup actual_k_let actual_k_for_body) else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   actual_ty, actual_k
@@ -2067,7 +2073,8 @@ and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
 
 (* Typing of a for loop *)
 and forloop_eq loc expected_k h
-  ({ for_size; for_kind; for_index; for_input; for_body; for_resume } as f) =
+     ({ for_size; for_kind; for_index; for_input; for_let;
+        for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
   let expected_k_for_body =
@@ -2093,6 +2100,8 @@ and forloop_eq loc expected_k h
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+  (* type check the sequence of local equations *)
+  let h, actual_k_let = leqs expected_k h for_let in
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
     for_eq_t loc expected_k_for_body size for_index h for_body in
@@ -2107,7 +2116,9 @@ and forloop_eq loc expected_k h
   check_size_index_not_in_h loc for_index h;
 
   let actual_k =
-    if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
+    if for_resume then
+      Kind.sup k_kind (Kind.sup actual_k_let actual_k_for_body)
+    else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   d_names, actual_k
