@@ -811,7 +811,8 @@ and result env ({ r_desc } as r) =
        
 (* Typing of a for loop *)
 and forloop_exp env c_free
-  { for_size; for_kind; for_index; for_input; for_body; for_resume; for_env } =
+    { for_size; for_kind; for_index; for_input; for_let;
+      for_body; for_resume; for_env } =
   (* the for loop is executed atomically *)
   (* introduce an input time tag [c_in] such that all inputs [ei] are *)
   (* before on a tag [c] with [c < c_in] *)
@@ -822,7 +823,9 @@ and forloop_exp env c_free
   for_size_t env c_free c_in for_size;
   List.iter (for_input_t env c_free c_in) for_input;
   let env = build_env_on_c c_in for_env env in
-  for_kind_t env c_free  c_out for_kind;
+  (* typing local definitions *)
+  let env = leqs env c_out for_let in
+  for_kind_t env c_free c_out for_kind;
   for_exp_t env c_free c_out for_body
 
 and for_exp_t env c_free c_out for_exp =
@@ -899,7 +902,8 @@ and for_input_t env c_free c_in { desc; loc } =
      exp_less_than_on_c env c_free e_right c_in
 
 (* Typing of a for loop *)
-and forloop_eq env c_free { for_env; for_size; for_kind; for_input; for_body } =
+and forloop_eq env c_free
+      { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* the for loop is executed atomically *)
   (* introduce an input time tag [c_in] such that all inputs [ei] are *)
   (* before on a tag [c] with [c < c_in] *)
@@ -910,6 +914,8 @@ and forloop_eq env c_free { for_env; for_size; for_kind; for_input; for_body } =
   for_size_t env c_free c_in for_size;
   List.iter (for_input_t env c_free c_in) for_input;
   let env = build_env for_env env in
+  (* typing local definitions *)
+  let env = leqs env c_out for_let in
   for_kind_t env c_free c_out for_kind;
   for_eq_t env c_free c_out for_body
 
