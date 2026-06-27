@@ -630,11 +630,14 @@ and result env ({ r_desc; r_info } as r) =
   ti
  
 (* Typing of a for loop *)
-and forloop_exp loc env { for_env; for_size; for_kind; for_input; for_body } =
+and forloop_exp loc env
+      { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* inputs, index and outputs must be initialized *)
   for_size_t env for_size;
   List.iter (for_input_t env) for_input;
   let env = build_env loc for_env env in
+  (* typing local definitions *)
+  let env = leqs env for_let in
   for_kind_t env for_kind;
   for_exp_t loc env for_body
 
@@ -715,11 +718,14 @@ and for_input_t env { desc; loc } =
      exp_less_than_on_i env e_right Tinit.izero
 
 (* Typing of a for loop *)
-and forloop_eq loc env { for_env; for_size; for_kind; for_input; for_body } =
+and forloop_eq loc env
+       { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* inputs, index and outputs must be initialized *)
   for_size_t env for_size;
   List.iter (for_input_t env) for_input;
   let env = build_env loc for_env env in
+  (* typing local definitions *)
+  let env = leqs env for_let in
   for_kind_t env for_kind;
   for_eq_t loc env for_body
 
