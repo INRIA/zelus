@@ -400,7 +400,7 @@ module Make (Info: INFO) =
       | Efun(fe) ->
          fprintf ff "@[(%a)@]" funexp fe
       | Eassert a -> p_assert ff a
-      | Eforloop({ for_size; for_kind; for_index; for_input; for_body;
+      | Eforloop({ for_size; for_kind; for_index; for_input; for_let; for_body;
                    for_env; for_resume }) ->
          fprintf ff
            "@[<hov 2>%a%a@,%a%a(%a) %a@ %a@ @[%a@]@ @]"
@@ -410,7 +410,7 @@ module Make (Info: INFO) =
            index_opt for_index
            input_list for_input
            print_env for_env
-           for_exp for_body 
+           for_exp (for_let, for_body) 
            for_exit_condition for_kind
 
     and for_size_expression ff { for_size_index; for_size_exp } =
@@ -594,7 +594,7 @@ module Make (Info: INFO) =
       | EQassert a -> p_assert ff a
       | EQforloop
         ({ for_size; for_kind; for_index; for_input; for_env; for_resume;
-                    for_body = { for_out; for_block; for_out_env } }) ->
+           for_let; for_body = { for_out; for_block; for_out_env } }) ->
          let print_for_out ff l =
            let for_out ff
                  { desc = { for_name; for_out_name;
@@ -604,7 +604,7 @@ module Make (Info: INFO) =
                as_name for_as_name in
            print_list_r for_out "" "," "" ff l in
          fprintf ff
-           "@[<hov 2>%a%a%a%a@ (@[%a@])@ @[%a@]@ returns@ (%a)@ %a@ @[%a@,%a@]@ @]"
+           "@[<hov 2>%a%a%a%a@ (@[%a@])@ @[%a@]@ returns@ (%a)@ %a@ @[%a@,%a@,%a@]@ @]"
            kind_of_forloop for_kind
            for_resume_or_restart for_resume
            (Util.optional_unit for_size_expression) for_size
@@ -613,6 +613,7 @@ module Make (Info: INFO) =
            print_env for_env
            print_for_out for_out
            print_env for_out_env
+           leqs for_let
            block_of_equation for_block
            for_exit_condition for_kind       
     
@@ -659,21 +660,23 @@ module Make (Info: INFO) =
              expression e_right in
       print_list_r input "" "," "" ff l
     
-    and for_exp ff r =
+    and for_exp ff (for_let, r) =
       let for_returns ff for_vardec_list =
         let for_vardec ff { desc = { for_array; for_vardec; for_as } } =
           let rec print_array_of n ff x =
             if n = 0 then vardec expression ff x
             else fprintf ff "@[<hov 1>[|@,%a@,|]@]" (print_array_of (n-1)) x in
-          fprintf ff "@[%a%a@]" (print_array_of for_array) for_vardec as_name for_as in
+          fprintf ff
+            "@[%a%a@]" (print_array_of for_array) for_vardec as_name for_as in
         print_list_r for_vardec "(" "" ")" ff for_vardec_list in
       match r with
       | Forexp { exp; default = d} ->
          fprintf ff "@[ do %a%a done@]" expression exp (default expression) d
       | Forreturns { r_returns; r_block; r_env } ->
-         fprintf ff "@[<hov 2> returns@ (%a)@ @[%a@]@ @[%a@]@]"
+         fprintf ff "@[<hov 2> returns@ (%a)@ @[%a@]@ @[%a@,%a@]@]"
            for_returns r_returns
            print_env r_env
+           leqs for_let
            block_of_equation r_block
     
     
