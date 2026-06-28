@@ -1853,7 +1853,7 @@ and forloop_exp loc expected_k h
   (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   (* type check the sequence of local equations *)
-  let h, actual_k_let = leqs expected_k h for_let in
+  let h, actual_k_let = leqs expected_k_for_body h for_let in
   (* type check the exit conditions *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let actual_ty, actual_k_for_body =
@@ -2101,7 +2101,7 @@ and forloop_eq loc expected_k h
   (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
   (* type check the sequence of local equations *)
-  let h, actual_k_let = leqs expected_k h for_let in
+  let h, actual_k_let = leqs expected_k_for_body h for_let in
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   let d_names, actual_k_for_body =
     for_eq_t loc expected_k_for_body size for_index h for_body in
