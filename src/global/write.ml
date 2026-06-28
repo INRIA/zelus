@@ -34,38 +34,48 @@ module Make (Info: INFO) =
     
     let build_from_names n_set = S.fold build n_set Env.empty
     
-    let rec fv_pat acc { pat_desc } =
+    let rec fv_bounded_pat bounded acc { pat_desc } =
       match pat_desc with
       | Ewildpat | Econstr0pat _ | Econstpat _ -> acc
       | Evarpat(x) ->
-         if S.mem x acc then acc else S.add x acc
+         if S.mem x bounded then acc
+         else if S.mem x acc then acc else S.add x acc
       | Econstr1pat(_, pat_list) | Etuplepat(pat_list) | Earraypat(pat_list) ->
-         List.fold_left fv_pat acc pat_list
+         List.fold_left (fv_bounded_pat bounded) acc pat_list
       | Erecordpat(label_pat_list) ->
          List.fold_left
-           (fun acc { arg } -> fv_pat acc arg) acc label_pat_list
+           (fun acc { arg } -> fv_bounded_pat bounded acc arg) acc label_pat_list
       | Ealiaspat(p, name) ->
          let acc =
-           if S.mem name acc
-           then acc else S.add name acc in
-         fv_pat acc p
-      | Eorpat(p1, _) -> fv_pat acc p1
-      | Etypeconstraintpat(p, _) -> fv_pat acc p
+           if S.mem name bounded then acc
+           else if S.mem name acc then acc else S.add name acc in
+         fv_bounded_pat bounded acc p
+      | Eorpat(p1, _) -> fv_bounded_pat bounded acc p1
+      | Etypeconstraintpat(p, _) -> fv_bounded_pat bounded acc p
 
-    (* names defined by an equation *)
+    let fv_pat acc p = fv_bounded_pat S.empty acc p
+    
     let defnames eq =
       (* computes the set of names that appear on the left of an "=" *)
-      let rec equation bounded acc { eq_desc } = match eq_desc with
-        | EQeq(p, _) -> fv_pat acc p
-        | EQsizefun { sf_id = n } | EQder { id = n }
-          | EQinit(n, _) | EQemit(n, _) ->
-           if S.mem n bounded then acc else S.add n acc
+      let rec equation bounded ({ dv; di; der } as acc) { eq_desc } =
+        match eq_desc with
+        | EQeq(p, _) -> let dv = fv_bounded_pat bounded dv p in { acc with dv }
+        | EQder { id = n } ->
+           if S.mem n bounded then acc else
+             if S.mem n der then acc else { acc with der = S.add n der }
+        | EQsizefun { sf_id = n } | EQemit(n, _) ->
+           if S.mem n bounded then acc else
+          if S.mem n dv then acc else { acc with dv = S.add n dv }
+        | EQinit(n, _) ->
+           if S.mem n bounded then acc else
+             if S.mem n di then acc else { acc with di = S.add n di }        
         | EQif { eq_true; eq_false } ->
            equation bounded (equation bounded acc eq_true) eq_false
         | EQand { eq_list } -> List.fold_left (equation bounded) acc eq_list
         | EQlocal(b) -> let _, acc = block bounded acc b in acc
         | EQlet(l_eq, eq) ->
-           let bounded = leq bounded acc l_eq in equation bounded acc eq
+           let defnames = leq bounded acc l_eq in
+           equation (Defnames.names bounded defnames) acc eq
         | EQreset(eq, _) -> equation bounded acc eq
         | EQautomaton { handlers } ->
            let trans bounded acc { e_body } =
@@ -83,12 +93,14 @@ module Make (Info: INFO) =
            acc
         | EQmatch { handlers } ->
            let handler acc { m_pat; m_body } =
-             equation (fv_pat bounded m_pat) acc m_body in
+             equation (fv_bounded_pat bounded S.empty m_pat) acc m_body in
            List.fold_left handler acc handlers
         | EQempty | EQassert _ -> acc
         | EQforloop { for_body = { for_out } } ->
-           let for_out_one bounded acc { desc = { for_name } } =
-             if S.mem for_name bounded then acc else S.add for_name acc in
+           let for_out_one bounded ({ dv } as acc) { desc = { for_name } } =
+             if S.mem for_name bounded then acc
+             else if S.mem for_name dv then acc
+             else { acc with dv = S.add for_name dv } in
            List.fold_left (for_out_one bounded) acc for_out
         and block bounded acc { b_vars; b_body } =
           let bounded =
@@ -96,8 +108,8 @@ module Make (Info: INFO) =
               bounded b_vars in
           bounded, equation bounded acc b_body
         and leq bounded acc { l_eq } = equation bounded acc l_eq in
-      equation S.empty S.empty eq
-    
+      equation S.empty { dv = S.empty; di = S.empty; der = S.empty } eq
+
     (* computes [dv] and [di] *)
     let rec equation ({ eq_desc } as eq)=
       let eq_desc, def =
@@ -187,7 +199,7 @@ module Make (Info: INFO) =
         | EQassert({ a_body } as a) ->
            EQassert({ a with a_body = expression a_body }), Defnames.empty
         | EQforloop({ for_size; for_kind; for_index;
-                      for_input; for_body = { for_out; for_block } } as f) ->
+                      for_input; for_let; for_body = { for_out; for_block } } as f) ->
            let for_size = Util.optional_map for_size_expression for_size in
            let for_kind =
              match for_kind with
@@ -217,11 +229,13 @@ module Make (Info: INFO) =
              (acc, h_out) in
            let for_out, (dv_out, h_out) =
              Util.mapfold for_out_one (S.empty, Env.empty) for_out in
+           let for_let = lets for_let in
            let for_block, defnames, dv_for_block = block for_block in
            let defnames = Defnames.subst defnames h_out in
            let for_env = build_from_names dv_input in
            let for_out_env = build_from_names dv_out in
            EQforloop({ f with for_size; for_kind; for_input; for_env;
+                              for_let;
                               for_body = { for_out; for_block; for_out_env; }}),
            defnames in
       (* set the names defined in the equation *)
@@ -360,7 +374,7 @@ module Make (Info: INFO) =
         | Eassert({ a_body } as a) ->
            Eassert({ a with a_body = expression a_body })
         | Eforloop
-           ({ for_size; for_index; for_kind; for_input; for_body } as f) ->
+           ({ for_size; for_index; for_kind; for_input; for_let; for_body } as f) ->
            let for_size = Util.optional_map for_size_expression for_size in
            let for_kind =
              match for_kind with
@@ -371,7 +385,8 @@ module Make (Info: INFO) =
              Util.optional (fun acc x -> S.add x acc) S.empty for_index in
            let for_input, dv_input =
              for_input_w dv_index for_input in
-           let for_body =
+          let for_let = lets for_let in
+          let for_body =
              match for_body with
              | Forexp { exp; default } ->
                 Forexp { exp = expression exp;
@@ -383,7 +398,7 @@ module Make (Info: INFO) =
                 Forreturns({ r_returns; r_block; r_env }) in
            let for_env = build_from_names dv_input in
            Eforloop
-             ({ f with for_size; for_kind; for_input; for_env; for_body }) in
+             ({ f with for_size; for_kind; for_input; for_env; for_let; for_body }) in
       { e with e_desc = desc }
 
     and for_size_expression ({ for_size_exp } as for_size) =
