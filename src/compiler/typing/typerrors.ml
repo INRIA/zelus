@@ -74,6 +74,7 @@ type error =
       }
   | Esize_parameter_mutually_recursive_definitions of int * int
   | Esize_index_escape_in_environment of Ident.t * Ident.t * typ
+  | Esize_index_escape_in_type of Ident.t * typ
   | Econstr_arity of Lident.t * int * int
   | Esizefun_and_equations_are_mixed
 
@@ -343,7 +344,15 @@ let message loc kind =
       output_location loc
       (Ident.name index) (Ident.name x)
       Ptypes.ptype ty
- | Econstr_arity(ln, expected_arity, actual_arity) ->
+ | Esize_index_escape_in_type(index, ty) ->
+    eprintf
+      "@[%aType error: the size index %s of this loop \n\
+       escape its scope. It appears in the returned type which is:\
+       %a@.@]"
+      output_location loc
+      (Ident.name index)
+      Ptypes.ptype ty
+  | Econstr_arity(ln, expected_arity, actual_arity) ->
     let module Printer = Printer.Make(Ptypinfo) in
     eprintf
       "@[%aType error: the type constructor %a expects %d argument(s),@ \

@@ -1,11 +1,9 @@
-let main__1 () returns (o)
-  forward<<2>>[i]() returns (oi:bool out o) oi = 1
-
-
-let main__1 () returns (o)
-  forward<<2>>[i]() returns (oi:[2]_ out o)
-    let z1 = forward(i)() returns ([|oi|]) do oi = 1 done in
-    let z2 = forward(2-i)() returns ([|oi|]) do oi = 2 done in
+let main__1<<n>>() returns (o)
+  forward<<n>>[i] returns (oi:[n]_ out o)
+    let z1 = forward(i)[j] returns ([|oi|])
+                oi = j in
+    let z2 = forward(n-i)[j] returns ([|oi|])
+                oi = j in
     do oi = z1 ++ z2 done
 
 let main__2 () returns (o)
