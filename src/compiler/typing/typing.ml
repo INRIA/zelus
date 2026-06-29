@@ -1979,24 +1979,28 @@ and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   Defnames.union (Defnames.singleton name) acc
 
 and for_out_t loc expected_k size for_index h (acc_h, acc_k)
-  { desc = ({ for_name; for_out_name; for_init; for_default;
+  { desc = ({ for_name; for_name_typeconstraint;
+              for_out_name; for_init; for_default;
               for_as_name } as v); loc } =
-  let ty = Types.new_var () in
+  let expected_ty =
+    match for_name_typeconstraint with
+    | None -> Types.new_var ()
+    | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
   let actual_k_default =
     Util.optional_with_default
-      (fun e -> expect expected_k h e ty)
+      (fun e -> expect expected_k h e expected_ty)
       (Tfun(Tconst)) for_default in
     (* the initialization must appear in a statefull function *)
   let actual_k_init =
     Util.optional_with_default
       (fun e -> stateful e.e_loc expected_k;
-                expect (Tnode(Tdiscrete)) h e ty)
+                expect (Tnode(Tdiscrete)) h e expected_ty)
       (Tfun(Tconst)) for_init in
 
   let actual_k = Kind.sup actual_k_default actual_k_init in
   let t_sort = intro_vardec expected_k for_init for_default false in
   let entry =
-    Deftypes.entry expected_k t_sort (Deftypes.scheme ty) in
+    Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
   let acc_h = Env.add for_name entry acc_h in
 
   (* if [as x_] is given, enrich the type environment with *)
@@ -2010,7 +2014,7 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k)
        Env.add as_name
          (Deftypes.entry expected_k
             (Deftypes.Sort_mem memory_only_last)
-            (Deftypes.scheme (Types.vec ty (Sizes.var index)))) acc_h
+            (Deftypes.scheme (Types.vec expected_ty (Sizes.var index)))) acc_h
     | None, Some(as_name) ->
        (* we impose that is [as x_] is used, the index [i] is given *)
        (* this constraint is impose for diagnosis; it will be *)
@@ -2022,8 +2026,8 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k)
       (fun x -> (* xi out x *)
         (* find the type of [x] in [h] *)
         let ty_x = Types.instance (typ_of_var loc h x) in
-        let ty_out = Types.vec ty size in
-        unify loc ty_out ty_x; ty_out) ty for_out_name in
+        let ty_out = Types.vec expected_ty size in
+        unify loc ty_out ty_x; ty_out) expected_ty for_out_name in
   (* annotation *)
   v.for_info <- Typinfo.set_type v.for_info ty_out;
   let acc_k = Kind.sup acc_k actual_k in

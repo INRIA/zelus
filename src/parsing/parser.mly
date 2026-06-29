@@ -1407,25 +1407,30 @@ as_ide:
 
 output_desc:
   /* xi [as o_] */
-  | ide = ide as_opt = as_ide
-    { { for_name = ide; for_out_name = None;
+  | ide = ide t_opt = optional(colon_type_expression) as_opt = as_ide
+    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = None;
         for_init = None; for_default = None; for_as_name = as_opt } }
   /* xi out x [as o_] */
-  | ide = ide o = out_ide as_opt = as_ide
-    { { for_name = ide; for_out_name = Some(o);
+  | ide = ide t_opt = optional(colon_type_expression)
+      o = out_ide as_opt = as_ide
+    { { for_name = ide; for_name_typeconstraint = t_opt;
+	for_out_name = Some(o);
 	for_init = None; for_default = None; for_as_name  = as_opt } }
   /* xi init e [out x] [as o_] */
-  | ide = ide i = init_expression o_opt = optional(out_ide) as_opt = as_ide
-    { { for_name = ide; for_out_name = o_opt;
+  | ide = ide t_opt = optional(colon_type_expression)
+      i = init_expression o_opt = optional(out_ide) as_opt = as_ide
+    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = o_opt;
 	for_init = Some(i); for_default = None; for_as_name  = as_opt } }
   /* xi default e [out x] [as o_] */
-  | ide = ide d = default_expression o_opt = optional(out_ide) as_opt = as_ide
-    { { for_name = ide; for_out_name = o_opt;
+  | ide = ide t_opt = optional(colon_type_expression)
+      d = default_expression o_opt = optional(out_ide) as_opt = as_ide
+    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = o_opt;
 	for_init = None; for_default = Some(d); for_as_name  = as_opt } }
   /* xi init e default e [out x] [as o_] */
-  | ide = ide i = init_expression d = default_expression 
+  | ide = ide t_opt = optional(colon_type_expression)
+      i = init_expression d = default_expression 
     o_opt = optional(out_ide) as_opt = as_ide
-    { { for_name = ide; for_out_name = o_opt;
+    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = o_opt;
 	for_init = Some(i); for_default = Some(d); for_as_name  = as_opt } }
 ;
 

@@ -434,6 +434,7 @@ and ('info, 'ienv) for_out = ('info, 'ienv) for_out_desc localized
 
 and ('info, 'ienv) for_out_desc =
   { for_name : Ident.t; (* xi [init e] [default e] [out x] *)
+    for_name_typeconstraint: type_expression option; (* [xi:ty] *)
     for_out_name : Ident.t option; (* [xi out x] *)
     for_init : ('info, 'ienv) exp option;
     for_default : ('info, 'ienv) exp option;

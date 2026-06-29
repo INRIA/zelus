@@ -351,6 +351,7 @@ and for_in_pat_desc =
 (* output of a for loop in equational form *)
 and for_out_desc =
   { for_name : name; (* xi [init e] [default e] [out x] [as xi_] *)
+    for_name_typeconstraint: type_expression option; (* [xi:ty] *)
     for_out_name : name option; (* [xi out x] *)
     for_init : exp option;
     for_default : exp option;
@@ -399,10 +400,6 @@ and funexp_desc =
 and funexp = funexp_desc localized
 
 and arg = exp vardec list
-
-(* and arg1 =
-  | Apat: pattern -> arg1
-  | Avardec : exp vardec -> arg1 *)
 
 and result = result_desc localized
 

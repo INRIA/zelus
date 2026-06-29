@@ -587,7 +587,8 @@ module Make (Info: INFO) =
       (* [oi out o] or [oi as o_] : oi and o_ are local to the loop *)
       let for_out_one local_env
             { desc =
-                { for_name; for_init; for_default; for_out_name; for_as_name };
+                { for_name; for_name_typeconstraint;
+                  for_init; for_default; for_out_name; for_as_name };
               loc } =
         (* check that [for_name] is distinct from input names. This is *)
         (* not mandatory but makes loops simpler to understand *)
@@ -625,12 +626,16 @@ module Make (Info: INFO) =
                  Some(m_as_name), Env.add as_name m_as_name local_env
             | None -> 
                None, local_env in
+          let for_name_typeconstraint =
+            Util.optional_map (types env) for_name_typeconstraint in
           let for_init =
             Util.optional_map (expression env) for_init in
           let for_default =
             Util.optional_map (expression env) for_default in
           { Zelus.desc =
-              { Zelus.for_name = for_name; Zelus.for_init = for_init;
+              { Zelus.for_name = for_name; 
+                Zelus.for_name_typeconstraint = for_name_typeconstraint;
+                Zelus.for_init = for_init;
                 Zelus.for_default = for_default;
                 Zelus.for_out_name = for_out_name;
                 Zelus.for_as_name = for_as_name;
