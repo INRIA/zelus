@@ -110,6 +110,13 @@ let check_size_index_not_in_h loc index_opt h =
   | None -> ()
   | Some(index) -> Env.iter (check_one index) h
 
+let check_size_index_not_in_type loc index_opt ty =
+  match index_opt with
+  | None -> ()
+  | Some(index) ->
+     if S.mem index (Types.size_variables S.empty ty)
+     then error loc (Esize_index_escape_in_type(index, ty))
+
 (* check that a type belong to a kind [vkind] *)
 let check_type_is_in_kind loc h actual_k vkind =
   let type_in_kind loc ty vkind =
@@ -1826,8 +1833,8 @@ and state_expression h env_of_states actual_reset { desc; loc } =
 
 (* Typing of a for loop *)
 and forloop_exp loc expected_k h
-({ for_size; for_kind; for_index; for_input;
-   for_let; for_body; for_resume } as f) =
+  ({ for_size; for_kind; for_index; for_input;
+     for_let; for_body; for_resume } as f) =
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
   let expected_k_for_body =
@@ -1841,6 +1848,9 @@ and forloop_exp loc expected_k h
   let h_env = Env.append h_index h_input in
   let h = Env.append h_env h in
 
+  (* the environment of variables at the entry of the for loop body *)
+  let h_entry_of_forloop = h in
+  
   (* the size must be determined at this point *)
   let size =
     match size_opt with | None -> error loc Esize_is_undetermined
@@ -1856,7 +1866,7 @@ and forloop_exp loc expected_k h
   let h, actual_k_let = leqs expected_k_for_body h for_let in
   (* type check the exit conditions *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
-  let actual_ty, actual_k_for_body =
+  let h_returns, actual_ty, actual_k_for_body =
     for_exp_t loc expected_k_for_body h size for_index for_body in
   (* 2: pop the current size constraint *)
   Util.optional_unit
@@ -1865,9 +1875,11 @@ and forloop_exp loc expected_k h
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
       check_size_constraint_if_possible
         loc (Sizes.forall i si sc)) () for_index;
-  (* 3: check that the size index does not escape its scope *)
-  check_size_index_not_in_h loc for_index h;
-
+  (* 3: check that the size index does not escape the scope of the for loop *)
+  check_size_index_not_in_h loc for_index h_entry_of_forloop;
+  check_size_index_not_in_h loc for_index h_returns;
+  check_size_index_not_in_type loc for_index actual_ty;
+    
   let actual_k =
     if for_resume then
       Kind.sup k_kind
@@ -1877,23 +1889,24 @@ and forloop_exp loc expected_k h
   actual_ty, actual_k
 
 and for_exp_t loc expected_k h size for_index for_exp =
-  let ty_res, k = match for_exp with
+  let h_returns, ty_res, k = match for_exp with
     | Forexp { exp; default } ->
        let actual_ty, k_exp = expression expected_k h exp in
        let k_default =
          Util.optional_with_default
            (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
-       Types.vec actual_ty size, Kind.sup k_exp k_default
+       Env.empty, Types.vec actual_ty size, Kind.sup k_exp k_default
     | Forreturns({ r_returns; r_block } as r) ->
        let ty_list, (h_returns, k_returns) =
          Util.mapfold (for_vardec loc expected_k for_index h)
            (Env.empty, Tfun(Tconst)) r_returns in
        let h = Env.append h_returns h in
-       let h0, h, d_names, k_block = block_eq expected_k h r_block in
+       let _, _, _, k_block = block_eq expected_k h r_block in
        (* annotation *)
        r.r_env <- h_returns;
+       h_returns,
        type_of_for_vardec_list size r_returns, Kind.sup k_returns k_block in
-  ty_res, k
+  h_returns, ty_res, k
 
 and for_vardec loc expected_k for_index h (acc_h, acc_k)
   { desc = { for_vardec; for_as } } =
@@ -1968,7 +1981,7 @@ and for_eq_t loc expected_k size for_index h ({ for_out; for_block } as f) =
   let d_names =
     List.fold_left
       (defnames_for_out d_names) Defnames.empty for_out in
-  d_names, Kind.sup actual_k_out actual_k
+  h_out, d_names, Kind.sup actual_k_out actual_k
 
 and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   (* verify that [for_name] is defined *)
@@ -2092,6 +2105,7 @@ and forloop_eq loc expected_k h
   let h_env = Env.append h_index h_input in
   let h = Env.append h_env h in
   
+  let h_entry_in_forloop_body = h in
   (* the size must be determined at this point *)
   let size =
     match size_opt with
@@ -2107,7 +2121,7 @@ and forloop_eq loc expected_k h
   (* type check the sequence of local equations *)
   let h, actual_k_let = leqs expected_k_for_body h for_let in
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
-  let d_names, actual_k_for_body =
+  let h_out, d_names, actual_k_for_body =
     for_eq_t loc expected_k_for_body size for_index h for_body in
   (* 2: pop the current size constraint *)
   Util.optional_unit
@@ -2116,8 +2130,9 @@ and forloop_eq loc expected_k h
       let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
       check_size_constraint_if_possible
         loc (Sizes.forall i si sc)) () for_index;
-  (* 3: check that the size index does not escape its scope *)
-  check_size_index_not_in_h loc for_index h;
+  (* 3: check that the size index does not escape the scope of the for loop *)
+  check_size_index_not_in_h loc for_index h_entry_in_forloop_body;
+  check_size_index_not_in_h loc for_index h_out;
 
   let actual_k =
     if for_resume then

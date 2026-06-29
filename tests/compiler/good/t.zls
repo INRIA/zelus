@@ -1,13 +1,15 @@
-let f (static g) x y = g x y
+let f1 g x y = g x y
 
-let g (static x) y = x + y
+let g1 x y = x + y
 
-(*
-val f : forall 'a, 'b, 'c.('a -> 'b -> 'c) -S-> 'a -> 'b -> 'c
-val g : int -S-> int -> int
-*)
+let h1 y = f1 g1 y
 
-let h y = f g
+
+let f2 (static g) x y = g x y
+
+let g2 (static x) y = x + y
+
+let h2 y = f2 g2
 
 let ff<<n>>(x:[n]_) = x.(0)
 
