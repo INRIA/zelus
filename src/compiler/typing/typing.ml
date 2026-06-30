@@ -102,7 +102,7 @@ let stateful loc expected_k =
 (* check that a size index [i_opt] does not appear in a type environment [h] *)
 (* this is done whenever typing the body of a for loop when the type of a *)
 (* local variable depends on a size index *)
-let check_size_index_not_in_h loc index_opt h =
+let check_size_index_does_not_escape_in_h loc index_opt h =
   let check_one index x { t_tys = { typ_body } } =
     if S.mem index (Types.size_variables S.empty typ_body)
     then error loc (Esize_index_escape_in_environment(index, x, typ_body)) in
@@ -110,7 +110,7 @@ let check_size_index_not_in_h loc index_opt h =
   | None -> ()
   | Some(index) -> Env.iter (check_one index) h
 
-let check_size_index_not_in_type loc index_opt ty =
+let check_size_index_does_not_escape_in_type loc index_opt ty =
   match index_opt with
   | None -> ()
   | Some(index) ->
@@ -252,26 +252,32 @@ let immediate = function
 
 
 (* Types for local identifiers *)
+let entry_of_var loc h n =
+  try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
+
 let var loc h n =
-  try
-    let { t_sort } as entry = Env.find n h in
-    match t_sort with
-    | Sort_val | Sort_var | Sort_mem { m_only_last = false } -> entry
-    | _ -> error loc (Eonly_last_is_allowed(n))
-  with
-  | Not_found -> error loc (Evar_undefined(n))
+  let { t_sort } as entry = entry_of_var loc h n in
+  match t_sort with
+  | Sort_val | Sort_var | Sort_mem { m_only_last = false } -> entry
+  | _ -> error loc (Eonly_last_is_allowed(n))
 
 let typ_of_var loc h n = let { t_tys } = var loc h n in t_tys
 
 (* Typing [last n] *)
 let last loc h n =
-  let { t_path; t_sort; t_tys } as entry = var loc h n in
+  let { t_path; t_sort; t_tys } as entry = entry_of_var loc h n in
   (* [last n] is allowed only if [n] is declared in a stateful block *)
   let actual_k = kind_of_path loc t_path in
   let t_sort =
-    match actual_k with
-    | Tnode _ -> Deftypes.last t_sort
-    | Tfun _ -> error loc (Elast_forbidden(n)) in
+    match t_sort with
+    | Sort_mem { m_only_last = true } ->
+       (* only [last n] is allowed, e.g., [n] is the *)
+       (* currently built array in a forward iteration *)
+       (* that is declared by a [... as n] in the returns clause *)
+       t_sort
+    | _ -> match actual_k with
+           | Tnode _ -> Deftypes.last t_sort
+           | Tfun _ -> error loc (Elast_forbidden(n)) in
   entry.t_sort <- t_sort;
   Types.instance t_tys
 
@@ -1876,9 +1882,9 @@ and forloop_exp loc expected_k h
       check_size_constraint_if_possible
         loc (Sizes.forall i si sc)) () for_index;
   (* 3: check that the size index does not escape the scope of the for loop *)
-  check_size_index_not_in_h loc for_index h_entry_of_forloop;
-  check_size_index_not_in_h loc for_index h_returns;
-  check_size_index_not_in_type loc for_index actual_ty;
+  check_size_index_does_not_escape_in_h loc for_index h_entry_of_forloop;
+  check_size_index_does_not_escape_in_h loc for_index h_returns;
+  check_size_index_does_not_escape_in_type loc for_index actual_ty;
     
   let actual_k =
     if for_resume then
@@ -2131,8 +2137,8 @@ and forloop_eq loc expected_k h
       check_size_constraint_if_possible
         loc (Sizes.forall i si sc)) () for_index;
   (* 3: check that the size index does not escape the scope of the for loop *)
-  check_size_index_not_in_h loc for_index h_entry_in_forloop_body;
-  check_size_index_not_in_h loc for_index h_out;
+  check_size_index_does_not_escape_in_h loc for_index h_entry_in_forloop_body;
+  check_size_index_does_not_escape_in_h loc for_index h_out;
 
   let actual_k =
     if for_resume then
