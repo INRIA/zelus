@@ -117,6 +117,13 @@ let check_size_index_does_not_escape_in_type loc index_opt ty =
      if S.mem index (Types.size_variables S.empty ty)
      then error loc (Esize_index_escape_in_type(index, ty))
 
+(* remove entries for variables defined by a [... as x] *)
+let remove_entry_for_as_variables_in_env h =
+  Env.filter
+    (fun _ ({ t_sort } as entry) ->
+      match t_sort with | Sort_mem { m_only_last = true } -> false | _ -> true)
+    h
+
 (* check that a type belong to a kind [vkind] *)
 let check_type_is_in_kind loc h actual_k vkind =
   let type_in_kind loc ty vkind =
@@ -1910,6 +1917,8 @@ and for_exp_t loc expected_k h size for_index for_exp =
        let _, _, _, k_block = block_eq expected_k h r_block in
        (* annotation *)
        r.r_env <- h_returns;
+       (* remove entries for variables introduced with [... as x] *)
+       let h_returns = remove_entry_for_as_variables_in_env h_returns in
        h_returns,
        type_of_for_vardec_list size r_returns, Kind.sup k_returns k_block in
   h_returns, ty_res, k
@@ -1984,6 +1993,8 @@ and for_eq_t loc expected_k size for_index h ({ for_out; for_block } as f) =
   let h0, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
   f.for_out_env <- h_out;
+  (* remove entries for variables introduced with [... as x] *)
+  let h_out = remove_entry_for_as_variables_in_env h_out in
   let d_names =
     List.fold_left
       (defnames_for_out d_names) Defnames.empty for_out in
