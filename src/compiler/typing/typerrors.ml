@@ -106,17 +106,19 @@ let vkind_message = function
 let kind_message = function
   | Tfun(k) -> vkind_message k
   | Tnode(k) -> (match k with | Tdiscrete -> "node" | Tcont -> "hybrid node")
-  		
+
+let name n = if !Misc.vverbose then Ident.name n else Ident.source n
+
 let message loc kind =
   begin match kind with
-  | Evar_undefined(name) ->
+  | Evar_undefined(n) ->
      eprintf "@[%aType error: The value identifier %s is unbound.@.@]"
        output_location loc
-       (if !Misc.vverbose then Ident.name name else Ident.source name)
-  | Emissing(name) ->
+       (name n)
+  | Emissing(n) ->
      eprintf "@[%aType error: no equation is given for name %s.@.@]"
         output_location loc
-        (if !Misc.vverbose then Ident.name name else Ident.source name);
+        (name n)
   | Eglobal_undefined(k, lname) ->
      eprintf
        "@[%aType error: the global value identifier %s %s is unbound.@.@]"
@@ -125,54 +127,54 @@ let message loc kind =
   | Eglobal_already(k, s) ->
       eprintf "@[%aType error: the %s name %s is already defined.@.@]"
         output_location loc (kind_of_global_ident k) s 
-  | Ealready(k, name) ->
+  | Ealready(k, n) ->
      let k = kind_of_ident k in
      eprintf
        "@[%aType error: the identifier %s, with kind %s, is defined twice.@.@]"
        output_location loc
-       (if !Misc.vverbose then Ident.name name else Ident.source name) k
-  | Ealready_with_different_kinds(k1, k2, name) ->
+       (name n) k
+  | Ealready_with_different_kinds(k1, k2, n) ->
      let k1 = kind_of_ident k1 in
      let k2 = kind_of_ident k2 in
      eprintf
        "@[%aType error: %s is defined twice in a parallel branch,@,\
                 once as a %s, once as a %s.@.@]"
        output_location loc
-       (if !Misc.vverbose then Ident.name name else Ident.source name) k1 k2
-  | Einit_undefined(s) ->
+       (name n) k1 k2
+  | Einit_undefined(n) ->
       eprintf "@[%aType error: %s must be initialized in every branch.@.@]"
         output_location loc
-        (Ident.source s)
-  | Eis_a_value(name) ->
-      let s = if !Misc.vverbose then Ident.name name else Ident.source name in
+        (name n)
+  | Eis_a_value(n) ->
+      let s = name n in
       eprintf "@[%aType error: last %s is forbidden as %s is a value.@.@]"
         output_location loc s s
-  | Elast_forbidden(name) ->
-     let s = if !Misc.vverbose then Ident.name name else Ident.source name in
+  | Elast_forbidden(n) ->
+     let s = name n in
      eprintf
        "@[%aType error: last %s is forbidden. This is either @,\
         because %s is not a state variable or next %s is defined.@.@]"
        output_location loc s s s
-  | Eonly_last_is_allowed(name) ->
-     let s = if !Misc.vverbose then Ident.name name else Ident.source name in
+  | Eonly_last_is_allowed(n) ->
+     let s = name n in
      eprintf
        "@[%aType error: only last %s is allowed.@.@]"
        output_location loc s
-  | Eshould_be_a_signal(name, expected_ty) ->
+  | Eshould_be_a_signal(n, expected_ty) ->
       eprintf "@[%aType error: the variable %s of type %a is defined by case \
                    but one case is missing. \n\
                    Either define the variable as a signal or \
                    give a initial or default value.@.@]"
         output_location loc
-        (if !Misc.vverbose then Ident.name name else Ident.source name)
+        (name n)
 	Ptypes.ptype expected_ty
-  | Ecannot_be_set(is_next, name) ->
+  | Ecannot_be_set(is_next, n) ->
       eprintf "@[%aType error: the %s value of %s cannot be set. @,\
                  This is either because the %s value is set or @,\
                  the last value is used.@.@]"
         output_location loc
         (if is_next then "next" else "current")
-	(if !Misc.vverbose then Ident.name name else Ident.source name)
+	(name n)
 	(if is_next then "current" else "next")
   | Etype_clash(actual_ty, expected_ty) ->
       eprintf "@[%aType error: this expression has type@ %a,@ \
@@ -201,17 +203,17 @@ let message loc kind =
                but is given %d arguments.@.@]"
         output_location loc
         expected_arit actual_arit
-  | Estate_arity_clash(name, actual_arit, expected_arit) ->
+  | Estate_arity_clash(n, actual_arit, expected_arit) ->
       eprintf "@[%aType error: the state %s expects %d arguments,@ \
                but is given %d arguments.@.@]"
         output_location loc
-        (if !Misc.vverbose then Ident.name name else Ident.source name)
+        (name n)
         expected_arit actual_arit
-  | Estate_unbound(name) ->
+  | Estate_unbound(n) ->
       eprintf
         "@[%aType error: the state %s is unbound in the current automaton.@.@]"
         output_location loc
-        (if !Misc.vverbose then Ident.name name else Ident.source name)
+        (name n)
   | Estate_initial ->
       eprintf
         "@[%aType error: the initial state cannot be parameterized.@.@]"
@@ -229,11 +231,11 @@ let message loc kind =
       eprintf
         "@[%aType error: some fields are missing.@.@]"
         output_location loc
- | Eequation_is_missing(name) ->
+ | Eequation_is_missing(n) ->
      eprintf
        "@[%aType error: the variable %s must be defined in an equation.@.@]"
        output_location loc
-       (if !Misc.vverbose then Ident.name name else Ident.source name)
+       (name n)
  | Eglobal_is_a_function(lname) ->
      eprintf "@[%aType error: the global name %s must not be a function.@.@]"
         output_location loc
@@ -245,31 +247,30 @@ let message loc kind =
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
        output_location loc
- | Eloop_index_is_missing(name) ->
+ | Eloop_index_is_missing(n) ->
     eprintf
-      "@[%aType error: whenever the array being constructed is named \n\
-      (here as %s in the return clause), the loop index must \
-      be given.@.@]"
+      "@[%aType error: when a clause [... as %s] is used, the loop index \
+       must be given.@.@]"
       output_location loc
-      (if !Misc.vverbose then Ident.name name else Ident.source name)
+      (name n)
  | Esize_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
       output_location loc
- | Esize_unbound_meta_size_variable(name) ->
+ | Esize_unbound_meta_size_variable(n) ->
     eprintf
       "@[<hov 0>%aType error: the size variable %s has been \
        introduced to type this expression but is unbound.@.@]"
       output_location loc
-        (if !Misc.vverbose then Ident.name name else Ident.source name)
- | Esize_type_contains_an_unbound_meta_size_variable(name, ty) ->
+        (name n)
+ | Esize_type_contains_an_unbound_meta_size_variable(n, ty) ->
     eprintf
       "@[<hov 0>%aType error: in this handler, \
        the type of the expression on the right-hand side, that is,\
        %a, contains the unbound size variable %s.@.@]"
       output_location loc
       Ptypes.ptype ty
-      (if !Misc.vverbose then Ident.name name else Ident.source name);
+      (name n);
     if !Misc.vverbose then
       eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
  | Esize_of_vec_is_undetermined ->
@@ -296,9 +297,9 @@ let message loc kind =
       "@[%aType error: the type for %s is@ %a,@ \
        which contains the size variable %s that is unbound.@.@]"
 	output_location loc
-        (Ident.source f)
+        (name f)
         Ptypes.ptype ty
-	(Ident.name n);
+	(name n);
     if !Misc.vverbose then
       eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
  | Esize_parameter_mutually_recursive_definitions
@@ -338,19 +339,20 @@ let message loc kind =
        output_location_list f_loc_list
  | Esize_index_escape_in_environment(index, x, ty) ->
     eprintf
-      "@[%aType error: the size index %s of this loop \n\
-       escape its scope. It appears in the type of %s which is:\
+      "@[%aType error: the size index %s of this loop \
+       escapes to its scope. \n\
+       It appears in the type of the variable %s which is:\
        %a@.@]"
       output_location loc
-      (Ident.name index) (Ident.name x)
+      (name index) (name x)
       Ptypes.ptype ty
  | Esize_index_escape_in_type(index, ty) ->
     eprintf
-      "@[%aType error: the size index %s of this loop \n\
-       escape its scope. It appears in the returned type which is:\
+      "@[%aType error: the size index %s of this loop escapes to its scope. \n\
+       It appears in the returned type which is:\
        %a@.@]"
       output_location loc
-      (Ident.name index)
+      (name index)
       Ptypes.ptype ty
   | Econstr_arity(ln, expected_arity, actual_arity) ->
     let module Printer = Printer.Make(Ptypinfo) in
