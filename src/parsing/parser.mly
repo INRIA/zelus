@@ -1320,6 +1320,12 @@ forward_loop_exp:
 /* Loops for equations */
 foreach_loop_eq:
   | s_opt = optional(for_size_expression) i_opt = optional(index)
+    li = input_list RETURNS lo = output_list 
+    l = let_list
+    f = block(equation_empty_and_list)
+    DONE
+    { (s_opt, i_opt, li, l, { for_out = lo; for_block = f }) }
+  | s_opt = optional(for_size_expression) i_opt = optional(index)
     li = input_list RETURNS lo = output_list
     l = let_list
     eq = simple_stream_equation

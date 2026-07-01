@@ -516,10 +516,11 @@ module Make (Info: INFO) =
              fprintf ff "@[<hov2>%a.@,(..@ %a)@]" 
                expression e1 expression e2
           | _ -> assert false)
-      | Eupdate, (e1 :: e2 :: i_list) ->
-         (* [| e1 with i_list <- e2 |] *)
+      | Eupdate, (e :: arg :: i_list) ->
+         (* [| e with i_list <- arg |] *)
          fprintf ff "@[<hov 2>[|%a with@, %a <- %a|]@]"
-           expression e1 (print_list_r expression "(" "," ")") i_list expression e2
+           expression e
+           (print_list_r expression "(" "," ")") i_list expression arg
       | Etranspose, [e] ->
          fprintf ff "@[%a.T@]" expression e
       | Ereverse, [e] ->
