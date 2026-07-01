@@ -1,12 +1,12 @@
 let f1() returns (o)
   forward<<2>>[i]() returns (oi out o)
-    do forward(j in 0 to i - 1) returns (oij out oi)
+    do forward(j in 0 to 2 - 1) returns (oij out oi)
         do oij = j done
     done
 
 let f2() returns (o)
   forward<<2>>[i]() returns (oi out o)
-    do forward(i)[j] returns (oij out oi)
+    do forward<<2>>[j] returns (oij out oi)
         do oij = j done
     done
 

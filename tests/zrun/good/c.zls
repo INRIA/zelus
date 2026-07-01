@@ -4,16 +4,16 @@ let node sum(x) returns (o)
 let node main () =
   sum 1
   
-let main2 (t) =
+let main2<<n>>(t:[n]_) =
   forward(ti in t)
   returns ([|oi|])
     do oi = sum(ti) done
 
-let main2 (t) =
+let main22<<n>>(t:[n]_) =
   forward(ti in t)
   returns ([|oi|])
     do oi = sum(ti) done
 
 let main3 () =
-  main2 ([|1;2;3;4;5|])
+  main2<<5>>([|1;2;3;4;5|])
   

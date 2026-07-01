@@ -26,6 +26,7 @@ let node relay(low, high, u) returns (o)
     | High -> do o = true unless (u >= high) then Low
     end
 
+type t = Low | High
 
 let node relay_compiled(low, high, u) returns (o)
   local s init Low
@@ -53,5 +54,5 @@ let node main2() returns (u, o1, o2)
   done
 
 let node main3 () returns (o)
-  o = if true then 1 else "2"
+  o = if true then 1 else 2
     

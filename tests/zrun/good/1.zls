@@ -1,5 +1,5 @@
 let main__0 =
-  forward<<4>>[i]() returns (o)
+  forward<<4>>[i]() returns (o:[4]_)
     do let o1 = forward(i)() returns ([|o|])
                 do o = 1 done in
     let o2 = forward(4-i) returns ([|o|])
@@ -89,7 +89,7 @@ let f <<n>>() returns (o)
 
 let main_f = f<<5>>
 
-let eye_5 = eye<<5>>()
+let eye_6 = eye<<6>>()
 
 let eye_with_if<<n>>() returns (o: [n][n]_)
   forward<<n>>[i]() returns (oi out o)
@@ -105,6 +105,10 @@ let zeros <<n>>() returns (o: [n][n]_)
             do oij = 0.0 done
        done
 
+let main__() =
+  let m = zeros<<10>>() in
+  [| m with 1, 2 <- 42.0 |]
+  
 let eye_with_update<<n>>() returns (o: [n][n]_)
   forward<<n>>[i]() returns (o init (zeros<<n>>()))
     do o = [| last o with i,i <- 1.0 |] done
@@ -113,7 +117,7 @@ let eye_with_update_5 = eye_with_update<<5>>()
 
 let ff<<n>>() returns (low)
   forward<<n>>[i]() returns (lowi out low)
-    do foreach(i)[j]() returns (l1 out lowi)
+    do foreach<<n>>[j]() returns (l1 out lowi)
           do l1 = j done
     done
 
