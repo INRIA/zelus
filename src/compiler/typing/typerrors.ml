@@ -53,6 +53,7 @@ type error =
   | Eequation_is_missing of Ident.t
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
+  | Eapplication_of_non_size_function
   | Epattern_not_total
   | Eloop_index_is_missing of Ident.t
   | Enot_a_size_expression
@@ -60,7 +61,7 @@ type error =
   | Esize_unbound_size_variable of Ident.t * Ident.t * typ
   | Esize_unbound_meta_size_variable of Ident.t
   | Esize_type_contains_an_unbound_meta_size_variable of Ident.t * typ
-  | Esize_of_vec_is_undetermined
+  | Esize_of_vec_is_undetermined of typ
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
       (* [top_sc[... nested_sc ...] *)
@@ -243,6 +244,9 @@ let message loc kind =
  | Eapplication_of_non_function ->
      eprintf "@[%aType error: this is not a function.@.@]"
         output_location loc
+ | Eapplication_of_non_size_function ->
+     eprintf "@[%aType error: this is not a size function.@.@]"
+        output_location loc
  | Epattern_not_total ->
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
@@ -255,7 +259,7 @@ let message loc kind =
       (name n)
  | Esize_is_undetermined ->
     eprintf
-      "@[<hov 0>%aType error: the size cannot be determined at that point.@.@]"
+      "@[<hov 0>%aType error: the size cannot be determined at this point.@.@]"
       output_location loc
  | Esize_unbound_meta_size_variable(n) ->
     eprintf
@@ -273,11 +277,12 @@ let message loc kind =
       (name n);
     if !Misc.vverbose then
       eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
- | Esize_of_vec_is_undetermined ->
+ | Esize_of_vec_is_undetermined(actual_ty) ->
     eprintf
-      "@[<hov 0>%aType error: this expression is either not a vector@ or its \
-       size cannot be determined at that point.@.@]"
+      "@[<hov 0>%aType error: this expression is of type@ %a@.\
+       Either it is not a vector or its size cannot be determined.@.@]"
       output_location loc
+      Ptypes.ptype actual_ty      
  | Enot_a_size_expression ->
     eprintf
       "@[%aType error: this is not a size.@.@]"
