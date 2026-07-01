@@ -76,8 +76,15 @@ let check_is_vec loc actual_ty =
     try Types.filter_intro_vec loc actual_ty
     with
     | Unify ->
-       error loc Esize_of_vec_is_undetermined
-  
+       error loc (Esize_of_vec_is_undetermined(actual_ty))
+
+let rec check_is_vec_n loc n actual_ty =
+  let ty, si = check_is_vec loc actual_ty in
+  if n <= 1 then ty, [si]
+  else
+    let ty, si_list = check_is_vec_n loc (n-1) ty in
+    ty, si :: si_list
+
 let unify_expr expr expected_ty actual_ty =
   try
     Types.unify expected_ty actual_ty
@@ -121,7 +128,7 @@ let check_size_index_does_not_escape_in_type loc index_opt ty =
 let remove_entry_for_as_variables_in_env h =
   Env.filter
     (fun _ ({ t_sort } as entry) ->
-      match t_sort with | Sort_mem { m_only_last = true } -> false | _ -> true)
+      match t_sort with | Sort_mem { m_as = true } -> false | _ -> true)
     h
 
 (* check that a type belong to a kind [vkind] *)
@@ -265,7 +272,7 @@ let entry_of_var loc h n =
 let var loc h n =
   let { t_sort } as entry = entry_of_var loc h n in
   match t_sort with
-  | Sort_val | Sort_var | Sort_mem { m_only_last = false } -> entry
+  | Sort_val | Sort_var | Sort_mem { m_as = false } -> entry
   | _ -> error loc (Eonly_last_is_allowed(n))
 
 let typ_of_var loc h n = let { t_tys } = var loc h n in t_tys
@@ -277,7 +284,7 @@ let last loc h n =
   let actual_k = kind_of_path loc t_path in
   let t_sort =
     match t_sort with
-    | Sort_mem { m_only_last = true } ->
+    | Sort_mem { m_as = true } ->
        (* only [last n] is allowed, e.g., [n] is the *)
        (* currently built array in a forward iteration *)
        (* that is declared by a [... as n] in the returns clause *)
@@ -1200,7 +1207,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
   e.e_info <- Typinfo.set_type e.e_info ty;
   ty, actual_k
 
-and size_apply loc expected_k h f si_list =
+and size_apply loc expected_k h ({ e_loc } as f) si_list =
   (* first type the function [f] *)
   let ty_fct, actual_k_fct = expression expected_k h f in
   (* typing the sequence of arguments *)
@@ -1208,13 +1215,14 @@ and size_apply loc expected_k h f si_list =
   let si_list = List.map arg si_list in
   let id_list, ty, sc, is_rec =
     try Types.filter_sizefun ty_fct
-    with Unify -> error loc (Eapplication_of_non_function) in
+    with Unify -> error e_loc (Eapplication_of_non_size_function) in
   let expected_arit = List.length id_list in
   let actual_arit = List.length si_list in
   if expected_arit = actual_arit
   then
-    let env = List.fold_left2
-                (fun acc id si -> Env.add id si acc) Env.empty id_list si_list in
+    let env =
+      List.fold_left2
+        (fun acc id si -> Env.add id si acc) Env.empty id_list si_list in
     let ty = Types.subst_in_type env ty in
     (* add the constraint to the stack of constraints *)
     let sc = 
@@ -1359,12 +1367,16 @@ and array_operator expected_k h loc op e_list =
           Types.vec ty si_i, Kind.sup actual_k actual_ki2
        | _ -> assert false in
      ty, k
-  | Eupdate, [a; i; v] ->
-     let ty_a, actual_k = expression expected_k h a in
-     let ty, si = check_is_vec a.e_loc ty_a in
-     let actual_ki = expect expected_k h i Initial.typ_int in
-     let actual_kv = expect expected_k h v ty in
-     ty_a, Kind.sup actual_k (Kind.sup actual_ki actual_kv)
+  | Eupdate, (e :: arg :: i_list) ->
+     (* [| e with i1,...,in <- arg |] *)
+     let ty_e, actual_k = expression expected_k h e in
+     let n = List.length i_list in
+     let ty_arg, _ = check_is_vec_n e.e_loc n ty_e in
+     let actual_karg = expect expected_k h arg ty_arg in
+     let actual_ki_list =
+       List.map (fun i -> expect expected_k h i Initial.typ_int) i_list in
+     ty_e, Kind.sup actual_k
+             (Kind.sup (Kind.sup_list actual_ki_list) actual_karg)
   | Etranspose, [a] ->
      let ty_a, actual_k = expression expected_k h a in
      let ty, si1 = check_is_vec a.e_loc ty_a in
@@ -1458,7 +1470,9 @@ and apply loc expected_k h f arg_list =
     | ({ e_loc } as arg):: arg_list ->
        let arg_k, n_opt, ty1, ty2 =
          try Types.filter_arrow (Tfun(Tany)) ty_fct
-         with Unify -> error loc (Eapplication_of_non_function) in
+         with Unify ->
+           error (Location.between loc e_loc)
+             (Eapplication_of_non_function) in
        let expected_arg_k =
          match arg_k with
          | Tfun(Tconst) | Tfun(Tstatic) -> arg_k | Tfun _ -> expected_k
@@ -1938,7 +1952,7 @@ and for_vardec loc expected_k for_index h (acc_h, acc_k)
        (* its type is [index]ty *)
        Env.add as_name
          (Deftypes.entry expected_k
-            (Deftypes.Sort_mem memory_only_last)
+            (Deftypes.Sort_mem memory_as)
             (Deftypes.scheme (Types.vec ty (Sizes.var index)))) new_acc_h
     | None, Some(as_name) ->
        (* we impose that is [as x_] is used, the index [i] is given *)
@@ -2043,7 +2057,7 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k)
        (* its type is [index]ty *)
        Env.add as_name
          (Deftypes.entry expected_k
-            (Deftypes.Sort_mem memory_only_last)
+            (Deftypes.Sort_mem memory_as)
             (Deftypes.scheme (Types.vec expected_ty (Sizes.var index)))) acc_h
     | None, Some(as_name) ->
        (* we impose that is [as x_] is used, the index [i] is given *)
