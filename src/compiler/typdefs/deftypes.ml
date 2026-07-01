@@ -93,7 +93,8 @@ and mem =
     m_init: init; (* is-it initialized? *)
     m_default: init; (* default value *)
     m_shared: bool; (* [x] can be defined by more than one equations *)
-    m_only_last: bool; (* only [last x] is correct; writting [x] is forbidden *)
+    m_as: bool; (* the variable [x] contains the array being built; it can *)
+                      (* be read using [last x]; writting [x] is forbidden *)
   }
 
 and init =
@@ -131,10 +132,10 @@ let no_abbrev () = ref Tnil
 (* basic entries for variables *)
 let empty_mem =
   { m_mkind = None; m_last = false; m_init = No; m_default = No;
-    m_shared = false; m_only_last = false }
+    m_shared = false; m_as = false }
 let initialized mem = { mem with m_init = Eq }
 let previous mem = { mem with m_last = true }
-let only_last mem = { mem with m_only_last = true }
+let as_t mem = { mem with m_as = true }
 let zero mem = Sort_mem { mem with m_mkind = Some Zero }
 let horizon mem = Sort_mem { mem with m_mkind = Some Horizon }
 let major () = Sort_mem { empty_mem with m_mkind = Some Major }
@@ -143,8 +144,8 @@ let imem = initialized empty_mem
 let mem = previous imem
 let memory = Sort_mem mem
 let imemory = Sort_mem imem
-let memory_only_last = only_last empty_mem
-let as_variable = Sort_mem memory_only_last
+let memory_as = as_t empty_mem
+let as_variable = Sort_mem memory_as
 
 let entry v_kind sort t_tys =
   { t_path = Pkind(v_kind); t_sort = sort; t_tys }
