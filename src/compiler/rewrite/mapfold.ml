@@ -252,38 +252,51 @@ type ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs =
   }
 
 (* introduce a fresh name *)
-let intro_ident_it global_funs acc ident =
-  global_funs.intro_ident global_funs acc ident
+let rec intro_ident_it global_funs acc ident =
+  try global_funs.intro_ident global_funs acc ident
+  with Fallback -> intro_ident global_funs acc ident
 
 and intro_ident global_funs acc ident = ident, acc
 
 (* global ident *)
-let lident_it global_funs acc lident = global_funs.lident global_funs acc lident
+let rec lident_it global_funs acc lident_ =
+  try global_funs.lident global_funs acc lident_
+  with Fallback -> lident global_funs acc lident_
 
-and lident global_funs acc lident = lident, acc
+and lident global_funs acc lident_ = lident_, acc
 
 (* Build from an environment *)
-let build_it global_funs acc env = global_funs.build global_funs acc env
+let rec build_it global_funs acc env =
+  try global_funs.build global_funs acc env
+  with Fallback -> build global_funs acc env
 
 and build global_funs acc env = env, acc
 
-and last_ident_it global_funs acc l = global_funs.last_ident global_funs acc l
+and last_ident_it global_funs acc l =
+  try global_funs.last_ident global_funs acc l
+  with Fallback -> last_ident global_funs acc l
 
 and last_ident global_funs acc { copy; id } =
   let id, acc = global_funs.var_ident global_funs acc id in
   { copy; id }, acc
 
-and init_ident_it global_funs acc id = global_funs.init_ident global_funs acc id
+and init_ident_it global_funs acc id =
+  try global_funs.init_ident global_funs acc id
+  with Fallback -> init_ident global_funs acc id
 
 and init_ident global_funs acc id = 
   global_funs.var_ident global_funs acc id
 
-and emit_ident_it global_funs acc id = global_funs.emit_ident global_funs acc id
+and emit_ident_it global_funs acc id =
+  try global_funs.emit_ident global_funs acc id
+  with Fallback -> emit_ident global_funs acc id
 
 and emit_ident global_funs acc id = 
   global_funs.var_ident global_funs acc id
 
-and der_ident_it global_funs acc id = global_funs.der_ident global_funs acc id
+and der_ident_it global_funs acc id =
+  try global_funs.der_ident global_funs acc id
+  with Fallback -> der_ident global_funs acc id
 
 and der_ident global_funs acc id = 
   global_funs.var_ident global_funs acc id
@@ -334,27 +347,32 @@ and pattern funs acc ({ pat_desc } as p) =
   { p with pat_desc }, acc
 
 and var_ident_it global_funs acc x =
-  global_funs.var_ident global_funs acc x
+  try global_funs.var_ident global_funs acc x
+  with Fallback -> var_ident global_funs acc x
 
 and var_ident global_funs acc x = x, acc
 
 and state_ident_it global_funs acc x =
-  global_funs.state_ident global_funs acc x
+  try global_funs.state_ident global_funs acc x
+  with Fallback -> state_ident global_funs acc x
 
 and state_ident global_funs acc x = x, acc
 
 and typevar_it global_funs acc x =
-  global_funs.typevar global_funs acc x
+  try global_funs.typevar global_funs acc x
+  with Fallback -> typevar global_funs acc x
 
 and typevar global_funs acc x = x, acc
 
 and typeconstr_it global_funs acc x =
-  global_funs.typeconstr global_funs acc x
+  try global_funs.typeconstr global_funs acc x
+  with Fallback -> typeconstr global_funs acc x
 
 and typeconstr global_funs acc x = x, acc
 
 and kind_it global_funs acc k =
-  global_funs.kind global_funs acc k
+  try global_funs.kind global_funs acc k
+  with Fallback -> kind global_funs acc k
 
 and kind global_funs acc k = k, acc
 
@@ -473,7 +491,9 @@ and constraints_t global_funs acc ({ desc } as constraints) =
   | Econstraints_False -> Econstraints_False, acc in
   { constraints with desc }, acc
 
-let write_it funs acc w = funs.write_t funs acc w
+let rec write_it funs acc w =
+  try funs.write_t funs acc w
+  with Fallback -> write_t funs acc w
 
 and write_t funs acc { dv; di; der } =
   let rename n = let m, _ = var_ident_it funs.global_funs acc n in m in
@@ -518,7 +538,9 @@ and for_input_t funs acc ({ desc } as fi) =
        Eindex { ind with id; e_left; e_right }, acc in
   { fi with desc }, acc
 
-and for_exp_it funs acc for_body = funs.for_exp_t funs acc for_body
+and for_exp_it funs acc for_body =
+  try funs.for_exp_t funs acc for_body
+  with Fallback -> for_exp_t funs acc for_body
 
 and for_exp_t funs acc for_body =
   match for_body with
@@ -531,7 +553,9 @@ and for_exp_t funs acc for_body =
      let f, acc = for_returns_it funs acc f in
      Forreturns f, acc
 
-and for_eq_it funs acc for_body = funs.for_eq_t funs acc for_body
+and for_eq_it funs acc for_body =
+  try funs.for_eq_t funs acc for_body
+  with Fallback -> for_eq_t funs acc for_body
 
 and for_eq_t funs acc { for_out; for_block; for_out_env } =
   (* names in [for_out_env] are local to the for_block *)
@@ -542,7 +566,9 @@ and for_eq_t funs acc { for_out; for_block; for_out_env } =
   let for_block, acc = block_it funs acc for_block in
   { for_out; for_block; for_out_env }, acc
 
-and slet_it funs acc leq_list = funs.slet_t funs acc leq_list
+and slet_it funs acc leq_list =
+  try funs.slet_t funs acc leq_list
+  with Fallback -> slet_t funs acc leq_list
 
 and slet_t funs acc leq_list = Util.mapfold (leq_it funs) acc leq_list
 
@@ -581,7 +607,9 @@ and scondpat funs acc ({ desc = desc } as scpat) =
      let e, acc = expression_it funs acc e in
      { scpat with desc = Econdon(scpat, e) }, acc
 
-and vardec_it funs acc v = funs.vardec funs acc v
+and vardec_it funs acc v =
+  try funs.vardec funs acc v
+  with Fallback -> vardec funs acc v
 
 and vardec funs acc
 ({ var_name; var_default; var_init; var_typeconstraint } as v) =
@@ -596,12 +624,16 @@ and vardec funs acc
       (type_expression_it funs.global_funs) acc var_typeconstraint in
   { v with var_name; var_default; var_init; var_typeconstraint }, acc
 
-and vardec_list_it funs acc v_list = funs.vardec_list funs acc v_list
+and vardec_list_it funs acc v_list =
+  try funs.vardec_list funs acc v_list
+  with Fallback -> vardec_list funs acc v_list
 
 and vardec_list funs acc v_list =
   Util.mapfold (vardec_it funs) acc v_list
 
-and for_vardec_it funs acc v = funs.for_vardec funs acc v
+and for_vardec_it funs acc v =
+  try funs.for_vardec funs acc v
+  with Fallback -> for_vardec funs acc v
 
 and for_vardec funs acc ({ desc = { for_array; for_vardec; for_as } } as f) =
   let for_vardec, acc = vardec_it funs acc for_vardec in
@@ -609,7 +641,9 @@ and for_vardec funs acc ({ desc = { for_array; for_vardec; for_as } } as f) =
     Util.optional_with_map (var_ident_it funs.global_funs) acc for_as in
   { f with desc = { for_array; for_vardec; for_as } }, acc
 
-and for_out_it funs acc v = funs.for_out_t funs acc v
+and for_out_it funs acc v =
+  try funs.for_out_t funs acc v
+  with Fallback -> for_out_t funs acc v
 
 and for_out_t funs acc
   ({ desc = ({ for_name; for_out_name; for_init; for_default } as v)} as f) =
@@ -624,7 +658,9 @@ and for_out_t funs acc
   { f with desc = { v with for_name; for_out_name; for_init; for_default } },
   acc         
      
-and for_returns_it funs acc f = funs.for_returns funs acc f
+and for_returns_it funs acc f =
+  try funs.for_returns funs acc f
+  with Fallback -> for_returns funs acc f
 
 and for_returns funs acc { r_returns; r_block; r_env } =
   let r_env, acc = build_it funs.global_funs acc r_env in
@@ -633,7 +669,9 @@ and for_returns funs acc { r_returns; r_block; r_env } =
   let r_block, acc = block_it funs acc r_block in
   { r_returns; r_block; r_env }, acc
 
-and block_it funs acc b = funs.block funs acc b
+and block_it funs acc b =
+  try funs.block funs acc b
+  with Fallback -> block funs acc b
 
 and block funs acc ({ b_vars; b_body; b_write; b_env } as b) =
   let b_env, acc = build_it funs.global_funs acc b_env in
@@ -654,7 +692,9 @@ and result funs acc ({ r_desc } as r) =
        let b_eq, acc = block_it funs acc b_eq in Returns(b_eq), acc in
   { r with r_desc }, acc
 
-and funexp_it funs acc f = funs.funexp funs acc f
+and funexp_it funs acc f =
+  try funs.funexp funs acc f
+  with Fallback -> funexp funs acc f
 
 and funexp funs acc ({ f_args; f_body; f_env } as f) =
   let arg acc v_list = vardec_list_it funs acc v_list in
@@ -663,7 +703,9 @@ and funexp funs acc ({ f_args; f_body; f_env } as f) =
   let f_body, acc = result_it funs acc f_body in
   { f with f_args; f_body; f_env }, acc
 
-and sizefun_it funs acc f = funs.sizefun funs acc f
+and sizefun_it funs acc f =
+  try funs.sizefun funs acc f
+  with Fallback -> sizefun funs acc f
 
 and sizefun funs acc ({ sf_id; sf_id_list; sf_e; sf_env } as sf) =
   let sf_env, acc = build_it funs.global_funs acc sf_env in
@@ -785,7 +827,9 @@ and expression funs acc ({ e_desc; e_loc } as e) =
                            for_let; for_body; for_env } }, acc
 
 (* Assert *)
-and assert_it funs acc a = funs.assert_t funs acc a
+and assert_it funs acc a =
+  try funs.assert_t funs acc a
+  with Fallback -> assert_t funs acc a
 
 and assert_t funs acc ({ a_body; a_free_vars } as a) =
   let a_body, acc = expression funs acc a_body in
@@ -796,7 +840,8 @@ and assert_t funs acc ({ a_body; a_free_vars } as a) =
 
 (* match handler - equations and expressions *)
 and match_handler_eq_it funs acc m_handler =
-  funs.match_handler_eq funs acc m_handler
+  try funs.match_handler_eq funs acc m_handler
+  with Fallback -> match_handler_eq funs acc m_handler
 
 and match_handler_eq funs acc ({ m_pat; m_body; m_env } as m_h) =
   let m_env, acc = build_it funs.global_funs acc m_env in
@@ -805,23 +850,29 @@ and match_handler_eq funs acc ({ m_pat; m_body; m_env } as m_h) =
   { m_h with m_pat; m_body; m_env }, acc
 
 and if_eq_it funs acc (eq_true, eq_false) =
-  funs.if_eq funs acc (eq_true, eq_false)
+  try funs.if_eq funs acc (eq_true, eq_false)
+  with Fallback -> if_eq funs acc (eq_true, eq_false)
 
 and if_eq funs acc (eq_true, eq_false) =
   let eq_true, acc = equation_it funs acc eq_true in
   let eq_false, acc = equation_it funs acc eq_false in
   (eq_true, eq_false), acc
 
-and reset_eq_it funs acc eq = funs.reset_eq funs acc eq
+and reset_eq_it funs acc eq =
+  try funs.reset_eq funs acc eq
+  with Fallback -> reset_eq funs acc eq
 
 and reset_eq funs acc eq = equation_it funs acc eq
 
-and reset_e_it funs acc eq = funs.reset_e funs acc eq
+and reset_e_it funs acc eq =
+  try funs.reset_e funs acc eq
+  with Fallback -> reset_e funs acc eq
 
 and reset_e funs acc e = expression_it funs acc e
 
 and match_handler_e_it funs acc m_handler =
-  funs.match_handler_e funs acc m_handler
+  try funs.match_handler_e funs acc m_handler
+  with Fallback -> match_handler_e funs acc m_handler
 
 and match_handler_e funs acc ({ m_pat; m_body; m_env } as m_h) =
   let m_env, acc = build_it funs.global_funs acc m_env in
@@ -830,7 +881,8 @@ and match_handler_e funs acc ({ m_pat; m_body; m_env } as m_h) =
   { m_h with m_pat; m_body; m_env }, acc
 
 and present_handler_eq_it funs acc p_handler =
-  funs.present_handler_eq funs acc p_handler
+  try funs.present_handler_eq funs acc p_handler
+  with Fallback -> present_handler_eq funs acc p_handler
 
 and present_handler_eq funs acc ({ p_cond; p_body; p_env } as p_b) =
   let p_env, acc = build_it funs.global_funs acc p_env in
@@ -839,7 +891,8 @@ and present_handler_eq funs acc ({ p_cond; p_body; p_env } as p_b) =
   { p_b with p_cond; p_body; p_env }, acc
 
 and present_handler_e_it funs acc p_handler =
-  funs.present_handler_e funs acc p_handler
+  try funs.present_handler_e funs acc p_handler
+  with Fallback -> present_handler_e funs acc p_handler
 
 and present_handler_e funs acc ({ p_cond; p_body; p_env } as p_b) =
   let p_env, acc = build_it funs.global_funs acc p_env in
@@ -849,7 +902,7 @@ and present_handler_e funs acc ({ p_cond; p_body; p_env } as p_b) =
 
 (* Equations *)
 and equation_it funs acc eq =
-    try funs.equation funs acc eq
+  try funs.equation funs acc eq
   with Fallback -> equation funs acc eq
 
 and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) = 
@@ -977,7 +1030,8 @@ and escape funs acc ({ e_cond; e_let; e_body; e_next_state; e_env } as esc) =
   { esc with e_cond; e_let; e_body; e_next_state; e_env }, acc
 
 and automaton_handler_it funs acc handler =
-  funs.automaton_handler funs acc handler
+  try funs.automaton_handler funs acc handler
+  with Fallback -> automaton_handler funs acc handler
 
 and automaton_handler funs acc
      ({ s_state; s_let; s_body; s_trans; s_env } as h) =
@@ -988,16 +1042,21 @@ and automaton_handler funs acc
   let s_trans, acc = Util.mapfold (escape funs) acc s_trans in
   { h with s_state; s_let; s_body; s_trans; s_env }, acc
 
-let typedecl_it funs acc ty_decl = funs.typedecl funs acc ty_decl
+let rec typedecl_it funs acc ty_decl =
+  try funs.typedecl funs acc ty_decl
+  with Fallback -> typedecl funs acc ty_decl
 
 and typedecl funs acc ty_decl = ty_decl, acc
 
-let open_it funs acc name = funs.open_t funs acc name
+let rec open_it funs acc name =
+  try funs.open_t funs acc name
+  with Fallback -> open_t funs acc name
 
 and open_t funs acc name = name, acc
 
-let letdecl_it funs acc (d_names, d_leq) =
-  funs.letdecl funs acc (d_names, d_leq)
+let rec letdecl_it funs acc (d_names, d_leq) =
+  try funs.letdecl funs acc (d_names, d_leq)
+  with Fallback -> letdecl funs acc (d_names, d_leq)
 
 and letdecl funs acc (d_names, d_leq) =
   let d_leq, acc = leq_it funs acc d_leq in
@@ -1028,8 +1087,9 @@ and implementation funs acc ({ desc } as impl) =
        Etypedecl { name; ty_params; ty_decl }, acc in
   { impl with desc }, acc
 
-let constr_decl_it global_funs acc c_decl =
-  global_funs.constr_decl global_funs acc c_decl
+let rec constr_decl_it global_funs acc c_decl =
+  try global_funs.constr_decl global_funs acc c_decl
+  with Fallback -> constr_decl global_funs acc c_decl
 
 and constr_decl global_funs acc ({ desc } as c_decl) =
   let desc, acc = match desc with
@@ -1041,7 +1101,8 @@ and constr_decl global_funs acc ({ desc } as c_decl) =
   { c_decl with desc }, acc
 
 let typedecl_it global_funs acc (name, ty_params, ty_decl) =
-  global_funs.typedecl global_funs acc (name, ty_params, ty_decl)
+  try global_funs.typedecl global_funs acc (name, ty_params, ty_decl)
+  with Fallback -> typedecl global_funs acc (name, ty_params, ty_decl)
 
 and typedecl global_funs acc (name, ty_params, ty_decl) =
   let one_ty_decl acc ({ desc } as ty_decl) =
@@ -1065,15 +1126,21 @@ and typedecl global_funs acc (name, ty_params, ty_decl) =
   let ty_decl, acc = one_ty_decl acc ty_decl in
   (name, ty_params, ty_decl), acc
 
-let set_index_it funs acc n = funs.set_index funs acc n
+let rec set_index_it funs acc n =
+  try funs.set_index funs acc n
+  with Fallback -> set_index funs acc n
 
 and set_index funs acc n = n, acc
 
-let get_index_it funs acc n = funs.get_index funs acc n
+let rec get_index_it funs acc n =
+  try funs.get_index funs acc n
+  with Fallback -> get_index funs acc n
 
 and get_index funs acc n = n, acc
 
-let program_it funs acc p = funs.program funs acc p
+let rec program_it funs acc p =
+  try funs.program funs acc p
+  with Fallback -> program funs acc p
 
 and program funs acc { p_impl_list; p_index } =
   let n, acc = set_index_it funs acc p_index in
@@ -1082,8 +1149,9 @@ and program funs acc { p_impl_list; p_index } =
   let p_index, acc = get_index_it funs acc n in
   { p_impl_list; p_index }, acc  
 
-let interface_it global_funs acc interf =
-  global_funs.interface global_funs acc interf
+let rec interface_it global_funs acc interf =
+  try global_funs.interface global_funs acc interf
+  with Fallback -> interface global_funs acc interf
 
 and interface global_funs acc interf = interf, acc
 
