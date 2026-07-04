@@ -9,16 +9,16 @@ let scalar_product_2<<n>>(x:[n]_, y:[n]_) returns (z)
 let main_1 () returns (o)
   let v1 = [|1;2;3|] in
   let v2 = [|1;2;3|] in
-  do o = scalar_product_1(3)(v1, v2)
-  and assert (o = scalar_product_2(v1, v2)) done
+  do o = scalar_product_1<<3>>(v1, v2)
+  and assert (o = scalar_product_2<<3>>(v1, v2)) done
 
 (* test of transposition *)
-let sum_vectors_1(x, y) returns (z)
+let sum_vectors_1<<n>>(x:[n]_, y:[n]_) returns (z)
   forward (xi in x, yi in y) returns (zi out z) 
     do zi = xi + yi done
 
 (* for all i in [n], j in [m]. tx.(j).(i) = x.(i).(j) *)
-let transpose<<n,m>>(x) returns (y)
+let transpose<<n,m>>(x:[n][m]_) returns (y)
   forward<<m>>[i] returns (yi out y)
     do forward<<n>>[j] returns (yij out yi)
        do yij = x.(j).(i) done done
