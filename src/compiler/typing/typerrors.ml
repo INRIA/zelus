@@ -304,7 +304,7 @@ let message loc kind =
 	output_location loc
         (name f)
         Ptypes.ptype ty
-	(name n);
+	(Ident.name n);
     if !Misc.vverbose then
       eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
  | Esize_parameter_mutually_recursive_definitions
