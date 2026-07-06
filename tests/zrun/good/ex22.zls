@@ -159,26 +159,26 @@ let node scalar2<<n>> (x:[n]_, y:[n]_) =
   forward<<n>>[i] returns (m init 0)
     do m = last m + x.(i) * y.(i) done
 
-let node scalar2_eq (x, y) returns (m)
+let node scalar2_eq(x:[4]_, y:[4]_) returns (m)
   forward(4)[i](xi in x, yi in y) returns (m init 0)
     do m = last m + x.(i) * y.(i) done
 
  
 let node main7 () =
-  scalar1 ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
+  scalar2_eq ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
 
 let node main8 () =
-  scalar1 (foreach(4) do 1 done, foreach(4) do 2 done)
+  scalar2_eq (foreach<<4>> do 1 done, foreach<<4>> do 2 done)
 
 let node main9 () =
-  scalar2 ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
+  scalar2<<4>> ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
 
 let node main10 () =
-  let i1 = foreach(4) do 1 done in
-  let i2 = foreach(4) do 2 done in
-  let r0 = scalar0(i1, i2) in
-  let r1 = scalar1(i1, i2) in
-  let r2 = scalar2(i1, i2) in
+  let i1 = foreach<<4>> do 1 done in
+  let i2 = foreach<<4>> do 2 done in
+  let r0 = scalar0<<4>>(i1, i2) in
+  let r1 = scalar1<<4>>(i1, i2) in
+  let r2 = scalar2<<4>>(i1, i2) in
   let r2_eq = scalar2_eq(i1, i2) in
   assert (r0 = r1 && r1 = r2 && r2 = r2_eq)
   
@@ -188,16 +188,16 @@ let node sum0 (x) =
   forward(6) (xi in x) returns ([|o init 0|])
      do o = last o + xi done
 
-let node sum1 (x) =
+let node sum3 (x) =
   forward(6) (xi in x) returns (r, o init 0)
      do o = last o + xi and r = o done
 
 let node main11 () =
   let v = [| 1; 2; 3; 4; 5; 6 |] in
-  sum0 v, sum1 v
+  sum0 v, sum3 v
 
 (* sum of the elements of a two dimension array *)
-let node sum m returns (o)
+let node sum4 m returns (o)
   do
     o =
       forward(4) (mi in m) returns (o init 0)

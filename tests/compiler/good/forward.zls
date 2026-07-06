@@ -67,7 +67,7 @@ let mul_mat_diag<<n, m>>(l: [n][m]_, d: [m]_) returns (o: [n][m]_)
   forward<<n>>[i] (li in l) returns (oi out o)
     do oi = mul_ew_vec<<m>>(li, d) done
 
-let decompose_LDLt<<n>>(m: [n][n]int) returns (l: [n][n]int, d: [n]int)
+let decompose_LDLt<<n>>(m: [n][n]_) returns (l: [n][n]_, d: [n]_)
   local lT
   do forward<<n>>[j] (mTj in m.T) returns (lTj out lT as lT_, dj out d as d_)
     local mTjLj, mTjj, mTjRj, lTjLj, lTjj, lTjRj, l_, lLjLj, ljLj, lRjLj
@@ -99,7 +99,7 @@ let decompose_LDLt<<n>>(m: [n][n]int) returns (l: [n][n]int, d: [n]int)
     l = lT.T
   done
 
-let inverse_L<<n>>(l: [n][n]int) returns (lI: [n][n]int)
+let inverse_L<<n>>(l: [n][n]_) returns (lI: [n][n]_)
   forward<<n>>[i] (li in l) returns (lIi out lI as lI_)
     local lIiLi, lIii, lIiRi
     do forward(i)[j] (lI_Tj in (transpose<<i, n>>(last lI_)).(.. (i-1)),
