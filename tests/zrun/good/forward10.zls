@@ -1,7 +1,12 @@
+let f_(t) returns (o)
+ forward<<2>>[i]() returns (o)
+   o = last o + 1
+
 let find_(t) returns (o, index)
- forward<<2>>[i](ti in t) returns (o init 0, index)
-   do index = i and o = last o + 1
-   until last o = 42 done
+ forward<<2>>[i]() returns (o init 0, index)
+   let rec c = 0 fby c + 1 in
+   do index = i and o = last o + c
+   until last o >= 1 done
 
 (* forward loops with a stopping condition *)
 let iota<<n>>() returns (o)
