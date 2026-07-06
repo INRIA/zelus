@@ -1,3 +1,8 @@
+let find_(t) returns (o, index)
+ forward<<2>>[i](ti in t) returns (o init 0, index)
+   do index = i and o = last o + 1
+   until last o = 42 done
+
 (* forward loops with a stopping condition *)
 let iota<<n>>() returns (o)
   forward(n)[i] returns (oi out o)
