@@ -305,7 +305,8 @@ and ('info, 'ienv) for_eq =
   { for_out : ('info, 'ienv) for_out list; (* outputs *)
     (* loop body *)
     for_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
-    mutable for_out_env: 'ienv Ident.Env.t; (* names in output *)
+    mutable for_out_env: 'ienv Ident.Env.t;
+                      (* names defined in [for_out] *)
   }
 
 and 'exp for_kind =
@@ -439,7 +440,9 @@ and ('info, 'ienv) for_out_desc =
     for_init : ('info, 'ienv) exp option;
     for_default : ('info, 'ienv) exp option;
     for_as_name : Ident.t option; (* [* [as xi_] *)
-    mutable for_info: 'info; (* type information *)
+    mutable for_info: 'info; (* type information. *)
+                        (* the type of [for_name]. If [for_as_name] is given *)
+                        (* the type of [for_as_name] *)
   }
 
 (* signal patterns *)

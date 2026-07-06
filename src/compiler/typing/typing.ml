@@ -127,7 +127,7 @@ let check_size_index_does_not_escape_in_type loc index_opt ty =
 (* remove entries for variables defined by a [... as x] *)
 let remove_entry_for_as_variables_in_env h =
   Env.filter
-    (fun _ ({ t_sort } as entry) ->
+    (fun _ { t_sort } ->
       match t_sort with | Sort_mem { m_as = true } -> false | _ -> true)
     h
 
@@ -227,8 +227,8 @@ and expansive_list eq_list = List.exists expansive eq_list
 
 (* check size constraints. It may raise [Sizes.Maybe] *)
 let check_size_constraint loc sc =
-  if Sizes.eval_constraint Env.empty Env.empty sc then ()
-  else 
+  let v = Sizes.eval_constraint Env.empty Env.empty sc in
+  if v then () else 
     (* [sc] is surely false *)
     let f_loc_list, nested_env, nested_sc =
       Sizes.localise Env.empty Env.empty sc in
@@ -242,6 +242,17 @@ let check_size_constraint_if_possible loc sc =
     check_size_constraint loc sc
   with
   | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(Location.current_iname loc, sc))
+
+(* check that a constraint does not contain any free variable *)
+let check_no_free_variable loc sc =
+  try
+    check_size_constraint loc sc
+  with
+  | Sizes.Maybe ->
+     let f_loc_list, nested_env, nested_sc =
+      Sizes.localise Env.empty Env.empty sc in
+     error loc (Esize_constraints_not_true
+                  { f_loc_list; top_sc = sc; nested_env; nested_sc })
 
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
@@ -1862,6 +1873,10 @@ and state_expression h env_of_states actual_reset { desc; loc } =
 and forloop_exp loc expected_k h
   ({ for_size; for_kind; for_index; for_input;
      for_let; for_body; for_resume } as f) =
+  (* is-it a forward or foreach loop? *)
+  let is_a_forward_loop =
+    match for_kind with | Kforward _ -> true | Kforeach -> false in
+  
   (* if [for_resume = false] the for loop is considered to be *)
   (* combinational, even if the body is not *)
   let expected_k_for_body =
@@ -1889,12 +1904,11 @@ and forloop_exp loc expected_k h
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
-  (* type check the sequence of local equations *)
-  let h, actual_k_let = leqs expected_k_for_body h for_let in
+  let h_returns, h, actual_ty, actual_k_for_body =
+    for_exp_t loc expected_k_for_body h size for_index is_a_forward_loop 
+      (for_let, for_body) in
   (* type check the exit conditions *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
-  let h_returns, actual_ty, actual_k_for_body =
-    for_exp_t loc expected_k_for_body h size for_index for_body in
   (* 2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
@@ -1909,33 +1923,46 @@ and forloop_exp loc expected_k h
     
   let actual_k =
     if for_resume then
-      Kind.sup k_kind
-        (Kind.sup actual_k_let actual_k_for_body) else Tfun(Tany) in
+      Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   actual_ty, actual_k
 
-and for_exp_t loc expected_k h size for_index for_exp =
-  let h_returns, ty_res, k = match for_exp with
+(* type check [let [rec] eq in]* do e *)
+and for_exp_t
+        loc expected_k h size for_index is_a_forward_loop (for_let, for_exp) =
+  let h_returns, h, ty_res, k = match for_exp with
     | Forexp { exp; default } ->
+       (* type check the sequence of local equations *)
+       let h, actual_k_let = leqs expected_k h for_let in
        let actual_ty, k_exp = expression expected_k h exp in
        let k_default =
          Util.optional_with_default
            (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
-       Env.empty, Types.vec actual_ty size, Kind.sup k_exp k_default
+       (* for a forward loop, the type of the output is [actual_ty] *)
+       (* whereas for a oreach loop, it is [size]actual_ty *)
+       let ty_res =
+         if is_a_forward_loop then actual_ty
+         else Types.vec actual_ty size in
+       Env.empty, h, ty_res,
+       Kind.sup actual_k_let (Kind.sup k_exp k_default)
     | Forreturns({ r_returns; r_block } as r) ->
        let ty_list, (h_returns, k_returns) =
          Util.mapfold (for_vardec loc expected_k for_index h)
            (Env.empty, Tfun(Tconst)) r_returns in
        let h = Env.append h_returns h in
-       let _, _, _, k_block = block_eq expected_k h r_block in
+       (* type check the sequence of local equations *)
+       let h, actual_k_let = leqs expected_k h for_let in
+       let _, h, _, k_block = block_eq expected_k h r_block in
        (* annotation *)
        r.r_env <- h_returns;
        (* remove entries for variables introduced with [... as x] *)
        let h_returns = remove_entry_for_as_variables_in_env h_returns in
+       let ty_res = type_of_for_vardec_list size r_returns in
        h_returns,
-       type_of_for_vardec_list size r_returns, Kind.sup k_returns k_block in
-  h_returns, ty_res, k
+       h,
+       ty_res, Kind.sup actual_k_let (Kind.sup k_returns k_block) in
+  h_returns, h, ty_res, k
 
 and for_vardec loc expected_k for_index h (acc_h, acc_k)
   { desc = { for_vardec; for_as } } =
@@ -1998,21 +2025,27 @@ and for_index_t expected_k for_index_opt =
         (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
     Env.empty for_index_opt
 
-and for_eq_t loc expected_k size for_index h ({ for_out; for_block } as f) =
+(* [[let [rec] eq1 in] do eq *)
+and for_eq_t
+        loc expected_k size for_index h for_let ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
       (for_out_t loc expected_k size for_index h)
       (Env.empty, Tfun(Tconst)) for_out in
   let h = Env.append h_out h in
-  let h0, h, d_names, actual_k = block_eq expected_k h for_block in
+  (* type check the sequence of local equations *)
+  let h, actual_k_let = leqs expected_k h for_let in
+  let _, h, d_names, actual_k = block_eq expected_k h for_block in
   (* set the type environment *)
   f.for_out_env <- h_out;
   (* remove entries for variables introduced with [... as x] *)
   let h_out = remove_entry_for_as_variables_in_env h_out in
+  let l1 = Env.to_list h in
+  let l2 = Env.to_list h_out in
   let d_names =
     List.fold_left
       (defnames_for_out d_names) Defnames.empty for_out in
-  h_out, d_names, Kind.sup actual_k_out actual_k
+  h, h_out, d_names, Kind.sup actual_k_out (Kind.sup actual_k_let actual_k)
 
 and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
   (* verify that [for_name] is defined *)
@@ -2026,15 +2059,17 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k)
   { desc = ({ for_name; for_name_typeconstraint;
               for_out_name; for_init; for_default;
               for_as_name } as v); loc } =
+  (* the expected type of [for_name] *)
   let expected_ty =
     match for_name_typeconstraint with
     | None -> Types.new_var ()
     | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
+  (* type check the [default] clause *)
   let actual_k_default =
     Util.optional_with_default
       (fun e -> expect expected_k h e expected_ty)
       (Tfun(Tconst)) for_default in
-    (* the initialization must appear in a statefull function *)
+  (* the initialization must appear in a statefull function *)
   let actual_k_init =
     Util.optional_with_default
       (fun e -> stateful e.e_loc expected_k;
@@ -2060,18 +2095,25 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k)
             (Deftypes.Sort_mem memory_as)
             (Deftypes.scheme (Types.vec expected_ty (Sizes.var index)))) acc_h
     | None, Some(as_name) ->
-       (* we impose that is [as x_] is used, the index [i] is given *)
-       (* this constraint is impose for diagnosis; it will be *)
-       (* removed later *)
+       (* we impose that if [as x_] is used, the index [i] must be given *)
+       (* this is for better diagnosis *)
        error loc (Eloop_index_is_missing(as_name)) in
 
+  (* compute the type of [for_name]. If [for_out_name] is given *)
+  (* the type is that of [for_out_name]. *)
+  (* check that [for_name] is globally defined unless [for_out_name] is given *)
+  (* in that case, [for_out_name] must be globally defined *)
   let ty_out =
-    Util.optional_with_default
-      (fun x -> (* xi out x *)
-        (* find the type of [x] in [h] *)
-        let ty_x = Types.instance (typ_of_var loc h x) in
-        let ty_out = Types.vec expected_ty size in
-        unify loc ty_out ty_x; ty_out) expected_ty for_out_name in
+    match for_out_name with
+    | None ->
+       let ty_for_name = Types.instance (typ_of_var loc h for_name) in
+       unify loc expected_ty ty_for_name; expected_ty
+    | Some(x) ->
+       (* xi out x *)
+       (* find the type of [x] in [h] *)
+       let ty_x = Types.instance (typ_of_var loc h x) in
+       let ty_out = Types.vec expected_ty size in
+       unify loc ty_out ty_x; ty_out in
   (* annotation *)
   v.for_info <- Typinfo.set_type v.for_info ty_out;
   let acc_k = Kind.sup acc_k actual_k in
@@ -2149,11 +2191,10 @@ and forloop_eq loc expected_k h
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
   Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
-  (* type check the sequence of local equations *)
-  let h, actual_k_let = leqs expected_k_for_body h for_let in
+  let h, h_out, d_names, actual_k_for_body =
+    for_eq_t loc expected_k_for_body size for_index h for_let for_body in
+  (* type check the [until|unless|while] condition *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
-  let h_out, d_names, actual_k_for_body =
-    for_eq_t loc expected_k_for_body size for_index h for_body in
   (* 2: pop the current size constraint *)
   Util.optional_unit
     (fun _ i ->
@@ -2166,9 +2207,7 @@ and forloop_eq loc expected_k h
   check_size_index_does_not_escape_in_h loc for_index h_out;
 
   let actual_k =
-    if for_resume then
-      Kind.sup k_kind (Kind.sup actual_k_let actual_k_for_body)
-    else Tfun(Tany) in
+    if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
   f.for_env <- h_env;
   d_names, actual_k
@@ -2217,9 +2256,10 @@ let implementation ff is_first impl =
        (* in the global stack of constraints *)
        check_no_more_unbound_size_variables ();
 
-       (* check that no size constraints remain in the stack *)
+       (* check that the constraint is closed, that is, it does *)
+       (* not contain any unbound variable *)
        let l = Defsizes.get_stack_of_constraints () in
-       Seq.iter (check_size_constraint loc) l;
+       Seq.iter (check_no_free_variable loc) l;
        
        (* add entry [n : tys] for every [n in d_names] in the global env. *)
        let setenv (n, id) =

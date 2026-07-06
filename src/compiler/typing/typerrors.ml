@@ -263,8 +263,9 @@ let message loc kind =
       output_location loc
  | Esize_unbound_meta_size_variable(n) ->
     eprintf
-      "@[<hov 0>%aType error: the size variable %s has been \
-       introduced to type this expression but is unbound.@.@]"
+      "@[<hov 0>%aType error: a size variable %s has been \
+       introduced to type this expression but,\n\
+       it is unbound.@.@]"
       output_location loc
         (name n)
  | Esize_type_contains_an_unbound_meta_size_variable(n, ty) ->
@@ -300,7 +301,7 @@ let message loc kind =
  | Esize_unbound_size_variable(f, n, ty) ->
     eprintf
       "@[%aType error: the type for %s is@ %a,@ \
-       which contains the size variable %s that is unbound.@.@]"
+       which contains the unbound size variable %s.@.@]"
 	output_location loc
         (name f)
         Ptypes.ptype ty
@@ -321,15 +322,19 @@ let message loc kind =
       | [] -> ()
       | _ -> Format.fprintf ff
                "@[This constraint is generated during the typing of \
-                the following expressions:@ @[%a@]@,@]"
+                the following expressions:\n\
+                @[%a@]@,@]"
                Location.output_location_list f_loc_list in
     eprintf
       "@[<hov0>%aType error: at this point, the following \
-       size constraint is false:@[%a@]@,\
-       This is because the following size constraint is false:\n@[%a@]@,\
-       where the value for the free size and index variables in@ %a@ \
-       is:\n@[%a@]@,\
-       %a@\n\
+       size constraint is false:\n\
+       @[%a@]@.@.\
+       This is because the following size constraint is false or@ it \
+       contains unbounded variables:@.@.\
+       @[%a@]@.@.\
+       where the value for the free size and index variables in:\n\
+       @[%a@]@ is@ @[%a@]@.@.\
+       %a\n\
        Overall, a size constraint is false because:@ \
        - an array element is accessed out of the bounds, or@,\
        - the actual size of an array does not match an expected size, or@,\
