@@ -314,7 +314,7 @@ let match_size_t loc funs body_it
   body, acc
 
 let equation funs
-      ({ env = ({ env_of_sizes } as env) } as acc) ({ eq_desc; eq_loc } as eq) =
+      ({ env = ({ env_of_sizes }) } as acc) ({ eq_desc; eq_loc } as eq) =
   match eq_desc with
   | EQlet({ l_eq } as leq, eq_let) ->
      let (leq_opt, sizefun_specialized_list, eq_let), acc =
@@ -448,7 +448,6 @@ let letdecl funs acc (d_names, ({ l_rec; l_eq; l_loc } as d_leq)) =
                            Global.Vsizefunrec(sizefun, f_to_exp_env)
                          else Global.Vsizefun(sizefun))
          f_to_exp_env in
-     let l = Env.to_list env_of_sizefun_values in
      (* add a value for every global name *)
      let update_module_table d_names (name, m) =
        try
