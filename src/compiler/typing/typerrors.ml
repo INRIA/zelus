@@ -61,6 +61,8 @@ type error =
   | Esize_unbound_size_variable of Ident.t * Ident.t * typ
   | Esize_unbound_meta_size_variable of Ident.t
   | Esize_type_contains_an_unbound_meta_size_variable of Ident.t * typ
+  | Esize_unbound_size_variable_in_constraint of
+      Ident.t * Defsizes.exp Defsizes.constraints
   | Esize_of_vec_is_undetermined of typ
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
@@ -278,7 +280,16 @@ let message loc kind =
       (name n);
     if !Misc.vverbose then
       eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
- | Esize_of_vec_is_undetermined(actual_ty) ->
+ | Esize_unbound_size_variable_in_constraint(n, sc) ->
+     eprintf
+       "@[<hov 0>%aType error: in this definition, the following constraint \
+        %a @ remains. Moreover, it contains the unbound variable %s.@.@]"
+      output_location loc
+      Ptypes.constraints_t sc
+      (name n);
+    if !Misc.vverbose then
+      eprintf "%a" Ptypes.output_stack_of_size_constraints () else ()
+  | Esize_of_vec_is_undetermined(actual_ty) ->
     eprintf
       "@[<hov 0>%aType error: this expression is of type@ %a@.\
        Either it is not a vector or its size cannot be determined.@.@]"

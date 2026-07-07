@@ -244,15 +244,13 @@ let check_size_constraint_if_possible loc sc =
   | Sizes.Maybe -> Defsizes.add (Defsizes.Loc(Location.current_iname loc, sc))
 
 (* check that a constraint does not contain any free variable *)
-let check_no_free_variable loc sc =
-  try
-    check_size_constraint loc sc
-  with
-  | Sizes.Maybe ->
-     let f_loc_list, nested_env, nested_sc =
-      Sizes.localise Env.empty Env.empty sc in
-     error loc (Esize_constraints_not_true
-                  { f_loc_list; top_sc = sc; nested_env; nested_sc })
+let check_no_free_variable_in_constraints loc sc =
+  let free = Sizes.fv_constraints S.empty S.empty sc in
+  if not (S.is_empty free)
+  then
+    let n = S.choose free in
+    error loc (Esize_unbound_size_variable_in_constraint(n, sc))
+  else ()
 
 (* The type of states in automata **)
 (* We emit a warning when a state is entered both by reset and history *)
@@ -2259,7 +2257,7 @@ let implementation ff is_first impl =
        (* check that the constraint is closed, that is, it does *)
        (* not contain any unbound variable *)
        let l = Defsizes.get_stack_of_constraints () in
-       Seq.iter (check_no_free_variable loc) l;
+       Seq.iter (check_no_free_variable_in_constraints loc) l;
        
        (* add entry [n : tys] for every [n in d_names] in the global env. *)
        let setenv (n, id) =
