@@ -49,7 +49,10 @@ module Make (Info: INFO) =
            | 'a' .. 'z' | 'A' .. 'Z' | '_' | '`' -> s
            | '*' -> "( " ^ s ^ " )"
            | _ -> if s = "()" then s else "(" ^ s ^ ")"
-    
+
+    let opt fmt ff =
+      Option.iter (fmt ff)
+
     let shortname ff s = fprintf ff "%s" (parenthesis s)
     
     let qualident ff { Lident.qual = m; Lident.id = s } =
@@ -184,10 +187,8 @@ module Make (Info: INFO) =
         if prio_current < prio then fprintf ff ")" in
       constraint_t 0 ff sc
     
-    let opt_ptype ff ty_opt =
-      match ty_opt with
-      | None -> ()
-      | Some(ty) -> fprintf ff ":%a" ptype ty
+    let typeconstraint ff =
+      fprintf ff ": %a" ptype
     
     let print_type_params ff pl =
       print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
@@ -223,23 +224,23 @@ module Make (Info: INFO) =
     
     and pattern_list po sep pf ff pat_list =
       fprintf ff "@[%a@]" (print_list_r pattern po sep pf) pat_list
-    
-    let init exp ff e_opt =
-      match e_opt with | None -> () | Some(e) -> fprintf ff " init %a" exp e
-    let default exp ff e_opt =
-      match e_opt with | None -> () | Some(e) -> fprintf ff " default %a" exp e
-    let out ff o_opt =
-      match o_opt with | None -> () | Some(x) -> fprintf ff " out %a" name x
-    let as_name ff as_opt =
-      match as_opt with | None -> () | Some(x) -> fprintf ff " as %a" name x
+
+    let init exp ff =
+      fprintf ff " init %a" exp
+    let default exp ff =
+      fprintf ff " default %a" exp
+    let as_name ff =
+      fprintf ff " as %a" name
     
     let vardec exp ff
           { var_name = x; var_default = d_opt; var_init = i_opt; var_is_last; 
             var_init_in_eq; var_typeconstraint } =
       fprintf ff "@[%s%a%a%a%a%s@]" 
         (if var_is_last then "last " else "")
-        name x opt_ptype var_typeconstraint
-        (init exp) i_opt (default exp) d_opt
+        name x
+        (opt typeconstraint) var_typeconstraint
+        (opt (init exp)) i_opt
+        (opt (default exp)) d_opt
         (if var_init_in_eq then " init ..." else "")
     
     let vardec_list exp ff vardec_list =
@@ -596,14 +597,14 @@ module Make (Info: INFO) =
            expression sf_e
       | EQder { id; e; e_opt; handlers = [] } ->
          fprintf ff "@[<hov 2>der %a =@ %a%a@]"
-           name id expression e
-           (Util.optional_unit
-              (fun ff e -> fprintf ff " init %a " expression e)) e_opt
+           name id
+           expression e
+           (opt (init expression)) e_opt
       | EQder { id; e; e_opt; handlers } ->
-         fprintf ff "@[<hov 2>der %a =@ %a %a@ @[<hov 2>reset@ @[%a@]@]@]"
-           name id expression e
-           (Util.optional_unit
-              (fun ff e -> fprintf ff "init %a " expression e)) e_opt
+         fprintf ff "@[<hov 2>der %a =@ %a%a@ @[<hov 2>reset@ @[%a@]@]@]"
+           name id
+           expression e
+           (opt (init expression)) e_opt
            (print_list_l (present_handler (scondpat expression) expression) """""")
            handlers
       | EQinit(n, e) ->
@@ -651,27 +652,40 @@ module Make (Info: INFO) =
       | EQforloop
         ({ for_size; for_kind; for_index; for_input; for_env; for_resume;
            for_let; for_body = { for_out; for_block; for_out_env } }) ->
-         let print_for_out ff l =
-           let for_out ff
-                 { desc = { for_name; for_out_name;
-                            for_init; for_as_name } } =
-             fprintf ff "@[%a%a%a%a@]" 
-               name for_name (init expression) for_init out for_out_name
-               as_name for_as_name in
-           print_list_r for_out "" "," "" ff l in
-         fprintf ff
-           "@[<hov 2>%a%a%a%a@ (@[%a@])@ @[%a@]@ returns@ (%a)@ %a@ @[%a@,%a@,%a@]@ @]"
-           kind_of_forloop for_kind
-           for_resume_or_restart for_resume
-           (Util.optional_unit for_size_expression) for_size
-           index_opt for_index
-           input_list for_input
-           print_env for_env
-           print_for_out for_out
-           print_env for_out_env
-           leqs for_let
-           block_of_equation for_block
-           for_exit_condition for_kind       
+        let print_for_out ff l =
+          let for_out_vardec ff { for_name; for_ty_cstr; for_init; for_default } =
+            fprintf ff "@[%a%a%a%a@]"
+              name for_name
+              (opt typeconstraint) for_ty_cstr
+              (opt (init expression)) for_init
+              (opt (default expression)) for_default
+          in
+          let for_out ff { desc = { for_locals; for_ext; } } =
+            match for_locals with
+            | OAcc { for_acc } ->
+              fprintf ff "@[%a as %a@]"
+                name for_ext
+                for_out_vardec for_acc
+            | OArray { for_item; for_as } ->
+              fprintf ff "@[%a out %a as %a@]"
+                for_out_vardec for_item
+                name for_ext
+                name for_as
+           in
+          print_list_r for_out "" "," "" ff l in
+        fprintf ff
+          "@[<hov 2>%a%a%a%a@ (@[%a@])@ @[%a@]@ returns@ (%a)@ %a@ @[%a@,%a@,%a@]@ @]"
+          kind_of_forloop for_kind
+          for_resume_or_restart for_resume
+          (Util.optional_unit for_size_expression) for_size
+          index_opt for_index
+          input_list for_input
+          print_env for_env
+          print_for_out for_out
+          print_env for_out_env
+          leqs for_let
+          block_of_equation for_block
+          for_exit_condition for_kind
     
     and and_equation ordered po pf ff eq_list =
       let a = if ordered then "; " else " and " in
@@ -723,11 +737,11 @@ module Make (Info: INFO) =
             if n = 0 then vardec expression ff x
             else fprintf ff "@[<hov 1>[|@,%a@,|]@]" (print_array_of (n-1)) x in
           fprintf ff
-            "@[%a%a@]" (print_array_of for_array) for_vardec as_name for_as in
+            "@[%a%a@]" (print_array_of for_array) for_vardec (opt as_name) for_as in
         print_list_r for_vardec "(" "" ")" ff for_vardec_list in
       match r with
       | Forexp { exp; default = d} ->
-         fprintf ff "@[ do %a%a done@]" expression exp (default expression) d
+         fprintf ff "@[ do %a%a done@]" expression exp (opt (default expression)) d
       | Forreturns { r_returns; r_block; r_env } ->
          fprintf ff "@[<hov 2> returns@ (%a)@ @[%a@]@ @[%a@,%a@]@]"
            for_returns r_returns

@@ -645,18 +645,28 @@ and for_out_it funs acc v =
   try funs.for_out_t funs acc v
   with Fallback -> for_out_t funs acc v
 
-and for_out_t funs acc
-  ({ desc = ({ for_name; for_out_name; for_init; for_default } as v)} as f) =
-  let for_name, acc = var_ident_it funs.global_funs acc for_name in
-  let for_out_name, acc = 
-    Util.optional_with_map
-      (var_ident_it funs.global_funs) acc for_out_name in
-  let for_init, acc =
-    Util.optional_with_map (expression_it funs) acc for_init in
-  let for_default, acc =
-    Util.optional_with_map (expression_it funs) acc for_default in
-  { f with desc = { v with for_name; for_out_name; for_init; for_default } },
-  acc         
+and for_out_t funs acc { desc = { for_ext; for_locals; for_info; }; loc; } =
+  let for_out_vardec acc { for_name; for_ty_cstr; for_init; for_default } =
+    let for_name, acc = var_ident_it funs.global_funs acc for_name in
+    let for_ty_cstr, acc = Util.optional_with_map
+      (type_expression_it funs.global_funs) acc for_ty_cstr in
+    let for_init, acc = Util.optional_with_map
+      (expression_it funs) acc for_init in
+    let for_default, acc = Util.optional_with_map
+      (expression_it funs) acc for_default in
+    { for_name; for_ty_cstr; for_init; for_default }, acc
+  in
+  let for_ext, acc = var_ident_it funs.global_funs acc for_ext in
+  let for_locals, acc = match for_locals with
+  | OAcc { for_acc } ->
+    let for_acc, acc = for_out_vardec acc for_acc in
+    OAcc { for_acc }, acc
+  | OArray { for_item; for_as } ->
+    let for_item, acc = for_out_vardec acc for_item in
+    let for_as, acc = var_ident_it funs.global_funs acc for_as in
+    OArray { for_item; for_as }, acc
+  in
+  { desc = { for_ext; for_locals; for_info; }; loc }, acc
      
 and for_returns_it funs acc f =
   try funs.for_returns funs acc f

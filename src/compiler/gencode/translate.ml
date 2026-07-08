@@ -875,10 +875,14 @@ and foreach_eq env loop_path code
        | Zelus.Eindex _ ->
 	  env_acc, code in
      let output idx (env_acc, code)
-           { Zelus.desc = { Zelus.for_name = oi; for_out_name = Some(o) } } =
+       { Zelus.desc = Zelus.{
+         for_locals = Zelus.OArray { for_item = { for_name = oi }; };
+         for_ext = o;
+       } } =
        let y, ty, tsort, idx_list = out_of o env in
        Env.add oi { e_typ = ty; e_sort = Out { y; tsort; self = env.self };
-		   e_size = idx :: idx_list } env_acc, code in
+       e_size = idx :: idx_list } env_acc, code
+     in
      (* transforms an instance into an array of instances *)
      let array_of_instance size ({ i_size } as ientry) =
        { ientry with i_size = size :: i_size } in
@@ -886,7 +890,9 @@ and foreach_eq env loop_path code
        { mentry with m_size = size :: m_size } in
      (* generate the code for the initialization part of the for loop *)
      let init code
-           { Zelus.desc = { Zelus.for_name = oi; for_init; for_default } } =
+       { Zelus.desc = Zelus.{ for_locals = Zelus.OArray {
+         for_item = { for_name = oi; for_init; for_default };
+       } } } =
        match for_init with
        | None -> Oaux.void, code
        | Some(e) ->

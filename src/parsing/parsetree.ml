@@ -367,19 +367,43 @@ and for_in_pat_desc =
   | Eloop_op : array_operator * for_in_pat list -> for_in_pat_desc
   | Eloop_pat : pattern -> for_in_pat_desc
 
-(* outputs for loops *)
-(* E.g., [xi]++[yi]++[|y|] out x *)
-(* E.g., xi init e *)
+(* declaration of a for loop output variable [x [: t] [init e1] [default e2]] *)
+and for_out_vardec = {
+  (* name of the variable: x *)
+  for_name: name;
+  (* type constraint: [: t] *)
+  for_ty_cstr: type_expression option;
+  (* initial value: [init e1] *)
+  for_init: exp option;
+  (* default value: [default e2] *)
+  for_default: exp option;
+}
+
+(* for loop local output variables *)
+and for_out_locals =
+  (* accumulator form *)
+  | OAcc of {
+    (* accumulator: o_int [: t] [init v1] [default v2] *)
+    for_acc: for_out_vardec;
+  }
+  (* array form *)
+  | OArray of {
+    (* array item: oj [: t] [init v1] [default v2] *)
+    for_item: for_out_vardec;
+    (* array accumulator, aka "as": o_int *)
+    for_as: name;
+  }
 
 (* output of a for loop in equational form *)
-and for_out_desc =
-  { for_name : name; (* xi [init e] [default e] [out x] [as xi_] *)
-    for_name_typeconstraint: type_expression option; (* [xi:ty] *)
-    for_out_name : name option; (* [xi out x] *)
-    for_init : exp option;
-    for_default : exp option;
-    for_as_name : name option; (* [... as xi_] *)
-  }
+(* accumulator form: o_ext as o_int [: t] [init v1] [default v2] *)
+(* array form: oj [: t] [init v1] [default v2] out o_ext as o_int *)
+(* if [o_ext as] is ommited, [o_ext] defaults to [o_int] *)
+and for_out_desc = {
+  (* external variable defined by the loop: o_ext *)
+  for_ext: name;
+  (* local variables defined in the loop *)
+  for_locals: for_out_locals;
+}
 
 and 'body escape_desc =
   { e_cond: scondpat;

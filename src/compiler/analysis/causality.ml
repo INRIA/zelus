@@ -881,22 +881,21 @@ and for_eq_t env c_free c_out { for_out; for_block; for_out_env } =
   let _ = block_eq Ident.S.empty env c_free for_block in
   ()
 
-and for_out_t env c_free c_out
-  { desc = { for_name; for_out_name; for_init; for_default; for_info }; loc } =
-  (* every initialization and default value must be well initialized *)
-  Util.optional_unit
-    (fun env e -> exp_less_than_on_c env c_free e c_out) env for_init;
-  Util.optional_unit
-    (fun env e -> exp_less_than_on_c env c_free e c_out) env for_default;
-  Util.optional_unit
-    (fun _ x -> (* xi out x *)
-      (* find the type of [x] in [env] *)
-      let t_tys = try let { t_tys } = Env.find x env in t_tys 
-                  with | Not_found -> print x in
-      let typ = Typinfo.get_type for_info in
-      let tc_x = Tcausal.instance t_tys typ in
-      less_than loc env tc_x (Tcausal.skeleton_on_c c_out typ))
-    env for_out_name
+and for_out_t env c_free c_out { desc = { for_locals; for_ext; for_info }; loc; } =
+  (* find the type of [for_ext] in [env] *)
+  let t_tys = try let { t_tys } = Env.find for_ext env in t_tys 
+              with | Not_found -> print for_ext in
+  let typ = Typinfo.get_type for_info in
+  let tc_x = Tcausal.instance t_tys typ in
+  less_than loc env tc_x (Tcausal.skeleton_on_c c_out typ);
+
+  match for_locals with
+  | OAcc { for_acc = x } | OArray { for_item = x } ->
+    (* every initialization and default value must be well initialized *)
+    Util.optional_unit
+      (fun env e -> exp_less_than_on_c env c_free e c_out) env x.for_init;
+    Util.optional_unit
+      (fun env e -> exp_less_than_on_c env c_free e c_out) env x.for_default;
 
 (* all inputs must be well-initialized *)
 and for_input_t env c_free c_in { desc; loc } =

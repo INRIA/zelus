@@ -97,7 +97,10 @@ module Make (Info: INFO) =
            List.fold_left handler acc handlers
         | EQempty | EQassert _ -> acc
         | EQforloop { for_body = { for_out } } ->
-           let for_out_one bounded ({ dv } as acc) { desc = { for_name } } =
+           let for_out_one bounded ({ dv } as acc) { desc = { for_locals = (
+             OAcc { for_acc = { for_name } }
+             | OArray { for_item = { for_name } }
+           ) } } =
              if S.mem for_name bounded then acc
              else if S.mem for_name dv then acc
              else { acc with dv = S.add for_name dv } in
@@ -200,43 +203,51 @@ module Make (Info: INFO) =
            EQassert({ a with a_body = expression a_body }), Defnames.empty
         | EQforloop({ for_size; for_kind; for_index;
                       for_input; for_let; for_body = { for_out; for_block } } as f) ->
-           let for_size = Util.optional_map for_size_expression for_size in
-           let for_kind =
-             match for_kind with
-             | Kforeach -> for_kind
-             | Kforward(e_opt) ->
-                Kforward(Util.optional_map exit_expression e_opt) in
-           let dv_index = S.add for_index S.empty in
-           let for_input, dv_input =
-             for_input_w dv_index for_input in
-           (* From outside, when the output is [xi out x] *)
-           (* the defined variable in the loop body is [x], not [xi] *)
-           let for_out_one (acc, h_out)
-                 ({ desc = 
-                      ({ for_name; for_init; for_default; for_out_name } as v)}
-                  as fo) =
-             let acc, h_out =
-               match for_out_name with
-               | None -> acc, h_out
-               | Some(x) ->
-                  S.add for_name acc, Env.add for_name x h_out in
-             let for_init = Util.optional_map expression for_init in
-             let for_default = Util.optional_map expression for_default in
-             { fo with desc = 
-                         { v with for_name; for_init; for_default; 
-                                  for_out_name } },
-             (acc, h_out) in
-           let for_out, (dv_out, h_out) =
-             Util.mapfold for_out_one (S.empty, Env.empty) for_out in
-           let for_let = lets for_let in
-           let for_block, defnames, dv_for_block = block for_block in
-           let defnames = Defnames.subst defnames h_out in
-           let for_env = build_from_names dv_input in
-           let for_out_env = build_from_names dv_out in
-           EQforloop({ f with for_size; for_kind; for_input; for_env;
-                              for_let;
-                              for_body = { for_out; for_block; for_out_env; }}),
-           defnames in
+          let for_size = Util.optional_map for_size_expression for_size in
+          let for_kind =
+            match for_kind with
+            | Kforeach -> for_kind
+            | Kforward(e_opt) ->
+               Kforward(Util.optional_map exit_expression e_opt) in
+          let dv_index = S.add for_index S.empty in
+          let for_input, dv_input =
+            for_input_w dv_index for_input in
+          (* From outside, when the output is [xi out x] *)
+          (* the defined variable in the loop body is [x], not [xi] *)
+          let for_out_one (acc, h_out)
+            { desc = { for_ext; for_locals; for_info; }; loc; } =
+            let for_out_vardec
+              { for_name; for_ty_cstr; for_init; for_default; } =
+              let for_init = Util.optional_map expression for_init in
+              let for_default = Util.optional_map expression for_default in
+              { for_name; for_ty_cstr; for_init; for_default; }
+            in
+            let for_locals, (acc, h_out) = match for_locals with
+            | OAcc { for_acc; } ->
+              let acc = S.add for_acc.for_name acc in
+              let h_out = Env.add for_acc.for_name for_ext h_out in
+              let for_acc = for_out_vardec for_acc in
+              OAcc { for_acc; }, (acc, h_out)
+            | OArray { for_item; for_as; } ->
+              let acc = S.add for_item.for_name acc in
+              let h_out = Env.add for_item.for_name for_ext h_out in
+              let for_item = for_out_vardec for_item in
+              OArray { for_item; for_as; }, (acc, h_out)
+            in
+            let desc = { for_ext; for_locals; for_info; } in
+            { desc; loc; }, (acc, h_out)
+          in
+          let for_out, (dv_out, h_out) =
+            Util.mapfold for_out_one (S.empty, Env.empty) for_out in
+          let for_let = lets for_let in
+          let for_block, defnames, dv_for_block = block for_block in
+          let defnames = Defnames.subst defnames h_out in
+          let for_env = build_from_names dv_input in
+          let for_out_env = build_from_names dv_out in
+          EQforloop({ f with for_size; for_kind; for_input; for_env;
+                             for_let;
+                             for_body = { for_out; for_block; for_out_env; }}),
+          defnames in
       (* set the names defined in the equation *)
       { eq with eq_desc = eq_desc; eq_write = def }, def
     

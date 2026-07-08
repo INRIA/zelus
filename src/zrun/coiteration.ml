@@ -307,18 +307,20 @@ let for_matching_out nb_of_missing_iterations env_list acc_env returns =
 (* [env'(x).(i) = env_list.(i).(x) otherwise *)
 let for_env_out nb_of_missing_iterations env_list acc_env loc for_out =
   fold
-    (fun acc { desc = { for_name; for_init; for_default; for_out_name }; loc } ->
-      match for_out_name with
-       | None ->
-         (* accumulation. look for acc_env(last var_name) *)
-         let* v =
-           Find.find_last_opt for_name acc_env |>
-             Opt.to_result ~none:{ kind = Eunbound_last_ident(for_name); loc } in
-         return (Env.add for_name { empty with cur = Some v } acc)
-      | Some(x) ->
-         let* v = Forloop.array_of nb_of_missing_iterations loc
-                    (for_name, for_init, for_default) acc_env env_list in
-         return (Env.add x { empty with cur = Some v } acc))
+    (fun acc { desc = { for_locals; for_ext; for_info = _ }; loc } ->
+      match for_locals with
+      | OAcc { for_acc } ->
+        (* look for acc_env(last var_name) *)
+        let { for_name } = for_acc in
+        let* v =
+          Find.find_last_opt for_name acc_env |>
+            Opt.to_result ~none:{ kind = Eunbound_last_ident(for_name); loc } in
+        return (Env.add for_name { empty with cur = Some v } acc)
+      | OArray { for_item; for_as } ->
+        let { for_name; for_init; for_default; } = for_item in
+        let* v = Forloop.array_of nb_of_missing_iterations loc
+                   (for_name, for_init, for_default) acc_env env_list in
+        return (Env.add for_ext { empty with cur = Some v } acc))
     Env.empty for_out
 
 (* value of an immediate constant *)
@@ -642,20 +644,24 @@ and ifor_input is_fun genv env { desc; loc } =
      let* s2 = iexp is_fun genv env e_right in
      return (Slist [s1; s2])
 
-and ifor_output is_fun is_resume genv env { desc = { for_init; for_default }; loc } =
-  let* s_init =
-    match for_init with
-    | None -> return Sempty
-    | Some(e) -> 
-       (* if [is_resume = false] that is, the iteration restarts from *)
-       (* the initial state then the state variable [last x] is allowed *)
-       if is_fun && is_resume then error { kind = Eshould_be_combinatorial; loc } 
-       else 
-         let* s_e = iexp is_fun genv env e in
-         (* allocate a memory for storing [last x] *)
-         return (Slist [Sopt(None); s_e]) in
-  let* s_default = iexp_opt is_fun genv env for_default in
-  return (Slist [s_init; s_default])
+and ifor_output is_fun is_resume genv env { desc = { for_locals }; loc } =
+  match for_locals with
+  | OAcc { for_acc = { for_init; for_default; } }
+  | OArray { for_item = { for_init; for_default; } }
+  ->
+    let* s_init =
+      match for_init with
+      | None -> return Sempty
+      | Some(e) -> 
+         (* if [is_resume = false] that is, the iteration restarts from *)
+         (* the initial state then the state variable [last x] is allowed *)
+         if is_fun && is_resume then error { kind = Eshould_be_combinatorial; loc } 
+         else 
+           let* s_e = iexp is_fun genv env e in
+           (* allocate a memory for storing [last x] *)
+           return (Slist [Sopt(None); s_e]) in
+    let* s_default = iexp_opt is_fun genv env for_default in
+    return (Slist [s_init; s_default])
 
 and ifor_vardec is_fun is_resume genv env { desc = { for_vardec } } =
   ivardec is_fun is_resume genv env for_vardec
@@ -1560,27 +1566,31 @@ and sfor_vardec genv env (acc_env, as_env)
   return ((acc_env, as_env), s)
 
 (* compute the initial value of accumulated variables *)
-(* when { for_name = xi; for_init = v } returns *)
-(*                       [xi = { cur = bot; last = v; default = None }] *) 
-(* when { for_name = xi; for_init = v; for_default = d } returns *)
-(*                       [xi = { cur = bot; last = v; default = d }] *)
-(* otherwise [xi = { cur = bot; last = None; default = None }] *)
-and sfor_out genv env (acc_env, as_env)
-  { desc = { for_name; for_init; for_default; for_as_name }; loc } s =
-  let* acc_env, s =
-    match s with
-    | Slist [s_init; s_default] ->
-       let* last, s_init = sexp_init_opt loc genv env for_init s_init in
-       let* default, s_default = sexp_opt genv env for_default s_default in
-       return
-         (Env.add for_name { empty with cur = Some Vbot; last; default } acc_env,
-          Slist [s_init; s_default])
-    | _ -> error { kind = Estate; loc} in
-  let as_env =
-    match for_as_name with
-    | None -> as_env
-    | Some(x) -> Env.add x for_name as_env in
-  return ((acc_env, as_env), s)
+(* when { for_name = x; for_init = v } returns *)
+(*                       [x = { cur = bot; last = v; default = None }] *) 
+(* when { for_name = x; for_init = v; for_default = d } returns *)
+(*                       [x = { cur = bot; last = v; default = d }] *)
+(* otherwise [x = { cur = bot; last = None; default = None }] *)
+and sfor_out genv env (acc_env, as_env) { desc = { for_locals }; loc } s =
+  let sfor_out_vardec { for_name; for_init; for_default; } =
+    let* acc_env, s =
+      match s with
+      | Slist [s_init; s_default] ->
+         let* last, s_init = sexp_init_opt loc genv env for_init s_init in
+         let* default, s_default = sexp_opt genv env for_default s_default in
+         return
+           (Env.add for_name { empty with cur = Some Vbot; last; default } acc_env,
+            Slist [s_init; s_default])
+      | _ -> error { kind = Estate; loc} in
+    return ((acc_env, as_env), s)
+  in
+  match for_locals with
+  | OAcc { for_acc } ->
+    sfor_out_vardec for_acc
+  | OArray { for_item; for_as } ->
+    let* ((acc_env, as_env), s) = sfor_out_vardec for_item in
+    let as_env = Env.add for_as for_item.for_name as_env in
+    return ((acc_env, as_env), s)
 
 (* TODO: use the version below and remove the two others. *)
 
@@ -2085,12 +2095,9 @@ and sforloop_eq
   loc genv env size for_kind for_resume { for_out; for_block }
   i_env s_for_block so_list =
   let init_for_out_env v for_out =
-    let init_env acc
-          { desc = { for_name; for_init; for_default; for_out_name } } =
-      let name =
-        match for_out_name with
-        | None -> for_name | Some(name) -> name in
-      Env.add name { empty with cur = Some(v) } acc in
+    let init_env acc { desc = { for_ext } } =
+      Env.add for_ext { empty with cur = Some(v) } acc
+    in
     List.fold_left init_env Env.empty for_out in
   let bot_for_out_env for_out = init_for_out_env Vbot for_out in
   let nil_for_out_env for_out = init_for_out_env Vnil for_out in
@@ -2144,10 +2151,14 @@ and sforloop_eq
 (* this function assumes that the forloop is resumed *)
 (* the state is organised in [s_init; s_default] *)
 (* take the entry [last x] in the environment because it is an accumulation *)
-and set_foreq_out env_eq { desc = { for_name }; loc } s =
+and set_foreq_out env_eq { desc = { for_locals }; loc } s =
   let* v =
-    find_last_opt for_name env_eq |>
-      Opt.to_result ~none:{ kind = Eundefined_ident(for_name); loc } in
+    match for_locals with
+    | OAcc { for_acc = { for_name } }
+    | OArray { for_item = { for_name }}
+    ->
+      find_last_opt for_name env_eq |>
+        Opt.to_result ~none:{ kind = Eundefined_ident(for_name); loc } in
   match s with
   | Slist [Sempty; _] -> return s
   | Slist [Slist [Sopt _; s_init]; s_default] ->

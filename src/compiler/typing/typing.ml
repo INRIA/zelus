@@ -2032,74 +2032,78 @@ and for_eq_t
       (defnames_for_out d_names) Defnames.empty for_out in
   h, h_out, d_names, Kind.sup actual_k_out (Kind.sup actual_k_let actual_k)
 
-and defnames_for_out d_names acc { desc = { for_name; for_out_name }; loc } =
-  (* verify that [for_name] is defined *)
+and defnames_for_out d_names acc { desc = { for_locals; for_ext }; loc } =
   let names = Defnames.names S.empty d_names in
-  (* check that every name in [n_list] has a definition *)
-  if not (S.mem for_name names) then error loc (Eequation_is_missing(for_name));
-  let name = match for_out_name with | None -> for_name | Some(x) -> x in
-  Defnames.union (Defnames.singleton name) acc
+  match for_locals with
+  | OAcc { for_acc = vardec } | OArray { for_item = vardec } ->
+    (* verify that [vardec] is defined *)
+    if not (S.mem vardec.for_name names)
+    then error loc (Eequation_is_missing(vardec.for_name));
+    Defnames.union (Defnames.singleton for_ext) acc
 
-and for_out_t loc expected_k size for_index h (acc_h, acc_k)
-  { desc = ({ for_name; for_name_typeconstraint;
-              for_out_name; for_init; for_default;
-              for_as_name } as v); loc } =
-  (* the expected type of [for_name] *)
-  let expected_ty =
-    match for_name_typeconstraint with
-    | None -> Types.new_var ()
-    | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
-  (* type check the [default] clause *)
-  let actual_k_default =
-    Util.optional_with_default
-      (fun e -> expect expected_k h e expected_ty)
-      (Tfun(Tconst)) for_default in
-  (* the initialization must appear in a statefull function *)
-  let actual_k_init =
-    Util.optional_with_default
-      (fun e -> stateful e.e_loc expected_k;
-                expect (Tnode(Tdiscrete)) h e expected_ty)
-      (Tfun(Tconst)) for_init in
+and for_out_t loc expected_k size for_index h (acc_h, acc_k) { desc; loc } =
+  let for_out_vardec { for_name; for_ty_cstr; for_init; for_default } =
+    (* the expected type of [for_name] *)
+    let expected_ty =
+      match for_ty_cstr with
+      | None -> Types.new_var ()
+      | Some(typ_expr) -> Types.instance (Interface.scheme_of_type typ_expr) in
+    (* type check the [default] clause *)
+    let actual_k_default =
+      Util.optional_with_default
+        (fun e -> expect expected_k h e expected_ty)
+        (Tfun(Tconst)) for_default in
+    (* the initialization must appear in a statefull function *)
+    let actual_k_init =
+      Util.optional_with_default
+        (fun e -> stateful e.e_loc expected_k;
+                  expect (Tnode(Tdiscrete)) h e expected_ty)
+        (Tfun(Tconst)) for_init in
 
-  let actual_k = Kind.sup actual_k_default actual_k_init in
-  let t_sort = intro_vardec expected_k for_init for_default false in
-  let entry =
-    Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
-  let acc_h = Env.add for_name entry acc_h in
-
-  (* if [as x_] is given, enrich the type environment with *)
-  (* [last x : [for_index]ty *)
-  let acc_h =
-    match for_as_name with
-    | None -> acc_h
-    | Some(as_name) ->
-       (* add an entry: only [last as_name] is allowed *)
-       (* its type is [for_index]ty *)
-       Env.add as_name
-         (Deftypes.entry expected_k
-            (Deftypes.Sort_mem memory_as)
-            (Deftypes.scheme (Types.vec expected_ty (Sizes.var for_index)))) acc_h
+    let actual_k = Kind.sup actual_k_default actual_k_init in
+    let t_sort = intro_vardec expected_k for_init for_default false in
+    let entry =
+      Deftypes.entry expected_k t_sort (Deftypes.scheme expected_ty) in
+    let acc_h = Env.add for_name entry acc_h in
+    expected_ty, actual_k, acc_h
   in
 
-  (* compute the type of [for_name]. If [for_out_name] is given *)
-  (* the type is that of [for_out_name]. *)
-  (* check that [for_name] is globally defined unless [for_out_name] is given *)
-  (* in that case, [for_out_name] must be globally defined *)
-  let ty_out =
-    match for_out_name with
-    | None ->
-       let ty_for_name = Types.instance (typ_of_var loc h for_name) in
-       unify loc expected_ty ty_for_name; expected_ty
-    | Some(x) ->
-       (* xi out x *)
-       (* find the type of [x] in [h] *)
-       let ty_x = Types.instance (typ_of_var loc h x) in
-       let ty_out = Types.vec expected_ty size in
-       unify loc ty_out ty_x; ty_out in
-  (* annotation *)
-  v.for_info <- Typinfo.set_type v.for_info ty_out;
-  let acc_k = Kind.sup acc_k actual_k in
-  acc_h, acc_k
+  match desc.for_locals with
+  | OAcc { for_acc } ->
+    let expected_ty, actual_k, acc_h = for_out_vardec for_acc in
+    (* compute the type of [for_name]. It is the type of [ext_name]. *)
+    let ty_out =
+      (* find the type of [ext_name] in [h] *)
+      let ty_for_name = Types.instance (typ_of_var loc h desc.for_ext) in
+      unify loc expected_ty ty_for_name; expected_ty in
+
+    (* annotation *)
+    desc.for_info <- Typinfo.set_type desc.for_info ty_out;
+    let acc_k = Kind.sup acc_k actual_k in
+    acc_h, acc_k
+  | OArray { for_item; for_as } ->
+    let expected_ty, actual_k, acc_h = for_out_vardec for_item in
+    (* enrich the type environment with [last x : [for_index]ty] *)
+    let acc_h =
+      (* add an entry: only [last as_name] is allowed *)
+      (* its type is [for_index]ty *)
+      Env.add for_as
+        (Deftypes.entry expected_k
+           (Deftypes.Sort_mem memory_as)
+           (Deftypes.scheme (Types.vec expected_ty (Sizes.var for_index)))) acc_h
+    in
+    (* compute the type of [for_name]. *)
+    (* It is the type of the items of [ext_name]. *)
+    let ty_out =
+      (* find the type of [ext_name] in [h] *)
+      let ty_x = Types.instance (typ_of_var loc h desc.for_ext) in
+      let ty_out = Types.vec expected_ty size in
+      unify loc ty_out ty_x; ty_out in
+
+    (* annotation *)
+    desc.for_info <- Typinfo.set_type desc.for_info ty_out;
+    let acc_k = Kind.sup acc_k actual_k in
+    acc_h, acc_k
 
 and for_input_t expected_k h (acc_h, acc_k, size_opt) { desc; loc } =
   match desc with

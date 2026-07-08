@@ -249,12 +249,23 @@ let for_eq_t funs acc ({ for_out; for_block } as for_eq) =
   let for_block, _ = Mapfold.block_it funs empty for_block in
   { for_eq with for_out; for_block }, acc
 
-let for_out_t funs acc ({ desc = ({ for_init; for_default } as desc) } as f) =
-  let for_init =
-    Util.optional_map (atomic_expression funs empty) for_init in
-  let for_default =
-    Util.optional_map (atomic_expression funs empty) for_default in
-  { f with desc = { desc with for_init; for_default } }, acc
+let for_out_t funs acc { desc = { for_locals; for_ext; for_info }; loc; } =
+  let for_out_vardec { for_name; for_ty_cstr; for_init; for_default } =
+    let for_init =
+      Util.optional_map (atomic_expression funs empty) for_init in
+    let for_default =
+      Util.optional_map (atomic_expression funs empty) for_default in
+    { for_name; for_ty_cstr; for_init; for_default }
+  in
+  let for_locals = match for_locals with
+  | OAcc { for_acc } ->
+    let for_acc = for_out_vardec for_acc in
+    OAcc { for_acc }
+  | OArray { for_item; for_as } ->
+    let for_item = for_out_vardec for_item in
+    OArray { for_item; for_as }
+  in
+  { desc = { for_locals; for_ext; for_info }; loc; }, acc
 
 let letdecl funs acc (d_names, ({ l_eq } as leq)) =
   let _, acc_local = Mapfold.equation_it funs empty l_eq in

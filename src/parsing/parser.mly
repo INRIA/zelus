@@ -1415,11 +1415,6 @@ output_list:
   | LPAREN l = list_of(COMMA, localized(output_desc)) RPAREN { l }
 ;
 
-out_ide:
-  | OUT ide = ide
-    { ide }
-;
-
 /* the value of the array output at the previous iteration */
 as_ide:
   /* nothing */
@@ -1428,33 +1423,42 @@ as_ide:
     { Some(i) }
 ;
 
+// local output variable of a for loop in equational form
+// o [: o_type] [init o_init] [default o_default]
+output_vardec:
+  | o = ide
+    o_type = optional(colon_type_expression)
+    o_init = optional(init_expression)
+    o_default = optional(default_expression)
+  { {
+    for_name = o;
+    for_ty_cstr = o_type;
+    for_init = o_init;
+    for_default = o_default;
+  } }
+;
+
+// output of a for loop in equational form
+// accumulator form: o_ext as o_int [: t] [init v1] [default v2]
+// array form: oj [: t] [init v1] [default v2] out o_ext as o_int
+// if [o_ext as] is ommited, [o_ext] defaults to [o_int]
 output_desc:
-  /* xi [as o_] */
-  | ide = ide t_opt = optional(colon_type_expression) as_opt = as_ide
-    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = None;
-        for_init = None; for_default = None; for_as_name = as_opt } }
-  /* xi out x [as o_] */
-  | ide = ide t_opt = optional(colon_type_expression)
-      o = out_ide as_opt = as_ide
-    { { for_name = ide; for_name_typeconstraint = t_opt;
-	for_out_name = Some(o);
-	for_init = None; for_default = None; for_as_name  = as_opt } }
-  /* xi init e [out x] [as o_] */
-  | ide = ide t_opt = optional(colon_type_expression)
-      i = init_expression o_opt = optional(out_ide) as_opt = as_ide
-    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = o_opt;
-	for_init = Some(i); for_default = None; for_as_name  = as_opt } }
-  /* xi default e [out x] [as o_] */
-  | ide = ide t_opt = optional(colon_type_expression)
-      d = default_expression o_opt = optional(out_ide) as_opt = as_ide
-    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = o_opt;
-	for_init = None; for_default = Some(d); for_as_name  = as_opt } }
-  /* xi init e default e [out x] [as o_] */
-  | ide = ide t_opt = optional(colon_type_expression)
-      i = init_expression d = default_expression 
-    o_opt = optional(out_ide) as_opt = as_ide
-    { { for_name = ide; for_name_typeconstraint = t_opt; for_out_name = o_opt;
-	for_init = Some(i); for_default = Some(d); for_as_name  = as_opt } }
+  | o_ext = optional(o_ext = ide AS { o_ext }) o = output_vardec
+  {
+    let o_ext = Option.value ~default:o.for_name o_ext in
+    {
+      for_locals = OAcc { for_acc = o; };
+      for_ext = o_ext;
+    }
+  }
+  | oj = output_vardec OUT o_ext = optional(o_ext = ide AS { o_ext }) o = ide
+  {
+    let o_ext = Option.value ~default:o o_ext in
+    {
+      for_locals = OArray { for_item = oj; for_as = o; };
+      for_ext = o_ext;
+    }
+  }
 ;
 
 /* Periods */

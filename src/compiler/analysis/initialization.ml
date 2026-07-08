@@ -690,21 +690,20 @@ and for_eq_t loc env { for_out; for_block; for_out_env } =
   let _ = block_eq Ident.S.empty env for_block in
   ()
 
-and for_out_t env
-  { desc = { for_name; for_out_name; for_init; for_default; for_info }; loc } =
-  (* every initialization and default value must be well initialized *)
-  Util.optional_unit
-    (fun env e -> exp_less_than_on_i env e Tinit.izero) env for_init;
-  Util.optional_unit
-    (fun env e -> exp_less_than_on_i env e Tinit.izero) env for_default;
-  Util.optional_unit
-    (fun _ x -> (* xi out x *)
-      (* find the type of [x] in [env] *)
-      let { t_tys } = find x env in
-      let typ = Typinfo.get_type for_info in
-      let ti_x = Tinit.instance t_tys typ in
-      less_than loc ti_x (Tinit.skeleton_on_i Tinit.izero typ))
-    env for_out_name
+and for_out_t env { desc = { for_locals; for_ext; for_info }; loc; } =
+  (* find the type of [for_ext] in [env] *)
+  let { t_tys } = find for_ext env in
+  let typ = Typinfo.get_type for_info in
+  let ti_x = Tinit.instance t_tys typ in
+  less_than loc ti_x (Tinit.skeleton_on_i Tinit.izero typ);
+
+  match for_locals with
+  | OAcc { for_acc = x } | OArray { for_item = x } ->
+    (* every initialization and default value must be well initialized *)
+    Util.optional_unit
+      (fun env e -> exp_less_than_on_i env e Tinit.izero) env x.for_init;
+    Util.optional_unit
+      (fun env e -> exp_less_than_on_i env e Tinit.izero) env x.for_default;
 
 (* all inputs must be well-initialized *)
 and for_input_t env { desc; loc } =

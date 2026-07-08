@@ -320,13 +320,14 @@ and ('info, 'ienv) for_size =
     for_size_exp: ('info, 'ienv) exp; 
   }
 
-and ('info, 'ienv) for_eq =
-  { for_out : ('info, 'ienv) for_out list; (* outputs *)
-    (* loop body *)
-    for_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
-    mutable for_out_env: 'ienv Ident.Env.t;
-                      (* names defined in [for_out] *)
-  }
+and ('info, 'ienv) for_eq = {
+  (* outputs declarations *)
+  for_out : ('info, 'ienv) for_out list;
+  (* loop body *)
+  for_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
+  (* local names declared in [for_out] *)
+  mutable for_out_env: 'ienv Ident.Env.t;
+}
 
 and 'exp for_kind =
   | Kforeach
@@ -452,17 +453,45 @@ and 'exp for_input_desc =
 (* output of a for loop in equational form *)
 and ('info, 'ienv) for_out = ('info, 'ienv) for_out_desc localized
 
-and ('info, 'ienv) for_out_desc =
-  { for_name : Ident.t; (* xi [init e] [default e] [out x] *)
-    for_name_typeconstraint: type_expression option; (* [xi:ty] *)
-    for_out_name : Ident.t option; (* [xi out x] *)
-    for_init : ('info, 'ienv) exp option;
-    for_default : ('info, 'ienv) exp option;
-    for_as_name : Ident.t option; (* [* [as xi_] *)
-    mutable for_info: 'info; (* type information. *)
-                        (* the type of [for_name]. If [for_as_name] is given *)
-                        (* the type of [for_as_name] *)
+(* declaration of a for loop output variable [x [: t] [init e1] [default e2]] *)
+and ('info, 'ienv) for_out_vardec = {
+  (* name of the variable: x *)
+  for_name: Ident.t;
+  (* type constraint: [: t] *)
+  for_ty_cstr: type_expression option;
+  (* initial value: [init e1] *)
+  for_init: ('info, 'ienv) exp option;
+  (* default value: [default e2] *)
+  for_default: ('info, 'ienv) exp option;
+}
+
+(* for loop local output variables *)
+and ('info, 'ienv) for_out_locals =
+  (* accumulator form *)
+  | OAcc of {
+    (* accumulator: o_int [: t] [init v1] [default v2] *)
+    for_acc: ('info, 'ienv) for_out_vardec;
   }
+  (* array form *)
+  | OArray of {
+    (* array item: oj [: t] [init v1] [default v2] *)
+    for_item: ('info, 'ienv) for_out_vardec;
+    (* array accumulator, aka "as": o_int *)
+    for_as: Ident.t;
+  }
+
+(* output of a for loop in equational form *)
+(* accumulator form: o_ext as o_int [: t] [init v1] [default v2] *)
+(* array form: oj [: t] [init v1] [default v2] out o_ext as o_int *)
+(* if [o_ext as] is ommited, [o_ext] defaults to [o_int] *)
+and ('info, 'ienv) for_out_desc = {
+  (* external variable defined by the loop: o_ext *)
+  for_ext: Ident.t;
+  (* local variables defined in the loop *)
+  for_locals: ('info, 'ienv) for_out_locals;
+  (* type information *)
+  mutable for_info: 'info;
+}
 
 (* signal patterns *)
 and ('info, 'ienv) scondpat = ('info, 'ienv) scondpat_desc localized
