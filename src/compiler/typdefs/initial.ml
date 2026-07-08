@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -121,6 +121,7 @@ let value_desc_cons =
 
 (* basic values for arrays *)
 (* [e1 ++ e2] *)
+(* [(++): <<n,m>>.[n]a -> [m]a -> [n+m]a] *)
 let concat_name = "concat"
 let concat_ident = stdlib_name concat_name
 let value_desc_concat =
@@ -129,7 +130,7 @@ let value_desc_concat =
   value concat_ident
     { typ_vars = [ty];
       typ_body = tarrow ty_array (tarrow ty_array ty_array) }
-(* [| e1;...;en |] *)
+(* [| e1;...;en |]: [n]a *)
 let array_list_name = "array_list"
 let array_list_ident = stdlib_name array_list_name
 let value_desc_array_list n =
@@ -141,6 +142,7 @@ let value_desc_array_list n =
     { typ_vars = [ty];
       typ_body = tarrow_n n }
 (* [get e i = e.(i)] *)
+(* [get: <<i:n>>.[n]a -> a *)
 let array_get_name = "array_get"
 let array_get_ident = stdlib_name array_get_name
 let value_desc_get =
@@ -150,6 +152,7 @@ let value_desc_get =
     { typ_vars = [ty];
       typ_body = tarrow ty_array (tarrow typ_int ty) }
 (* [get e i e' = e.(i) with e'] *)
+(* [get: <<n>>.[n]a -> int -> a -> [n]a*)
 let array_get_default_name = "array_get_default"
 let array_get_default_ident = stdlib_name array_get_default_name
 let value_desc_get_default =
@@ -157,8 +160,9 @@ let value_desc_get_default =
   let ty_array = typ_array ty in
   value array_get_default_ident
     { typ_vars = [ty];
-      typ_body = tarrow ty_array (tarrow typ_int (tarrow ty ty)) }
+      typ_body = tarrow ty_array (tarrow typ_int (tarrow ty ty_array)) }
 (* [slice e e1 e2 = e.(e1..e2) *)
+(* [slice: <<i:n,j:m>> -> [i]a -> [j]a -> [i+j]a *)
 let array_slice_name = "array_slice"
 let array_slice_ident = stdlib_name array_slice_name
 let value_desc_slice =
@@ -166,8 +170,9 @@ let value_desc_slice =
   let ty_array = typ_array ty in
   value array_slice_ident
     { typ_vars = [ty];
-      typ_body = tarrow ty_array (tarrow ty (tarrow ty ty_array)) }
+      typ_body = tarrow ty_array (tarrow ty_array ty_array) }
 (* [update e e1 e2 = [| e with e1 <- e2 |] *)
+(* [update : <<n>>.[n]a -> int -> a -> [n]a *)
 let array_update_name = "array_update"
 let array_update_ident = stdlib_name array_update_name
 let value_desc_update =
@@ -176,15 +181,52 @@ let value_desc_update =
   value array_update_ident
     { typ_vars = [ty];
       typ_body = tarrow ty_array (tarrow typ_int (tarrow ty ty_array)) }
-(* [transpose] *)
+(* [transpose: [n][p]a -> [p][n]a] *)
 let array_transpose_name = "array_transpose"
 let array_transpose_ident = stdlib_name array_transpose_name
 let value_desc_transpose =
   let ty = make Tvar in
+  value array_transpose_ident
+    { typ_vars = [ty];
+      typ_body = tarrow (typ_array (typ_array ty))
+                        (typ_array (typ_array ty)) }
+(* [reverse: <<n>>. [n]a -> [n]a ] *)
+let array_reverse_name = "array_reverse"
+let array_reverse_ident = stdlib_name array_reverse_name
+let value_desc_reverse =
+  let ty = make Tvar in
   let ty_array = typ_array ty in
-  value array_update_ident
+  value array_reverse_ident
+    { typ_vars = [ty];
+      typ_body = tarrow ty_array ty_array }
+(* [sliding window : <<k>>.a -> [n]a ] *)
+let array_window_name = "array_window"
+let array_window_ident = stdlib_name array_window_name
+let value_desc_window =
+  let ty = make Tvar in
+  let ty_array = typ_array ty in
+  value array_window_ident
     { typ_vars = [ty];
       typ_body = tarrow ty_array (tarrow typ_int (tarrow ty ty_array)) }
+(* [sample: <<l,k>> -> [l*k-k+1]a -> [l]a ] *)
+let array_sample_name = "array_sample"
+let array_sample_ident = stdlib_name array_sample_name
+let value_desc_sample =
+  let ty = make Tvar in
+  let ty_array = typ_array ty in
+  value array_sample_ident
+    { typ_vars = [ty];
+      typ_body = tarrow ty_array ty_array }
+(* [split] *)
+(* [split: <<l,k>> -> [l*k]a -> [l][k]a *)
+let array_split_name = "array_split"
+let array_split_ident = stdlib_name array_split_name
+let value_desc_pack =
+  let ty = make Tvar in
+  let ty_array = typ_array ty in
+  value array_split_ident
+    { typ_vars = [ty];
+      typ_body = tarrow ty_array ty_array }
 
 (* global constructed values loaded initially *)
 let cglobal = []

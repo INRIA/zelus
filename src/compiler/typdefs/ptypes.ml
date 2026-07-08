@@ -298,9 +298,11 @@ let output_stack_of_size_constraints ff () =
   fprintf ff
     "@[<hov 2>The stack of size constraints contains:@ %a@ %a@ %a@.@]"
     (Pp_tools.print_list_r
-       (fun ff (x, _) -> Ident.fprint_t ff x) "{" ";" "}")   unconstrained_size_variables
+       (fun ff (x, _) -> Ident.fprint_t ff x) "{" ";" "}")
+    unconstrained_size_variables
     (Pp_tools.print_list_r
-       (fun ff (x, si) -> fprintf ff "@[<hov 2>%a \\@ %a@]" Ident.fprint_t x psize si) "{" ";" "}")
+       (fun ff (x, si) -> fprintf ff "@[<hov 2>%a \\@ %a@]"
+                            Ident.fprint_t x psize si) "{" ";" "}")
     substitution_for_size_variables
     (Pp_tools.print_list_r constraints_t "{" ";" "}") l
 
