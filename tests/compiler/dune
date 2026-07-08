@@ -1,18 +1,7 @@
 (test
  (name zeluctest)
  (modules zeluctest)
- ; files dependencies
- (deps (glob_files good/*.zls) (glob_files bad/*.zls))
- ; libraries dependencies
- (libraries zelus.compiler_lib alcotest)
-)
-
-;(executable
-; (name zeluctest)
-; (modules
-;	zeluctest; the main function
-; )
-; ; ml files
-; (libraries zelus.compiler_lib alcotest)
-;(promote (until-clean) (into .))
-;)
+ (deps
+  (glob_files good/*.zls)
+  (glob_files bad/*.zls))
+ (libraries zelus_compiler alcotest))

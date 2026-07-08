@@ -1,23 +1,23 @@
-opam-version: "2.3"
+opam-version: "2.0"
 version: "3.0"
 synopsis: "A synchronous language with ODEs"
+maintainer: ["Marc Pouzet <marc.pouzet@ens.fr>"]
 authors: [
   "Timothy Bourke <timothy.bourke@inria.fr>"
   "Marc Pouzet <marc.pouzet@ens.fr>"
-  ]
-maintainer: ["Marc Pouzet <marc.pouzet@ens.fr>"]
+]
+license: "INRIA Non-Commercial License Agreement"
 homepage: "http://zelus.di.ens.fr"
 doc: "http://zelus.di.ens.fr/man/"
 bug-reports: "https://github.com/INRIA/zelus/issues"
-license: "INRIA Non-Commercial License Agreement"
 depends: [
+  "dune" {>= "3.21"}
   "ocaml" {>= "5.3.0"}
-  "dune" {>= "2.9"}
-  "menhir" {>= "20240715"}
+  "menhir"
   "alcotest" {with-test}
   "ppx_deriving"
+  "odoc" {with-doc}
 ]
-depopts: []
 build: [
   ["dune" "subst"] {dev}
   [
@@ -25,8 +25,16 @@ build: [
     "--prefix" prefix
   ]
   [
-    "dune" "build" "-p" name "-j" jobs
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
     "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
   ]
 ]
 dev-repo: "git+https://github.com/INRIA/zelus.git"
+x-maintenance-intent: ["(latest)"]

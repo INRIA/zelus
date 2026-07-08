@@ -1,26 +1,35 @@
 opam-version: "2.0"
 version: "2.2"
 synopsis: "Zelus GTK library"
+maintainer: ["Marc Pouzet <marc.pouzet@ens.fr>"]
 authors: [
   "Timothy Bourke <timothy.bourke@inria.fr>"
   "Marc Pouzet <marc.pouzet@ens.fr>"
-  ]
-maintainer: ["Marc Pouzet <marc.pouzet@ens.fr>"]
+]
+license: "INRIA Non-Commercial License Agreement"
 homepage: "http://zelus.di.ens.fr"
 doc: "http://zelus.di.ens.fr/man/"
 bug-reports: "https://github.com/INRIA/zelus/issues"
-license: "INRIA Non-Commercial License Agreement"
 depends: [
+  "dune" {>= "3.21"}
   "ocaml" {>= "5.3.0"}
-  "dune" {>= "2.9"}
-  "zelus" {= version}
+  "zelus"
   "lablgtk"
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}
   [
-    "dune" "build" "-p" name "-j" jobs
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
     "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
   ]
 ]
 dev-repo: "git+https://github.com/INRIA/zelus.git"
+x-maintenance-intent: ["(latest)"]

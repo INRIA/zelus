@@ -4,5 +4,5 @@
 *.bc
 *.zci
 .merlin
-config.ml
+/config.ml
 _build/

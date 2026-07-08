@@ -1,22 +1,31 @@
 (env
  (dev
-  (flags (:standard -w -6-9-27-32-33-35-37 -warn-error -A))))
+  (flags
+   (:standard -w -6-9-27-32-33-35-37 -warn-error -A))))
 
 (rule
  (targets input.zci gtkplot.zci)
- (deps (:zli input.zli gtkplot.zli) ../std/stdlib.zci)
- (action (run zeluc -I ../std %{zli})))
+ (deps
+  (:zli input.zli gtkplot.zli)
+  ../std/stdlib.zci)
+ (action
+  (run zeluc -I ../std %{zli})))
 
 (rule
  (targets scope.ml scope.zci)
- (deps (:zls scope.zls) gtkplot.zci ../std/basics.zci ../std/stdlib.zci)
- (action (run zeluc -I ../std %{zls})))
+ (deps
+  (:zls scope.zls)
+  gtkplot.zci
+  ../std/basics.zci
+  ../std/stdlib.zci)
+ (action
+  (run zeluc -I ../std %{zls})))
 
 (library
- (name gtklib)
+ (name zelus_libgtk)
  (public_name zelus-gtk)
  (optional)
- (libraries zelus lablgtk2)
+ (libraries zelus_compiler zelus_stdlib lablgtk2)
  (wrapped false)
  (modules input scope gtkplot zlsrungtk))
 
