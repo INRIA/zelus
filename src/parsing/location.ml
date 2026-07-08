@@ -152,6 +152,7 @@ let output_input_name ff =
 
 
 (* add-on to the original Caml Light code *)
+(* print a list of locations *)
 let output_location_list ff f_loc_list =
   let rec output current_iname f_loc_list =
     match f_loc_list with
