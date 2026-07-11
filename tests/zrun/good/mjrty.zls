@@ -19,38 +19,20 @@ let node vote(x) returns (m init 0)
   else
     do c = last c - 1 done
 
-let count_votes(n)(x, a) returns (n)
-  n = forward(n)(ai in a) returns (s init 0) do
-        s = if ai = x then last s + 1 else last s
-      done
-
-let count_votes (x, a) returns (n)
-  n = forward (ai in a) returns (s init 0) do
-           s = if ai = x then last s + 1 else last s
-      done
-
-let main(nb_votes, votes) returns (candidate, has_majority)
-  do
-    candidate = forward(vi in votes) returns (c) do c = vote(vi) done
-  and
-    has_majority = 2 * (count_votes(candidate, votes)) > nb_votes
+let count_votes<<n>>(x, a) returns (s)
+  forward<<n>>(ai in a) returns (s init 0) do
+    s = if ai = x then last s + 1 else last s
   done
 
-(* or with an automaton that do not need an initial value for c *)
-(* This code is not interesting in practice *)
+let main<<nb_votes>>(votes:[nb_votes]_) returns (candidate, has_majority)
+  do
+    forward(vi in votes) returns (candidate) do candidate = vote(vi) done
+  and
+    has_majority = 2 * (count_votes<<nb_votes>>(candidate, votes)) > nb_votes
+  done
 
-let node vote(x) returns (m)
-  local c in
-  automaton
-  | NoCandidate -> do c = 1 and m = x continue Candidate
-  | Candidate ->
-      do c = if last m = x then last c + 1 else last c - 1
-      until (c = 0) continue NoCandidate
-  end
-  
-let nb_votes = 10
-
-let node main () returns (o)
+let node main_10 () returns ()
   let votes = [|3;2;3;1;3;2;3;1;3;3|] in
-  do o = main(nb_votes, votes) done
+  let candidate, has_majority = main<<10>>(votes) in
+  do assert (candidate = 3) && (has_majority = true) done
 

@@ -1,34 +1,20 @@
-(* Un exemple inspire de celui de Baptiste ou *)
-(* un tableau final produit par une boucle forward est rempli *)
-(* progressivement *)
-(* entree: un tableau x = [|x(0);...;x(n-1)|]. *)
-(* sortie: un tableau y = [|y(0);...;y(n-1)|] ou *)
-(* y(i) = sigma_{k = 0}{i-1} y(k) * x(k) *)
-let node scalar(x,y) returns (o)
-  forward (xi in x, yi in y) returns (o init 0.0)
-    do o = last o +. xi *. yi
+(* A use of the [as ...] notation in a for loop to name the currently *)
+(* constructed array *)
+
+(* In this example, an output array [o] is computed sequentially, *)
+(* from left to right, and the [i-th] element used the *)
+(* previously constructed slice o[0..i] *)
+(* input: an array x = [|x(0);...;x(n-1)|]. *)
+(* output: an array o = [|o(0);...;o(n-1)|] where *)
+(* o(i) = sigma_{k = 0}{i-1} o(k) * x(k) *)
+let acc_very_slow<<n>>(x:[n]_) returns (o)
+  forward<<n>>[i](xi in x) returns (oi out o as o_)
+    do oi = forward(i)[k] returns (sum init 0)
+              do sum = last sum + (last o_).(k) * x.(k) done
     done
 
-let node acc(x) returns (y)
-  forward (i in 0 to length x - 1, xi in x) returns (yi out y) do
-    (* a chaque iteration, on definit l'element yi de la sortie y *)
-    (* que contient [last y] ? *)
-    yi = scalar(last y, x.(0 .. i))
-  done
-
-(* Il y a deux problemes dans ce programme:
-
- *- ce programme est rejete par zrun parce que
- *- last y n'est defini qu'a condition d'avoir declare y avec une
- *- valeur initiale; c'est une limitation qu'il faudrait revoir;
- *- une possibilite est de considerer que pour chaque variable [y] definie
- *- dans un noeud, on memorise [last y]. Ou bien on fait une passe au
- *- prealable pour savoir si une variable necessite une valeur [last y]
-
- *- quelle est la taille de [last y] ? Est-ce [i]?
- *)
-   
-(*
-Question pour Baptiste: comment ecris-tu cet exemple dans ton prototype ?
- *)
-   
+let main() =
+  let x = [|1;2;3;4;5|] in
+  let o = acc_very_slow<<5>>(x) in
+  o
+  
