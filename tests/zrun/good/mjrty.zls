@@ -35,4 +35,4 @@ let node main_10 () returns ()
   let votes = [|3;2;3;1;3;2;3;1;3;3|] in
   let candidate, has_majority = main<<10>>(votes) in
   do assert (candidate = 3) && (has_majority = true) done
-
+  
