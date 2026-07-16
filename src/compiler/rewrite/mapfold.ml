@@ -122,6 +122,10 @@ type ('a, 'info1, 'ienv1, 'info2, 'ienv2) global_it_funs =
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) global_it_funs ->
       'a ->
       size_expression -> size_expression * 'a;
+    constraints_t :
+      ('a, 'info1, 'ienv1, 'info2, 'ienv2) global_it_funs ->
+      'a ->
+      size_expression constraints -> size_expression constraints * 'a;
   }
 
 type ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs =
@@ -381,11 +385,12 @@ and type_expression global_funs acc ({ desc } as ty) =
      let ty1, acc = type_expression_it global_funs acc ty_arg in
      let ty2, acc = type_expression_it global_funs acc ty_res in
      Etypefun { ty_kind; ty_name_opt; ty_arg; ty_res }, acc
-  | Etypesizefun { id_list; ty } ->
+  | Etypesizefun { id_list; ty; constraints } ->
      let id_list, acc =
        Util.mapfold (intro_ident_it global_funs) acc id_list in
      let ty, acc = type_expression_it global_funs acc ty in
-     Etypesizefun { id_list; ty }, acc
+     let constraints, acc = constraints_it global_funs acc constraints in
+     Etypesizefun { id_list; ty; constraints }, acc
   | Etypevec(ty, si) ->
     let ty, acc = type_expression_it global_funs acc ty in
     let si, acc = size_it global_funs acc si in
@@ -410,6 +415,63 @@ and size_t global_funs acc ({ desc } as si) =
      let si2, acc = size_it global_funs acc si2 in
      Size_op(op, si1, si2), acc in
   { si with desc }, acc
+
+and constraints_it global_funs acc constraints =
+  try global_funs.constraints_t global_funs acc constraints
+  with Fallback -> constraints_t global_funs acc constraints
+
+and constraints_t global_funs acc ({ desc } as constraints) =
+  let desc, acc = match desc with
+  | Econstraints_Rel { rel; lhs; rhs } ->
+     let lhs, acc = size_it global_funs acc lhs in
+     let rhs, acc = size_it global_funs acc rhs in
+     Econstraints_Rel { rel; lhs; rhs }, acc
+  | Econstraints_And(sc_list) ->
+     let sc_list, acc = Util.mapfold (constraints_it global_funs) acc sc_list in
+     Econstraints_And(sc_list), acc
+  | Econstraints_Let(n_e_list, sc) ->
+     let m_e_list, acc =
+       Util.mapfold
+         (fun acc (n, e) -> let m, acc = intro_ident_it global_funs acc n in
+                            let e, acc = size_it global_funs acc e in
+                            (m, e), acc)
+         acc n_e_list in
+     let sc, acc = constraints_it global_funs acc sc in
+     Econstraints_Let(m_e_list, sc), acc
+  | Econstraints_App(n, e_list) ->
+     let m, acc = var_ident_it global_funs acc n in
+     let e_list, acc = Util.mapfold (size_it global_funs) acc e_list in
+     Econstraints_App(m, e_list), acc
+  | Econstraints_Fix(n_n_list_sc_list, sc) ->
+     let m_n_list_sc_list, acc =
+       Util.mapfold
+         (fun acc (n, n_list, sc) ->
+           let m, acc = intro_ident_it global_funs acc n in
+           (m, n_list, sc), acc) acc n_n_list_sc_list in
+     let m_m_list_sc_list, acc =
+       Util.mapfold
+         (fun acc (m, n_list, sc) -> let m_list, acc =
+                                       Util.mapfold (var_ident_it global_funs)
+                                         acc n_list in
+                                     let sc, acc =
+                                       constraints_it global_funs acc sc in
+                                     (m, m_list, sc), acc)
+         acc m_n_list_sc_list in
+     let sc, acc = constraints_it global_funs acc sc in
+     Econstraints_Fix(m_m_list_sc_list, sc), acc           
+  | Econstraints_If(sc, sc1, sc2) ->
+     let sc, acc = constraints_it global_funs acc sc in
+     let sc1, acc = constraints_it global_funs acc sc1 in
+     let sc2, acc = constraints_it global_funs acc sc2 in
+     Econstraints_If(sc, sc1, sc2), acc
+  | Econstraints_Forall(n, e, sc) ->
+     let e, acc = size_it global_funs acc e in
+     let m, acc = intro_ident_it global_funs acc n in
+     let sc, acc = constraints_it global_funs acc sc in
+     Econstraints_Forall(m, e, sc), acc
+  | Econstraints_True -> Econstraints_True, acc
+  | Econstraints_False -> Econstraints_False, acc in
+  { constraints with desc }, acc
 
 let write_it funs acc w = funs.write_t funs acc w
 
@@ -1043,6 +1105,7 @@ let default_global_funs =
     constr_decl;
     interface;
     size_t;
+    constraints_t;
   }
 
 let defaults =
@@ -1101,6 +1164,7 @@ let default_global_stop =
     constr_decl = stop;
     interface = stop;
     size_t = stop;
+    constraints_t = stop;
   }
 
 

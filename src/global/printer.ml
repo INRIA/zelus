@@ -133,6 +133,57 @@ module Make (Info: INFO) =
            ptype ty
       | Etypevec(ty, s) -> fprintf ff "@[[%a]]%a@]" size s ptype ty
 
+    (* Print a size constraint *)
+    and constraint_t ff sc =
+      let priority =
+        function
+        | Econstraints_App _ -> 3 | Econstraints_Fix _ -> 2
+        | Econstraints_Rel _ -> 2 | Econstraints_And _ -> 1
+        | Econstraints_Let _ -> 0 | Econstraints_If _ -> 0
+        | Econstraints_Forall _ -> 2
+        | Econstraints_True | Econstraints_False -> 2 in
+      let eq_t ff { rel; lhs; rhs } =
+        let s = match rel with | Eq -> "=" | Lt -> "<" | Lte -> "<=" in
+        fprintf ff "@[(%a %s %a)@]" size lhs s size rhs in
+      let def_t ff (id, e) =
+        fprintf ff "@[<hov 2>%s =@ %a@]" (Ident.name id) size e in
+      let rec fix_def_t ff (id, id_list, c) =
+        fprintf ff "@[<hov 2>%s %a@ =@ %a@]" (Ident.name id)
+          (Pp_tools.print_list_r Ident.fprint_t "(" "," ")") id_list
+          (constraint_t 0) c
+      and constraint_t prio ff { desc } =
+        let prio_current = priority desc in
+        if prio_current < prio then fprintf ff "(";
+        begin match desc with
+        | Econstraints_Rel(eq) -> eq_t ff eq
+        | Econstraints_And(c_list) ->
+           Pp_tools.print_list_r (constraint_t prio_current) "" " &&" "" ff c_list
+        | Econstraints_Let(id_e_list, sc) ->
+           fprintf ff
+             "@[<hov0>%a@ %a@]"
+             (Pp_tools.print_list_r def_t "let " " and" " in") id_e_list
+             (constraint_t 0) sc
+        | Econstraints_App(f, e_list) ->
+           fprintf ff "@[<hov2>%a@ %a@]" Ident.fprint_t f
+             (Pp_tools.print_list_r size "(" "," ")") e_list
+        | Econstraints_Fix(f_id_list_c_list, c) ->
+           (* [let rec f1(n1,...) = c1 and ... fk(n1,...) = ck in c] *)
+           fprintf ff "@[<hov0>%a@ %a@]"
+             (Pp_tools.print_list_r fix_def_t "let rec " " and" " in")
+             f_id_list_c_list
+             (constraint_t 0) c
+        | Econstraints_If(sc1, sc2, sc3) ->
+           fprintf ff "@[<hov0>if %a@ then@ %a@ else@ %a@]"
+             (constraint_t 0) sc1 (constraint_t 0) sc2 (constraint_t 0) sc3
+        | Econstraints_Forall(id, e, sc) ->
+           fprintf ff "@[<hov2>forall@ %s@ < %a@ do %a done@]"
+             (Ident.name id) size e (constraint_t 0) sc
+        | Econstraints_True -> fprintf ff "true"
+        | Econstraints_False -> fprintf ff "false"
+        end;
+        if prio_current < prio then fprintf ff ")" in
+      constraint_t 0 ff sc
+    
     let opt_ptype ff ty_opt =
       match ty_opt with
       | None -> ()
@@ -169,8 +220,6 @@ module Make (Info: INFO) =
          fprintf ff "%a as %a" pattern p name n
       | Eorpat(pat1, pat2) ->
          fprintf ff "%a | %a" pattern pat1 pattern pat2
-      
-      
     
     and pattern_list po sep pf ff pat_list =
       fprintf ff "@[%a@]" (print_list_r pattern po sep pf) pat_list
@@ -528,15 +577,21 @@ module Make (Info: INFO) =
       | Eflatten, [e] ->
          fprintf ff "@[%a.F@]" expression e
       | _ -> assert false
+
+    and print_optional_constraints ff constraints_opt =
+      match constraints_opt with
+      | None -> ()
+      | Some(sc) -> fprintf ff "@[<hov2>: _ with@ %a@]" constraint_t sc
     
     and equation ff ({ eq_desc = desc } as eq) =
       print_eq_info ff eq;
       match desc with
       | EQeq(p, e) ->
          fprintf ff "@[<hov 2>%a =@ %a@]" pattern p expression e
-      | EQsizefun { sf_id; sf_id_list; sf_e; sf_env } ->
-         fprintf ff "@[<hov 2>%a%a@ %a =@ %a@]" name sf_id
+      | EQsizefun { sf_id; sf_id_list; sf_e; sf_constraints; sf_env } ->
+         fprintf ff "@[<hov 2>%a%a@ %a %a =@ %a@]" name sf_id
            (print_list_l name "<<" "," ">>") sf_id_list
+           print_optional_constraints sf_constraints
            print_env sf_env
            expression sf_e
       | EQder { id; e; e_opt; handlers = [] } ->

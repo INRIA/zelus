@@ -200,6 +200,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %token GGREATER       /* ">>" */
 %token HYBRID         /* "hybrid" */
 %token HORIZON        /* "horizon" */
+%token FORALL         /* "forall" */
 %token FOREACH        /* "foreach" */
 %token FORWARD        /* "forward" */
 %token IF             /* "if" */
@@ -292,7 +293,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %left EVERY
 %nonassoc PRESENT
 %left ELSE
-%nonassoc WITH
+%left WITH
 %left  AS
 %left  BAR
 %nonassoc END
@@ -302,6 +303,7 @@ let annotate_with_type t_opt ({ desc; loc = Loc(start_pos, _) } as e) =
 %left RPAREN
 %nonassoc prec_minus_greater
 %nonassoc FBY
+%nonassoc IN /* the let/in in size constraints */
 %left OR BARBAR
 %left AMPERSAND AMPERAMPER
 %left INFIX0 LESSER GREATER EQUAL
@@ -684,18 +686,31 @@ sizefun_definition:
 ;
 
 sizefun_definition_desc:
-  | ide = ide LLESSER 
-    ide_list = list_of(COMMA, ide) GGREATER
-    ty_opt = optional(colon_type_expression) EQUAL e = seq_expression
-    { let e = match ty_opt with
-	| None -> e
-	| Some(ty) -> make (Etypeconstraint(e, ty)) $startpos(e) $endpos(e) in
-      EQsizefun(ide, ide_list, e) }
+  /* f<<n1,...,nk>> [: ty [with sc]] = e */
+  | ide = ide LLESSER ide_list = list_of(COMMA, ide) GGREATER
+               ty_constraints_opt =
+                     optional(colon_type_expression_with_constraints)
+              EQUAL e = seq_expression
+    { let e, constraints_opt =
+	match ty_constraints_opt with
+	| None -> e, None
+	| Some(ty, sc) ->
+	   make (Etypeconstraint(e, ty)) 
+	   $startpos(ty_constraints_opt) $endpos(ty_constraints_opt), sc in
+      EQsizefun(ide, constraints_opt, ide_list, e) }
+  /* f<<n1,...,nk>>(x1,...,xp) = e */
   | i = is_inline a = is_atomic k = fun_kind_opt ide = ide 
         LLESSER ide_list = list_of(COMMA, ide) GGREATER 
        v_p_list_list = param_list_list r = result
-    { EQsizefun(ide, ide_list, funexp i a k v_p_list_list r 
-			       $startpos(v_p_list_list) $endpos) }
+    { EQsizefun(ide, None, ide_list, funexp i a k v_p_list_list r 
+				     $startpos(v_p_list_list) $endpos) }
+;
+
+colon_type_expression_with_constraints:
+  | COLON ty = no_constraints_type_expression
+    { ty, None }
+  | COLON ty = no_constraints_type_expression WITH sc = constraints
+    { ty, Some(sc) }
 ;
 
 fun_definition:
@@ -1532,16 +1547,67 @@ infx:
 
 
 /* Type expressions */
-type_expression:
+no_constraints_type_expression:
   | t = simple_type_expression
       { t }
-  | tl = type_star_list
+  | tl = simple_type_star_list
       { make(Etypetuple(List.rev tl)) $startpos $endpos }
-  | t_arg = type_expression a = arrow t_res = type_expression
+  | t_arg = no_constraints_type_expression a = arrow
+    t_res = no_constraints_type_expression
       { make(Etypefun(a, None, t_arg, t_res)) $startpos $endpos }
-  | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
-			    a = arrow t_res = type_expression
+  | LPAREN id = IDENT COLON t_arg = no_constraints_type_expression RPAREN
+			    a = arrow t_res = no_constraints_type_expression
     { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos }
+  | LLESSER ide_list = list_of(COMMA, ide) GGREATER DOT
+      t_arg = no_constraints_type_expression
+    { make(Etypesizefun(ide_list, t_arg,
+			make Econstraints_True $startpos $endpos))
+      $startpos $endpos }
+;
+
+type_expression:
+  | t = no_constraints_type_expression
+      { t }
+  | LLESSER ide_list = list_of(COMMA, ide) GGREATER DOT
+      t_arg = no_constraints_type_expression WITH sc = constraints
+    { make(Etypesizefun(ide_list, t_arg, sc)) $startpos $endpos }
+;
+
+constraints:
+  | sc = localized(constraints_desc)
+    { sc }
+;
+
+constraints_desc:
+  | e1 = size_expression EQUAL e2 = size_expression
+    { Econstraints_Rel { rel = Eq; lhs = e1; rhs = e2 } }
+  | e1 = size_expression LESSER e2 = size_expression
+    { Econstraints_Rel { rel = Lt; lhs = e1; rhs = e2 } }
+  | e1 = size_expression LESSER EQUAL e2 = size_expression
+    { Econstraints_Rel { rel = Lte; lhs = e1; rhs = e2 } }
+  | e1 = size_expression GREATER e2 = size_expression
+    { Econstraints_Rel { rel = Lt; lhs = e2; rhs = e1 } }
+  | e1 = size_expression GREATER EQUAL e2 = size_expression
+    { Econstraints_Rel { rel = Lte; lhs = e2; rhs = e1 } }
+  | sc1 = constraints AMPERAMPER sc2 = constraints
+    { Econstraints_And [sc1; sc2] }
+  | IF sc = constraints THEN sc1 = constraints ELSE sc2 = constraints
+      { Econstraints_If(sc, sc1, sc2) }
+  | FORALL ide = ide LESSER e = size_expression DO sc = constraints DONE
+      { Econstraints_Forall(ide, e, sc) }
+  | LET REC ide_ide_list_sc_list = list_of(AND, let_constraints)
+    IN sc = constraints
+      { Econstraints_Fix(ide_ide_list_sc_list, sc) }
+  | ide = ide LPAREN e_list = list_of(COMMA, size_expression) RPAREN
+      { Econstraints_App(ide, e_list) }
+  | LPAREN sc_desc = constraints_desc RPAREN
+    { sc_desc }
+;
+
+/* n (n1, ..., nk) = sc */
+let_constraints:
+  ide = ide LPAREN ide_list = list_of(COMMA, ide) RPAREN EQUAL sc = constraints
+    { (ide, ide_list, sc) }
 ;
 
 simple_type_expression:
@@ -1572,10 +1638,10 @@ atomic_type_expression:
       { t }
 ;
 
-type_star_list:
+simple_type_star_list:
   | t1 = simple_type_expression STAR t2 = simple_type_expression
       { [t2; t1] }
-  | tsl = type_star_list STAR t = simple_type_expression
+  | tsl = simple_type_star_list STAR t = simple_type_expression
       { t :: tsl }
 ;
 

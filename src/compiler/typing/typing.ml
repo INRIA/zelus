@@ -1769,7 +1769,7 @@ and sizefun_list_t l_rec h sizefun_list =
   (* types [ty_body_1;...;ty_body_k] for functions [f1;...;f_k] *)
   let expected_ty_body_list =
     List.map
-      (fun { sf_e } ->intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
+      (fun { sf_e } -> intro_skeleton_type_of_expression (Tfun(Tconst)) sf_e)
       sizefun_list in
   (* initial typing environment *)
   (* [f_1: <<n_11,...>>.t_1 with [is_rec] f_1(id_rec_list);...;
@@ -2038,8 +2038,6 @@ and for_eq_t
   f.for_out_env <- h_out;
   (* remove entries for variables introduced with [... as x] *)
   let h_out = remove_entry_for_as_variables_in_env h_out in
-  let l1 = Env.to_list h in
-  let l2 = Env.to_list h_out in
   let d_names =
     List.fold_left
       (defnames_for_out d_names) Defnames.empty for_out in
@@ -2212,7 +2210,8 @@ and forloop_eq loc expected_k h
 
 (* A size function definition [f<<n,...>> = e] has type *)
 (* <<n,...>>.ty_body with c] where [c] constraints [n,...] *)
-and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f) ty_body =
+and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f)
+          ty_body =
   let entry acc id = 
     Env.add id
       (Deftypes.size_entry Tconst (Deftypes.scheme Initial.typ_int)) acc in

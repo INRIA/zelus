@@ -46,19 +46,41 @@ and type_expression_desc =
   | Etypetuple : type_expression list -> type_expression_desc
   | Etypefun : kind * name option * type_expression * type_expression ->
                type_expression_desc
-  | Etypesizefun : name list * type_expression ->
+  | Etypesizefun : name list * type_expression * size constraints ->
                type_expression_desc (* <<n1,...,nk>>.ty *)
   | Etypevec : type_expression * size -> type_expression_desc
 
 and size = size_desc localized
 
 and size_desc =
-  | Size_int of int
-  | Size_var of name
-  | Size_frac of size * int
-  | Size_op of op * size * size
+  | Size_int : int -> size_desc
+  | Size_var : name -> size_desc
+  | Size_frac : size * int -> size_desc
+  | Size_op : op * size * size -> size_desc
 
 and op = Size_plus | Size_minus | Size_mult
+
+and 'e constraints = 'e constraints_desc localized
+
+and 'e constraints_desc =
+  | Econstraints_Rel : 'e rel -> 'e constraints_desc (* e rel e *)
+  | Econstraints_And :
+      'e constraints list -> 'e constraints_desc (* [sc and ... and sc] *)
+  | Econstraints_Let : (name * 'e) list * 'e constraints -> 'e constraints_desc
+  (* local binding *)
+  | Econstraints_App : name * 'e list -> 'e constraints_desc (* [f e1 ... en] *) 
+  | Econstraints_Fix : (name * name list * 'e constraints) list * 'e constraints
+           -> 'e constraints_desc
+  (* definition of mutually recursive functions on sizes *)
+  | Econstraints_If :
+      'e constraints * 'e constraints * 'e constraints -> 'e constraints_desc
+  (* if c1 then c2 else c3 *)
+  | Econstraints_Forall : name * 'e * 'e constraints -> 'e constraints_desc 
+  (* forall i in e .. e do c *)
+  | Econstraints_True | Econstraint_False
+
+and 'a rel = { rel: rel_op; lhs: 'a; rhs: 'a }
+and rel_op = Eq | Lt | Lte
 
 (* constants *)
 type immediate =
@@ -239,7 +261,8 @@ and eq = eq_desc localized
 and eq_desc =
   | EQeq : pattern * exp -> eq_desc
   (* [p = e] *)
-  | EQsizefun : name * name list * exp -> eq_desc
+  | EQsizefun :
+      name * size constraints option * name list * exp -> eq_desc
   (* a size-parameterized expression [id <n1,...,nk> = e] *)
   | EQder :
       name * exp * exp option * (scondpat, exp) present_handler list -> eq_desc

@@ -49,7 +49,9 @@ and type_expression_desc =
         ty_arg : type_expression; ty_res : type_expression }
   (* array: [size]t defines an array of size [t] with values of type [t] *)
   | Etypesizefun of { id_list: Ident.t list;
-                      ty: type_expression } (* <<n1,...,nk>>.ty *)
+                      ty: type_expression;
+                      constraints: size_expression constraints
+                    } (* <<n1,...,nk>>.ty *)
   | Etypevec of type_expression * size_expression
 
 and is_singleton = bool
@@ -64,6 +66,23 @@ and size_expression_desc =
   | Size_op of op * size_expression * size_expression 
 
 and op = | Size_plus | Size_minus | Size_mult 
+
+and 'e constraints = 'e constraints_desc localized
+
+and 'e constraints_desc =
+  | Econstraints_Rel of 'e rel (* e rel e *)
+  | Econstraints_And of 'e constraints list (* [sc and ... and sc] *)
+  | Econstraints_Let of (Ident.t * 'e) list * 'e constraints (* local binding *)
+  | Econstraints_App of Ident.t * 'e list (* [f e1 ... en] *) 
+  | Econstraints_Fix of
+      (Ident.t * Ident.t list * 'e constraints) list * 'e constraints
+  | Econstraints_If of 'e constraints * 'e constraints * 'e constraints
+  | Econstraints_Forall of Ident.t * 'e * 'e constraints
+  (* forall i in e .. e do c *)
+  | Econstraints_True | Econstraints_False
+
+and 'a rel = { rel: rel_op; lhs: 'a; rhs: 'a }
+and rel_op = Eq | Lt | Lte
 
 (* the two forms of [last]; [last x] and [last* x] *)
 type last =
@@ -491,6 +510,7 @@ and ('info, 'ienv) sizefun =
     sf_id_list: Ident.t list;
     sf_e : ('info, 'ienv) exp;
     sf_loc: Location.t;
+    sf_constraints: size_expression constraints option;
     mutable sf_env: 'ienv Ident.Env.t;
   }
 

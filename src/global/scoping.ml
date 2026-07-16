@@ -199,10 +199,11 @@ module Make (Info: INFO) =
            let ty_res = types env ty_res in
            Zelus.Etypefun
              { ty_kind = kind k; ty_name_opt = n_opt; ty_arg; ty_res }
-        | Etypesizefun(id_list, ty) ->
+        | Etypesizefun(id_list, ty, sc) ->
            let id_list, env = Util.mapfold rename env id_list in
            let ty = types env ty in
-           Zelus.Etypesizefun { id_list; ty }
+           let sc = constraints env sc in
+           Zelus.Etypesizefun { id_list; ty; constraints = sc }
         | Etypevec(ty_arg, si) ->
            Zelus.Etypevec(types env ty_arg, size env si) in
       { Zelus.desc = desc; Zelus.loc = loc }
@@ -220,6 +221,56 @@ module Make (Info: INFO) =
         | Size_op(op, s1, s2) ->
            Zelus.Size_op(operator op, size env s1, size env s2) in
       { desc; loc }
+
+    (* constraints *)
+    and constraints env { desc; loc } =
+      let desc = match desc with
+        | Econstraints_True -> Zelus.Econstraints_True
+      | Econstraint_False -> Zelus.Econstraints_False
+      | Econstraints_Forall(n, e, sc) ->
+         let e = size env e in
+         let m = fresh n in
+         let env = Env.add n m env in
+         Zelus.Econstraints_Forall(m, e, constraints env sc)
+      | Econstraints_If(sc, sc1, sc2) ->
+         Econstraints_If(constraints env sc, constraints env sc1,
+                        constraints env sc2)
+      | Econstraints_Let(n_e_list, sc) ->
+         let n_e_list, env =
+           Util.mapfold
+             (fun env (n, e) -> let m = fresh n
+                                in (m, size env e), Env.add n m env) 
+             env n_e_list in
+         Zelus.Econstraints_Let(n_e_list, constraints env sc)
+      | Econstraints_App(n, e_list) ->
+         Zelus.Econstraints_App(name loc env n, List.map (size env) e_list)
+      | Econstraints_Fix(n_n_list_sc_list, sc) ->
+         (* first: renaming environment for function names *)
+         let m_n_list_sc_list, env =
+           Util.mapfold
+             (fun env (n, n_list, sc) -> let m = fresh n in
+                                         (m, n_list, sc), Env.add n m env)
+         env n_n_list_sc_list in
+         (* second: rename every entry *)
+         let m_n_list_sc_list =
+           List.map (fun (m, n_list, sc) ->
+               let n_list, env =
+                 Util.mapfold (fun env n -> let m = fresh n in
+                                            m, Env.add n m env) env n_list in
+               (m, n_list, constraints env sc))
+             m_n_list_sc_list in
+         (* third: rename the in part *)
+         let sc = constraints env sc in
+         Zelus.Econstraints_Fix(m_n_list_sc_list, sc)
+      | Econstraints_And(sc_list) ->
+         Zelus.Econstraints_And(List.map (constraints env) sc_list)
+      | Econstraints_Rel { rel; lhs; rhs } ->
+         Zelus.Econstraints_Rel
+           { Zelus.rel = rel_op rel; lhs = size env lhs; rhs = size env rhs } in
+      { Zelus.desc = desc; Zelus.loc = loc }
+
+    and rel_op = function Eq -> Zelus.Eq | Lt -> Zelus.Lt | Lte -> Zelus.Lte
+         
     
     (** Build a renaming environment **)
     (* if [check_linear = true], stop when the same name appears twice *)
@@ -274,7 +325,7 @@ module Make (Info: INFO) =
     let rec buildeq defnames { desc } =
       match desc with
       | EQeq(pat, _) -> buildpat false defnames pat
-      | EQsizefun(x, _, _) | EQder(x, _, _, _) | EQinit(x, _) | EQemit(x, _) -> 
+      | EQsizefun(x, _, _, _) | EQder(x, _, _, _) | EQinit(x, _) | EQemit(x, _) -> 
          S.add x defnames
       | EQreset(eq, _) -> buildeq defnames eq
       | EQand(and_eq_list) ->
@@ -460,7 +511,7 @@ module Make (Info: INFO) =
            let pat = pattern_translate env_pat pat in
            let e = expression env e in
            Zelus.EQeq(pat, e)
-        | EQsizefun(x, x_list, e) ->
+        | EQsizefun(x, constraints_opt, x_list, e) ->
            let x = name loc env_pat x in
            (* build the renaming *)
            let x_list, x_env = 
@@ -470,8 +521,11 @@ module Make (Info: INFO) =
                  then Error.error loc (Error.Enon_linear_pat(n))
                  else let m = fresh n in m, Env.add n m acc) Env.empty x_list in
            let env = Env.append x_env env in
+           let sf_constraints =
+             Util.optional_map (constraints env) constraints_opt in
            Zelus.EQsizefun
-             { sf_id = x; sf_id_list = x_list; sf_e = expression env e;
+             { sf_id = x; sf_constraints;
+               sf_id_list = x_list; sf_e = expression env e;
                sf_loc = loc; sf_env = Ident.Env.empty }
         | EQder(x, e, e_opt, p_h_list) ->
            Zelus.EQder
