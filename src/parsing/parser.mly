@@ -1595,17 +1595,26 @@ constraints_desc:
       { Econstraints_If(sc, sc1, sc2) }
   | FORALL ide = ide LESSER e = size_expression DO sc = constraints DONE
       { Econstraints_Forall(ide, e, sc) }
-  | LET REC ide_ide_list_sc_list = list_of(AND, let_constraints)
+  | LET n_e_list = list_of(AND, let_size)
     IN sc = constraints
+      { Econstraints_Let(n_e_list, sc) }
+  | LET REC ide_ide_list_sc_list = list_of(AND, letrec_constraint) IN sc = constraints
       { Econstraints_Fix(ide_ide_list_sc_list, sc) }
   | ide = ide LPAREN e_list = list_of(COMMA, size_expression) RPAREN
       { Econstraints_App(ide, e_list) }
   | LPAREN sc_desc = constraints_desc RPAREN
     { sc_desc }
+  | v = BOOL
+    { if v then Econstraints_True else Econstraints_False }
 ;
 
+/* n = e */
+let_size:
+  ide = ide EQUAL e = size_expression
+    { ide, e }
+;
 /* n (n1, ..., nk) = sc */
-let_constraints:
+letrec_constraint:
   ide = ide LPAREN ide_list = list_of(COMMA, ide) RPAREN EQUAL sc = constraints
     { (ide, ide_list, sc) }
 ;
