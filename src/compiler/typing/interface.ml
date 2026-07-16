@@ -182,9 +182,10 @@ let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
        let ty_res, acc = typrec acc ty_res in
        Types.arrow
          (kindtype ty_kind) ty_name_opt ty_arg ty_res, acc
-    | Etypesizefun { id_list; ty } ->
+    | Etypesizefun { id_list; ty; constraints } ->
        let ty, acc = typrec acc ty in
-       Types.sizefun id_list ty Defsizes.True false, acc
+       let constraints = constraints_t constraints in
+       Types.sizefun id_list ty constraints false, acc
     | Etypevec(ty, si) ->
        let ty, acc = typrec acc ty in
        Types.vec ty (size si), acc
@@ -199,7 +200,31 @@ let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
 	 match op with
          | Size_plus -> Defsizes.Splus | Size_minus -> Defsizes.Sminus
          | Size_mult -> Defsizes.Smult in
-       Defsizes.Sop(op, size si1, size si2) in
+       Defsizes.Sop(op, size si1, size si2)
+  and constraints_t { desc } =
+    match desc with
+    | Econstraints_Rel { rel; lhs; rhs } ->
+       let rel = match rel with
+         | Eq -> Defsizes.Eq | Lt -> Defsizes.Lt | Lte -> Defsizes.Lte in
+       Rel { rel = rel; lhs = size lhs; rhs = size rhs }
+    | Econstraints_And(sc_list) ->
+       And(List.map constraints_t  sc_list)
+    | Econstraints_Let(n_e_list, sc) ->
+       Let(List.map (fun (n, e) -> (n, size e)) n_e_list, constraints_t  sc)
+    | Econstraints_App(n, e_list) ->
+       App(n, List.map size e_list)
+    | Econstraints_Fix(n_n_list_sc_list, sc) ->
+       let n_n_list_sc_list =
+         List.map (fun (n, n_list, sc) -> (n, n_list, constraints_t  sc))
+           n_n_list_sc_list in
+       Fix(n_n_list_sc_list, constraints_t  sc)
+    | Econstraints_If(sc, sc1, sc2) ->
+       If(constraints_t sc, constraints_t  sc1, constraints_t  sc2)
+    | Econstraints_Forall(n, e, sc) ->
+       Forall(n, size e, constraints_t  sc)
+    | Econstraints_True -> True
+    | Econstraints_False -> False
+  in
   typrec typ_vars_wildcard typ
 
 let typ_of_type_expression_with_wildcard typ_vars typ =
@@ -222,10 +247,11 @@ let check_no_unbounded_size_variable_in_type_expr h ty_exp =
        let bounded =
          match ty_name_opt with None -> bounded | Some(x) -> S.add x bounded in
        check bounded ty_res
-    | Etypesizefun { id_list; ty } ->
+    | Etypesizefun { id_list; ty; constraints } ->
        let bounded =
          List.fold_left (fun acc n -> S.add n acc) bounded id_list in
-       check bounded ty
+       check bounded ty;
+       check_constraints bounded constraints
     | Etypevec(ty, si) ->
        check bounded ty;
        check_size bounded si
@@ -236,7 +262,41 @@ let check_no_unbounded_size_variable_in_type_expr h ty_exp =
        then error loc (Eunbound_size_var(Ident.source n))
     | Size_int _ -> ()
     | Size_frac { num } -> check_size bounded num
-    | Size_op(_, si1, si2) -> check_size bounded si1; check_size bounded si2 in
+    | Size_op(_, si1, si2) -> check_size bounded si1; check_size bounded si2
+  and check_constraints bounded { desc; loc } =
+    match desc with
+    | Econstraints_Rel { lhs; rhs } ->
+       check_size bounded lhs; check_size bounded rhs
+    | Econstraints_And(sc_list) ->
+       List.iter (check_constraints bounded) sc_list
+    | Econstraints_Let(n_e_list, sc) ->
+       let _, bounded =
+         Util.mapfold
+           (fun bounded (n, e) -> check_size bounded e, S.add n bounded)
+           bounded n_e_list in
+       check_constraints bounded sc
+    | Econstraints_App(n, e_list) ->
+       if not (S.mem n bounded) || (Env.mem n h)
+       then error loc (Eunbound_size_var(Ident.source n))
+    | Econstraints_Fix(n_n_list_sc_list, sc) ->
+       let _, bounded =
+         Util.mapfold
+           (fun bounded (n, _, _) -> (), S.add n bounded)
+           bounded n_n_list_sc_list in
+       List.iter (fun (_, n_list, sc) ->
+           let bounded =
+             List.fold_left (fun bounded n -> S.add n bounded) bounded n_list in
+           check_constraints bounded sc) n_n_list_sc_list;
+       check_constraints bounded sc
+    | Econstraints_If(sc, sc1, sc2) ->
+       check_constraints bounded sc;
+       check_constraints bounded sc1;
+       check_constraints bounded sc2
+    | Econstraints_Forall(n, e, sc) ->
+       let bounded = S.add n bounded in
+       check_size bounded e;
+       check_constraints bounded sc
+    | Econstraints_True | Econstraints_False -> () in
   check S.empty ty_exp
 
 let rec type_expression_of_typ typ =
@@ -262,6 +322,7 @@ let rec type_expression_of_typ typ =
        (ty_name_opt, type_expression_of_typ ty_arg)
        (type_expression_of_typ ty_res)
   | Tsizefun { id_list; ty } ->
+     (* the size constraints is discarded *)
      let ty_int = make (Etypeconstr(Lident.Modname(Initial.int_ident),[])) in
      arrow_list (Kfun(Kconst))
        (List.map (fun _ -> (None, ty_int)) id_list)
