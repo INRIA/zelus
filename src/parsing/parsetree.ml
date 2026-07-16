@@ -77,7 +77,7 @@ and 'e constraints_desc =
   (* if c1 then c2 else c3 *)
   | Econstraints_Forall : name * 'e * 'e constraints -> 'e constraints_desc 
   (* forall i in e .. e do c *)
-  | Econstraints_True | Econstraint_False
+  | Econstraints_True | Econstraints_False : 'e constraints_desc
 
 and 'a rel = { rel: rel_op; lhs: 'a; rhs: 'a }
 and rel_op = Eq | Lt | Lte
