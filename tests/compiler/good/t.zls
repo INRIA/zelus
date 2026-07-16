@@ -1,3 +1,11 @@
+let gg<<n>> : [n]_ -> [n]_ with n < 42 = fun x -> x
+
+(* let ff<<n>>(x) returns (o:[n]_) with (n >= 42)
+  o = [|1|] ++ x.(0..n-2) *)
+  
+let ff : <<n>> . (int -> bool) with n > 42 = fun x -> x.(0)
+  
+
 let f1 g x y = g x y
 
 let g1 x y = x + y
