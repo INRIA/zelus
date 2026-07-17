@@ -62,7 +62,7 @@
 let node sequential_and_gate(x,y) returns (z)
     if x then z = y else z = false
 
-let node sequential_or_gate(x,y) returns (z)
+let node sequential_or_gate1(x,y) returns (z)
     if x then z = true else z = y
 
 let node sequential_or_gate(x, y) = if x then true else y
