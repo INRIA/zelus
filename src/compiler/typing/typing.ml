@@ -2209,8 +2209,9 @@ and forloop_eq loc expected_k h
   d_names, actual_k
 
 (* A size function definition [f<<n,...>> = e] has type *)
-(* <<n,...>>.ty_body with c] where [c] constraints [n,...] *)
-and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f)
+(* <<n,...>>.ty_body with sc] where [sc] is a size constraint *)
+(* if an explicit size constraint is given, it is added to the synthesized ones *)
+and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_constraints; sf_loc } as f)
           ty_body =
   let entry acc id = 
     Env.add id
@@ -2226,6 +2227,11 @@ and sizefun_t h ({ sf_id; sf_id_list; sf_e; sf_loc } as f)
   unify_expr sf_e ty_res ty_body;
   (* pop the current size constraint *)
   let constraints = Defsizes.pop () in
+  (* add [sf_constraints] to the set of constraints *)
+  let constraints =
+    Util.optional
+      (fun acc sc -> let sc = Interface.constraints_t sc in
+                     Sizes.and_t acc sc) constraints sf_constraints in
   sf_id, sf_id_list, ty_res, constraints
   
 (* the main entry functions *)

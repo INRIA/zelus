@@ -594,7 +594,15 @@ let conditional sc sc_true sc_false =
     | True, _, _ -> sc_true 
     | False, _, _ -> sc_false 
     | _, True, False -> sc
-    | _ -> if sc_true = sc_false then sc_true else If(sc, sc_true, sc_false)
+    | _ -> (* if sc then sc_true else sc_true = sc_true *)
+       if sc_true = sc_false then sc_true else If(sc, sc_true, sc_false)
+
+let and_t sc1 sc2 =
+  match sc1, sc2 with
+  | True, _ -> sc2
+  | _, True -> sc1
+  | (False,_) | (_, False) -> False
+  | _ -> And[sc1; sc2]
 
 let forall id e sc =
   match sc with | True -> True | False -> False | sc -> Forall(id, e, sc)
