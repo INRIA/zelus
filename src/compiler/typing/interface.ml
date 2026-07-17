@@ -155,6 +155,45 @@ let skindoftype = function
 let kindoftype = function
   | Tfun(k) -> Kfun(skindoftype k) | Tnode(k) -> Knode(tkindoftype k)
 
+(* convert an explicit size and size constraint written in the source program *)
+(* into an internal representation *)
+let rec size { desc } =
+  match desc with
+  | Size_var(n) -> Defsizes.Svar(n)
+  | Size_int(i) -> Defsizes.Sint(i)
+  | Size_frac { num; denom } ->
+     Defsizes.Sfrac { num = size num; denom }
+  | Size_op(op, si1, si2) ->
+     let op =
+       match op with
+       | Size_plus -> Defsizes.Splus | Size_minus -> Defsizes.Sminus
+       | Size_mult -> Defsizes.Smult in
+     Defsizes.Sop(op, size si1, size si2)
+
+let rec constraints_t { desc } =
+  match desc with
+  | Econstraints_Rel { rel; lhs; rhs } ->
+     let rel = match rel with
+       | Eq -> Defsizes.Eq | Lt -> Defsizes.Lt | Lte -> Defsizes.Lte in
+     Rel { rel = rel; lhs = size lhs; rhs = size rhs }
+  | Econstraints_And(sc_list) ->
+     And(List.map constraints_t  sc_list)
+  | Econstraints_Let(n_e_list, sc) ->
+     Let(List.map (fun (n, e) -> (n, size e)) n_e_list, constraints_t  sc)
+  | Econstraints_App(n, e_list) ->
+     App(n, List.map size e_list)
+  | Econstraints_Fix(n_n_list_sc_list, sc) ->
+     let n_n_list_sc_list =
+       List.map (fun (n, n_list, sc) -> (n, n_list, constraints_t  sc))
+         n_n_list_sc_list in
+     Fix(n_n_list_sc_list, constraints_t  sc)
+  | Econstraints_If(sc, sc1, sc2) ->
+     If(constraints_t sc, constraints_t  sc1, constraints_t  sc2)
+  | Econstraints_Forall(n, e, sc) ->
+     Forall(n, size e, constraints_t  sc)
+  | Econstraints_True -> True
+  | Econstraints_False -> False
+   
 (* [typ_vars] is an environment [name -> typ_var] *)
 (* [typ_vars_wildcard] is a list of fresh and unique type variables *)
 let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
@@ -188,43 +227,7 @@ let typ_of_type_expression with_wildcard typ_vars typ_vars_wildcard typ =
        Types.sizefun id_list ty constraints false, acc
     | Etypevec(ty, si) ->
        let ty, acc = typrec acc ty in
-       Types.vec ty (size si), acc
-  and size { desc } =
-    match desc with
-    | Size_var(n) -> Defsizes.Svar(n)
-    | Size_int(i) -> Defsizes.Sint(i)
-    | Size_frac { num; denom } ->
-       Defsizes.Sfrac { num = size num; denom }
-    | Size_op(op, si1, si2) ->
-       let op =
-	 match op with
-         | Size_plus -> Defsizes.Splus | Size_minus -> Defsizes.Sminus
-         | Size_mult -> Defsizes.Smult in
-       Defsizes.Sop(op, size si1, size si2)
-  and constraints_t { desc } =
-    match desc with
-    | Econstraints_Rel { rel; lhs; rhs } ->
-       let rel = match rel with
-         | Eq -> Defsizes.Eq | Lt -> Defsizes.Lt | Lte -> Defsizes.Lte in
-       Rel { rel = rel; lhs = size lhs; rhs = size rhs }
-    | Econstraints_And(sc_list) ->
-       And(List.map constraints_t  sc_list)
-    | Econstraints_Let(n_e_list, sc) ->
-       Let(List.map (fun (n, e) -> (n, size e)) n_e_list, constraints_t  sc)
-    | Econstraints_App(n, e_list) ->
-       App(n, List.map size e_list)
-    | Econstraints_Fix(n_n_list_sc_list, sc) ->
-       let n_n_list_sc_list =
-         List.map (fun (n, n_list, sc) -> (n, n_list, constraints_t  sc))
-           n_n_list_sc_list in
-       Fix(n_n_list_sc_list, constraints_t  sc)
-    | Econstraints_If(sc, sc1, sc2) ->
-       If(constraints_t sc, constraints_t  sc1, constraints_t  sc2)
-    | Econstraints_Forall(n, e, sc) ->
-       Forall(n, size e, constraints_t  sc)
-    | Econstraints_True -> True
-    | Econstraints_False -> False
-  in
+       Types.vec ty (size si), acc in
   typrec typ_vars_wildcard typ
 
 let typ_of_type_expression_with_wildcard typ_vars typ =
