@@ -1,6 +1,6 @@
 let rec node fby_ <<n>>(y) returns (o)
-  if n = 0 then do o = y done
-  else do o = 0 fby (run (fby_<<n-1>>)(y)) done
+  match size n with
+  | 0 -> do o = y done | _ -> do o = 0 fby (run (fby_<<n-1>>)(y)) done
 
 let node r2 x = run (fby_<<4>>)(x)
  

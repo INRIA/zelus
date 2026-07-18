@@ -1,4 +1,4 @@
-let h1 x returns (y, z)
+let node h1 x returns (y, z)
   local m in
   match x with
   | true -> do y, z = true, true and m = 2 done

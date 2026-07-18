@@ -5,6 +5,7 @@ let node main1 () returns (cpt1, cpt2)
         | A -> do cpt1 = 0 -> pre cpt1 + 1 unless rst then A
         end
     and reset cpt2 = 0 -> pre cpt2 + 1 every rst
+    and cpt1 = 0 -> pre cpt1 + 1
    done
 
 let node main() returns (cpt)
