@@ -539,7 +539,9 @@ let localise f_env n_env sc =
     | True | False | Rel _ | App _ ->
        let v = eval_constraint_no_failure f_loc_list f_env n_env sc in
        if v then true
-       else raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
+       else
+         let n_env = clear n_env sc in
+         raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
     | And(sc_list) ->
        List.for_all (localise f_loc_list f_env n_env) sc_list
     | Let(id_e_list, sc) ->
@@ -577,7 +579,6 @@ let localise f_env n_env sc =
     with
     | Maybe ->
        raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc }) in
->>>>>>> bab6a84bf552b668ce9a9f1a4dcc43f2f89de46a
   try
     let _ = localise [] f_env n_env sc in assert false
   with
