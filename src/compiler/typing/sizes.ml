@@ -515,8 +515,8 @@ let rec fv_constraints bounded acc sc =
   | Loc(_, sc) -> fv_constraints bounded acc sc
 
 (* Localisation of errors when a constraints is not satisfied *)
-(* The check function and the localisation function could be merged *)
-(* into one for better efficiency *)
+(* it returns a sub-constraints [sc_returns] of [sc] *)
+(* and the environment for free variables in [sc_returns] *)
 let localise f_env n_env sc =
   (* simplify an environment; keep only entries in [n_env] that *)
   (* are free in [sc] *)
@@ -526,20 +526,22 @@ let localise f_env n_env sc =
   let exception Error of 
         { f_loc_list: Location.ft list; (* [floc1;...;flocn] *)
           (* list of file/location in the source *)
-          (* to get constraint [sc] which is unsatisfied *)
-          (* in environment [env] *)
-          (* [floc1] is the closest *)
+          (* to get constraint [nested_sc] that is wrong *)
+          (* and the evaluation environment [nested_env] used to evaluate *)
+          (* [nested_sc] *)
+          (* [floc1] is the closest location *)
           nested_env: int Env.t; (* environment for size variables *)
-          nested_sc: exp constraints
-          (* the size expression that is not satisfied *)
+          (* the size constraint that is not satisfied *)
+          nested_sc: exp constraints;          
         } in
   let rec localise f_loc_list f_env n_env sc =
     match sc with
     | True | False | Rel _ | App _ ->
-       let v = eval_constraint_not_maybe f_loc_list f_env n_env sc in
-       let n_env = clear n_env sc in
+       let v = constraint_is_true f_loc_list f_env n_env sc in
        if v then true
-       else raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
+       else
+         let n_env = clear n_env sc in
+         raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
     | And(sc_list) ->
        List.for_all (localise f_loc_list f_env n_env) sc_list
     | Let(id_e_list, sc) ->
@@ -549,7 +551,7 @@ let localise f_env n_env sc =
            n_env id_e_list in
        localise f_loc_list f_env n_env sc
     | If(sc1, sc2, sc3) ->
-       if eval_constraint_not_maybe f_loc_list f_env n_env sc1 then
+       if constraint_is_true f_loc_list f_env n_env sc1 then
          localise f_loc_list f_env n_env sc2 
        else localise f_loc_list f_env n_env sc3
     | Fix(id_id_list_sc_list, sc) ->
@@ -567,12 +569,13 @@ let localise f_env n_env sc =
        for_all (v-1)
          (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc_body)
     | Loc(f_loc, sc) -> localise (f_loc :: f_loc_list) f_env n_env sc
-  and eval_constraint_not_maybe f_loc_list f_env n_env sc =
+  (* evaluate a constraint; if Maybe is raised, raise an error *)
+  and constraint_is_true f_loc_list f_env n_env sc =
     try
       eval_constraint f_env n_env sc
     with
-    | Maybe -> raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc }) in
-
+    | Maybe ->
+       raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc }) in
   try
     let _ = localise [] f_env n_env sc in assert false
   with
