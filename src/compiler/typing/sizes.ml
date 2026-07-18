@@ -402,18 +402,18 @@ let syntactic_equal si1 si2 =
   equal si1 si2
 
 (* evaluation of sizes. Raises Maybe if it contains un unbound variable *)
-let rec eval n_env si =
+let rec eval_size n_env si =
   match si with
   | Sint(i) -> i
   | Sfrac { num; denom} ->
-      let v = eval n_env num in
+      let v = eval_size n_env num in
       v / denom
   | Svar(x) ->
       let v =
         try Env.find x n_env with Not_found -> raise Maybe in v
   | Sop(op, si1, si2) ->
-     let v1 = eval n_env si1 in
-     let v2 = eval n_env si2 in
+     let v1 = eval_size n_env si1 in
+     let v2 = eval_size n_env si2 in
      let op = match op with | Splus -> (+) | Smult -> ( * ) | Sminus -> (-) in
      op v1 v2
 
@@ -443,22 +443,22 @@ let rec eval_constraint f_env n_env sc =
   | True -> true
   | False -> false
   | Rel { rel; lhs; rhs } ->
-     let v1 = eval n_env lhs in
-     let v2 = eval n_env rhs in
+     let v1 = eval_size n_env lhs in
+     let v2 = eval_size n_env rhs in
      let op = match rel with | Eq -> (=) | Lt -> (<) | Lte -> (<=) in
      op v1 v2
   | And(sc_list) -> List.for_all (eval_constraint f_env n_env) sc_list
   | Let(id_e_list, sc) ->
      let n_env =
        List.fold_left
-         (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
+         (fun acc (id, s) -> Env.add id (eval_size n_env s) acc) 
          n_env id_e_list in
      eval_constraint f_env n_env sc
   | If(sc1, sc2, sc3) ->
      if eval_constraint f_env n_env sc1 then eval_constraint f_env n_env sc2 
      else eval_constraint f_env n_env sc3
   | App(f, e_list) ->
-     let v_list = List.map (eval n_env) e_list in
+     let v_list = List.map (eval_size n_env) e_list in
      let v = try Env.find f f_env with Not_found -> raise Maybe in
      v v_list
   | Fix(id_id_list_sc_list, sc) ->
@@ -467,7 +467,7 @@ let rec eval_constraint f_env n_env sc =
   | Forall(id, e, sc) ->
      let rec for_all v f =
        if v <= 0 then true else (f v) && (for_all (v-1) f) in
-     let v = eval n_env e in
+     let v = eval_size n_env e in
      for_all (v-1) (fun v -> eval_constraint f_env (Env.add id v n_env) sc)
   | Loc(_, sc) -> eval_constraint f_env n_env sc
 
@@ -537,7 +537,7 @@ let localise f_env n_env sc =
   let rec localise f_loc_list f_env n_env sc =
     match sc with
     | True | False | Rel _ | App _ ->
-       let v = constraint_is_true f_loc_list f_env n_env sc in
+       let v = eval_constraint_no_failure f_loc_list f_env n_env sc in
        if v then true
        else
          let n_env = clear n_env sc in
@@ -547,11 +547,12 @@ let localise f_env n_env sc =
     | Let(id_e_list, sc) ->
        let n_env =
          List.fold_left
-           (fun acc (id, s) -> Env.add id (eval n_env s) acc) 
+           (fun acc (id, s) ->
+             Env.add id (eval_size_no_failure f_loc_list f_env n_env s) acc) 
            n_env id_e_list in
        localise f_loc_list f_env n_env sc
     | If(sc1, sc2, sc3) ->
-       if constraint_is_true f_loc_list f_env n_env sc1 then
+       if eval_constraint_no_failure f_loc_list f_env n_env sc1 then
          localise f_loc_list f_env n_env sc2 
        else localise f_loc_list f_env n_env sc3
     | Fix(id_id_list_sc_list, sc) ->
@@ -561,18 +562,20 @@ let localise f_env n_env sc =
     | Forall(id, e, sc_body) ->
        let rec for_all v f =
          if v <= 0 then true else (f v) && (for_all (v-1) f) in
-       let v =
-         try eval n_env e
-         with | Maybe ->
-                 raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
-       in
+       let v = eval_size_no_failure f_loc_list f_env n_env e in
        for_all (v-1)
          (fun v -> localise f_loc_list f_env (Env.add id v n_env) sc_body)
     | Loc(f_loc, sc) -> localise (f_loc :: f_loc_list) f_env n_env sc
   (* evaluate a constraint; if Maybe is raised, raise an error *)
-  and constraint_is_true f_loc_list f_env n_env sc =
+  and eval_constraint_no_failure f_loc_list f_env n_env sc =
     try
       eval_constraint f_env n_env sc
+    with
+    | Maybe ->
+       raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc })
+  and eval_size_no_failure f_loc_list f_env n_env e =
+    try
+      eval_size n_env e
     with
     | Maybe ->
        raise (Error { f_loc_list; nested_env = n_env; nested_sc = sc }) in
