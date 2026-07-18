@@ -334,7 +334,7 @@ let message loc kind =
       match f_loc_list with
       | [] -> ()
       | _ -> Format.fprintf ff
-               "@[This constraint is generated during the typing of \
+               "@[The constraint is generated during the typing of \
                 the following expressions:\n\
                 @[%a@]@,@]"
                Location.output_location_list f_loc_list in
