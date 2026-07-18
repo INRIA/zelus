@@ -1,4 +1,3 @@
-(* tester with: ../../zrun.exe -all -n 10 kalman.zls *)
 let transpose<<n,m>>(x:[n][m]_) returns (o:[m][n]_)
   forward<<m>> [j] returns (oj out o)
     do forward<<n>> [i] returns (oji out oj)
@@ -6,9 +5,10 @@ let transpose<<n,m>>(x:[n][m]_) returns (o:[m][n]_)
     done
 
 let test_transpose_empty =
-  assert(
+  assert (
     transpose<<0,2>>([||])
-    = [| [||]; [||] |])
+    = [| [||]; [||] |]
+  )
 
 let zeros_vec<<n>>() returns (o: [n]_)
   forward<<n>> returns (oi out o)
@@ -67,7 +67,7 @@ let mul_mat_diag<<n, m>>(l: [n][m]_, d: [m]_) returns (o: [n][m]_)
   forward<<n>>[i] (li in l) returns (oi out o)
     do oi = mul_ew_vec<<m>>(li, d) done
 
-let decompose_LDLt<<n>>(m: [n][n]int) returns (l: [n][n]_, d: [n]_)
+let decompose_LDLt<<n>>(m: [n][n]_) returns (l: [n][n]_, d: [n]_)
   local lT
   do forward<<n>>[j] (mTj in m.T) returns (lTj out lT as lT_, dj out d as d_)
     local mTjLj, mTjj, mTjRj, lTjLj, lTjj, lTjRj, l_, lLjLj, ljLj, lRjLj
@@ -75,10 +75,14 @@ let decompose_LDLt<<n>>(m: [n][n]int) returns (l: [n][n]_, d: [n]_)
     and mTjj = mTj.(j)
     and mTjRj = mTj.((j+1) ..)
     and lTj = lTjLj ++ [| lTjj |] ++ lTjRj
-    and l_ = transpose<<j, n>>(last lT_)
     and lLjLj = l_.(.. (j-1))
     and ljLj = l_.(j)
     and lRjLj = l_.((j+1) ..)
+
+    and forward<<n>> [v] returns (l_v out l_)
+      do forward(j) [u] returns (l_vu out l_v)
+             do l_vu = (last lT_).(u).(v) done
+      done
 
     and forward(j)[k] (ljk in ljLj, dk in last d_) returns (dj init mTjj)
       do dj = last dj -. (ljk *. ljk *. dk) done
@@ -89,25 +93,26 @@ let decompose_LDLt<<n>>(m: [n][n]int) returns (l: [n][n]_, d: [n]_)
     and lTjj = 1.0
     and forward(n-j-1)[ji] (liLj in lRjLj, mij in mTjRj) returns (lij out lTjRj)
       local lij_dj
-      do forward(j)[k] (ljk in ljLj, lik in liLj, dk in last d_)
-           returns (lij_dj init mij)
-          do lij_dj = last lij_dj -. lik *. ljk *. dk done
+      do forward(j)[k] (ljk in ljLj, lik in liLj, dk in last d_) returns (lij_dj init mij)
+        do lij_dj = last lij_dj -. lik *. ljk *. dk done
       and lij = lij_dj /. dj done
     done
   and
     l = lT.T
   done
 
-let inverse_L<<n>>(l: [n][n]int) returns (lI: [n][n]int)
+let inverse_L<<n>>(l: [n][n]_) returns (lI: [n][n]_)
   forward<<n>>[i] (li in l) returns (lIi out lI as lI_)
-    local lIiLi, lIii, lIiRi
-    do forward(i)[j]
-        (lI_Tj in (transpose<<i, n>>(last lI_)).(.. (i-1)), lij in li.(.. (i-1)))
-       returns (lIij out lIiLi)
-        do forward(i-j-1)[k] (lIkj in lI_Tj.((j+1) ..), lik in li.((j+1) .. (i-1)))
-           returns (lIij init (-. lij))
-            do lIij = last lIij -. lik *. lIkj done
-        done
+    local lIiLi, lIii, lIiRi, lIT_
+    do
+    forward<<n>> [v] returns (lIT_v out lIT_)
+      do forward(i) [u] returns (lIT_vu out lIT_v)
+             do lIT_vu = (last lI_).(u).(v) done
+      done
+    and forward(i)[j] (lI_Tj in (lIT_).(.. (i-1)), lij in li.(.. (i-1))) returns (lIij out lIiLi)
+      do forward(i-j-1)[k] (lIkj in lI_Tj.((j+1) ..), lik in li.((j+1) .. (i-1))) returns (lIij init (-. lij))
+        do lIij = last lIij -. lik *. lIkj done
+      done
     and lIii = 1.0
     and forward(n-i-1)[j] returns (lIij out lIiRi)
       do lIij = 0.0 done
@@ -126,20 +131,24 @@ let inverse_LDLt<<n>>(l: [n][n]_, d: [n]_) =
   let o = mul_mat_mat<<n, n, n>>(lIT_dI, lI) in
   (o: [n][n]_)
 
+(* Inverse a symmetric positive-definite matrix *)
+let inverse_P<<n>>(p: [n][n]_) =
+  let l, d = decompose_LDLt<<n>>(p) in
+  let o = inverse_LDLt<<n>>(l, d) in
+  (o: [n][n]_)
+
+
+let test_decompose_LDLt_3x3 () =
+  assert (
+    decompose_LDLt<<3>>([|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|])
+    = ([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
+  )
 
 let test_inverse_L_3x3 () =
   assert (
     inverse_L<<3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|])
     = [|[|1.0;0.0;0.0|]; [|-3.0;1.0;0.0|]; [|-54.0;-2.0;1.0|]|]
   )
-
-let test_decompose_LDLt_3x3 () =
-  let l, d = decompose_LDLt<<3>>([|[|2.0;6.0;120.0|];
-                                   [|6.0;22.0;368.0|];
-			           [|120.0;368.0;7224.0|]|]) in
-  let expected_l = [|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|] in
-  let expected_d = [|2.0;4.0;8.0|] in
-  assert (l = expected_l && d = expected_d)
 
 let test_inverse_D_3 () =
   assert (
@@ -149,29 +158,75 @@ let test_inverse_D_3 () =
 
 let test_mul_mat_diag_3x3 () =
   assert (
-    mul_mat_diag<<3, 3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|];
-                         [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
+    mul_mat_diag<<3, 3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
     = [|[|2.0;0.0;0.0|];[|6.0;4.0;0.0|];[|120.0;8.0;8.0|]|]
   )
 
 let test_inverse_LDLt_3x3 () =
   assert (
-    inverse_LDLt<<3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|];
-                      [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
+    inverse_LDLt<<3>>([|[|1.0;0.0;0.0|]; [|3.0;1.0;0.0|]; [|60.0;2.0;1.0|]|], [|2.0;4.0;8.0|])
     = [|[|367.25;12.75;-6.75|]; [|12.75;0.75;-0.25|]; [|-6.75;-0.25;0.125|]|]
   )
 
+(* utilitary functions: check that two floatting-points are close *)
+let diff v_diff v1 v2 = abs_float (v2 -. v1) <= v_diff
+let diff_check () = assert (diff 0.01 0.0 0.01)
+
+let diff_vec<<n>>(v_diff, x:[n]_,y:[n]_) =
+  forward<<n>>(xi in x, yi in y) returns (ok init true)
+    do ok = last ok && diff v_diff xi yi done
+
+(* the same for vectors *)
+let diff_vec_check () =
+  assert (diff_vec<<3>>(0.01,
+                        [|1.01; 2.02; 3.03|], [|1.011; 2.021; 3.031|]))
+
+(* the same for matrices *)
+let diff_mat_nested<<n,m>>(v_diff, x:[n][m]_,y:[n][m]_) =
+  forward<<n>>(xi in x, yi in y) returns (ok init true)
+    do ok = forward resume<<m>>(xij in xi, yij in yi) returns (ok init true)
+              do ok = last ok && (abs_float(yij -. xij) <= v_diff) done
+    done
+
+let diff_mat<<n,m>>(v_diff, x:[n][m]_,y:[n][m]_) =
+  forward<<n>>(xi in x, yi in y) returns (ok init true)
+    do ok = last ok && diff_vec<<m>>(v_diff, xi, yi) done
+
+let diff_mat_check () =
+  assert (diff_mat<<2, 3>>(0.01,
+    [|[|1.01; 2.02; 3.03|];
+    [|4.01; 5.02; 6.03|]|],
+    [|[|1.011; 2.021; 3.031|];
+    [|4.011; 5.021; 6.031|]|]))
+
 let test_inverse_P_3x3 () =
-  let m = [|[|367.25;12.75;-6.75|];
-                    [|12.75;0.75;-0.25|]; [|-6.75;-0.25;0.125|]|] in
-  ()
   (* TODO: assertion fails because of precision error *)
-  (* assert
-  inverse_P<<3>>(m)
-    = [|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|]
-  *)
-  
-let isnan(x: float) = is_nan x
+  (*assert ( *)
+    inverse_P<<3>>([|[|367.25;12.75;-6.75|]; [|12.75;0.75;-0.25|]; [|-6.75;-0.25;0.125|]|])
+  (*  = [|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|]
+  )*)
+
+(** Marc: 0.000000001 is enough; more precision is too much
+
+let m =
+    inverse_P<<3>>([|[|367.25;12.75;-6.75|]; [|12.75;0.75;-0.25|];
+                   [|-6.75;-0.25;0.125|]|]) in
+  let m_ref = [|[|2.0;6.0;120.0|];[|6.0;22.0;368.0|];[|120.0;368.0;7224.0|]|] in
+  assert (diff_mat<<3, 3>>(0.000000001, m, m_ref))
+*)
+
+
+let isnan(x: float) = false
+
+let protect_nans(h, z_k) =
+  forward<<2>> (hi in h, zi in z_k) returns ([|hi_prot|], [|zi_prot|])
+    do forward<<6>> (hij in hi) returns (hij_prot out hi_prot)
+      do hij_prot = if isnan(zi) then 0.0 else hij done
+    and zi_prot = if isnan(zi) then 0.0 else zi done
+
+let any_non_positive<<n>>(d: [n]_) =
+  forward<<2>> (dii in d) returns (acc init false)
+    do acc = if dii <= 0.0 then true else last acc done
 
 let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6]_)
     let dt = 0.04 in
@@ -181,12 +236,9 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
     let sigma_thdg = 0.01 in
     let sigma_bias_initial = 0.5 in
     let sigma_bias_drift = 0.0001 in
-    let h = [|[|1.0; 0.0; 0.0; 0.0; 0.0; 0.0|];
-              [|0.0; 1.0; 0.0; 0.0; 0.0; 0.0|]|] in
-    let r = [|[|(sigma_gps *. sigma_gps); 0.0|];
-              [|0.0; (sigma_gps *. sigma_gps)|]|] in
-    let q_pos = (sigma_process *. dt *. dt /. 2.0) *.
-                  (sigma_process *. dt *. dt /. 2.0) in
+    let h = [|[|1.0; 0.0; 0.0; 0.0; 0.0; 0.0|]; [|0.0; 1.0; 0.0; 0.0; 0.0; 0.0|]|] in
+    let r = [|[|(sigma_gps *. sigma_gps); 0.0|]; [|0.0; (sigma_gps *. sigma_gps)|]|] in
+    let q_pos = (sigma_process *. dt *. dt /. 2.0) *. (sigma_process *. dt *. dt /. 2.0) in
     let q_vel = (sigma_process *. dt) *. (sigma_process *. dt) in
     let q_bias = sigma_bias_drift *. sigma_bias_drift *. dt in
     let q = [|[|q_pos; 0.0; 0.0; 0.0; 0.0; 0.0|];
@@ -245,43 +297,30 @@ let node kalman_filter (z_k: [2]_, u_k: [3]_) returns (x_k_k: [6]_, p_k_k: [6][6
         [|0.0; 0.0; 0.0; 0.0; 0.0; 1.0|]
     |] in
 
-    let p_k_km1 =
-      add_mat<<6, 6>>
-        (mul_mat_mat<<6, 6, 6>>
-	  (mul_mat_mat<<6, 6, 6>>(f_k, p_km1_km1), f_k.T), q) in
+    let p_k_km1 = add_mat<<6, 6>>
+                    (mul_mat_mat<<6, 6, 6>>
+                      (mul_mat_mat<<6, 6, 6>>(f_k, p_km1_km1), f_k.T), q) in
 
-    let h_prot, z_k_prot =
-      forward<<2>> (hi in h, zi in z_k) returns ([|hi_prot|], [|zi_prot|])
-        do forward<<6>> (hij in hi) returns (hij_prot out hi_prot)
-            do hij_prot = if isnan(zi) then 0 else hij done
-        and zi_prot = if isnan(zi) then 0 else zi done
-    in
+    let h_prot, z_k_prot = protect_nans(h, z_k) in
 
     let y_k = sub_vec<<2>>(z_k_prot, mul_mat_vec<<2, 6>>(h_prot, x_k_km1)) in
-    let s_k = add_mat<<2, 2>>
-                (mul_mat_mat<<2, 6, 2>>
-		   (mul_mat_mat<<2, 6, 6>>(h_prot, p_k_km1), h_prot.T), r) in
+    let s_k = add_mat<<2, 2>>(mul_mat_mat<<2, 6, 2>>
+               (mul_mat_mat<<2, 6, 6>>(h_prot, p_k_km1), h_prot.T), r) in
     let (l, d) = decompose_LDLt<<2>>(s_k) in
 
-    let protect = forward<<2>> (dii in d) returns (acc init false)
-        do acc = if dii <= 0.0 then true else last acc done
-    in
+    let protect = any_non_positive<<2>>(d) in
     let l_prot = if protect then eye<<2>>() else l in
-    let d_prot = if protect then eye<<2>>() else d in
+    let d_prot = if protect then [|1.0; 1.0|] else d in
 
     let si_k = inverse_LDLt<<2>>(l_prot, d_prot) in
     let si_kp = if protect then zeros_mat<<2, 2>>() else si_k in
-    let k_k =
-      mul_mat_mat<<6, 2, 2>>(mul_mat_mat<<6, 6, 2>>(p_k_km1, h_prot.T), si_kp) in
+    let k_k = mul_mat_mat<<6, 2, 2>>(mul_mat_mat<<6, 6, 2>>
+                                         (p_k_km1, h_prot.T), si_kp) in
 
     do x_k_k = add_vec<<6>>(x_k_km1, mul_mat_vec<<6, 2>>(k_k, y_k))
 
-    and let gamma_k =
-          sub_mat<<6, 6>>(eye<<6>>(), mul_mat_mat<<6, 2, 6>>(k_k, h_prot)) in
-    p_k_k = add_mat<<6, 6>>
-               (mul_mat_mat<<6, 6, 6>>
-	         (mul_mat_mat<<6, 6, 6>>(gamma_k, p_k_km1), gamma_k.T),
-		  mul_mat_mat<<6, 2, 6>>(mul_mat_mat<<6, 2, 2>>(k_k, r), k_k.T))
+    and let gamma_k = sub_mat<<6, 6>>(eye<<6>>(), mul_mat_mat<<6, 2, 6>>(k_k, h_prot)) in
+    p_k_k = add_mat<<6, 6>>(mul_mat_mat<<6, 6, 6>>(mul_mat_mat<<6, 6, 6>>(gamma_k, p_k_km1), gamma_k.T), mul_mat_mat<<6, 2, 6>>(mul_mat_mat<<6, 2, 2>>(k_k, r), k_k.T))
     done
 
 let node test_kalman_filter () =

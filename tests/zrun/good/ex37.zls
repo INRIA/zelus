@@ -21,9 +21,9 @@ let h(x) returns (o)
    done
 
 
-let i(x) returns (o, y)
+let node i(x) returns (o, y)
    do
-    local m init 42 do y = 2 done
+    local m init 42 do y = 2 and m = 0 done
    and
-    o = local k init m do k = 1 + 2 in k
+    o = local k init 0 do k = 1 + 2 in k
    done

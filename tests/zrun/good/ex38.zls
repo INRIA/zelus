@@ -9,5 +9,5 @@ let r12 =
 let node g14() returns (y, z)
   do y = inline run f13(z) and z = y done
 
-let node g14() returns (y, z)
+let node g15() returns (y, z)
   do y = inline run r12 (z) and z = y done

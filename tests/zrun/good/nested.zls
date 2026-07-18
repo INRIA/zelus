@@ -100,18 +100,18 @@ let node main4() returns (x)
       done
     done
 
-let f(g) = fun (x) returns (y)
+let f1(g) = fun (x) returns (y)
   local m do
     y = m and m = g x
   done
 
 (* this one is exponential *)
 let main5() returns (x)
-  x = f(f(f(f(fun x -> x)))) 0
+  x = f1(f1(f1(f1(fun x -> x)))) 0
 
-let f(g) = (fun x -> y) where
+let f2(g) = (fun x -> y) where
   rec y =
-    let rec m = g x and y = m in
+    let rec m = g y and y = m in
     y
 
 let g h x = y where

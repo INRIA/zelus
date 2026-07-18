@@ -1,7 +1,7 @@
 let node main () returns (o)
   o = 1 -> 2
 
-let node f() returns (o init 42)
+let node f1() returns (o init 42)
   local m, s init 0 do
   o = 0 -> pre o + 1 + last o + last s and s = o
   and m = 1 fby m + o
@@ -18,7 +18,7 @@ let node f() returns (o init 42)
          and lx_12 = o_9 done
        done) 
 
-let node f() returns (o init 42)
+let node f2() returns (o init 42)
   local z init 0 do o = last o + 1 and z = last z + 2 done
 
 let node ff() returns (o)
