@@ -328,6 +328,8 @@ let message loc kind =
       output_location loc
       actual_number expected_number
  | Esize_constraints_not_true { f_loc_list; top_sc; nested_env; nested_sc } ->
+    (* free variables in the size constraint [nested_sc] *)
+    let fv = Sizes.fv_constraints Ident.S.empty Ident.S.empty nested_sc in
     let output_location_list ff f_loc_list =
       match f_loc_list with
       | [] -> ()
@@ -337,27 +339,31 @@ let message loc kind =
                 @[%a@]@,@]"
                Location.output_location_list f_loc_list in
     eprintf
-      "@[<hov0>%aType error: at this point, the following \
-       size constraint is false:\n\
-       @[%a@]@.@.\
-       This is because the following size constraint is false or@ it \
-       contains unbounded variables:@.@.\
-       @[%a@]@.@.\
-       where the value for the free size and index variables in:\n\
-       @[%a@]@ is@ @[%a@]@.@.\
-       %a\n\
-       Overall, a size constraint is false because:@ \
+      "@[<hov0>%aType error: the following size constraint is false:\n\
+       %a@.@.\
+       This is because it contains the following nested constraint that is \
+       false:@.@.\
+       %a@.@.@]"
+       output_location loc
+       Ptypes.constraints_t top_sc
+       Ptypes.constraints_t nested_sc;
+    if S.is_empty fv then () else
+      eprintf
+        "@[The set of free variables in this constraint is:\n\
+         %a@.@]" Ident.S.fprint_t fv;
+    if Ident.Env.is_empty nested_env then () else
+      eprintf
+        "@[The environment for sizes is:\n\
+         %a@.@]"
+        (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env;
+    if f_loc_list = [] then () else
+      eprintf "@[%a@.@]" output_location_list f_loc_list;
+    eprintf
+       "@[Overall, a size constraint is false because:@ \
        - an array element is accessed out of the bounds, or@,\
        - the actual size of an array does not match an expected size, or@,\
        - the size argument of a recursive function does not \
        decrease strictly @ for the lexicographic order.@.@]"
-       output_location loc
-       Ptypes.constraints_t top_sc
-       Ptypes.constraints_t nested_sc
-       Ident.S.fprint_t
-         (Sizes.fv_constraints Ident.S.empty Ident.S.empty nested_sc)
-       (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env
-       output_location_list f_loc_list
  | Esize_index_escape_in_environment(index, x, ty) ->
     eprintf
       "@[%aType error: the size index %s of this loop \
