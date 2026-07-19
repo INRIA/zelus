@@ -1326,10 +1326,7 @@ and sexp genv env { e_desc; e_loc } s =
           let s_for_body = ialloc_foreach_loop size for_kind s_for_body in
           let i_env =
             let open Forloop in
-            match for_index with
-            | None -> i_env
-            | Some(id) ->
-               Env.add id (Vindex { ve_left = 0;
+               Env.add for_index (Vindex { ve_left = 0;
                                     ve_right = size - 1; dir = true }) i_env in
           let* i_env, si_list =
             mapfold2v { kind = Estate; loc = e_loc }
@@ -1353,11 +1350,8 @@ and sforloop_exp_step loc genv env
       (size, s_for_body, sr_list, s_input_list) =
   let i_env =
     let open Forloop in
-    match for_index with
-    | None -> Env.empty
-    | Some(id) ->
-       Env.singleton id (Vindex { ve_left = 0;
-                                  ve_right = size - 1; dir = true }) in
+    Env.singleton for_index
+      (Vindex { ve_left = 0; ve_right = size - 1; dir = true }) in
   let* i_env, si_list =
     mapfold2v { kind = Estate; loc = loc }
       (sfor_input size genv env) i_env for_input s_input_list in
@@ -2027,11 +2021,8 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
           let s_for_body = ialloc_foreach_loop size for_kind s_for_block in
           let i_env =
             let open Forloop in
-            match for_index with
-            | None -> i_env
-            | Some(id) ->
-               Env.add id (Vindex { ve_left = 0;
-                                    ve_right = size - 1; dir = true }) i_env in
+            Env.add for_index
+              (Vindex { ve_left = 0; ve_right = size - 1; dir = true }) i_env in
           let* i_env, si_list =
            mapfold2v { kind = Estate; loc = eq_loc }
              (sfor_input size genv env) i_env input_list si_list in
@@ -2076,11 +2067,8 @@ and sforloop_eq_step loc genv env
       (size, s_for_block, so_list, s_input_list) =
   let i_env =
     let open Forloop in
-    match for_index with
-    | None -> Env.empty
-    | Some(id) ->
-       Env.singleton id (Vindex { ve_left = 0;
-                                  ve_right = size - 1; dir = true }) in
+    Env.singleton for_index
+      (Vindex { ve_left = 0; ve_right = size - 1; dir = true }) in
   let* i_env, si_list =
     mapfold2v { kind = Estate; loc = loc }
       (sfor_input size genv env) i_env for_input s_input_list in

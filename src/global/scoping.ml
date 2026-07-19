@@ -708,8 +708,12 @@ module Make (Info: INFO) =
       let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
         match for_index with
-        | None -> None, Env.empty
-        | Some(id) -> let m = fresh id in Some(m), Env.singleton id m in
+        | None ->
+          (* Create new variable but don't expose it for scoping purposes *)
+          fresh "index", Env.empty
+        | Some(id) ->
+          (* Expose the named index for scoping *)
+          let m = fresh id in m, Env.singleton id m in
       let for_input, i_env =
         for_input_t env i_env for_input in
       let env = Env.append i_env env in
@@ -1009,8 +1013,12 @@ module Make (Info: INFO) =
       let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
         match for_index with
-      | None -> None, Env.empty
-      | Some(id) -> let m = fresh id in Some(m), Env.singleton id m in
+        | None ->
+          (* Create new variable but don't expose it for scoping purposes *)
+          fresh "index", Env.empty
+        | Some(id) ->
+          (* Expose the named index for scoping *)
+          let m = fresh id in m, Env.singleton id m in
       let for_input, i_env =
         for_input_t env i_env for_input in
       let env = Env.append i_env env in

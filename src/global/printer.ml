@@ -700,7 +700,7 @@ module Make (Info: INFO) =
     
     and index_opt ff i_opt =
       let index ff id = fprintf ff "[%a]" name id in
-      Util.optional_unit index ff i_opt
+      index ff i_opt
     
     and input_list ff l =
       let input ff { desc = desc } =

@@ -302,7 +302,7 @@ and ('info, 'ienv) exp_desc =
 and ('info, 'ienv, 'body) forloop =
   { for_size : ('info, 'ienv) for_size option;
     for_kind : ('info, 'ienv) exp for_kind;
-    for_index : Ident.t option;
+    for_index : Ident.t;
     for_input : ('info, 'ienv) exp for_input list;
     for_let : ('info, 'ienv) leq list; (* [let [rec] eq in]* *)
     for_body : 'body;

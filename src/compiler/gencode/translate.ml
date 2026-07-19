@@ -850,14 +850,13 @@ and foreach_eq env loop_path code
       * - every state variable m from the body must be an array *)
      (* look for the index [i in for_index] *)
      let rec index code = function
-       | [] -> let id = match for_index with
-                 | None -> Ident.fresh "i" | Some(i) -> i in
+       | [] ->
      	       let e_right, code =
                  match for_size with
                  | None -> Econst(Eint(0)), code
                  | Some { for_size_exp } ->
                     expression env loop_path code for_size_exp in
-               (id, Econst(Eint(0)), e_right), code
+               (for_index, Econst(Eint(0)), e_right), code
        | { Zelus.desc = desc } :: i_list ->
 	  match desc with
 	  | Zelus.Eindex { id; e_left; e_right; dir = true } ->

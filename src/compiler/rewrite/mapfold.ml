@@ -812,7 +812,7 @@ and expression funs acc ({ e_desc; e_loc } as e) =
         for_let; for_body; for_env } as f) ->
      let for_env, acc = build_it funs.global_funs acc for_env in
      let for_index, acc =
-       Util.optional_with_map (var_ident_it funs.global_funs) acc for_index in
+       (var_ident_it funs.global_funs) acc for_index in
      let for_size, acc =
        Util.optional_with_map (for_size_t funs) acc for_size in
      let for_input, acc =
@@ -964,7 +964,7 @@ and equation funs acc ({ eq_desc; eq_write; eq_loc } as eq) =
           for_body; for_env } as f) ->
       let for_env, acc = build_it funs.global_funs acc for_env in
        let for_index, acc =
-         Util.optional_with_map (var_ident_it funs.global_funs) acc for_index in
+         (var_ident_it funs.global_funs) acc for_index in
        let for_size, acc =
          Util.optional_with_map (for_size_t funs) acc for_size in
        let for_input, acc =

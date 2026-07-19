@@ -206,8 +206,7 @@ module Make (Info: INFO) =
              | Kforeach -> for_kind
              | Kforward(e_opt) ->
                 Kforward(Util.optional_map exit_expression e_opt) in
-           let dv_index = 
-             Util.optional (fun acc x -> S.add x acc) S.empty for_index in
+           let dv_index = S.add for_index S.empty in
            let for_input, dv_input =
              for_input_w dv_index for_input in
            (* From outside, when the output is [xi out x] *)
@@ -381,8 +380,7 @@ module Make (Info: INFO) =
              | Kforeach -> for_kind
              | Kforward(e_opt) ->
                 Kforward(Util.optional_map exit_expression e_opt) in
-           let dv_index = 
-             Util.optional (fun acc x -> S.add x acc) S.empty for_index in
+           let dv_index = S.add for_index S.empty in
            let for_input, dv_input =
              for_input_w dv_index for_input in
           let for_let = lets for_let in

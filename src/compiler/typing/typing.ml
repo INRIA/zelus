@@ -109,20 +109,15 @@ let stateful loc expected_k =
 (* check that a size index [i_opt] does not appear in a type environment [h] *)
 (* this is done whenever typing the body of a for loop when the type of a *)
 (* local variable depends on a size index *)
-let check_size_index_does_not_escape_in_h loc index_opt h =
+let check_size_index_does_not_escape_in_h loc index h =
   let check_one index x { t_tys = { typ_body } } =
     if S.mem index (Types.size_variables S.empty typ_body)
     then error loc (Esize_index_escape_in_environment(index, x, typ_body)) in
-  match index_opt with
-  | None -> ()
-  | Some(index) -> Env.iter (check_one index) h
+  Env.iter (check_one index) h
 
-let check_size_index_does_not_escape_in_type loc index_opt ty =
-  match index_opt with
-  | None -> ()
-  | Some(index) ->
-     if S.mem index (Types.size_variables S.empty ty)
-     then error loc (Esize_index_escape_in_type(index, ty))
+let check_size_index_does_not_escape_in_type loc index ty =
+  if S.mem index (Types.size_variables S.empty ty)
+  then error loc (Esize_index_escape_in_type(index, ty))
 
 (* remove entries for variables defined by a [... as x] *)
 let remove_entry_for_as_variables_in_env h =
@@ -1896,24 +1891,23 @@ and forloop_exp loc expected_k h
     match size_opt with | None -> error loc Esize_is_undetermined
                         | Some(size) -> size in
 
-  (* if [for_index = Some(i)], [i] can appear in size constraints in *)
+  (* [for_index] can appear in size constraints in *)
   (* [for_exp] but it should not escape the scope of the for loop, that is *)
   (* it must not happen in the typing environment nor the type of input *)
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
-  Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+  Defsizes.push ();
   let h_returns, h, actual_ty, actual_k_for_body =
     for_exp_t loc expected_k_for_body h size for_index is_a_forward_loop 
       (for_let, for_body) in
   (* type check the exit conditions *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   (* 2: pop the current size constraint *)
-  Util.optional_unit
-    (fun _ i ->
-      let sc = Defsizes.pop () in
-      let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible
-        loc (Sizes.forall i si sc)) () for_index;
+  (fun _ i ->
+    let sc = Defsizes.pop () in
+    let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
+    check_size_constraint_if_possible
+      loc (Sizes.forall i si sc)) () for_index;
   (* 3: check that the size index does not escape the scope of the for loop *)
   check_size_index_does_not_escape_in_h loc for_index h_entry_of_forloop;
   check_size_index_does_not_escape_in_h loc for_index h_returns;
@@ -1970,20 +1964,16 @@ and for_vardec loc expected_k for_index h (acc_h, acc_k)
   (* if [as x_] is given, enrich the type environment with *)
   (* [last x : [for_index]ty *)
   let new_acc_h =
-    match for_index, for_as with
-    | _, None -> new_acc_h
-    | Some(index), Some(as_name) ->
+    match for_as with
+    | None -> new_acc_h
+    | Some(as_name) ->
        (* add an entry: only [last as_name] is allowed *)
-       (* its type is [index]ty *)
+       (* its type is [for_index]ty *)
        Env.add as_name
          (Deftypes.entry expected_k
             (Deftypes.Sort_mem memory_as)
-            (Deftypes.scheme (Types.vec ty (Sizes.var index)))) new_acc_h
-    | None, Some(as_name) ->
-       (* we impose that is [as x_] is used, the index [i] is given *)
-       (* this constraint is impose for diagnosis; it will be *)
-       (* removed later *)
-       error loc (Eloop_index_is_missing(as_name)) in
+            (Deftypes.scheme (Types.vec ty (Sizes.var for_index)))) new_acc_h
+  in
   ty, (new_acc_h, new_acc_k)
 
 and type_of_for_vardec_list size n_list =
@@ -2016,12 +2006,11 @@ and for_exit_t expected_k h { for_exit } =
 
 (* an index [i] is not a size; it is a value from the interval [0..n-1] where *)
 (* [n] is a size *)
-and for_index_t expected_k for_index_opt =
-  Util.optional_with_default
-    (fun id ->
-      Env.singleton id
-        (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
-    Env.empty for_index_opt
+and for_index_t expected_k for_index =
+  (fun id ->
+    Env.singleton id
+      (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
+  for_index
 
 (* [[let [rec] eq1 in] do eq *)
 and for_eq_t
@@ -2081,19 +2070,16 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k)
   (* if [as x_] is given, enrich the type environment with *)
   (* [last x : [for_index]ty *)
   let acc_h =
-    match for_index, for_as_name with
-    | _, None -> acc_h
-    | Some(index), Some(as_name) ->
+    match for_as_name with
+    | None -> acc_h
+    | Some(as_name) ->
        (* add an entry: only [last as_name] is allowed *)
-       (* its type is [index]ty *)
+       (* its type is [for_index]ty *)
        Env.add as_name
          (Deftypes.entry expected_k
             (Deftypes.Sort_mem memory_as)
-            (Deftypes.scheme (Types.vec expected_ty (Sizes.var index)))) acc_h
-    | None, Some(as_name) ->
-       (* we impose that if [as x_] is used, the index [i] must be given *)
-       (* this is for better diagnosis *)
-       error loc (Eloop_index_is_missing(as_name)) in
+            (Deftypes.scheme (Types.vec expected_ty (Sizes.var for_index)))) acc_h
+  in
 
   (* compute the type of [for_name]. If [for_out_name] is given *)
   (* the type is that of [for_out_name]. *)
@@ -2186,18 +2172,17 @@ and forloop_eq loc expected_k h
   (* it must not happen in the typing environment nor the type of input *)
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
-  Util.optional_unit (fun _ _ -> Defsizes.push ()) () for_index;
+  Defsizes.push ();
   let h, h_out, d_names, actual_k_for_body =
     for_eq_t loc expected_k_for_body size for_index h for_let for_body in
   (* type check the [until|unless|while] condition *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   (* 2: pop the current size constraint *)
-  Util.optional_unit
-    (fun _ i ->
-      let sc = Defsizes.pop () in
-      let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-      check_size_constraint_if_possible
-        loc (Sizes.forall i si sc)) () for_index;
+  (fun _ i ->
+    let sc = Defsizes.pop () in
+    let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
+    check_size_constraint_if_possible
+      loc (Sizes.forall i si sc)) () for_index;
   (* 3: check that the size index does not escape the scope of the for loop *)
   check_size_index_does_not_escape_in_h loc for_index h_entry_in_forloop_body;
   check_size_index_does_not_escape_in_h loc for_index h_out;

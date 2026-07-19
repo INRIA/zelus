@@ -55,7 +55,6 @@ type error =
   | Eapplication_of_non_function
   | Eapplication_of_non_size_function
   | Epattern_not_total
-  | Eloop_index_is_missing of Ident.t
   | Enot_a_size_expression
   | Esize_is_undetermined 
   | Esize_unbound_size_variable of Ident.t * Ident.t * typ
@@ -257,12 +256,6 @@ let message loc kind =
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
        output_location loc
- | Eloop_index_is_missing(n) ->
-    eprintf
-      "@[%aType error: when a clause [... as %s] is used, the loop index \
-       must be given.@.@]"
-      output_location loc
-      (name n)
  | Esize_is_undetermined ->
     eprintf
       "@[<hov 0>%aType error: the size cannot be determined at this point.@.@]"
