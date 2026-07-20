@@ -1,5 +1,5 @@
 (* Classical operations on matrices *)
-let vec<<n>>() = node v -> foreach<<n>> do v done
+let vec<<n>> = node v -> foreach<<n>> do v done
 let node id v = v
 
 (* Cholesky. [a] is a [n x n] definite positive matrix. [l] is a *)
@@ -98,10 +98,10 @@ let vec1<<n>> = node v -> foreach<<n>> do v done
 (* Forward subsitution *)
 (* L is a lower triangular matrix *)
 (* solve Lx = b *)
-let node forward_substitution(n)(l, b) returns (x)
-  forward (i in 0 to n - 1) returns (x init run (vec n)(0.0)) do
+let node forward_substitution<<n>>(l:[n][n]_, b:[n]_) returns (x:[n]_)
+  forward<<n>>[i] returns (x init (run (vec<<n>>)(0.0))) do
     let r =
-      forward (j in 0 to i - 1) returns (cpt init 0.0)
+      forward(i)[j] returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
     do
       x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
@@ -111,13 +111,13 @@ let node forward_substitution(n)(l, b) returns (x)
 (* Back substitution *)
 (* U is an upper triangular matrix *)
 (* solve Ux = b *)
-let node backward_substitution(n)(l, b) returns (x)
-  forward (i in n - 1 downto 0) returns (x init run (vec n)(0.0)) do
+let node backward_substitution<<n>>(l:[n][n]_, b:[n]_) returns (x:[n]_)
+  forward<<n>>[i] returns (x init run (vec<<n>>)(0.0)) do
     let r =
-      forward (j in 0 to i - 1) returns (cpt init 0.0)
-        do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
+      forward(n-i)[j] returns (cpt init 0.0)
+        do cpt = last cpt +. l.(n-i).(j) *. (last x).(j) done in
     do
-      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
+      x = [| last x with (n-i) <- (b.(n-i) -. r) /. l.(n-i).(n-i) |]
     done
   done
 	
@@ -127,7 +127,7 @@ let node main5() =
 	     [| 1.0; 10.0;  1.0; 0.0  |];
 	     [| 1.0; 1.0; 1.0; 1.0  |] |] in
   let m = [| 1.0; 1.0; 1.0; 1.0 |] in
-  run (forward_substitution(4))(l, m)
+  run (forward_substitution<<4>>)(l, m)
 
 let node main6() =
   let l = [| [| 1.0; 1.0; 1.0; 1.0 |];
@@ -135,4 +135,4 @@ let node main6() =
 	     [| 0.0; 0.0; 1.0; 1.0  |];
 	     [| 0.0; 0.0; 0.0; 1.0  |] |] in
   let m = [| 1.0; 1.0; 1.0; 1.0 |] in
-  run (backward_substitution(4))(l, m)
+  run (backward_substitution<<4>>)(l, m)
