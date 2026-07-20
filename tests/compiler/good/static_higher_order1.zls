@@ -1,3 +1,20 @@
+let node f x =
+  let static g = node y -> y + 1 in
+  g x
+
+let f1 g x y = g x y
+
+let g1 x y = x + y
+
+let h1 y = f1 g1 y
+
+
+let f2 (static g) x y = g x y
+
+let g2 (static x) y = x + y
+
+let h2 y = f2 g2
+
 (* [output(0) = x0(0)]
   and [output(n) = output(n−1) + (k * t) * u(n−1)] *)
 let node forward_euler(static h)(k, x0, u) = output where

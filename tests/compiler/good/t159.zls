@@ -1,0 +1,8 @@
+let f() returns (o)
+  forward<<2>> () returns (o init 0)
+    do o = last o done
+
+let g() returns (o)
+  o = forward<<2>> () returns (o)
+    do o = 0 fby o + 1 done
+
