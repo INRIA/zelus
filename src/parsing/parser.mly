@@ -550,10 +550,12 @@ result:
   | t_opt = optional(colon_type_expression)
     EQUAL seq = seq_expression WHERE
       v = vkind_opt i = is_rec eq = where_equation_and_list %prec prec_result
-    { make (Exp(make (Elet(make { l_rec = i; l_kind = v; l_eq = eq; l_attribute = [] }
-			   $startpos(eq) $endpos(eq),
-			   annotate_with_type t_opt seq))
-		$startpos(seq) $endpos(eq)))
+    { make
+	(Exp(make (Elet(make { l_rec = i; l_kind = v; l_eq = eq;
+			       l_attribute = [] }
+			$startpos(eq) $endpos(eq),
+			annotate_with_type t_opt seq))
+	     $startpos(seq) $endpos(eq)))
       $startpos $endpos }
 ;
 
@@ -1583,12 +1585,8 @@ constraints_desc:
     { Econstraints_Rel { rel = Eq; lhs = e1; rhs = e2 } }
   | e1 = size_expression LESSER e2 = size_expression
     { Econstraints_Rel { rel = Lt; lhs = e1; rhs = e2 } }
-  | e1 = size_expression LESSER EQUAL e2 = size_expression
-    { Econstraints_Rel { rel = Lte; lhs = e1; rhs = e2 } }
   | e1 = size_expression GREATER e2 = size_expression
     { Econstraints_Rel { rel = Lt; lhs = e2; rhs = e1 } }
-  | e1 = size_expression GREATER EQUAL e2 = size_expression
-    { Econstraints_Rel { rel = Lte; lhs = e2; rhs = e1 } }
   | sc1 = constraints AMPERAMPER sc2 = constraints
     { Econstraints_And [sc1; sc2] }
   | IF sc = constraints THEN sc1 = constraints ELSE sc2 = constraints
