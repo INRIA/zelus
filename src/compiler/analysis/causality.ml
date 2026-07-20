@@ -17,15 +17,23 @@
 (* C | H |-cfree e: ct *)
 (* [C] is a constraint and [H] is an environment *)
 
-(* There are two kind of types. c is a causality tag (or time stamp). *)
-(* ct is a type whose leaves are causality tags. *)
-(* causality tags are associated to a strict partial order. *)
-(* The relation c1 < c2 with |-cfree e1: c1 and |-cfree e2: c2 *)
-(* means that e1 must be computed strictly before c2 *)
-(* The causality analysis is able to express that a block executes atomically, *)
-(* that is, it is considered as iff all output would depend on all input *)
-(* For that purpose, cfree is a causality tag greater than that of all the *)
-(* free variables in e *)
+(* [ct] is a causality type whose leaves are causality tags [c] *)
+(* C | H |-cfree e: t[c1,...,cn] means that, at every instant i, the *)
+(* output of [e] is produced at a tag [c] such that [c1,...,cn <= c] *)
+(* [t] is a structured type that containts the causality tags [c1,...,cn] *)
+
+(* those tags are associated to a strict partial order: *)
+(* The relation [c1 < c2] means that the causality tag [c1] is stricly *)
+(* before [c2]. *)
+
+(* If C | H |-cfree e: c1 and C |- c1 < c2 then C | H |-cfree e : c2 *)
+
+(* The causality analysis is able to express that a whole expression [e] *)
+(* (or any block structure) is executed atomically: all outputs *)
+(* are considered to depend on all input (and all free variables) *)
+(* For that, we use [cfree] as an extra tag when typing [e]. It is such *)
+(* that all introduced tag [ci] introduced during the typing of [e] *)
+(* is such that [ci < cfree] *)
 
 open Misc
 open Ident
@@ -385,7 +393,7 @@ and vardec env c_free ({ var_name; var_default; var_init }) =
     (fun env e -> 
       exp_less_than_on_c env c_free e (Tcausal.new_var ())) env var_default;
 
-(** causality of an expression. [C | H |-cfree e: ct] *)
+(* causality of an expression. [C | H |-cfree e: ct] *)
 and exp env c_free ({ e_desc; e_info; e_loc } as e) =
   let e_typ = Typinfo.get_type e_info in
   let tc = match e_desc with
@@ -590,7 +598,7 @@ and exp_less_than env c_free e expected_tc =
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info expected_tc
 
-(** Typing a list of equations [env |-c eq list] *)
+(* Typing a list of equations [env |-c eq list] *)
 and equation_list env c_free eq_list = List.iter (equation env c_free) eq_list
 
 (* Typing of an equation. [env |-c_free eq] *)
@@ -905,10 +913,10 @@ and for_input_t env c_free c_in { desc; loc } =
 and forloop_eq env c_free
       { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* the for loop is executed atomically *)
-  (* introduce an input time tag [c_in] such that all inputs [ei] are *)
-  (* before on a tag [c] with [c < c_in] *)
-  (* all internal computations of the for loop must be done before a *)
-  (* tag [c_out] *)
+  (* introduce an input tag [c_in] such that all inputs [ei] have *)
+  (* type t_i[c_in] *)
+  (* all elements of the return clause and the loop body must be computed *)
+  (* on tags that are before [c_out]. *)
   let c_out = Tcausal.new_var () in
   let c_in = Tcausal.intro_less_c c_out in
   for_size_t env c_free c_in for_size;
