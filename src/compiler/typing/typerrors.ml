@@ -66,8 +66,12 @@ type error =
   | Esize_of_vec_is_undetermined of typ
   | Esize_clash of Defsizes.rel * Defsizes.exp * Defsizes.exp
   | Esize_constraints_not_true of 
-      (* [top_sc[... nested_sc ...] *)
-      { f_loc_list: Location.ft list;
+      (* [(l_1, env_1, sc_1);...;(l_n, env_n, sc_n)] *)
+      (* the list of location, environment and constraint that are *)
+      (* unsatisfied *)
+      { loc_env_sc_list:
+          (Location.ft * int Ident.Env.t * Defsizes.exp Defsizes.constraints)
+          list;
         (* list of file/location to the error *)
         top_sc: Defsizes.exp Defsizes.constraints;
         (* unsatisfied constraint *)
@@ -327,22 +331,27 @@ let message loc kind =
        (this function has %d parameters while one has %d parameters).@.@]"
       output_location loc
       actual_number expected_number
- | Esize_constraints_not_true { f_loc_list; top_sc; nested_env; nested_sc } ->
+ | Esize_constraints_not_true
+            { loc_env_sc_list; top_sc; nested_env; nested_sc } ->
     (* free variables in the size constraint [nested_sc] *)
     let fv = Sizes.fv_constraints Ident.S.empty Ident.S.empty nested_sc in
-    let output_location_list ff f_loc_list =
-      match f_loc_list with
-      | [] -> ()
-      | _ -> Format.fprintf ff
-               "@[The constraint is generated during the typing of \
-                the following expressions:\n\
-                @[%a@]@,@]"
-               Location.output_location_list f_loc_list in
-    eprintf
+    let output_location_env_sc ff (f_loc, env, sc) =
+      let env = Sizes.clear env sc in
+      fprintf ff
+        "@[The constraint is generated during the typing of:\n\
+         @[%a@]@,@]"
+        Location.output_file_location f_loc;
+      if Ident.Env.is_empty env then () else
+        eprintf
+          "@[The environment for sizes is:\n\
+           %a@.@]"
+          (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) env in
+      let output_location_env_sc_list ff loc_env_sc_list =
+        List.iter (output_location_env_sc ff) loc_env_sc_list in
+      eprintf
       "@[<hov0>%aType error: the following size constraint is false:\n\
        %a@.@.\
-       This is because it contains the following nested constraint that is \
-       false:@.@.\
+       This is because it contains the following nested false constraint:@.@.\
        %a@.@.@]"
        output_location loc
        Ptypes.constraints_t top_sc
@@ -356,8 +365,8 @@ let message loc kind =
         "@[The environment for sizes is:\n\
          %a@.@]"
         (Ident.Env.fprint_t (fun ff -> Format.fprintf ff "%d")) nested_env;
-    if f_loc_list = [] then () else
-      eprintf "@[%a@.@]" output_location_list f_loc_list;
+    if loc_env_sc_list = [] then () else
+      eprintf "@[%a@.@]" output_location_env_sc_list loc_env_sc_list;
     eprintf
        "@[Overall, a size constraint is false because:@ \
        - an array element is accessed out of the bounds, or@,\

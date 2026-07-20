@@ -514,34 +514,32 @@ let rec fv_constraints bounded acc sc =
      fv bounded acc e
   | Loc(_, sc) -> fv_constraints bounded acc sc
 
-(* Localisation of errors when a constraints is not satisfied *)
-(* it returns a sub-constraints [sc_returns] of [sc] *)
-(* and the environment for free variables in [sc_returns] *)
+(* simplify an environment; keep only entries in [n_env] that *)
+(* are free in [sc] *)
+let clear n_env sc =
+  let acc = fv_constraints S.empty S.empty sc in
+  Env.filter (fun x _ -> S.mem x acc) n_env
+  
+(* Localisation of errors when a constraints is not satisfied. It returns *)
+(* - a sub-constraints [sc_nested] of [sc] that is not satisfied *)
+(* - the local environment for [sc_nested] *)
+(* - the list of [(l_1, env_1, sc_1);...;(l_n, env_n, sc_n)] where *)
+(* l_i is a location in the source for which the constraint [sc_i] *)
+(* evaluated in environment [env_i] is false *)
 let localise f_env n_env sc =
-  (* simplify an environment; keep only entries in [n_env] that *)
-  (* are free in [sc] *)
-  let clear n_env sc =
-    let acc = fv_constraints S.empty S.empty sc in
-    Env.filter (fun x _ -> S.mem x acc) n_env in
   let exception Error of 
-        { f_loc_list: Location.ft list; (* [floc1;...;flocn] *)
-          (* list of file/location in the source *)
-          (* to get constraint [nested_sc] that is wrong *)
-          (* and the evaluation environment [nested_env] used to evaluate *)
-          (* [nested_sc] *)
-          (* [floc1] is the closest location *)
-          nested_env: int Env.t; (* environment for size variables *)
-          (* the size constraint that is not satisfied *)
-          nested_sc: exp constraints;          
-        } in
+                  { loc_env_sc_list:
+                      (Location.ft * int Env.t * exp constraints ) list;
+                    nested_env: int Env.t;
+                    nested_sc: exp constraints } in
   let rec localise f_env n_env sc =
     match sc with
     | True | False | Rel _ | App _ ->
        let v = eval_constraint_no_failure f_env n_env sc in
        if v then true
        else
-         let n_env = clear n_env sc in
-         raise (Error { f_loc_list = []; nested_env = n_env; nested_sc = sc })
+         raise
+           (Error { loc_env_sc_list = []; nested_env = n_env; nested_sc = sc })
     | And(sc_list) ->
        List.for_all (localise f_env n_env) sc_list
     | Let(id_e_list, sc) ->
@@ -568,34 +566,36 @@ let localise f_env n_env sc =
        try
          localise f_env n_env sc
        with
-       | Error ({ f_loc_list } as error) ->
-          raise (Error({ error with f_loc_list = f_loc :: f_loc_list }))
+       | Error ({ loc_env_sc_list } as error) ->
+          let loc_env_sc_list = (f_loc, n_env, sc) :: loc_env_sc_list in
+          raise (Error({ error with loc_env_sc_list }))
   (* evaluate a constraint; if Maybe is raised, raise an error *)
   and eval_constraint_no_failure f_env n_env sc =
     try
       eval_constraint f_env n_env sc
     with
     | Maybe ->
-       raise (Error { f_loc_list = []; nested_env = n_env; nested_sc = sc })
+       raise
+         (Error { loc_env_sc_list = []; nested_env = n_env; nested_sc = sc })
   and eval_size_no_failure f_env n_env e =
     try
       eval_size n_env e
     with
     | Maybe ->
-       raise (Error { f_loc_list = []; nested_env = n_env; nested_sc = sc }) in
+       raise
+         (Error { loc_env_sc_list = []; nested_env = n_env; nested_sc = sc }) in
   try
     let _ = localise f_env n_env sc in assert false
   with
-    Error { f_loc_list; nested_env; nested_sc } ->
-    f_loc_list, nested_env, nested_sc
+    Error { loc_env_sc_list; nested_env; nested_sc } ->
+    loc_env_sc_list, nested_env, nested_sc
 
+(* add a subtitution for sizes into a constraint *)
 let let_in env sc =
   if Env.is_empty env then sc
   else
     let id_e_list = Env.fold (fun id e acc -> (id, e) :: acc) env [] in
     Let(id_e_list, sc)
-
-(* add a subtitution for sizes into a constraint *)
 
 (* generate a conditional. Do a bit of by case definition to make functions *)
 (* that use it simpler *)

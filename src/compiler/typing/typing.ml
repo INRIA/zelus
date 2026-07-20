@@ -230,10 +230,10 @@ let check_size_constraint loc sc =
   let v = Sizes.eval_constraint Env.empty Env.empty sc in
   if v then () else 
     (* [sc] is surely false *)
-    let f_loc_list, nested_env, nested_sc =
+    let loc_env_sc_list, nested_env, nested_sc =
       Sizes.localise Env.empty Env.empty sc in
     error loc (Esize_constraints_not_true
-                 { f_loc_list; top_sc = sc; nested_env; nested_sc })
+                 { loc_env_sc_list; top_sc = sc; nested_env; nested_sc })
 
 (* check size constraints. if [sc] maybe true, add a constraint to the *)
 (* global stack of constraints *)
