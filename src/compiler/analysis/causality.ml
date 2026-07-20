@@ -883,8 +883,7 @@ and for_eq_t env c_free c_out { for_out; for_block; for_out_env } =
 
 and for_out_t env c_free c_out { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
-  let t_tys = try let { t_tys } = Env.find for_ext env in t_tys 
-              with | Not_found -> print for_ext in
+  let { t_tys } = Env.find for_ext env in
   let typ = Typinfo.get_type for_info in
   let tc_x = Tcausal.instance t_tys typ in
   less_than loc env tc_x (Tcausal.skeleton_on_c c_out typ);
