@@ -23,3 +23,121 @@
  (promote
   (until-clean)
   (into %{project_root}/bin)))
+
+; Compiler organisation
+;
+; parser/
+;   location.ml ; position in the source file for error messages
+;    lexer.mll parser.mll ; lexer/parser;
+;    parsetree.ml ; abstract syntax tree after parsing
+;
+;
+; global/ Global declarations: all the modules necessary for building the ast
+; config.ml misc.ml ; general configuration and common global variables
+; ident.ml: identifiers, environments
+; lident.ml ; long names (global identifers), environments
+; defnames.ml ; names defined by an equation
+; util.ml ; useful functions that are not in Ocaml standard lib
+; zelus.ml ; the ast of Zelus
+; write.ml ; computes defined variables for equations
+; scoping.ml ; translate the ast after parsing into Zelus ast; unique idents
+; pp_tools.ml ; pretty printer tools
+; printer.ml ; printer for the Zelus ast
+; noinfo ; no type information attached to patterns, expressions and equations
+;
+; graph.ml ; acyclic graph manipulation
+; parseq ; a data-structure to represent parallel and sequential composition
+; aux.ml ; auxiliary functions for building Zelus terms
+;
+; zrun/: the ZRun interpreter
+;
+; compiler: the compiler
+;
+; typing/
+;  (library
+;   (name typing_lib)
+;   (public_name zelus.typing_lib)
+;   (wrapped false)
+;   (modules
+;     sizes ; decision algorithm for equality between sizes
+;     types ; type manipulation and unification between types
+;     interface ; interface
+;     kind ; kinds
+;     total ; check totatlity of pattern matching
+;     patternsig ; check totality of pattern matching
+;     matching ; check totality of pattern matching
+;     typerrors ; type errors;
+;     typing ; typing
+;     )
+;   (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib)
+; )
+
+; causality analysis
+;    tcausal ; type manipulation and unification between types for causality
+;    causality ; causality inference
+;    )
+; initialisation analysis
+; (library
+;  (name initialization_lib)
+;  (public_name zelus.initialization_lib)
+;  (wrapped false)
+;;  (modules
+;    tinit ;  type manipulation and unification between types for initialisation
+;    initialization ; initialization inference
+;    )
+;  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
+ ;  zelus.typing_lib)
+;)
+
+; rewriting steps
+;    cost ; a cost function used to decide which function call to inline
+;    unsafe ; is an expression/equation unsafe
+;    mapfold ; generic mapfold
+;    markfunctions ; mark function calls to be inlined
+;    noassert ; remove assertions
+;    const ; compile time evaluation of constants
+;    sizerec ; specialize recursive size functions
+;    inline ; inlining of function calls
+;    automata ; rewrite automata into match/reset
+;    present ; rewrite present into match
+;    lastinpatterns ; remove last in patterns
+;    copylast ; add copies [lx = last*x] for [last x] when [x] is local
+;             ; all variables in patterns must be value (remove last)
+;    der ; remove the initialization and reset part of a derivative equation
+;    exp2eq ; translate match and reset expressions into their equational form
+;    returns ; rewrite [returns (p) eq]
+;    complete ; complete equations with [der x = 0.0]
+;    default ; translate blocks into let/rec (propagate
+;            ; the default and initialisation values)
+;    pre ; rewrite fby/fby into (init/last)
+;    period ; translate periods into horizons
+;    encore ; add horizons [horizon h = 0.0] for zero-crossings
+;    disc ; compile the operation disc with an horizon
+;    init ; rewrite -> 
+;    shared ; normalise equations to shared variables into [x = ...]
+;    letin ; un-nesting of let/in and blocks
+;    reset ; distribute the reset over equations
+;    distribute ; distribution of tuples and records
+;    ; zopt ; sharing of zero-crossings
+;    copy ; remove of copy variables
+;    ; cse ; common sub-expression elimination
+;    vars ; read variables
+;    deadcode ; deadcode removal
+;    dependences ; data-dependences between equations
+;    control ; fusion of control dependences
+;    schedule ; static scheduling
+;    set_sorts ; sets the sort for variables in the environment
+;    rewrite ; compose rewriting steps
+
+; generation of sequential code
+;    obc; the AST for representing Mealy machines
+;    oaux; auxiliary functions for building terms
+;    oprinter; the printer
+;    ocamlprinter; print OCaml code
+;    translate; translate into sequential code
+;    inout; add extra code for in-place modification
+
+; The compiler
+;   compiler; the compiler
+;   simulator; the generation of the main function
+
