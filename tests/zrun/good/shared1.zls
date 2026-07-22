@@ -16,3 +16,13 @@ let h3 x =
       | S2 -> local z do x, z = false, false until z then S1
       end in
   y, z
+
+(*
+let update<<n>>(x:[n]_, i) returns (o:[n]_ at x)
+  o = [| x with* i <- y |]
+
+val update: <<n>>. [n]'a at l * int -> [n]'a at l
+
+val update : <<'a>>. 'a at l -> 'a at l
+
+*)
