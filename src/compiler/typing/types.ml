@@ -462,7 +462,7 @@ let gen_sizefun_constraint_list is_rec id_id_list_ty_constraints_list =
   List.map
     (fun (id, id_list, ty, constraints) ->
       let constraints = if is_rec then Fix(f_list, size_app id id_list)
-                        else constraints in
+                        else positive id_list constraints in
       (id, sizefun id_list ty constraints false))
     id_id_list_ty_constraints_list
 
