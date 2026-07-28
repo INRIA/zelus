@@ -1,0 +1,13 @@
+(include_subdirs unqualified)
+
+; Copy config file to be included in :standard modules
+
+(rule
+ (copy %{project_root}/config.ml config.ml))
+
+(library
+ (name zelus_global)
+ (public_name zelus.global)
+ (wrapped false)
+ (modules :standard)
+ (libraries unix menhirLib zelus_parsing))

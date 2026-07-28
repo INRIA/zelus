@@ -1,0 +1,8 @@
+(include_subdirs unqualified)
+
+(library
+ (name zelus_compiler)
+ (public_name zelus.compiler)
+ (wrapped false)
+ (modules :standard)
+ (libraries unix menhirLib zelus_global zelus_parsing zelus_zrun))

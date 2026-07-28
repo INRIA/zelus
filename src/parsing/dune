@@ -1,3 +1,5 @@
+(include_subdirs unqualified)
+
 (ocamllex
  (modules lexer))
 
@@ -5,3 +7,10 @@
  (modules parser)
  (infer true)
  (flags --table))
+
+(library
+ (name zelus_parsing)
+ (public_name zelus.parsing)
+ (wrapped false)
+ (modules :standard)
+ (libraries unix menhirLib))

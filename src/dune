@@ -1,25 +1,25 @@
 (include_subdirs unqualified)
 
-; Copy config file to be included in :standard modules
-
-(rule
- (copy %{project_root}/config.ml config.ml))
-
-(library
- (name zelus_compiler)
- (public_name zelus.compiler)
- (wrapped false)
- (modules :standard \ zeluc)
- (libraries unix menhirLib))
-
 (executable
  (name zeluc)
  (modes
   (byte exe))
- (libraries unix zelus_compiler)
+ (libraries unix zelus_global zelus_parsing zelus_zrun zelus_compiler)
  (preprocess
   (pps ppx_deriving.show))
  (modules zeluc)
+ (promote
+  (until-clean)
+  (into %{project_root}/bin)))
+
+(executable
+ (name zrun)
+ (modes
+  (byte exe))
+ (libraries unix zelus_global zelus_parsing zelus_zrun)
+ (preprocess
+  (pps ppx_deriving.show))
+ (modules zrun)
  (promote
   (until-clean)
   (into %{project_root}/bin)))
@@ -86,7 +86,7 @@
 ;    initialization ; initialization inference
 ;    )
 ;  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
- ;  zelus.typing_lib)
+;  zelus.typing_lib)
 ;)
 
 ; rewriting steps
@@ -140,4 +140,3 @@
 ; The compiler
 ;   compiler; the compiler
 ;   simulator; the generation of the main function
-
