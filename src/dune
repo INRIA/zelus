@@ -78,7 +78,7 @@
 
 ; analysis/
 ;
-  causality/
+; causality/
 ;   tcausal ; type manipulation and unification between types for causality
 ;   causality ; causality inference
 ;    )
