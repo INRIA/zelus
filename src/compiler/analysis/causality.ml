@@ -282,29 +282,29 @@ let last_env shared defnames env =
   Env.append env_defnames env
     
 (* Causality analysis of a match handler.*)
-(* free variables must have a causality tag less than [c_body] *)
-let match_handlers body env c_body c_e m_h_list =
+(* free variables must have a causality tag less than [c_body_latest] *)
+let match_handlers body env c_body_latest c_pat m_h_list =
   let handler { m_pat = p; m_body = b; m_env = m_env } =
-    let env = build_env_on_c c_e m_env env in
+    let env = build_env_on_c c_pat m_env env in
     let _ = pattern env p in
-    body env c_body b in
+    body env c_body_latest b in
   List.map handler m_h_list
     
 (* Causality analysis of a present handler *)
 (* assume that [p_h_list] U [default_opt] is not empty *)
 let present_handlers
-    scondpat body env c_latest c_e c_body p_h_list default_opt =
+    scondpat body env c_latest c_scpat c_body_latest p_h_list default_opt =
   let handler { p_cond = scpat; p_body = b; p_env = p_env } =
     (* computations in [scpat] must have a tag less than [c_e] *)
     let env = build_env p_env env in
     let actual_c = scondpat env c_latest scpat in
-    less_than_c scpat.loc env actual_c c_e;
+    less_than_c scpat.loc env actual_c c_scpat;
     (* computations in [body] must have a tag less than [c_body] *)
-    body env c_body b in
+    body env c_body_latest b in
   let res_list = List.map handler p_h_list in
   match default_opt with
   | NoDefault -> res_list
-  | Init(eq) | Else(eq) -> (body env c_body eq) :: res_list
+  | Init(eq) | Else(eq) -> (body env c_body_latest eq) :: res_list
 
 let automaton_handlers
       scondpat exp_less_than_on_c leqs
@@ -456,14 +456,15 @@ and exp env c_latest ({ e_desc; e_info; e_loc } as e) =
        let actual_tc =
          present_handler_exp_list
            env c_latest c_body c_scpat handlers default_opt in
-       (* the result control depend on the signal patterns [scpat] *)
+       (* the result control depend on the signal pattern [scpat] *)
        on_c actual_tc c_body
     | Ematch { e; handlers } ->
        let c_body = Tcausal.intro_less_c c_latest in
        let c_e = Tcausal.intro_less_c c_body in
        exp_less_than_on_c env c_latest e c_e;
        let actual_tc = match_handler_exp_list env c_body c_e handlers in
-       (* the result control depend on [e] *)
+       (* the result is control dependent on [e]; the operator [on_c] *)
+       (* add this extra control dependence *)
        on_c actual_tc c_body
     | Ereset(e_body, e_res) ->
        let c_e = Tcausal.intro_less_c c_latest in
@@ -699,33 +700,33 @@ and equation env c_latest { eq_desc; eq_write; eq_loc } =
   
 (* Typing a present handler for expressions *)
 (* The handler list must be non empty or [e_opt] not none *)
-and present_handler_exp_list env c_latest c_e c_body p_h_list e_opt =
+and present_handler_exp_list env c_latest c_scpat c_body p_h_list e_opt =
   (* [spat -> e]: the result both depend on [spat] and [e] *)
   let tc_list =
-    present_handlers scondpat exp env c_latest c_e c_body p_h_list e_opt in
+    present_handlers scondpat exp env c_latest c_scpat c_body p_h_list e_opt in
   Tcausal.suptype_list true tc_list
 
 (* Typing a present handler for blocks *)
-and present_handler_eq_list env shared c_latest c_e c_body p_h_list p_h_opt =
+and present_handler_eq_list env shared c_latest c_scpat c_body p_h_list p_h_opt =
   (* [spat -> body]: all outputs from [body] depend on [spat] *)
   (* shared variables depend on their last causality *)
   let equation env c_latest eq =
       equation_with_shared_variables shared env c_latest eq in
   ignore
     (present_handlers
-       scondpat equation env c_latest c_e c_body p_h_list p_h_opt)
+       scondpat equation env c_latest c_scpat c_body p_h_list p_h_opt)
 
 (* Typing a match handler for expressions *)
 (* The handler list must be not empty *)
-and match_handler_exp_list env c_body c_e m_h_list =
-  let tc_list = match_handlers exp env c_body c_e m_h_list in
+and match_handler_exp_list env c_body c_pat m_h_list =
+  let tc_list = match_handlers exp env c_body c_pat m_h_list in
   Tcausal.suptype_list true tc_list 
 
 (* Typing a match handler for blocks. *)
-and match_handler_eq_list env shared c_body c_e m_h_list =
+and match_handler_eq_list env shared c_body c_pat m_h_list =
   let equation env c_latest ({ eq_write } as eq) =
     equation_with_shared_variables shared env c_latest eq in
-  ignore (match_handlers equation env c_body c_e m_h_list)
+  ignore (match_handlers equation env c_body c_pat m_h_list)
 
 and automaton_handler_eq_list loc c_latest is_weak defnames env s_h_list se_opt =
   automaton_handlers
@@ -741,7 +742,8 @@ and automaton_handler_eq_list loc c_latest is_weak defnames env s_h_list se_opt 
 (* if [x in shared\defnames, then the variables defined in [eq] are implicitly *)
 (* completed with a default value. This is achieved by considering that *)
 (* the causality of [x] is that of [last x] *)
-and equation_with_shared_variables shared env c_latest ({ eq_write; eq_loc } as eq) =
+and equation_with_shared_variables
+  shared env c_latest ({ eq_write; eq_loc } as eq) =
   (* shared variables not in [eq_write] depend on their last causality *)
   let env = last_env shared eq_write env in
   let env = def_env eq_loc eq_write env in
