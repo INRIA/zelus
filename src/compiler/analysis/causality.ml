@@ -14,26 +14,27 @@
 
 (* causality check *)
 
-(* C | H |-cfree e: ct *)
-(* [C] is a constraint and [H] is an environment *)
+(* C | H |-c_latest e: ct
+* [C] is a constraint between time stamps; the contraints must be a partial
+*- order. [H] an environment, [e] an expression, [c_latest] 
+*- is a causality tag or time stamp; [ct] a causality type
+*)
 
-(* [ct] is a causality type whose leaves are causality tags [c] *)
-(* C | H |-cfree e: t[c1,...,cn] means that, at every instant i, the *)
-(* output of [e] is produced at a tag [c] such that [c1,...,cn <= c] *)
-(* [t] is a structured type that containts the causality tags [c1,...,cn] *)
-
-(* those tags are associated to a strict partial order: *)
-(* The relation [c1 < c2] means that the causality tag [c1] is stricly *)
-(* before [c2]. *)
-
-(* If C | H |-cfree e: c1 and C |- c1 < c2 then C | H |-cfree e : c2 *)
-
-(* The causality analysis is able to express that a whole expression [e] *)
-(* (or any block structure) is executed atomically: all outputs *)
-(* are considered to depend on all input (and all free variables) *)
-(* For that, we use [cfree] as an extra tag when typing [e]. It is such *)
-(* that all introduced tag [ci] introduced during the typing of [e] *)
-(* is such that [ci < cfree] *)
+(* - a tag c models a time stamp. Time stamps are partially ordered.
+ *- an expression [e] with time stamp [c], that is [C | H |-c_latest e : c]
+ *- means that the result of [e] is ready at instant [c].
+ *- [tc1 * ... * tcn] is the type of a n-ary typle whose i-th component has
+ *- causality type tci.
+ *- tc1 -> tc2 is the type of a function [f] where, if its input [x]
+ *- has causality type [tc1] ("it is computed and its result is available
+ *- with type [tc1]") its output is ready with type [tc2]
+ *-
+ *- c_latest is a time tag such that all fresh time stamps [ci]
+ *- introduced during the typing of [e] are such that [ci < c_latest]
+ *-
+ *- this is use as a simple way to constraint some expressions to be
+ *- computable atomically, such that all of their output depend on all of
+ *- their inputs *)
 
 open Misc
 open Ident
@@ -292,11 +293,11 @@ let match_handlers body env c_body c_e m_h_list =
 (* Causality analysis of a present handler *)
 (* assume that [p_h_list] U [default_opt] is not empty *)
 let present_handlers
-    scondpat body env c_free c_e c_body p_h_list default_opt =
+    scondpat body env c_latest c_e c_body p_h_list default_opt =
   let handler { p_cond = scpat; p_body = b; p_env = p_env } =
     (* computations in [scpat] must have a tag less than [c_e] *)
     let env = build_env p_env env in
-    let actual_c = scondpat env c_free scpat in
+    let actual_c = scondpat env c_latest scpat in
     less_than_c scpat.loc env actual_c c_e;
     (* computations in [body] must have a tag less than [c_body] *)
     body env c_body b in
@@ -308,17 +309,17 @@ let present_handlers
 let automaton_handlers
       scondpat exp_less_than_on_c leqs
       body_state body_escape
-      loc c_free is_weak defnames env s_h_list se_opt =
+      loc c_latest is_weak defnames env s_h_list se_opt =
   (* Typing a state expression *)
-  let rec state env c_free c_e { desc } =
+  let rec state env c_latest c_e { desc } =
     match desc with
     | Estate0 _ -> ()
     | Estate1(_, e_list) ->
-       List.iter (fun e -> exp_less_than_on_c env c_free e c_e) e_list
+       List.iter (fun e -> exp_less_than_on_c env c_latest e c_e) e_list
     | Estateif(e, s1, s2) ->
-       exp_less_than_on_c env c_free e c_e;
-       state env c_free c_e s1;
-       state env c_free c_e s2 in
+       exp_less_than_on_c env c_latest e c_e;
+       state env c_latest c_e s1;
+       state env c_latest c_e s2 in
   (* Compute the set of names defined by a state *)
   let cur_names_in_state b trans =
     let block acc { b_write } = Defnames.cur_names acc b_write in
@@ -332,16 +333,16 @@ let automaton_handlers
   (* - Automata with weak preemption: *)
   (*   1. compute the body; 2. compute the next active state. *)
   (* the causality constraints must reproduce this scheduling *)
-  let escape shared env c_free c_spat
+  let escape shared env c_latest c_spat
         { e_cond; e_let; e_body; e_next_state; e_env } =
     let env = build_env e_env env in
-    let actual_c = scondpat env c_free e_cond in
+    let actual_c = scondpat env c_latest e_cond in
     less_than_c e_cond.loc env actual_c c_spat;
     (* typing local definitions *)
-    let env = leqs env c_free e_let in
+    let env = leqs env c_latest e_let in
     (* then the body *)
-    let env = body_escape shared env c_free e_body in
-    state env c_free c_spat e_next_state in
+    let env = body_escape shared env c_latest e_body in
+    state env c_latest c_spat e_next_state in
   let weak shared env c_body c_trans c_scpat
         { s_let; s_body; s_trans; s_env } =
     (* remove from [shared] names defined in the current state *)
@@ -362,8 +363,8 @@ let automaton_handlers
     let env = leqs env c_body s_let in
     (* then the body *)
     ignore (body_state shared env c_body s_body) in
-  let c_automaton = Tcausal.intro_less_c c_free in
-  Util.optional_unit (state env c_free) c_automaton se_opt;
+  let c_automaton = Tcausal.intro_less_c c_latest in
+  Util.optional_unit (state env c_latest) c_automaton se_opt;
   (* Every branch of the automaton is considered to be executed atomically *)
   let shared, env = def_env_on_c loc defnames env c_automaton in
   (* the causality tag for the transition conditions *)
@@ -381,20 +382,20 @@ let automaton_handlers
     List.iter (strong shared env c_body c_body c_scpat) s_h_list
     
 (* Typing the declaration of variables. *)
-let rec vardec_list env c_free v_list =
-  List.iter (vardec env c_free) v_list
+let rec vardec_list env c_latest v_list =
+  List.iter (vardec env c_latest) v_list
 
-and vardec env c_free ({ var_name; var_default; var_init }) =
+and vardec env c_latest ({ var_name; var_default; var_init }) =
   (* TODO: building the environment should be done by the [vardec] function *)
   Util.optional_unit
     (fun env e -> 
-      exp_less_than_on_c env c_free e (Tcausal.new_var ())) env var_init;
+      exp_less_than_on_c env c_latest e (Tcausal.new_var ())) env var_init;
   Util.optional_unit
     (fun env e -> 
-      exp_less_than_on_c env c_free e (Tcausal.new_var ())) env var_default;
+      exp_less_than_on_c env c_latest e (Tcausal.new_var ())) env var_default;
 
-(* causality of an expression. [C | H |-cfree e: ct] *)
-and exp env c_free ({ e_desc; e_info; e_loc } as e) =
+(* causality of an expression. [C | H |-c_latest e: ct] *)
+and exp env c_latest ({ e_desc; e_info; e_loc } as e) =
   let e_typ = Typinfo.get_type e_info in
   let tc = match e_desc with
     | Econst _ | Econstr0 _ -> Tcausal.skeleton e_typ
@@ -406,8 +407,8 @@ and exp env c_free ({ e_desc; e_info; e_loc } as e) =
         let tc = Tcausal.instance t_tys e_typ in
         let tc = subtype true tc in
         let cset = Tcausal.vars S.empty tc in
-        (* all elements [ci in cset] are such that [ci < c_free] *)
-        S.iter (fun ci -> less_than_c e_loc env ci c_free) cset;
+        (* all elements [ci in cset] are such that [ci < c_latest] *)
+        S.iter (fun ci -> less_than_c e_loc env ci c_latest) cset;
         tc
     | Elast { id } ->
         let { t_last_typ } =
@@ -415,86 +416,86 @@ and exp env c_free ({ e_desc; e_info; e_loc } as e) =
         let tc =
           match t_last_typ with | None -> assert false | Some(tc) -> tc in
         let cset = Tcausal.vars S.empty tc in
-        (* all elements [ci in cset] are such that [ci < c_free] *)
-        S.iter (fun ci -> less_than_c e_loc env ci c_free) cset;
+        (* all elements [ci in cset] are such that [ci < c_latest] *)
+        S.iter (fun ci -> less_than_c e_loc env ci c_latest) cset;
         tc
     | Econstr1 { arg_list } ->
         let c = Tcausal.new_var () in
-        List.iter (fun e -> exp_less_than_on_c env c_free e c) arg_list;
+        List.iter (fun e -> exp_less_than_on_c env c_latest e c) arg_list;
         Tcausal.skeleton_on_c c e_typ
     | Etuple(e_list) ->
-        product (List.map (exp env c_free) e_list)
+        product (List.map (exp env c_latest) e_list)
     | Eop(op, e_list) ->
-        operator env op c_free e_typ e_list
+        operator env op c_latest e_typ e_list
     | Eapp { f; arg_list } ->
-        app env c_free (exp env c_free f) arg_list
+        app env c_latest (exp env c_latest f) arg_list
     | Erecord_access { arg } ->
         let c_record = Tcausal.new_var () in
-        exp_less_than_on_c env c_free arg c_record;
+        exp_less_than_on_c env c_latest arg c_record;
         Tcausal.skeleton_on_c c_record e_typ
     | Erecord(l) ->
         let c_record = Tcausal.new_var () in
         List.iter
-          (fun { arg } -> exp_less_than_on_c env c_free arg c_record) l;
+          (fun { arg } -> exp_less_than_on_c env c_latest arg c_record) l;
         Tcausal.skeleton_on_c c_record e_typ
     | Erecord_with(e_record, l) ->
         let c_record = Tcausal.new_var () in
-        exp_less_than_on_c env c_free e_record c_record;
+        exp_less_than_on_c env c_latest e_record c_record;
         List.iter
-          (fun { arg } -> exp_less_than_on_c env c_free arg c_record) l;
+          (fun { arg } -> exp_less_than_on_c env c_latest arg c_record) l;
         Tcausal.skeleton_on_c c_record e_typ
-    | Etypeconstraint(e, _) -> exp env c_free e
+    | Etypeconstraint(e, _) -> exp env c_latest e
     | Elet(l, e_let) ->
-        let new_env = leq env c_free l in
-        let tc = exp new_env c_free e_let in
+        let new_env = leq env c_latest l in
+        let tc = exp new_env c_latest e_let in
         tc
-    | Efun(fe)  -> funexp env c_free fe
+    | Efun(fe)  -> funexp env c_latest fe
     | Epresent { handlers; default_opt } ->
-       let c_body = Tcausal.intro_less_c c_free in
+       let c_body = Tcausal.intro_less_c c_latest in
        let c_scpat = Tcausal.intro_less_c c_body in
        let actual_tc =
          present_handler_exp_list
-           env c_free c_body c_scpat handlers default_opt in
+           env c_latest c_body c_scpat handlers default_opt in
        (* the result control depend on the signal patterns [scpat] *)
        on_c actual_tc c_body
     | Ematch { e; handlers } ->
-       let c_body = Tcausal.intro_less_c c_free in
+       let c_body = Tcausal.intro_less_c c_latest in
        let c_e = Tcausal.intro_less_c c_body in
-       exp_less_than_on_c env c_free e c_e;
+       exp_less_than_on_c env c_latest e c_e;
        let actual_tc = match_handler_exp_list env c_body c_e handlers in
        (* the result control depend on [e] *)
        on_c actual_tc c_body
     | Ereset(e_body, e_res) ->
-       let c_e = Tcausal.intro_less_c c_free in
-       exp_less_than_on_c env c_free e_res c_e;
-       exp_less_than_on_c env c_free e_body c_e;
+       let c_e = Tcausal.intro_less_c c_latest in
+       exp_less_than_on_c env c_latest e_res c_e;
+       exp_less_than_on_c env c_latest e_body c_e;
        Tcausal.skeleton_on_c c_e e_typ
     | Eassert { a_body } ->
-       let c_e = Tcausal.intro_less_c c_free in
-       exp_less_than_on_c env c_free a_body c_e;
+       let c_e = Tcausal.intro_less_c c_latest in
+       exp_less_than_on_c env c_latest a_body c_e;
        Tcausal.skeleton_on_c c_e e_typ
     | Elocal(b_eq, e_body) ->
-       let env = block_eq Ident.S.empty env c_free b_eq in
-       exp env c_free e_body
+       let env = block_eq Ident.S.empty env c_latest b_eq in
+       exp env c_latest e_body
     | Eforloop(fe) ->
-       forloop_exp env c_free fe
-    | Esizeapp { f } -> exp env c_free f in
+       forloop_exp env c_latest fe
+    | Esizeapp { f } -> exp env c_latest f in
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info tc;
   tc
   
 (** Typing an application *)
-and app env c_free tc_fct arg_list =
+and app env c_latest tc_fct arg_list =
   (* typing the list of arguments *)
   let rec args tc_fct = function
     | [] -> subtype true tc_fct
     | arg :: arg_list ->
         let tc1, tc2 = Tcausal.filter_arrow tc_fct in
-        exp_less_than env c_free arg tc1;
+        exp_less_than env c_latest arg tc1;
         args tc2 arg_list in
   args tc_fct arg_list
 
-and funexp env c_free { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
+and funexp env c_latest { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
   let env = build_env f_env env in
   let tc_list = List.map (arg env) f_args in
   let tc_res = result env f_body in
@@ -510,81 +511,81 @@ and funexp env c_free { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
 and arg h n_list = type_of_vardec_list h n_list
   
 (** Typing an operator *)
-and operator env op c_free ty e_list =
+and operator env op c_latest ty e_list =
   (* the type of the result *)
-  let c_res = Tcausal.intro_less_c c_free in
+  let c_res = Tcausal.intro_less_c c_latest in
   match op, e_list with
   | Eunarypre, [e] ->
-      exp_less_than_on_c env c_free e (Tcausal.new_var ());
+      exp_less_than_on_c env c_latest e (Tcausal.new_var ());
       Tcausal.skeleton_on_c c_res ty
   | Efby, [e1;e2] ->
-      exp_less_than_on_c env c_free e2 (Tcausal.new_var ());
-      exp_less_than_on_c env c_free e1 c_res;
+      exp_less_than_on_c env c_latest e2 (Tcausal.new_var ());
+      exp_less_than_on_c env c_latest e1 c_res;
       Tcausal.skeleton_on_c c_res ty
   | Eminusgreater, [e1;e2] ->
-      exp_less_than_on_c env c_free e1 c_res;
-      exp_less_than_on_c env c_free e2 c_res;
+      exp_less_than_on_c env c_latest e1 c_res;
+      exp_less_than_on_c env c_latest e2 c_res;
       Tcausal.skeleton_on_c c_res ty
   | Eifthenelse, [e1; e2; e3] ->
-      exp_less_than_on_c env c_free e1 c_res;
-      exp_less_than_on_c env c_free e2 c_res;
-      exp_less_than_on_c env c_free e3 c_res;
+      exp_less_than_on_c env c_latest e1 c_res;
+      exp_less_than_on_c env c_latest e2 c_res;
+      exp_less_than_on_c env c_latest e3 c_res;
       Tcausal.skeleton_on_c c_res ty
   | Eup _, [e] ->
-     exp_less_than_on_c env c_free e (Tcausal.new_var ());
+     exp_less_than_on_c env c_latest e (Tcausal.new_var ());
      Tcausal.skeleton_on_c c_res ty
   | Einitial, [] ->
      Tcausal.skeleton_on_c c_res ty
   | (Edisc | Ehorizon _), [e] ->
-     exp_less_than_on_c env c_free e c_res;
+     exp_less_than_on_c env c_latest e c_res;
      Tcausal.skeleton_on_c c_res ty
   | Eperiod, [e1; e2] ->
-     exp_less_than_on_c env c_free e1 c_res;
-     exp_less_than_on_c env c_free e2 c_res;
+     exp_less_than_on_c env c_latest e1 c_res;
+     exp_less_than_on_c env c_latest e2 c_res;
      Tcausal.skeleton_on_c c_res ty
   | Eseq, [e1; e2] ->
-     exp_less_than_on_c env c_free e1 c_res;
-     exp_less_than_on_c env c_free e2 c_res;
+     exp_less_than_on_c env c_latest e1 c_res;
+     exp_less_than_on_c env c_latest e2 c_res;
      Tcausal.skeleton_on_c c_res ty
   | Eatomic, [e] ->
-     exp_less_than_on_c env c_free e c_res;
+     exp_less_than_on_c env c_latest e c_res;
      Tcausal.skeleton_on_c c_res ty
   | Etest, [e] ->
-     exp_less_than_on_c env c_free e c_res;
+     exp_less_than_on_c env c_latest e c_res;
      Tcausal.skeleton_on_c c_res ty
   | Erun _, [e1; e2] ->
-     let tc1 = exp env c_free e1 in
+     let tc1 = exp env c_latest e1 in
      let tc1, tc2 = Tcausal.filter_arrow tc1 in
-     exp_less_than env c_free e2 tc1;
+     exp_less_than env c_latest e2 tc1;
      tc2
-  | Earray(op), e_list -> array_operator env op c_free ty e_list
+  | Earray(op), e_list -> array_operator env op c_latest ty e_list
   | _ -> assert false
 
-and array_operator env op c_free ty e_list =
+and array_operator env op c_latest ty e_list =
   (* the type of the result *)
-  let c_res = Tcausal.intro_less_c c_free in
+  let c_res = Tcausal.intro_less_c c_latest in
   match op, e_list with
   | Earray_list, e_list ->
-     List.iter (fun e -> exp_less_than_on_c env c_free e c_res) e_list;
+     List.iter (fun e -> exp_less_than_on_c env c_latest e c_res) e_list;
      Tcausal.skeleton_on_c c_res ty
   | (Econcat | Eget), [e1; e2] ->
-     exp_less_than_on_c env c_free e1 c_res;
-     exp_less_than_on_c env c_free e2 c_res;
+     exp_less_than_on_c env c_latest e1 c_res;
+     exp_less_than_on_c env c_latest e2 c_res;
      Tcausal.skeleton_on_c c_res ty
   | (Eget_with_default | Eslice _ | Eupdate),  l ->
-     List.iter (fun e -> exp_less_than_on_c env c_free e c_res) l;
+     List.iter (fun e -> exp_less_than_on_c env c_latest e c_res) l;
      Tcausal.skeleton_on_c c_res ty
   | (Etranspose | Ereverse | Eflatten), [e1] ->
-     exp_less_than_on_c env c_free e1 c_res;
+     exp_less_than_on_c env c_latest e1 c_res;
      Tcausal.skeleton_on_c c_res ty
   | _ -> assert false
 
 (* Typing an expression with an expected causality *)
 (* [H |- e : t with t < t[expected_c]] *)
 (* The causality tag of [e] must be less than [expected_c] *)
-(* free variables in [e] must have a tag less than [c_free] *)
-and exp_less_than_on_c env c_free e expected_c =
-  let actual_tc = exp env c_free e in
+(* free variables in [e] must have a tag less than [c_latest] *)
+and exp_less_than_on_c env c_latest e expected_c =
+  let actual_tc = exp env c_latest e in
   let ty = Typinfo.get_type e.e_info in
   let expected_tc = Tcausal.skeleton_on_c expected_c ty in
   less_than e.e_loc env actual_tc expected_tc;
@@ -592,42 +593,42 @@ and exp_less_than_on_c env c_free e expected_c =
   e.e_info <- Typinfo.set_caus e.e_info expected_tc
 
 (* [H |- e : t with t < expected_tc] *)
-and exp_less_than env c_free e expected_tc =
-  let actual_tc = exp env c_free e in
+and exp_less_than env c_latest e expected_tc =
+  let actual_tc = exp env c_latest e in
   less_than e.e_loc env actual_tc expected_tc;
   (* annotate [e] with the causality type *)
   e.e_info <- Typinfo.set_caus e.e_info expected_tc
 
 (* Typing a list of equations [env |-c eq list] *)
-and equation_list env c_free eq_list = List.iter (equation env c_free) eq_list
+and equation_list env c_latest eq_list = List.iter (equation env c_latest) eq_list
 
-(* Typing of an equation. [env |-c_free eq] *)
+(* Typing of an equation. [env |-c_latest eq] *)
 (* any fresh causality variable [c] introduced in the typing of [e] *)
-(* is such that [c < c_free] *)
-and equation env c_free { eq_desc; eq_write; eq_loc } =
+(* is such that [c < c_latest] *)
+and equation env c_latest { eq_desc; eq_write; eq_loc } =
   match eq_desc with
   | EQeq(p, e) ->
       let tc_p = pattern env p in
-      exp_less_than env c_free e tc_p
+      exp_less_than env c_latest e tc_p
   | EQinit(n, e0) ->
       let { t_tys = { typ_body }; t_last_typ } =
         try Env.find n env with | Not_found -> print n in 
-      let actual_tc = exp env c_free e0 in
+      let actual_tc = exp env c_latest e0 in
       less_than e0.e_loc env actual_tc typ_body;
       (match t_last_typ with
        | None -> () | Some(ltc) -> less_than e0.e_loc env actual_tc ltc)
   | EQder { id; e; e_opt = None; handlers = [] } ->
      (* do nothing; only check that [e] is correct *)
-     let _ = exp env c_free e in ()
+     let _ = exp env c_latest e in ()
   | EQder { id; e; e_opt; handlers } ->
      let { t_tys = { typ_body }; t_last_typ } =
        try Env.find id env with | Not_found -> print id in 
-     let _ = exp env c_free e in
-     let c_body = Tcausal.intro_less_c c_free in
+     let _ = exp env c_latest e in
+     let c_body = Tcausal.intro_less_c c_latest in
      let c_e = Tcausal.intro_less_c c_body in
      let e_opt = match e_opt with | None -> NoDefault | Some(e) -> Init(e) in
      let actual_tc =
-       present_handler_exp_list env c_free c_e c_body handlers e_opt in
+       present_handler_exp_list env c_latest c_e c_body handlers e_opt in
      let actual_tc = on_c actual_tc c_body in
      less_than eq_loc env actual_tc typ_body;
      (match e_opt, t_last_typ with
@@ -638,18 +639,18 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
   | EQemit(n, e_opt) ->
       let c_res = Tcausal.new_var () in
       Util.optional_unit
-        (fun c_res e -> exp_less_than_on_c env c_free e c_res) c_res e_opt;
+        (fun c_res e -> exp_less_than_on_c env c_latest e c_res) c_res e_opt;
       let { t_tys = { typ_body } } =
         try Env.find n env with Not_found -> print n in
       let actual_tc = Tcausal.annotate (Cname n) (atom c_res) in
       less_than eq_loc env actual_tc typ_body
   | EQautomaton { is_weak; handlers; state_opt } ->
      automaton_handler_eq_list
-       eq_loc c_free is_weak eq_write env handlers state_opt
+       eq_loc c_latest is_weak eq_write env handlers state_opt
   | EQif { e; eq_true; eq_false } ->
-      let c_body = Tcausal.intro_less_c c_free in
+      let c_body = Tcausal.intro_less_c c_latest in
       let c_e = Tcausal.intro_less_c c_body in
-      exp_less_than_on_c env c_free e c_e;
+      exp_less_than_on_c env c_latest e c_e;
       let shared, env = def_env_on_c eq_loc eq_write env c_body in
       (* the [if/then/else] is a short-cut for [match/with] *)
       let env1 = last_env shared eq_true.eq_write env in
@@ -657,9 +658,9 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
       let env2 = last_env shared eq_false.eq_write env in
       ignore (equation env2 c_body eq_false)
   | EQmatch { e; handlers } ->
-      let c_body = Tcausal.intro_less_c c_free in
+      let c_body = Tcausal.intro_less_c c_latest in
       let c_e = Tcausal.intro_less_c c_body in
-      exp_less_than_on_c env c_free e c_e;
+      exp_less_than_on_c env c_latest e c_e;
       let shared, env = def_env_on_c eq_loc eq_write env c_body in
       (* the [match/with] is considered to be atomic, i.e., all of *)
       (* its outputs depend on all of its free variable. *)
@@ -668,15 +669,15 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
       (* where env(xi) = ct'i *)
       match_handler_eq_list env shared c_body c_e handlers
   | EQpresent { handlers; default_opt } ->
-      let c_body = Tcausal.intro_less_c c_free in
+      let c_body = Tcausal.intro_less_c c_latest in
       let c_scpat = Tcausal.intro_less_c c_body in
       (* the [present/with] is considered to be executed atomically *)
       let shared, env = def_env_on_c eq_loc eq_write env c_body in
       present_handler_eq_list
-        env shared c_free c_scpat c_body handlers default_opt      
+        env shared c_latest c_scpat c_body handlers default_opt      
   | EQreset(eq, e) ->
-      let c_e = Tcausal.intro_less_c c_free in
-      exp_less_than_on_c env c_free e c_e;
+      let c_e = Tcausal.intro_less_c c_latest in
+      exp_less_than_on_c env c_latest e c_e;
       (* the [reset] block is considered to be executed atomically *)
       let _, env = def_env_on_c eq_loc eq_write env c_e in
       (* do it one more so that the causality tag of defined variables *)
@@ -684,35 +685,35 @@ and equation env c_free { eq_desc; eq_write; eq_loc } =
       let env = def_env eq_loc eq_write env in
       equation env c_e eq
   | EQand { eq_list } ->
-      equation_list env c_free eq_list 
+      equation_list env c_latest eq_list 
   | EQlocal(b_eq) ->
-     ignore (block_eq Ident.S.empty env c_free b_eq)
+     ignore (block_eq Ident.S.empty env c_latest b_eq)
   | EQlet(l_eq, eq) ->
-     let env = leq env c_free l_eq in equation env c_free eq
+     let env = leq env c_latest l_eq in equation env c_latest eq
   | EQassert { a_body } ->
-     let c_e = Tcausal.intro_less_c c_free in
-     exp_less_than_on_c env c_free a_body c_e
+     let c_e = Tcausal.intro_less_c c_latest in
+     exp_less_than_on_c env c_latest a_body c_e
   | EQempty -> ()
-  | EQforloop(f_eq) -> forloop_eq env c_free f_eq
-  | EQsizefun(f_size) -> sizefun_t env c_free f_size
+  | EQforloop(f_eq) -> forloop_eq env c_latest f_eq
+  | EQsizefun(f_size) -> sizefun_t env c_latest f_size
   
 (* Typing a present handler for expressions *)
 (* The handler list must be non empty or [e_opt] not none *)
-and present_handler_exp_list env c_free c_e c_body p_h_list e_opt =
+and present_handler_exp_list env c_latest c_e c_body p_h_list e_opt =
   (* [spat -> e]: the result both depend on [spat] and [e] *)
   let tc_list =
-    present_handlers scondpat exp env c_free c_e c_body p_h_list e_opt in
+    present_handlers scondpat exp env c_latest c_e c_body p_h_list e_opt in
   Tcausal.suptype_list true tc_list
 
 (* Typing a present handler for blocks *)
-and present_handler_eq_list env shared c_free c_e c_body p_h_list p_h_opt =
+and present_handler_eq_list env shared c_latest c_e c_body p_h_list p_h_opt =
   (* [spat -> body]: all outputs from [body] depend on [spat] *)
   (* shared variables depend on their last causality *)
-  let equation env c_free eq =
-      equation_with_shared_variables shared env c_free eq in
+  let equation env c_latest eq =
+      equation_with_shared_variables shared env c_latest eq in
   ignore
     (present_handlers
-       scondpat equation env c_free c_e c_body p_h_list p_h_opt)
+       scondpat equation env c_latest c_e c_body p_h_list p_h_opt)
 
 (* Typing a match handler for expressions *)
 (* The handler list must be not empty *)
@@ -722,15 +723,15 @@ and match_handler_exp_list env c_body c_e m_h_list =
 
 (* Typing a match handler for blocks. *)
 and match_handler_eq_list env shared c_body c_e m_h_list =
-  let equation env c_free ({ eq_write } as eq) =
-    equation_with_shared_variables shared env c_free eq in
+  let equation env c_latest ({ eq_write } as eq) =
+    equation_with_shared_variables shared env c_latest eq in
   ignore (match_handlers equation env c_body c_e m_h_list)
 
-and automaton_handler_eq_list loc c_free is_weak defnames env s_h_list se_opt =
+and automaton_handler_eq_list loc c_latest is_weak defnames env s_h_list se_opt =
   automaton_handlers
     scondpat exp_less_than_on_c
     leqs block_eq block_eq
-    loc c_free is_weak defnames env s_h_list se_opt
+    loc c_latest is_weak defnames env s_h_list se_opt
 
 (* typing an equation which defines variables only when a condition holds *)
 (* this situation appends for control structure,  i.e., with by-case *)
@@ -740,11 +741,11 @@ and automaton_handler_eq_list loc c_free is_weak defnames env s_h_list se_opt =
 (* if [x in shared\defnames, then the variables defined in [eq] are implicitly *)
 (* completed with a default value. This is achieved by considering that *)
 (* the causality of [x] is that of [last x] *)
-and equation_with_shared_variables shared env c_free ({ eq_write; eq_loc } as eq) =
+and equation_with_shared_variables shared env c_latest ({ eq_write; eq_loc } as eq) =
   (* shared variables not in [eq_write] depend on their last causality *)
   let env = last_env shared eq_write env in
   let env = def_env eq_loc eq_write env in
-  equation env c_free eq;
+  equation env c_latest eq;
   env
 
 (* Typing a block with a set of equations in its body. *)
@@ -753,7 +754,7 @@ and equation_with_shared_variables shared env c_free ({ eq_write; eq_loc } as eq
 (* if [x in shared\defnames, then the block is implicitly *)
 (* completed with a default value. This is achieved by considering that *)
 (* the causality of [x] is that of [last x] *)
-and block_eq shared env c_free
+and block_eq shared env c_latest
 		  { b_body; b_env; b_write; b_loc } =
   (* shared variables depend on their last causality *)
   let env = last_env shared b_write env in
@@ -761,32 +762,32 @@ and block_eq shared env c_free
   (* [local x1,..., xn in ...] *)
   let env = build_env b_env env in
   let env = def_env b_loc b_write env in
-  equation env c_free b_body;
+  equation env c_latest b_body;
   env
  
 (* Typing a local declaration. Returns the extended environment *)
-and leq env c_free { l_eq; l_env } =
+and leq env c_latest { l_eq; l_env } =
   (* First extend the typing environment *)
   let env = build_env l_env env in
   (* Then type the body *)
-  equation env c_free l_eq;
+  equation env c_latest l_eq;
   env
 
-and leqs env c_free l = List.fold_left (fun env l -> leq env c_free l) env l
+and leqs env c_latest l = List.fold_left (fun env l -> leq env c_latest l) env l
   
 (* Typing  a signal pattern. *)
-and scondpat env c_free sc =
+and scondpat env c_latest sc =
   let rec scondpat { desc } expected_c =
     match desc with
     | Econdand(sc1, sc2) | Econdor(sc1, sc2) ->
         scondpat sc1 expected_c; scondpat sc2 expected_c
     | Econdon(sc1, e) ->
-        exp_less_than_on_c env c_free e expected_c;
+        exp_less_than_on_c env c_latest e expected_c;
        scondpat sc1 expected_c
     | Econdexp(e) ->
-        exp_less_than_on_c env c_free e expected_c
+        exp_less_than_on_c env c_latest e expected_c
     | Econdpat(e, p) ->
-        exp_less_than_on_c env c_free e expected_c;
+        exp_less_than_on_c env c_latest e expected_c;
         let actual_tc = pattern env p in
         let ty = Typinfo.get_type p.pat_info in
         let expected_tc = Tcausal.skeleton_on_c expected_c ty in
@@ -818,7 +819,7 @@ and result env ({ r_desc } as r) =
   tc
        
 (* Typing of a for loop *)
-and forloop_exp env c_free
+and forloop_exp env c_latest
     { for_size; for_kind; for_index; for_input; for_let;
       for_body; for_resume; for_env } =
   (* the for loop is executed atomically *)
@@ -828,31 +829,31 @@ and forloop_exp env c_free
   (* tag [c_out] *)
   let c_out = Tcausal.new_var () in
   let c_in = Tcausal.intro_less_c c_out in
-  for_size_t env c_free c_in for_size;
-  List.iter (for_input_t env c_free c_in) for_input;
+  for_size_t env c_latest c_in for_size;
+  List.iter (for_input_t env c_latest c_in) for_input;
   let env = build_env_on_c c_in for_env env in
   (* typing local definitions *)
   let env = leqs env c_out for_let in
-  for_kind_t env c_free c_out for_kind;
-  for_exp_t env c_free c_out for_body
+  for_kind_t env c_latest c_out for_kind;
+  for_exp_t env c_latest c_out for_body
 
-and for_exp_t env c_free c_out for_exp =
+and for_exp_t env c_latest c_out for_exp =
   (* all computations in the body must be done before time tag [c_out] *)
   match for_exp with
   | Forexp { exp = e; default } ->
      let ty = Typinfo.get_type e.e_info in
      let tc_e = Tcausal.skeleton_on_c c_out ty in
-     exp_less_than env c_free e tc_e;
+     exp_less_than env c_latest e tc_e;
      Util.optional_with_default
-       (fun e -> exp_less_than_on_c env c_free e c_out) () default;
+       (fun e -> exp_less_than_on_c env c_latest e c_out) () default;
      tc_e
   | Forreturns { r_returns; r_block; r_env } ->
-     List.iter (for_vardec env c_free) r_returns;
+     List.iter (for_vardec env c_latest) r_returns;
      let env = build_env r_env env in
-     let _ = block_eq Ident.S.empty env c_free r_block in
+     let _ = block_eq Ident.S.empty env c_latest r_block in
      type_of_for_vardec_list env r_returns
 
-and for_vardec env c_free { desc = { for_vardec } } = vardec env c_free for_vardec
+and for_vardec env c_latest { desc = { for_vardec } } = vardec env c_latest for_vardec
 
 and type_of_for_vardec_list env n_list =
   let type_of { desc = { for_vardec } } =
@@ -860,28 +861,28 @@ and type_of_for_vardec_list env n_list =
   type_of_n_list type_of n_list
 
 (* size expression are executed atomically *)
-and for_size_t env c_free c_in for_size_opt =
+and for_size_t env c_latest c_in for_size_opt =
   Util.optional_unit
     (fun env { for_size_exp } ->
-      exp_less_than_on_c env c_free for_size_exp c_in) env for_size_opt
+      exp_less_than_on_c env c_latest for_size_exp c_in) env for_size_opt
 
-and for_kind_t env c_free c_out for_kind =
+and for_kind_t env c_latest c_out for_kind =
   match for_kind with
   | Kforeach -> ()
   | Kforward(for_exit_opt) ->
-     Util.optional_unit (for_exit_t env c_free) c_out for_exit_opt
+     Util.optional_unit (for_exit_t env c_latest) c_out for_exit_opt
 
-and for_exit_t env c_free c_out { for_exit } = 
-  exp_less_than_on_c env c_free for_exit c_out
+and for_exit_t env c_latest c_out { for_exit } = 
+  exp_less_than_on_c env c_latest for_exit c_out
 
-and for_eq_t env c_free c_out { for_out; for_block; for_out_env } =
+and for_eq_t env c_latest c_out { for_out; for_block; for_out_env } =
   (* outputs must be initialized *)
-  List.iter (for_out_t env c_free c_out) for_out;
+  List.iter (for_out_t env c_latest c_out) for_out;
   let env = build_env_on_c c_out for_out_env env in
-  let _ = block_eq Ident.S.empty env c_free for_block in
+  let _ = block_eq Ident.S.empty env c_latest for_block in
   ()
 
-and for_out_t env c_free c_out { desc = { for_locals; for_ext; for_info }; loc; } =
+and for_out_t env c_latest c_out { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
   let { t_tys } = Env.find for_ext env in
   let typ = Typinfo.get_type for_info in
@@ -892,23 +893,23 @@ and for_out_t env c_free c_out { desc = { for_locals; for_ext; for_info }; loc; 
   | OAcc { for_acc = x } | OArray { for_item = x } ->
     (* every initialization and default value must be well initialized *)
     Util.optional_unit
-      (fun env e -> exp_less_than_on_c env c_free e c_out) env x.for_init;
+      (fun env e -> exp_less_than_on_c env c_latest e c_out) env x.for_init;
     Util.optional_unit
-      (fun env e -> exp_less_than_on_c env c_free e c_out) env x.for_default;
+      (fun env e -> exp_less_than_on_c env c_latest e c_out) env x.for_default;
 
 (* all inputs must be well-initialized *)
-and for_input_t env c_free c_in { desc; loc } =
+and for_input_t env c_latest c_in { desc; loc } =
   match desc with
   | Einput { e; by } ->
-     exp_less_than_on_c env c_free e c_in;
+     exp_less_than_on_c env c_latest e c_in;
      Util.optional_unit 
-       (fun env e -> exp_less_than_on_c env c_free e c_in) env by
+       (fun env e -> exp_less_than_on_c env c_latest e c_in) env by
   | Eindex { e_left; e_right } ->
-     exp_less_than_on_c env c_free e_left c_in;
-     exp_less_than_on_c env c_free e_right c_in
+     exp_less_than_on_c env c_latest e_left c_in;
+     exp_less_than_on_c env c_latest e_right c_in
 
 (* Typing of a for loop *)
-and forloop_eq env c_free
+and forloop_eq env c_latest
       { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* the for loop is executed atomically *)
   (* introduce an input tag [c_in] such that all inputs [ei] have *)
@@ -917,15 +918,15 @@ and forloop_eq env c_free
   (* on tags that are before [c_out]. *)
   let c_out = Tcausal.new_var () in
   let c_in = Tcausal.intro_less_c c_out in
-  for_size_t env c_free c_in for_size;
-  List.iter (for_input_t env c_free c_in) for_input;
+  for_size_t env c_latest c_in for_size;
+  List.iter (for_input_t env c_latest c_in) for_input;
   let env = build_env for_env env in
   (* typing local definitions *)
   let env = leqs env c_out for_let in
-  for_kind_t env c_free c_out for_kind;
-  for_eq_t env c_free c_out for_body
+  for_kind_t env c_latest c_out for_kind;
+  for_eq_t env c_latest c_out for_body
 
-and sizefun_t env c_free { sf_id; sf_id_list; sf_e; sf_loc } =
+and sizefun_t env c_latest { sf_id; sf_id_list; sf_e; sf_loc } =
   let c_in = Tcausal.new_var () in
   let env_sizes =
     List.fold_left 
@@ -934,7 +935,7 @@ and sizefun_t env c_free { sf_id; sf_id_list; sf_e; sf_loc } =
           { t_last_typ = None; t_tys = Defcaus.scheme (Tcausal.atom c_in) } 
           acc) Env.empty sf_id_list in
   let env = Env.append env_sizes env in
-  let actual_tc = exp env c_free sf_e in
+  let actual_tc = exp env c_latest sf_e in
   (* check that [sf_id] can get type [ti_res] *)
   let expected_tc =
     try let { t_tys = { typ_body = tc } } = Env.find sf_id env in tc
