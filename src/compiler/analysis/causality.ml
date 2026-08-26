@@ -601,7 +601,8 @@ and exp_less_than env c_latest e expected_tc =
   e.e_info <- Typinfo.set_caus e.e_info expected_tc
 
 (* Typing a list of equations [env |-c eq list] *)
-and equation_list env c_latest eq_list = List.iter (equation env c_latest) eq_list
+and equation_list env c_latest eq_list =
+  List.iter (equation env c_latest) eq_list
 
 (* Typing of an equation. [env |-c_latest eq] *)
 (* any fresh causality variable [c] introduced in the typing of [e] *)
@@ -756,8 +757,7 @@ and equation_with_shared_variables
 (* if [x in shared\defnames, then the block is implicitly *)
 (* completed with a default value. This is achieved by considering that *)
 (* the causality of [x] is that of [last x] *)
-and block_eq shared env c_latest
-		  { b_body; b_env; b_write; b_loc } =
+and block_eq shared env c_latest { b_body; b_env; b_write; b_loc } =
   (* shared variables depend on their last causality *)
   let env = last_env shared b_write env in
   (* Build the typing environment for names introduced by a *)
@@ -855,7 +855,8 @@ and for_exp_t env c_latest c_out for_exp =
      let _ = block_eq Ident.S.empty env c_latest r_block in
      type_of_for_vardec_list env r_returns
 
-and for_vardec env c_latest { desc = { for_vardec } } = vardec env c_latest for_vardec
+and for_vardec env c_latest { desc = { for_vardec } } =
+  vardec env c_latest for_vardec
 
 and type_of_for_vardec_list env n_list =
   let type_of { desc = { for_vardec } } =
@@ -884,7 +885,8 @@ and for_eq_t env c_latest c_out { for_out; for_block; for_out_env } =
   let _ = block_eq Ident.S.empty env c_latest for_block in
   ()
 
-and for_out_t env c_latest c_out { desc = { for_locals; for_ext; for_info }; loc; } =
+and for_out_t
+  env c_latest c_out { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
   let { t_tys } = Env.find for_ext env in
   let typ = Typinfo.get_type for_info in
