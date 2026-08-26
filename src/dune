@@ -1,5 +1,6 @@
 (include_subdirs unqualified)
 
+; the Zelus compiler
 (executable
  (name zeluc)
  (modes
@@ -12,6 +13,7 @@
   (until-clean)
   (into %{project_root}/bin)))
 
+; the ZRun interpreter
 (executable
  (name zrun)
  (modes
@@ -31,63 +33,58 @@
 ;    lexer.mll parser.mll ; lexer/parser;
 ;    parsetree.ml ; abstract syntax tree after parsing
 ;
+; global/ 
+;  config.ml misc.ml ; general configuration and common global variables
+;  ident.ml: identifiers, environments
+;  lident.ml ; long names (global identifers), environments
+;  defnames.ml ; names defined by an equation
+;  util.ml ; useful functions that are not in Ocaml standard lib
+;  zelus.ml ; the ast of Zelus
+;  write.ml ; computes defined variables for equations
+;  scoping.ml ; translate the ast after parsing into Zelus ast; unique idents
+;  pp_tools.ml ; pretty printer tools
+;  printer.ml ; printer for the Zelus ast
+;  noinfo ; no type information attached to patterns, expressions and equations
 ;
-; global/ Global declarations: all the modules necessary for building the ast
-; config.ml misc.ml ; general configuration and common global variables
-; ident.ml: identifiers, environments
-; lident.ml ; long names (global identifers), environments
-; defnames.ml ; names defined by an equation
-; util.ml ; useful functions that are not in Ocaml standard lib
-; zelus.ml ; the ast of Zelus
-; write.ml ; computes defined variables for equations
-; scoping.ml ; translate the ast after parsing into Zelus ast; unique idents
-; pp_tools.ml ; pretty printer tools
-; printer.ml ; printer for the Zelus ast
-; noinfo ; no type information attached to patterns, expressions and equations
+;  graph.ml ; acyclic graph manipulation
+;  parseq ; a data-structure to represent parallel and sequential composition
+;  aux.ml ; auxiliary functions for building Zelus terms
 ;
-; graph.ml ; acyclic graph manipulation
-; parseq ; a data-structure to represent parallel and sequential composition
-; aux.ml ; auxiliary functions for building Zelus terms
-;
-; zrun/: the ZRun interpreter
-;
-; compiler: the compiler
-;
-; typing/
-;  (library
-;   (name typing_lib)
-;   (public_name zelus.typing_lib)
-;   (wrapped false)
-;   (modules
-;     sizes ; decision algorithm for equality between sizes
-;     types ; type manipulation and unification between types
-;     interface ; interface
-;     kind ; kinds
-;     total ; check totatlity of pattern matching
-;     patternsig ; check totality of pattern matching
-;     matching ; check totality of pattern matching
-;     typerrors ; type errors;
-;     typing ; typing
-;     )
-;   (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib)
-; )
+; typdefs/
+; defcaus.ml ; causality types
+; deftypes.ml ; data types
+; initial.ml ; the initial module
+; pinit.ml ; print initialisation types
+; typinfo.ml ; type information attached to Zelus terms
+; definit.ml ; initialization types
+; genames.ml ; generation of fresh names
+; modules.ml ; the organisation of modules (impl. .zls and interfaces .zli
+; ptypes.ml ; print types
+; defsizes.ml ; definition of sizes
+; global.ml ; representation of global names
+; pcaus.ml ; print causality types;
+; ptypinfo.ml ; print type information
 
-; causality analysis
-;    tcausal ; type manipulation and unification between types for causality
-;    causality ; causality inference
+; typing/
+;  sizes ; decision algorithm for equality between sizes
+;  types ; type manipulation and unification between types
+;  interface ; interfaces (declarations, translation between representations)
+;  kind ; kinds for expressions (stateful, combinational, continuous, etc.)
+;  total ; check totality of pattern matching
+;  patternsig ; check totality of pattern matching
+;  matching ; check totality of pattern matching
+;  typerrors ; type errors;
+;  typing ; the main typing engine
+
+; analysis/
+;
+  causality/
+;   tcausal ; type manipulation and unification between types for causality
+;   causality ; causality inference
 ;    )
-; initialisation analysis
-; (library
-;  (name initialization_lib)
-;  (public_name zelus.initialization_lib)
-;  (wrapped false)
-;;  (modules
-;    tinit ;  type manipulation and unification between types for initialisation
-;    initialization ; initialization inference
-;    )
-;  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
-;  zelus.typing_lib)
-;)
+; initialization/
+;   tinit ;  type manipulation and unification between types for initialisation
+;   initialization ; initialization inference
 
 ; rewriting steps
 ;    cost ; a cost function used to decide which function call to inline
@@ -135,7 +132,8 @@
 ;    oprinter; the printer
 ;    ocamlprinter; print OCaml code
 ;    translate; translate into sequential code
-;    inout; add extra code for in-place modification
+;    inout; add extra code for in-place modification of the continuous
+;           state vector and zero-crossing vector
 
 ; The compiler
 ;   compiler; the compiler
