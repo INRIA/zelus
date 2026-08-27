@@ -1,8 +1,14 @@
+let node g() = o where rec o = last o + 1
+
+let g1(x) returns (o)
+  o = forward<<2>> () returns (o)
+    do o = x done
+
+let g2(x) returns (o)
+  forward<<2>> () returns (o)
+    do o = x done
+
 let f() returns (o)
   forward<<2>> () returns (o init 0)
     do o = last o done
-
-let g() returns (o)
-  o = forward<<2>> () returns (o)
-    do o = 0 fby o + 1 done
 
