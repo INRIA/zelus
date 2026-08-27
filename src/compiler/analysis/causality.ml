@@ -829,7 +829,7 @@ and forloop_exp env c_latest
   (* before on a tag [c] with [c < c_in] *)
   (* all internal computations of the for loop must be done before a *)
   (* tag [c_out] *)
-  let c_out = Tcausal.new_var () in
+  let c_out = Tcausal.intro_less_c c_latest in
   let c_in = Tcausal.intro_less_c c_out in
   for_size_t env c_latest c_in for_size;
   List.iter (for_input_t env c_latest c_in) for_input;
@@ -850,7 +850,7 @@ and for_exp_t env c_latest c_out for_exp =
        (fun e -> exp_less_than_on_c env c_latest e c_out) () default;
      tc_e
   | Forreturns { r_returns; r_block; r_env } ->
-     List.iter (for_vardec env c_latest) r_returns;
+     List.iter (for_vardec env c_out) r_returns;
      let env = build_env r_env env in
      let _ = block_eq Ident.S.empty env c_latest r_block in
      type_of_for_vardec_list env r_returns
@@ -888,10 +888,11 @@ and for_eq_t env c_latest c_out { for_out; for_block; for_out_env } =
 and for_out_t
   env c_latest c_out { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
-  let { t_tys } = Env.find for_ext env in
+  let { t_tys = { typ_body = actual_tc } } = Env.find for_ext env in
   let typ = Typinfo.get_type for_info in
-  let tc_x = Tcausal.instance t_tys typ in
-  less_than loc env tc_x (Tcausal.skeleton_on_c c_out typ);
+  (* the tag for [for_ext] is greater than [c_out] which is the *)
+  (* tag for the result [for_locals] *)
+  less_than loc env (Tcausal.skeleton_on_c c_out typ) actual_tc;
 
   match for_locals with
   | OAcc { for_acc = x } | OArray { for_item = x } ->
@@ -920,11 +921,11 @@ and forloop_eq env c_latest
   (* type t_i[c_in] *)
   (* all elements of the return clause and the loop body must be computed *)
   (* on tags that are before [c_out]. *)
-  let c_out = Tcausal.new_var () in
+  let c_out = Tcausal.intro_less_c c_latest in
   let c_in = Tcausal.intro_less_c c_out in
   for_size_t env c_latest c_in for_size;
   List.iter (for_input_t env c_latest c_in) for_input;
-  let env = build_env for_env env in
+  let env = build_env_on_c c_in for_env env in
   (* typing local definitions *)
   let env = leqs env c_out for_let in
   for_kind_t env c_latest c_out for_kind;
