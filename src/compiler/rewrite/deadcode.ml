@@ -203,7 +203,7 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
     | Exp(e) ->
        let _, { def_use; read } = Mapfold.expression_it funs acc e in
        (* variables in [e] are useful *)
-       if !Misc.verbose then 
+       if !Misc.vverbose then 
          Format.fprintf Format.std_formatter "%a" print def_use;
        read, def_use
     | Returns({ b_env } as b) -> 
@@ -211,7 +211,7 @@ let funexp funs ({ read } as acc) ({ f_body = { r_desc } } as f) =
          Mapfold.block_it funs { acc with read = S.empty } b in
        (* returned variables are useful *)
        let w = Env.fold (fun x _ acc -> S.add x acc) b_env S.empty in
-       if !Misc.verbose then 
+       if !Misc.vverbose then 
          Format.fprintf Format.std_formatter "%a" print def_use;
        w, def_use in
   let def_use = mark true v def_use in
@@ -291,12 +291,12 @@ let letdecl funs _ ((d_names, d_decl) as l_decl) =
     let v_set = 
       List.fold_left (fun v_set (_, x) -> S.add x v_set) S.empty d_names in
     { def_use = mark true v_set Env.empty; read = S.empty } in
-  if !Misc.verbose then 
+  if !Misc.vverbose then 
     Format.fprintf Format.std_formatter "%a" print acc.def_use;
   (* pass 1. build the def-use chains *)
   let l_decl, { def_use } = Mapfold.letdecl funs acc l_decl in
   (* pass 2. compute useful variables; remove dead-code *)
-  if !Misc.verbose then 
+  if !Misc.vverbose then 
     Format.fprintf Format.std_formatter "%a" print def_use;
   let useful = visit S.empty def_use in
   if !Misc.verbose then 
