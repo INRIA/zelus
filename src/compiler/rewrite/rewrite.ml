@@ -25,9 +25,7 @@ let type_check _ p = Typing.program Format.std_formatter false p
     
 (* source-to-source transformations *)
 let default_list =
-  ["sizerec", "Specialization of size functions. Not done
-               option -nosizerec is set). \
-               See below:", 
+  ["sizerec", "Specialization of size functions. See below:", 
    nothing,
    Sizerec.program;
    "inline", "Inlining of annotated and small function calls. See below:", 
@@ -109,7 +107,7 @@ let final_list =
 
 let rewrite_list = default_list
 
-let number_of_passes = List.length default_list + List.length optim_list 
+let number_of_passes = List.length rewrite_list + List.length optim_list 
 
 (* select the rewritting steps *)
 module S = Set.Make (String)
@@ -152,21 +150,23 @@ let main is_print print_message genv0 p n_steps =
 
   let rewrite_and_compare genv p (name, comment, prepass, rewrite) =
     incr pass_number;
-    let p = prepass p in
-    let p_after = rewrite genv p in
     let name_of_the_pass = "Pass " ^ name ^ " (" ^
         (string_of_int !pass_number) ^ "/" ^ (string_of_int number_of_passes)
         ^ "):\n" in
     print_message is_print (name_of_the_pass ^ comment);
+    let p = prepass p in
+    let p_after = rewrite genv p in
     if is_print then Printer.program Format.std_formatter p_after;
     let p_after =
       (* if flag -typeall a postpass typing is made *)
       if !Misc.typeall then
-        let p_after = type_check () p_after in
-        print_message is_print (name_of_the_pass ^ "(typed) " ^ comment);
-        if is_print then Printer.program Format.std_formatter p_after;
-        p_after
-        else p_after in
+        begin
+          print_message is_print (name_of_the_pass ^ "(typed) " ^ comment);
+          let p_after = type_check () p_after in
+          if is_print then Printer.program Format.std_formatter p_after;
+          p_after
+        end
+      else p_after in
     if n_steps = 0 then p_after else compare name n_steps genv p p_after in
     
   let iter genv p l = List.fold_left (rewrite_and_compare genv) p l in
