@@ -223,8 +223,10 @@ let build_env l_env env =
     Env.add n { t_tys; t_last_typ = last_tc_opt } acc in
   Env.append (Env.fold entry l_env Env.empty) env
     
-(* Build an environment with all entries synchronised on [c] *)
+(* Build an environment with all entries [x] synchronised on [c] and *)
+(* and [last x] on [c_last] with [c_last < c] *)
 let build_env_on_c c l_env env =
+  let c_last = Tcausal.intro_less_c c in
   let entry n { t_tys = { typ_body }; t_sort } acc =
     let t_tys =
       Defcaus.scheme
@@ -232,7 +234,8 @@ let build_env_on_c c l_env env =
     let last_tc_opt =
       match t_sort with
       | Sort_mem _ ->
-          Some(Tcausal.annotate (Clast n) (Tcausal.skeleton_on_c c typ_body))
+         Some(Tcausal.annotate (Clast n)
+                (Tcausal.skeleton_on_c c_last typ_body))
       | _ -> None in
     Env.add n { t_tys; t_last_typ = last_tc_opt } acc in
   Env.append (Env.fold entry l_env Env.empty) env
