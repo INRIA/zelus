@@ -61,6 +61,10 @@ module SumOfProducts =
             | 1 -> Svar(x) | _ -> Sop(Smult, Svar(x), power x (i-1)) in
           List.fold_left
             (fun acc (x, i) -> mult acc (power x i)) (Sint(1)) v_list
+
+        let is_surely_positive _ = true
+
+        let is_surely_strict_positive = is_one
       end
     
     (* a multi-variate polynomial [sp] is an ordered sum of products [p . mi] *)
@@ -98,10 +102,11 @@ module SumOfProducts =
         let equal sp1 sp2 = compare sp1 sp2 = 0
 
         (* positive - not complete *)
-        let is_surely_positive : _ -> bool = 
-          fun sp -> M.for_all (fun _ p -> p >= 0) sp
-        let is_surely_not_positive : _ -> bool = 
-          fun sp -> M.for_all (fun _ p -> p < 0) sp
+        let is_surely_positive sp: bool =
+          M.for_all (fun k p -> Product.is_surely_positive k && p >= 0) sp
+        let is_surely_not_positive sp: bool =
+          M.for_all (fun k p -> Product.is_surely_positive k && p <= 0) sp
+          && M.exists (fun k p -> Product.is_surely_strict_positive k && p < 0) sp
         
         (* explicit representation [p0 . m0 + ... + pn . mn] *)
         let to_size_expression m =
