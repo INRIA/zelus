@@ -8,7 +8,7 @@ let g2(x) returns (o)
   forward<<2>> () returns (o)
     do o = x done
 
-let f() returns (o)
+let f(x) returns (o)
   forward<<2>> () returns (o init 0)
-    do o = last o done
+    do o = last o + x done
 
