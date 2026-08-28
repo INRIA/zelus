@@ -1,4 +1,4 @@
-let node g() = o where rec o = last o + 1
+let node g() = o where rec o = 0 -> last o + 1
 
 let g1(x) returns (o)
   o = forward<<2>> () returns (o)
