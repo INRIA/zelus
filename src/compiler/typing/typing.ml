@@ -679,6 +679,15 @@ let check_total_pattern p =
 
 let check_total_pattern_list p_list = List.iter check_total_pattern p_list
 
+(* given a output variable defined in the return clause of a for loop *)
+(* is this variable given a default value *)
+(* if no default value is given, the number of iteration must be non zero *)
+let has_a_default_value { desc = { for_locals } } =
+  match for_locals with
+  | OAcc { for_acc = ({ for_init = Some _ } | { for_default = Some _ }) }
+  | OArray _ -> true
+  | _ -> false
+
 (* Typing a pattern matching. Returns defined names *)
 let match_handlers body loc expected_k h is_total m_handlers pat_ty ty_res =
   let handler ({ m_pat = pat; m_body = b; m_zero } as mh) =
@@ -1912,7 +1921,9 @@ and forloop_exp loc expected_k h
   check_size_index_does_not_escape_in_h loc for_index h_entry_of_forloop;
   check_size_index_does_not_escape_in_h loc for_index h_returns;
   check_size_index_does_not_escape_in_type loc for_index actual_ty;
-    
+  (* 4: if one output is not initialized or given a default value *)
+  (* add the constraint that [size > 0] *)
+
   let actual_k =
     if for_resume then
       Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
@@ -2090,8 +2101,8 @@ and for_out_t loc expected_k size for_index h (acc_h, acc_k) { desc; loc } =
       Env.add for_as
         (Deftypes.entry expected_k
            (Deftypes.Sort_mem memory_as)
-           (Deftypes.scheme (Types.vec expected_ty (Sizes.var for_index)))) acc_h
-    in
+           (Deftypes.scheme
+              (Types.vec expected_ty (Sizes.var for_index)))) acc_h in
     (* compute the type of [for_name]. *)
     (* It is the type of the items of [ext_name]. *)
     let ty_out =
@@ -2190,7 +2201,10 @@ and forloop_eq loc expected_k h
   (* 3: check that the size index does not escape the scope of the for loop *)
   check_size_index_does_not_escape_in_h loc for_index h_entry_in_forloop_body;
   check_size_index_does_not_escape_in_h loc for_index h_out;
-
+  (* 4: if one output is not initialized or given a default value *)
+  (* add the constraint that [size > 0] *)
+  (* let ok = List.for_all has_a_default_value for_out in *)
+  
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
