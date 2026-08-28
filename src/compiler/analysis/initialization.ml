@@ -101,8 +101,12 @@ let less_for_var loc n actual_ti expected_ti =
 
 (* Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] then
- *- [x] is initialized, that is [last x: 0] provided [e:0]; otherwise [last x: 1]
- *- and [x] must be initialized, that is [x:0] *)
+ *- [x] is initialized, that is [last x: 0] provided [e:0];
+ *- otherwise [last x: 1]
+ *- and [x] must be initialized, that is [x:0]
+ *- if [x] as defined by [... as x] in the return clause of a for loop
+ *- [last x] is always initialized; it is either the previous value
+ *- of the array returned by the loop or previous value of the accumulator *)
 let build_env loc l_env env =
   let open Deftypes in
   let entry x { t_sort; t_tys = { typ_body } } =
@@ -111,7 +115,9 @@ let build_env loc l_env env =
         (* if an equation [der x = ...] is given but no initialisation *)
         (* either through [init x = ...] or [x = ...], [x] is not initialized *)
         error loc (Ider(x))
-    | Sort_mem { m_init = (Eq | Decl _) } ->
+    | Sort_mem ({ m_init = (Eq | Decl _) } | { m_as = true }) ->
+       (* if [x] is initialized or is an "as" variable, its last value *)
+       (* is initialized *)
        let t_tys =
          Definit.scheme (Tinit.skeleton_on_i izero typ_body) in
        { t_last = izero; t_tys }
@@ -692,10 +698,9 @@ and for_eq_t loc env { for_out; for_block; for_out_env } =
 
 and for_out_t env { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
-  let { t_tys } = find for_ext env in
+  let { t_tys = { typ_body = ti } } = find for_ext env in
   let typ = Typinfo.get_type for_info in
-  let ti_x = Tinit.instance t_tys typ in
-  less_than loc ti_x (Tinit.skeleton_on_i Tinit.izero typ);
+  less_than loc ti (Tinit.skeleton_on_i Tinit.izero typ);
 
   match for_locals with
   | OAcc { for_acc = x } | OArray { for_item = x } ->
@@ -721,6 +726,7 @@ and forloop_eq loc env
        { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* inputs, index and outputs must be initialized *)
   for_size_t env for_size;
+  (* check that all inputs are initialized *)
   List.iter (for_input_t env) for_input;
   let env = build_env loc for_env env in
   (* typing local definitions *)
