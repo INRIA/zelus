@@ -1,8 +1,12 @@
 let node g() = o where rec o = 0 -> last o + 1
 
 let g1(x) returns (o)
-  o = forward<<2>> () returns (o)
-    do o = x done
+  o = forward<<2>> () returns (oi init 0 as o_)
+    do oi = (last o_).(0) done
+
+let g11(x) returns (o)
+  forward<<2>> () returns (oi init 0 out o as o_)
+    do oi = (last o_).(0) done
 
 let g2(x) returns (o)
   forward<<2>> () returns (o)
