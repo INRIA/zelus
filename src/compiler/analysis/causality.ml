@@ -829,12 +829,13 @@ and forloop_exp env c_latest
       for_body; for_resume; for_env } =
   (* the for loop is executed atomically *)
   (* introduce an input time tag [c_in] such that all inputs [ei] are *)
-  (* before on a tag [c] with [c < c_in] *)
+  (* computed before [c_in] *)
   (* all internal computations of the for loop must be done before a *)
-  (* tag [c_out] *)
+  (* tag [c_out]; with [c_in < c_out < c_latest] *)
   let c_out = Tcausal.intro_less_c c_latest in
   let c_in = Tcausal.intro_less_c c_out in
   for_size_t env c_latest c_in for_size;
+  (* check that all inputs are ready before time tag [c_in] *)
   List.iter (for_input_t env c_latest c_in) for_input;
   let env = build_env_on_c c_in for_env env in
   (* typing local definitions *)
@@ -891,21 +892,21 @@ and for_eq_t env c_latest c_out { for_out; for_block; for_out_env } =
 and for_out_t
   env c_latest c_out { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
-  let { t_tys = { typ_body = actual_tc } } = Env.find for_ext env in
+  let { t_tys = { typ_body = tc } } = Env.find for_ext env in
   let typ = Typinfo.get_type for_info in
   (* the tag for [for_ext] is greater than [c_out] which is the *)
   (* tag for the result [for_locals] *)
-  less_than loc env (Tcausal.skeleton_on_c c_out typ) actual_tc;
+  less_than loc env (Tcausal.skeleton_on_c c_out typ) tc;
 
   match for_locals with
   | OAcc { for_acc = x } | OArray { for_item = x } ->
-    (* every initialization and default value must be well initialized *)
+     (* every initialization and default value must be ready before [c_out] *)
     Util.optional_unit
       (fun env e -> exp_less_than_on_c env c_latest e c_out) env x.for_init;
     Util.optional_unit
       (fun env e -> exp_less_than_on_c env c_latest e c_out) env x.for_default;
 
-(* all inputs must be well-initialized *)
+(* all inputs must be ready before [c_in] *)
 and for_input_t env c_latest c_in { desc; loc } =
   match desc with
   | Einput { e; by } ->
