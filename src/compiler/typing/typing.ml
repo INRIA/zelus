@@ -2022,7 +2022,7 @@ and for_index_t expected_k for_index =
       (Deftypes.size_entry Tany (Deftypes.scheme Initial.typ_int)))
   for_index
 
-(* [[let [rec] eq1 in] do eq *)
+(* [[let [rec] eq1 in]* do eq *)
 and for_eq_t
         loc expected_k size for_index h for_let ({ for_out; for_block } as f) =
   let h_out, actual_k_out =
@@ -2040,7 +2040,11 @@ and for_eq_t
   let d_names =
     List.fold_left
       (defnames_for_out d_names) Defnames.empty for_out in
-  h, h_out, d_names, Kind.sup actual_k_out (Kind.sup actual_k_let actual_k)
+  (* [is_zero = true] when (at least) one output has no default value *)
+  let size_must_be_not_null =
+    not (List.for_all has_a_default_value for_out) in
+  size_must_be_not_null, h, h_out, d_names,
+  Kind.sup actual_k_out (Kind.sup actual_k_let actual_k)
 
 and defnames_for_out d_names acc { desc = { for_locals; for_ext }; loc } =
   let names = Defnames.names S.empty d_names in
@@ -2187,7 +2191,7 @@ and forloop_eq loc expected_k h
   (* and output values of the loop *)
   (* 1: push an empty size constraint *)
   Defsizes.push ();
-  let h, h_out, d_names, actual_k_for_body =
+  let size_must_be_not_null, h, h_out, d_names, actual_k_for_body =
     for_eq_t loc expected_k_for_body size for_index h for_let for_body in
   (* type check the [until|unless|while] condition *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
@@ -2201,8 +2205,10 @@ and forloop_eq loc expected_k h
   check_size_index_does_not_escape_in_h loc for_index h_out;
   (* 4: if one output is not initialized or given a default value *)
   (* add the size-constraint [size > 0] *)
-  (* let ok = List.for_all has_a_default_value for_out in *)
-  
+  if size_must_be_not_null then
+    (* let ok = List.for_all has_a_default_value for_out in *)
+  compare_sizes loc Defsizes.Lt (Types.size_int(0)) si;
+     
   let actual_k =
     if for_resume then Kind.sup k_kind actual_k_for_body else Tfun(Tany) in
   let actual_k = Kind.sup k_size (Kind.sup actual_k_input actual_k) in
