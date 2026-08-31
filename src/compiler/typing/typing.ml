@@ -1912,11 +1912,10 @@ and forloop_exp loc expected_k h
   (* type check the exit conditions *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   (* 2: pop the current size constraint *)
-  (fun _ i ->
-    let sc = Defsizes.pop () in
-    let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-    check_size_constraint_if_possible
-      loc (Sizes.forall i si sc)) () for_index;
+  let sc = Defsizes.pop () in
+  let si = match size_opt with | None -> Defsizes.Sint(0) | Some(si) -> si in
+  check_size_constraint_if_possible
+    loc (Sizes.forall for_index si sc);
   (* 3: check that the size index does not escape the scope of the for loop *)
   check_size_index_does_not_escape_in_h loc for_index h_entry_of_forloop;
   check_size_index_does_not_escape_in_h loc for_index h_returns;
@@ -2193,16 +2192,15 @@ and forloop_eq loc expected_k h
   (* type check the [until|unless|while] condition *)
   let k_kind = for_kind_t loc expected_k_for_body h for_kind in
   (* 2: pop the current size constraint *)
-  (fun _ i ->
-    let sc = Defsizes.pop () in
-    let si = match size_opt with | None -> Defsizes.Sint(0) | Some(i) -> i in
-    check_size_constraint_if_possible
-      loc (Sizes.forall i si sc)) () for_index;
+  let sc = Defsizes.pop () in
+  let si = match size_opt with | None -> Defsizes.Sint(0) | Some(si) -> si in
+  check_size_constraint_if_possible
+    loc (Sizes.forall for_index si sc);
   (* 3: check that the size index does not escape the scope of the for loop *)
   check_size_index_does_not_escape_in_h loc for_index h_entry_in_forloop_body;
   check_size_index_does_not_escape_in_h loc for_index h_out;
   (* 4: if one output is not initialized or given a default value *)
-  (* add the constraint that [size > 0] *)
+  (* add the size-constraint [size > 0] *)
   (* let ok = List.for_all has_a_default_value for_out in *)
   
   let actual_k =
