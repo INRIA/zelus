@@ -1,0 +1,3 @@
+let f(x) =
+  forward<<1>>[i](xi in x) returns ()
+    do _ = ([|0.0|].(i)) done
