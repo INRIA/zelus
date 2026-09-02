@@ -620,7 +620,7 @@ let and_t sc1 sc2 =
   | _ -> And[sc1; sc2]
 
 let forall id e sc =
-  match sc with | True -> True | False -> False | sc -> Forall(id, e, sc)
+  match sc with | True -> True | sc -> Forall(id, e, sc)
 
 let make_lt si1 si2 = Rel { rel = Lt; lhs = si1; rhs = si2 }
 let make_eq si1 si2 = Rel { rel = Eq; lhs = si1; rhs = si2 }
