@@ -412,8 +412,8 @@ let rec unify expected_ty actual_ty =
 	| Tvec(ty1, si1), Tvec(ty2, si2) ->
 	   unify ty1 ty2;
            (* if [si1] and [si2] are surely not equal, raise an exception *)
-           (* if they may be equal, add the equality to the set of *)
-           (* constraints *)
+           (* otherwise, if they are not trivially equal *)
+           (* [si1 = si2] is added to the set of size constraints *)
            if not (Sizes.equal si1 si2) then raise Unify
 	| Tsizefun { id_list = id_list1; ty = ty1; constraints = True },
           Tsizefun { id_list = id_list2; ty = ty2; constraints = True } when

@@ -240,6 +240,8 @@ let check_size_constraint_if_possible loc sc =
 
 (* check that a constraint does not contain any free variable *)
 let check_no_free_variable_in_constraints loc sc =
+  let env = Defsizes.get_substitution_for_size_variables () in
+  let sc = Sizes.subst_in_constraint env sc in
   let free = Sizes.fv_constraints S.empty S.empty sc in
   if not (S.is_empty free)
   then
