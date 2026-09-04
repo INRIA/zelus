@@ -36,6 +36,12 @@ let rec take (n: int) (list: 'a list): 'a list =
     | x :: xs -> x :: (take (n - 1) xs)
   else []
 
+(** https://doc.rust-lang.org/std/vec/struct.Vec.html#method.get *)
+(** Returns the nth element of a list *)
+(** Behaves like List.nth wrt exceptions *)
+let get (n: int) (list: 'a list): 'a =
+  List.nth list n
+
 (** https://doc.rust-lang.org/std/option/enum.Option.html#method.map_or *)
 (** Returns the provided default result (if none), *)
 (** or applies a function to the contained value (if any). *)
