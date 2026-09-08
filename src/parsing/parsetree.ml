@@ -92,6 +92,7 @@ type immediate =
 | Evoid : immediate
 
 (* synchronous and array operators *)
+(* TODO: synchronize documentation with zelus.ml after refactor *)
 type operator =
   | Efby : operator
   (* unit delay *)
@@ -121,6 +122,7 @@ type operator =
   (* generate an event whenever x <> last x outside of integration *)
   | Earray : array_operator -> operator
 
+(* TODO: synchronize documentation with zelus.ml after refactor *)
 and array_operator =
   | Earray_list : array_operator
   (* [| e1;...;en |] *)
@@ -143,6 +145,7 @@ and array_operator =
   | Emake : array_operator
   (* [e^e] *)
 
+(* TODO: synchronize documentation with zelus.ml after refactor *)
 and slice =
   | Slice_both
   | Slice_left

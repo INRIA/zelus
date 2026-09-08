@@ -100,6 +100,7 @@ type immediate =
 | Estring of string
 
 (* synchronous operators *)
+(* TODO: refactor into proper AST nodes *)
 type operator =
   | Efby
   (* unit delay - arity = 2 *)
@@ -131,32 +132,37 @@ type operator =
 
 and is_zero = { is_zero: bool}
  
+(* TODO: refactor into proper AST nodes *)
 and array_operator =
   | Earray_list 
-  (* [| e1;...;en |] *)
+  (* [| e0;...;en |]; 0 or more arguments *)
   | Econcat 
-  (* [ e1 ++ e2] *)
+  (* [ e0 ++ e1] *)
   | Eget 
-  (* [e.(e)] *)
+  (* [e0.(e1)] *)
   | Eget_with_default 
-  (* [e.(e) default e] *)
+  (* [e0.(e1) default e2] *)
   | Eslice of slice
-  (* [e.(e .. e)] *)
+  (* [e.(e .. e)]; may have 2 or 3 arguments, see slice type *)
   | Eupdate 
-  (* [| e with e <- e |] *)
+  (* [| e0 with e1 <- e2 |] *)
   | Etranspose 
-  (* [e.T] *)
+  (* [e0.T] *)
   | Eflatten 
-  (* [e.F] *)
+  (* [e0.F] *)
   | Ereverse 
-  (* [e.R] *)
+  (* [e0.R] *)
   | Emake
-  (* [e^e] *)
+  (* [e0^e1] *)
 
+(* TODO: refactor with option *)
 and slice =
   | Slice_both
+  (* e0.(e1 .. e2) *)
   | Slice_left
+  (* e0.(e1 ..) *)
   | Slice_right
+  (* e0.(.. e2) *)
 
 and is_inline = bool
 
