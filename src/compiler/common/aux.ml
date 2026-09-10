@@ -161,21 +161,14 @@ let id_vardec id = vardec id false None None
 
 let env_of s = S.fold (fun n acc -> Env.add n Typinfo.no_ienv acc) s Env.empty
   
-let block_make vardec_list eq_list =
-  let b_body =
-    match eq_list with
-    | [] -> eq_empty ()
-    | [eq] -> eq
-    | _ -> par eq_list in
-  let b = { b_vars = vardec_list; b_env = Env.empty; b_loc = no_location;
-            b_write = Defnames.empty; b_body } in
-  let w = defnames eq_list in
-  let def = List.fold_left
-              (fun acc { var_name } -> S.add var_name acc) S.empty
-              vardec_list in
-  let w = Defnames.diff w def in
+let block_make_t vardec_list b_body =
+  let def = List.map (fun { var_name = x } -> x) vardec_list |> S.of_list in
+  let b_write = Defnames.diff b_body.eq_write def in
   let b_env = env_of def in
-  { b with b_write = w; b_env }
+  { b_vars = vardec_list; b_env; b_loc = no_location; b_write; b_body }
+
+let block_make vardec_list eq_list =
+  block_make_t vardec_list (par eq_list)
 
 let block_empty () = block_make [] []
 
