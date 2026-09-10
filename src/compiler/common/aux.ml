@@ -123,17 +123,18 @@ let eq_der id e =
 let eq_and ordered eq1 eq2 =
   let w = Defnames.union eq1.eq_write eq2.eq_write in
   match eq1.eq_desc, eq2.eq_desc with
-  | (EQempty, _) -> eq2 | (_, EQempty) -> eq1
+  | EQempty, _ -> eq2
+  | _, EQempty -> eq1
   | EQand { ordered = ord1; eq_list = eq_list1 },
     EQand { ordered = ord2; eq_list = eq_list2 }
-       when (ord1 = ord2) && (ord1 = ordered) ->
-     eqmake w (EQand { ordered = ord1; eq_list = eq_list1 @ eq_list2 })
-  | (EQand { ordered = ord; eq_list = eq_list1 }, _)
-       when ord = ordered ->
-     eqmake w (EQand { ordered = ord; eq_list = eq2 :: eq_list1 })
+    when (ord1 = ord2) && (ord1 = ordered) ->
+      eqmake w (EQand { ordered = ord1; eq_list = eq_list1 @ eq_list2 })
+  | EQand { ordered = ord; eq_list = eq_list1 }, _
+    when ord = ordered ->
+      eqmake w (EQand { ordered = ord; eq_list = eq_list1 @ [eq2] })
   | _, EQand { ordered = ord; eq_list = eq_list2 }
     when ord = ordered ->
-     eqmake w (EQand { ordered = ord; eq_list = eq1 :: eq_list2 })
+      eqmake w (EQand { ordered = ord; eq_list = eq1 :: eq_list2 })
   | _ -> eqmake w (EQand { ordered = ordered; eq_list = [eq1; eq2] })
 
 let rec par_t ordered eq_list =
