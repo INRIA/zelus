@@ -15,6 +15,13 @@
 (** Most languages have this thing called a standard library *)
 (** Alas, this is OCaml... *)
 
+(** https://doc.rust-lang.org/std/macro.todo.html *)
+(** Indicates unfinished code. *)
+exception Todo
+
+(** https://doc.rust-lang.org/std/macro.todo.html *)
+(** Indicates unfinished code. *)
+let todo ((): unit): 'a = raise Todo
 
 (** https://hackage-content.haskell.org/package/base/docs/Data-List.html *)
 (** Extract the last element of a list. *)
