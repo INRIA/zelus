@@ -36,7 +36,7 @@ let extra
                           "(" ^ (string_of_int i) ^ ")"
   else ""
     
-(* Print the causality *)
+(* Print the init type *)
 let rec init ff i = 
   match i.i_desc with
   | Ivalue(v) ->
