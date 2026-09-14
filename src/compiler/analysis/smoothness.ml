@@ -26,7 +26,8 @@
 (* 1, otherwise *)
 (* Principle:
  *- if [x: s] is a signal, [last x: s'] such that [s < s'].
- *- If [x] is defined by an equation [x = e] during integration, [last x: 1]
+ *- If [x] is defined by an equation [x = e] in environment [h] during integration
+ *- then h(x) < 1/2 and 1 < h(last x)
  *- during a discrete-step, all signals get type [0] *)
 
 (* Signals on floatting-point arithmetic get polymorphic types *)
@@ -105,8 +106,8 @@ let type_of_n_list type_of n_list =
   | _ -> Tsmooth.product ti_list
 
 (* Patterns *)
-(* [pattern env p expected_ty] means that the type of [p] must be less *)
-(* than [expected_ty] *)
+(* [pattern env p expected_ti] means that the type of [p] must be less *)
+(* than [expected_ti] *)
 let rec pattern env { pat_desc; pat_loc; pat_info } expected_ti =
   let pat_typ = Typinfo.get_type pat_info in
   match pat_desc with
