@@ -175,6 +175,7 @@ type 'a init =
   | InitEq (* the initialization is deferred to the body *)
   | Last (* [last x] is allowed but not initialization is given *)
 
+(* TODO: remove 'exp parameter *)
 type ('info, 'exp) vardec =
   { var_name: Ident.t; (* its name *)
     var_default: 'exp option; (* possible default value *)
@@ -208,6 +209,7 @@ and 'info pattern_desc =
   | Etypeconstraintpat of 'info pattern * type_expression
   | Earraypat of 'info pattern list
 
+(* TODO: remove 'exp and 'eq parameters *)
 type ('info, 'ienv, 'exp, 'eq) block =
   { b_vars: ('info, 'exp) vardec list;
     b_body: 'eq;
@@ -223,11 +225,13 @@ type statepatdesc =
 
 type statepat = statepatdesc localized
 
+(* TODO: remove 'exp parameter *)
 type 'exp state_desc =
   | Estate0 of Ident.t 
   | Estate1 of Ident.t * 'exp list 
   | Estateif of 'exp * 'exp state * 'exp state 
 
+(* TODO: remove 'exp parameter *)
 and 'exp state = 'exp state_desc localized
 
 (* the body of a pattern matching *)
@@ -249,6 +253,7 @@ type ('ienv, 'scondpat, 'body) present_handler =
     mutable p_zero: bool; (* the handler is done at a zero-crossing instant *)
   }
 
+(* TODO: remove 'exp parameter *)
 type ('ienv, 'scondpat, 'exp, 'leq, 'body) escape =
   { e_cond: 'scondpat;
     e_reset: bool;
@@ -335,12 +340,14 @@ and ('info, 'ienv) for_eq = {
   mutable for_out_env: 'ienv Ident.Env.t;
 }
 
+(* TODO: remove 'exp parameter *)
 and 'exp for_kind =
   | Kforeach
   (* parallel loop *)
   | Kforward of 'exp for_exit option 
 (* iteration during one instant. The argument is the stoping condition *)
 
+(* TODO: remove 'exp parameter *)
 and 'exp for_exit = 
   { for_exit : 'exp;
     for_exit_kind : for_exit_kind }
@@ -447,8 +454,10 @@ and ('info, 'ienv) eq_desc =
 (*  do eq [while/unless/until e] e done]  *)
 
 (* input definition for a loop *)
+(* TODO: remove 'exp parameter *)
 and 'exp for_input = 'exp for_input_desc localized
 
+(* TODO: remove 'exp parameter *)
 and 'exp for_input_desc =
   (* xi in e1 [by e2], that is, xi = e1.(i * e2) *)
   | Einput of { id: Ident.t; e : 'exp; by : 'exp option } 
