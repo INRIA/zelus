@@ -12,7 +12,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* initialization types and basic operations over these types *)
+(* smoothness types and basic operations over these types *)
 
 open Misc
 open Deftypes
@@ -21,7 +21,7 @@ open Global
 open Genames
 module Printer = Printer.Make(Ptypinfo)
 
-(** a set of initialization names *)
+(** a set of smoothness names *)
 module S = struct
   include (Set.Make(Defsmooth))
   let fprint_t ff s =
@@ -67,7 +67,8 @@ let rec funtype_list ti_arg_list ti_res =
   | ti :: ti_arg_list -> funtype ti (funtype_list ti_arg_list ti_res)
 let atom i = Iatom(i)
     
-(* basic operation on initialization values *)
+(* basic operation on types *)
+(* its representative, with path compression *)
 let rec irepr ({ i_desc } as i) =
   match i_desc with
   | Ilink(i_son) ->
@@ -76,7 +77,7 @@ let rec irepr ({ i_desc } as i) =
      i_son
   | _ -> i
 
-(* equality of two initialization tags *)
+(* equality  *)
 let equal i1 i2 =
   let i1 = irepr i1 in
   let i2 = irepr i2 in
@@ -135,7 +136,7 @@ let rec saturate_i is_right i =
   
 and less_v v1 v2 =
   match v1, v2 with
-  | (Izero, _) | (_, Ione) -> true
+  | (Izero, _) | (_, Ione) | (Ihalf, Ihalf) -> true
   | _ -> false
     
 (** Sub-typing *)
@@ -157,7 +158,8 @@ and less_i left_i right_i =
     if left_i == right_i then ()
     else
       match left_i.i_desc, right_i.i_desc with
-      | (Ivalue(Izero), _) | (_, Ivalue(Ione)) -> ()
+      | (Ivalue(Izero), _) | (_, Ivalue(Ione))
+        | (Ivalue(Ihalf), Ivalue(Ihalf)) -> ()
       | Ivalue(Ione), Ivar -> saturate_i true right_i
       | Ivar, Ivalue(Izero) -> saturate_i false left_i
       | Ivar, Ivar ->
@@ -233,6 +235,7 @@ and sup_i is_right i1 i2 =
     | (Ivalue(Ione), _, true) | (_, Ivalue(Ione), true) -> ione
     | Ivalue(Ione), _, false -> i2 | _, Ivalue(Ione), false -> i1
     | (Ivalue(Izero), _, false) | (_, Ivalue(Izero), false) -> izero
+    | (Ivalue(Ihalf), Ivalue(Ihalf), _) -> ihalf
     | Ilink(i1), _ , _ -> sup_i is_right i1 i2
     | _, Ilink(i2), _ -> sup_i is_right i1 i2
     | _ -> let i = new_var () in
@@ -335,8 +338,8 @@ and short is_right acc i =
 (* Final simplification. *)
 (*- a variable a+ which has no inf. can be replaced by 0;
  *- a variable a- which has no sup. can be replaced by 1;
- *- if a- has a single sup. b+, it can be replaced by it
- *- if a+ has a single inf. b-, it can be replaced by it. *)
+ *- if a- has a single sup. b+, it can be replaced by b;
+ *- if a+ has a single inf. b-, it can be replaced by b. *)
 let rec simplify right ti =
   match ti with
   | Ifun(ti1, ti2) -> funtype (simplify (not right) ti1) (simplify right ti2)
@@ -395,7 +398,7 @@ and igen i =
                         
 and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
                                
-(** Computes the dependence relation from a list of initialisation variables *)
+(** Computes the dependence relation from a list of type variables *)
 (* variables in [already] are disgarded *)
 let relation i_list =
   let rec relation (already, rel) i =
@@ -459,7 +462,7 @@ and icopy i =
   | Ivalue(v) ->
      if i.i_level = generic then ivalue v else i
 
-(* instanciate the initialisation type according to the type *)
+(* instanciate the smoothness type according to the data type *)
 let rec instance ti ty =
   let { t_desc = t_desc } as ty = Types.typ_repr ty in
   match ti, t_desc with

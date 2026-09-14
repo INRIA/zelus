@@ -12,23 +12,33 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* smoothness analysis. *)
+(* smoothness analysis. It is a variation of the initialisation analysis *)
+(* See paper by Colaco and Pouzet, STTT'2004 *)
 
 (* this analysis gives *)
 (* three possible basic types to a signal expression [e] *)
 (* H |- e : s where s ::= 0 | 1/2 | 1 or a variable [a] *)
-(* with 0 < 1/2 < 1 and possible order *)
+(* with 0 < 1/2 < 1 and possible (non strict) order between variables and [s] *)
 (* [s] informs about the status of the signal during integration *)
 (* that is, out of zero-crossing instants *)
 (* 0 : the signal is surely constant *)
-(* 1/2 : the signal may change determistically during integration *)
+(* 1/2 : the signal may change during integration *)
 (* 1, otherwise *)
+(* Principle:
+ *- if [x: s] is a signal, [last x: s'] such that [s < s'].
+ *- If [x] is defined by an equation [x = e] during integration, [last x: 1]
+ *- during a discrete-step, all signals get type [0] *)
 
-(* val (+.), (-.), ( *. ), (/.) : 'a -> 'a -> 'a *)
-(* val (if): 0 -> 'a -> 'a -> 'a *)
-(* val floor, int_of_float : 0 -> 0 *)
-(* val fix_der : 1 -> (1/2 -> 1/2) -> 1/2 *)
-(* that is: fix_der x0 f = let rec der x = f(x) init x0 in x *)
+(* Signals on floatting-point arithmetic get polymorphic types *)
+(* whereas integer values are forced to be constant during integration
+ *-
+ *- val (+.), (-.), ( *. ), (/.) : 'a -> 'a -> 'a
+ *- val (if): 0 -> 'a -> 'a -> 'a
+ *- val floor, int_of_float : 0 -> 0
+ *- val fix_der : 1 -> (1/2 -> 1/2) -> 1/2
+ *- that is: fix_der x0 f = let rec der x = f(x) init x0 in x
+ *- the signal to be integrated can only change smoothly
+ *)
 open Misc
 open Ident
 open Global
@@ -76,63 +86,15 @@ let less_than loc actual_ti expected_ti =
     | Tsmooth.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
 
 (* Build an environment from a typing environment *)
-(*
-  *- local x in ... x = ...  ... last x ... der x = ...
- *)
+(* [local x in ... x = ...  ... last x ... der x = ...] *)
+(* [x: ti_x] and [last x: ti_x[1/2]] *)
 let build_env loc l_env env =
   let open Deftypes in
   let entry x { t_sort; t_tys = { typ_body } } =
     let t_tys =
       Defsmooth.scheme (Tsmooth.skeleton_on_i (Tsmooth.new_var ()) typ_body) in
-    { t_last = Tsmooth.new_var (); t_tys } in
+    { t_last = izero; t_tys } in
   Env.fold (fun n tentry acc -> Env.add n (entry n tentry) acc) l_env env
-
-(* Build an environment from [env] by replacing the initialization *)
-(* type of [x] by the initialization of its last value for all *)
-(* [x in [shared\defnames] *)
-(* this is because an absent definition for [x] in the current branch *)
-(* is interpreted as if there were an equation [x = last x] *)
-(* or [x = default_x] if [x] is declared with a default value *)
-let last_env shared defnames env =
-  let add n acc =
-    let { t_tys = { typ_body } } = find n env in
-    Env.add n { t_tys = Defsmooth.scheme (Tsmooth.fresh_on_i izero typ_body);
-                t_last = izero } acc in
-  let names = Defnames.cur_names Ident.S.empty defnames in
-  let env_defnames =
-    Ident.S.fold add (Ident.S.diff shared names) Env.empty in
-  Env.append env_defnames env
-
-(* Names from the set [last_names] are considered to be initialized *)
-let add_last_to_env env last_names =
-  let add n acc =
-    let { t_tys = { typ_body } } = find n env in
-    Env.add n { t_tys = Defsmooth.scheme (Tsmooth.fresh_on_i izero typ_body);
-                t_last = izero } acc in
-  let env_last_names =
-    Ident.S.fold add last_names Env.empty in
-  Env.append env_last_names env
-            
-(* find the potential initial handlers from an automaton. Returns them *)
-(* and their complements *)
-let split se_opt s_h_list =
-  let statepat { desc } =
-    match desc with
-      | Estate0pat(id) | Estate1pat(id, _) -> id in
-  let rec state acc { desc } =
-    match desc with
-    | Estate0(id) | Estate1(id, _) -> Ident.S.add id acc
-    | Estateif(_, s1, s2) ->
-       state (state acc s1) s2 in
-  match se_opt with
-  | Some(se) ->
-     let acc = state Ident.S.empty se in
-     List.partition (fun { s_state } -> Ident.S.mem (statepat s_state) acc)
-       s_h_list
-  | None -> (* the starting state is the first in the list *)
-     match s_h_list with
-     | [] -> assert false
-     | s_h :: s_h_list -> [s_h], s_h_list
 
 (* Computes the type from a vardec list *)
 let type_of_n_list type_of n_list =
@@ -213,47 +175,26 @@ let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
        exp_less_than_on_i env e izero;
        state env s1;
        state env s2 in
-     (* Compute the set of names defined by a state *)
-     let cur_names_in_state b trans =
-       let block acc { b_write } = Defnames.cur_names acc b_write in
-       let escape acc { e_body } = block acc e_body in
-       block (List.fold_left escape Ident.S.empty trans) b in
-     (* transitions *)
-     let escape shared env { e_cond; e_let; e_body; e_next_state; e_env } =
-       let env = build_env e_cond.loc e_env env in
-       scondpat env e_cond;
-       (* typing local definitions *)
-       let env = leqs env e_let in
-       (* then the body *)
-       let env = block_eq shared env e_body in
-       state env e_next_state in
-     (* handler *)
-     let handler shared env { s_state; s_let; s_body; s_trans; s_env } =
-       (* remove from [shared] names defined in the current state *)
-       let shared = Ident.S.diff shared (cur_names_in_state s_body s_trans) in
-       let env = build_env s_state.loc s_env env in
-       (* typing local definitions *)
-       let env = leqs env s_let in
-       (* then the body *)
-       let env = block_eq shared env s_body in
-       List.iter (escape shared env) s_trans in
-     (* compute the set of shared names *)
-     let shared = Defnames.cur_names Ident.S.empty defnames in
-     (* do a special treatment for the potential initial states *)
-     let first_s_h_list, remaining_s_h_list = split se_opt s_h_list in
-     (* first type the initial branch *)
-     List.iter (handler shared env) first_s_h_list;
-     (* if the initial states have only weak transitions then all *)
-     (* variables from [defined_names] do have a last value *)
-     let cur_names acc { s_body = { b_write } } =
-       Defnames.cur_names acc b_write in
-     let last_names =
-       List.fold_left cur_names Ident.S.empty first_s_h_list in
-     let env =
-       if is_weak then add_last_to_env env last_names else env in
-     List.iter (handler shared env) remaining_s_h_list;
-     (* finaly check the initialisation *)
-     ignore (Util.optional_map (state env) se_opt)
+  (* transitions *)
+  let escape env { e_cond; e_let; e_body; e_next_state; e_env } =
+    let env = build_env e_cond.loc e_env env in
+    scondpat env e_cond;
+    (* typing local definitions *)
+    let env = leqs env e_let in
+    (* then the body *)
+    let env = block_eq env e_body in
+    state env e_next_state in
+  (* handler *)
+  let handler env { s_state; s_let; s_body; s_trans; s_env } =
+    let env = build_env s_state.loc s_env env in
+    (* typing local definitions *)
+    let env = leqs env s_let in
+    (* then the body *)
+    let env = block_eq env s_body in
+    List.iter (escape env) s_trans in
+  List.iter (handler env) s_h_list;
+  (* finaly check the initialisation *)
+  ignore (Util.optional_map (state env) se_opt)
 
 (* Typing the declaration of variables. *)
 let rec vardec_list env v_list =
@@ -328,7 +269,7 @@ and exp env { e_desc; e_info; e_loc } =
        exp env e_body
     | Eassert { a_body } -> exp env a_body
     | Elocal(b_eq, e_body) ->
-       let env = block_eq Ident.S.empty env b_eq in
+       let env = block_eq env b_eq in
        exp env e_body
     | Eforloop(fe) -> forloop_exp e_loc env fe
     | Esizeapp { f } -> exp env f in
@@ -449,7 +390,7 @@ and equation env { eq_desc; eq_loc; eq_write } =
   | EQeq(p, e) -> 
      let ti = exp env e in
      pattern env p ti
-  (* TODO: ajouter que si [is_continuous] alors [last x: 1] *)
+  (* TODO: ajouter que si [is_continuous] alors [1 < env(last x)] *)
   | EQder { id; e; e_opt; handlers } ->
      (* e must be of type <= 1/2 *)
      exp_less_than_on_i env e ihalf;
@@ -473,11 +414,8 @@ and equation env { eq_desc; eq_loc; eq_write } =
        eq_loc is_weak eq_write env handlers state_opt
   | EQif { e; eq_true; eq_false } ->
      exp_less_than_on_i env e izero;
-     let shared = Defnames.cur_names Ident.S.empty eq_write in
-     let env1 = last_env shared eq_true.eq_write env in
-     equation env1 eq_true;
-     let env2 = last_env shared eq_false.eq_write env in
-     equation env2 eq_false
+     equation env eq_true;
+     equation env eq_false
   | EQmatch { e; handlers } ->
      exp_less_than_on_i env e izero;
      let shared = Defnames.cur_names Ident.S.empty eq_write in
@@ -490,7 +428,7 @@ and equation env { eq_desc; eq_loc; eq_write } =
      equation env eq
   | EQand { eq_list } -> equation_list env eq_list
   | EQlocal(b_eq) ->
-     ignore (block_eq Ident.S.empty env b_eq)
+     ignore (block_eq env b_eq)
   | EQlet(l_eq, eq) ->
      let env = leq env l_eq in equation env eq
   | EQassert { a_body } -> exp_less_than_on_i env a_body izero 
@@ -500,9 +438,6 @@ and equation env { eq_desc; eq_loc; eq_write } =
        
 (* typing rule for a present statement *)
 and present_handler_eq_list shared env p_h_list default_opt =
-  let equation env ({ eq_write } as eq) =
-    let env = last_env shared eq_write env in
-    equation env eq in
   present_handlers scondpat equation env p_h_list default_opt
 
 and present_handler_exp_list env p_h_list default_opt ti =
@@ -510,8 +445,7 @@ and present_handler_exp_list env p_h_list default_opt ti =
   present_handlers scondpat exp env p_h_list default_opt
 
 and match_handler_eq_list shared env m_h_list =
-  let equation env ({ eq_write } as eq) =
-    let env = last_env shared eq_write env in
+  let equation env eq =
     equation env eq in
   match_handlers equation env m_h_list
 
@@ -524,9 +458,7 @@ and automaton_handler_eq_list loc is_weak defnames env s_h_list se_opt =
     scondpat exp_less_than_on_i leqs block_eq block_eq
     loc is_weak defnames env s_h_list se_opt
 
-and block_eq shared env { b_loc; b_body; b_env; b_write } =
-  (* shared variables depend on their last causality *)
-  let env = last_env shared b_write env in
+and block_eq env { b_loc; b_body; b_env } =
   let env = build_env b_loc b_env env in
   equation env b_body;
   env
@@ -565,7 +497,7 @@ and result env { r_desc; r_info } =
     match r_desc with
     | Exp(e) -> exp env e
     | Returns({ b_vars } as b) ->
-       let env = block_eq Ident.S.empty env b in
+       let env = block_eq env b in
        type_of_vardec_list env b_vars in
   ti
  
@@ -593,7 +525,7 @@ and for_exp_t loc env for_exp =
   | Forreturns { r_returns; r_block; r_env } ->
      List.iter (for_vardec env) r_returns;
      let env = build_env loc r_env env in
-     let _ = block_eq Ident.S.empty env r_block in
+     let _ = block_eq env r_block in
      type_of_for_vardec_list env r_returns
 
 and for_vardec env { desc = { for_vardec } } = vardec env for_vardec
@@ -627,7 +559,7 @@ and for_eq_t loc env { for_out; for_block; for_out_env } =
   (* outputs must be initialized *)
   List.iter (for_out_t env) for_out;
   let env = build_env loc for_out_env env in
-  let _ = block_eq Ident.S.empty env for_block in
+  let _ = block_eq env for_block in
   ()
 
 and for_out_t env { desc = { for_locals; for_ext; for_info }; loc; } =
