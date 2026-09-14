@@ -18,20 +18,21 @@
 (* this analysis gives *)
 (* three possible basic types to a signal expression [e] *)
 (* H |- e : s where s ::= 0 | 1/2 | 1 or a variable [a] *)
-(* with 0 < 1/2 < 1 and possible (non strict) order between variables and [s] *)
+(* with 0 <= 1/2 <= 1 and possible order between variables and [s] *)
 (* [s] informs about the status of the signal during integration *)
 (* that is, out of zero-crossing instants *)
 (* 0 : the signal is surely constant *)
 (* 1/2 : the signal may change during integration *)
 (* 1, otherwise *)
 (* Principle:
- *- if [x: s] is a signal, [last x: s'] such that [s < s'].
- *- If [x] is defined by an equation [x = e] in environment [h] during integration
- *- then h(x) < 1/2 and 1 < h(last x)
+ *- 1/ If [x] is defined by an equation [...x... = e] activated continuously
+ *- then h(x) <= 1/2 and 1 <= h(last x) where [h] is the typing environment.
  *- during a discrete-step, all signals get type [0] *)
 
 (* Signals on floatting-point arithmetic get polymorphic types *)
 (* whereas integer values are forced to be constant during integration
+ *- as well as conditions in if/then/else and all control decisions
+ *- (present, until/unless conditions in automata)
  *-
  *- val (+.), (-.), ( *. ), (/.) : 'a -> 'a -> 'a
  *- val (if): 0 -> 'a -> 'a -> 'a
@@ -106,7 +107,7 @@ let type_of_n_list type_of n_list =
   | _ -> Tsmooth.product ti_list
 
 (* Patterns *)
-(* [pattern env p expected_ti] means that the type of [p] must be less *)
+(* [pattern env p expected_ti] means that the type of [p] must be greater *)
 (* than [expected_ti] *)
 let rec pattern env { pat_desc; pat_loc; pat_info } expected_ti =
   let pat_typ = Typinfo.get_type pat_info in
@@ -624,11 +625,11 @@ let implementation ff impl =
        let env = leq Env.empty d_leq in
        Misc.pop_binding_level ();
        let env = gen_decl env in
-       (* Env.iter
+       Env.iter
          (fun name { t_tys } ->
-           Global.set_init
+           Global.set_smooth
              (Modules.find_value (Lident.Name(Ident.source name))) t_tys)
-         env; *)
+         env;
        (* output the signature *)
        if !Misc.print_initialization_types
        then

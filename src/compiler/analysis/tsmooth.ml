@@ -496,19 +496,17 @@ let instance { typ_body = ti } ty =
   instance ti ty
 
 (* type instance *)
-(*
-  let instance_of_global_value { value_init = tis_opt } ty =
+let instance_of_global_value { value_smooth = tis_opt } ty =
   (* build a default signature *)
   let default ty =
     skeleton_on_i (new_var ()) ty in
-    match tis_opt with
+  match tis_opt with
   | None -> 
-      (* if no initialization signature is declared, *)
-      (* a default one is built from the type signature *)
-      subtype true (default ty)
-      | Some(tis) -> instance tis ty
- *)
-            
+     (* if no initialization signature is declared, *)
+     (* a default one is built from the type signature *)
+     subtype true (default ty)
+  | Some(tis) -> instance tis ty
+  
 (* type instance *)
 let instance_of_global_value { value_init = tis_opt } ty =
   assert false
