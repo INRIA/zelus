@@ -201,6 +201,7 @@ let skeleton_for_external_values ty =
         funtype (skeleton_on_i i ti1) (skeleton_on_i i ti2)
     | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
     | Tconstr(_, _, _) | Tvec _ -> atom i
+    | Tsizefun { id_list; ty } -> skeleton ty
     | Tlink(ti) -> skeleton_on_i i ti in
   let i = new_var () in
   skeleton_on_i i ty
