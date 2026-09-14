@@ -194,8 +194,8 @@ let type_of_n_list type_of n_list =
   | _ -> Tinit.product ti_list
 
 (* Patterns *)
-(* [pattern env p expected_ty] means that the type of [p] must be less *)
-(* than [expected_ty] *)
+(* [pattern env p expected_ti] means that the type of [p] must be greater *)
+(* than [expected_ti] *)
 let rec pattern env ({ pat_desc; pat_loc; pat_info } as p) expected_ti =
   let pat_typ = Typinfo.get_type pat_info in
   (* annotate the pattern with the initialization type *)
