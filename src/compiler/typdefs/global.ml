@@ -23,13 +23,18 @@ type no_info = unit
   
 (* values in the symbol table *)
 type value_desc =
-    { mutable value_typ: Deftypes.typ_scheme; (* its type scheme *)
-      mutable value_const: is_const;
-      (* is-it a value available at compile time? *)
-      mutable value_caus: Defcaus.tc_scheme option; (* its causality scheme *)
-      mutable value_init: Definit.ti_scheme option; (* its init. scheme *)
-      mutable value_exp: vexp option;
+  { (* its type scheme *)
+    mutable value_typ: Deftypes.typ_scheme; 
+    (* is-it a value available at compile time? *)
+    mutable value_const: is_const;
+    (* its causality scheme *)
+    mutable value_caus: Defcaus.tc_scheme option; 
+    (* its initialisation scheme *)
+    mutable value_init: Definit.ti_scheme option;
+    (* its smoothness scheme *)
+    mutable value_smooth: Defsmooth.ti_scheme option;
     (* the value is either opaque (None) or transparent (Some(v) *)
+    mutable value_exp: vexp option;
 }
 
 and is_const = bool
@@ -74,12 +79,14 @@ and type_components =
 
 let value_desc is_const tys = 
   { value_typ = tys; value_const = is_const; value_caus = None; 
-    value_init = None; value_exp = None }
+    value_init = None; value_smooth = None; value_exp = None }
 let set_type { info = ({ value_typ } as v) } tys = 
   v.value_typ <- tys
 let set_causality { info = ({ value_caus } as v) } tys = 
   v.value_caus <- Some(tys)
 let set_init { info = ({ value_init } as v) } tys = 
   v.value_init <- Some(tys)
+let set_smooth { info = ({ value_init } as v) } tys = 
+  v.value_smooth <- Some(tys)
 let set_value_exp { info = ({ value_exp } as v) } value_exp' =
   v.value_exp <- Some(value_exp')
