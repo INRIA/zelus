@@ -160,7 +160,7 @@ let compile modname filename =
     (* Smoothness analysis *)
     let p = 
       do_optional_step
-        !Misc.no_smoothness is_print "Smoothness done. See below:"
+        (not !Misc.smoothness) is_print "Smoothness done. See below:"
         Printer.program (Smoothness.program info_ff) p in
 
     (* Write the symbol table into the interface file *)
