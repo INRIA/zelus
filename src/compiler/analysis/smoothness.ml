@@ -652,7 +652,7 @@ let implementation ff impl =
              (Modules.find_value (Lident.Name(Ident.source name))) t_tys)
          env;
        (* output the signature *)
-       if !Misc.print_initialization_types
+       if !Misc.print_smoothness_types
        then
          Env.iter
            (fun name { t_tys } ->

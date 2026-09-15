@@ -144,16 +144,25 @@ let compile modname filename =
     let module Write = Write.Make(Typinfo) in
     let p = do_step is_print "Write done. See below: "
               Printer.program Write.program p in
+    (* Type inference *)
     if !parseonly then raise Stop;
     let p = do_step is_print "Typing done. See below:" Printer.program
               (Typing.program info_ff true) p in
+    (* Causality analysis *)
     let p = 
       do_optional_step !Misc.no_causality is_print "Causality done. See below:"
         Printer.program (Causality.program info_ff) p in
+    (* Initialisation analysis *)
     let p = 
       do_optional_step
         !Misc.no_initialization is_print "Initialization done. See below:"
         Printer.program (Initialization.program info_ff) p in
+    (* Smoothness analysis *)
+    let p = 
+      do_optional_step
+        !Misc.no_smoothness is_print "Smoothness done. See below:"
+        Printer.program (Smoothness.program info_ff) p in
+
     (* Write the symbol table into the interface file *)
     let itc = open_out_bin obj_interf_name in
     Misc.apply_with_close_out Modules.write itc;
