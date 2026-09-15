@@ -21,8 +21,10 @@
 (* with 0 <= 1/2 <= 1 and possible order between variables and [s] *)
 (* [s] informs about the status of the signal during integration *)
 (* that is, out of zero-crossing instants *)
-(* 0 : the signal is surely constant *)
+(* 0 : the signal is surely constant during integration (do not depend *)
+(*     on the solver *)
 (* 1/2 : the signal may change during integration *)
+(* (it may depend on the solver *)
 (* 1, otherwise *)
 (* Principle:
  *- 1/ If [x] is defined by an equation [...x... = e] activated continuously
