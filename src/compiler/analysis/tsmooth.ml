@@ -507,10 +507,14 @@ let instance_of_global_value { value_smooth = tis_opt } ty =
      subtype true (default ty)
   | Some(tis) -> instance tis ty
   
-(* type instance *)
-let instance_of_global_value { value_init = tis_opt } ty =
-  assert false
-
+(* floor (bottom) of a type. Replace smooth types by [0] *)
+let rec zero_type ti =
+  match ti with
+  | Ifun(ti1, ti2) -> funtype (zero_type ti1) (zero_type ti2)
+  | Iproduct(ti_list) ->
+      begin try product (List.map zero_type ti_list)
+        with | Invalid_argument _ -> assert false end
+  | Iatom(i) -> atom (izero)
 
 let filter_arrow ti =
   match ti with
