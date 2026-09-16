@@ -68,5 +68,3 @@ type tentry =
     { t_tys: ti_scheme; (* the type [t] of x *)
       t_last: t;
     }
-    
-

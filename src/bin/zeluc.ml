@@ -49,6 +49,7 @@ and doc_print_types_with_size_constraints =
   "\t Print types with size constraints"
 and doc_print_causality_types = "\t Print causality types"
 and doc_print_initialization_types = "\t  Print initialization types"
+and doc_print_smoothness_types = "\t  Print smoothness types"
 and doc_include = "<dir> \t Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t Locate standard libray"
@@ -69,6 +70,7 @@ and doc_inlining_level = "<n> \t Level of inlining"
 and doc_inline_all = "\t Inline all function calls"
 and doc_dzero = "\t Turn on discrete zero-crossing detection"
 and doc_nocausality = "\t (undocumented)"
+and doc_smoothness = "\t (undocumented)"
 and doc_no_initialization = "\t (undocumented)"
 and doc_nosimplify = "\t (undocumented)"
 and doc_no_deadcode = "\t (undocumented)"
@@ -146,8 +148,9 @@ let main () =
           "-i", Arg.Set print_types, doc_print_types;
           "-isizes", Arg.Unit set_types_with_size_constraints, doc_print_types;
           "-ic", Arg.Set print_causality_types, doc_print_causality_types;
-          "-ii", Arg.Set print_initialization_types, 
-          doc_print_initialization_types;
+          "-ii", Arg.Set print_initialization_types,
+          doc_print_initialization_types; 
+          "-is", Arg.Set print_smoothness_types, doc_print_smoothness_types;
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
           "-nostdlib", Arg.Set no_stdlib, doc_no_stdlib;
@@ -168,6 +171,7 @@ let main () =
           "-noreduce", Arg.Set no_reduce, doc_no_reduce;
           "-step", Arg.String Rewrite.set_steps, doc_set_steps;
           "-nocausality", Arg.Set no_causality, doc_nocausality;
+          "-smoothness", Arg.Set smoothness, doc_smoothness;
           "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
           "-noinit", Arg.Set no_initialization, doc_no_initialization;
           "-allow_join_der_dv", Arg.Set allow_join_der_dv, doc_join_der_dv;

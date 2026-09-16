@@ -148,62 +148,63 @@ and pattern_less_than_on_i env ({ pat_info } as pat) i =
   pattern env pat expected_ti
         
 (** Match handler *)
-let match_handlers body env m_h_list =
+let match_handlers body is_continuous env m_h_list =
   let handler { m_pat; m_env; m_body; m_loc } =
     let env = build_env m_pat.pat_loc m_env env in
-    ignore (body env m_body) in
+    ignore (body is_continuous env m_body) in
   List.iter handler m_h_list
 
 (** Present handler *)
-let present_handlers scondpat body env p_h_list default_opt =
+let present_handlers scondpat body is_continuous env p_h_list default_opt =
   let handler { p_cond; p_body; p_env; p_loc } =
     let env = build_env p_loc p_env env in
-    scondpat env p_cond;
-    ignore (body env p_body) in
+    scondpat is_continuous env p_cond;
+    ignore (body is_continuous env p_body) in
   List.iter handler p_h_list;
   match default_opt with
   | NoDefault -> ()
-  | Init(eq) | Else(eq) -> ignore (body env eq)
+  | Init(eq) | Else(eq) -> ignore (body is_continuous env eq)
 
 (** Automaton handler *)
 let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
-      loc is_weak defnames env s_h_list se_opt =
+      loc is_continuous is_weak defnames env s_h_list se_opt =
   (* state *)
-  let rec state env { desc } =
+  let rec state is_continuous env { desc } =
     match desc with
     | Estate0 _ -> ()
     | Estate1(_, e_list) -> 
        List.iter
-         (fun e -> exp_less_than_on_i env e izero) e_list
+         (fun e -> exp_less_than_on_i is_continuous env e izero) e_list
     | Estateif(e, s1, s2) ->
-       exp_less_than_on_i env e izero;
-       state env s1;
-       state env s2 in
+       exp_less_than_on_i is_continuous env e izero;
+       state is_continuous env s1;
+       state is_continuous env s2 in
   (* transitions *)
-  let escape env { e_cond; e_let; e_body; e_next_state; e_env } =
+  let escape is_continuous env { e_cond; e_let; e_body; e_next_state; e_env } =
     let env = build_env e_cond.loc e_env env in
-    scondpat env e_cond;
+    scondpat is_continuous env e_cond;
     (* typing local definitions *)
-    let env = leqs env e_let in
+    let env = leqs is_continuous env e_let in
     (* then the body *)
-    let env = block_eq env e_body in
-    state env e_next_state in
+    let env = block_eq is_continuous env e_body in
+    state is_continuous env e_next_state in
   (* handler *)
-  let handler env { s_state; s_let; s_body; s_trans; s_env } =
+  let handler is_continuous env { s_state; s_let; s_body; s_trans; s_env } =
     let env = build_env s_state.loc s_env env in
     (* typing local definitions *)
-    let env = leqs env s_let in
+    let env = leqs is_continuous env s_let in
     (* then the body *)
-    let env = block_eq env s_body in
-    List.iter (escape env) s_trans in
-  List.iter (handler env) s_h_list;
+    let env = block_eq is_continuous env s_body in
+    List.iter (escape is_continuous env) s_trans in
+  List.iter (handler is_continuous env) s_h_list;
   (* finaly check the initialisation *)
-  ignore (Util.optional_map (state env) se_opt)
+  ignore (Util.optional_map (state is_continuous env) se_opt)
 
 (* Typing the declaration of variables. *)
-let rec vardec_list env v_list =
-  List.iter (vardec env) v_list
+let rec vardec_list is_continuous env v_list =
+  List.iter (vardec is_continuous env) v_list
 
+<<<<<<< HEAD
 and vardec env ({ var_name; var_default; var_init }) =
   (* every initialization part is activated discretely *)
   (* hence, it can be of any type *)
@@ -211,11 +212,19 @@ and vardec env ({ var_name; var_default; var_init }) =
   (* for the moment, we force it to be of type [0] *)
   Util.optional_unit
     (fun env e -> exp_less_than_on_i env e Tsmooth.ione) env var_init;
+=======
+and vardec is_continuous env ({ var_name; var_default; var_init }) =
+  (* every initialization and default value must be well initialized *)
   Util.optional_unit
-    (fun env e -> exp_less_than_on_i env e Tsmooth.izero) env var_default;
+    (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
+    env var_init;
+>>>>>>> 0aac69f313bdb96259a9dd30504c28bcac7a3e84
+  Util.optional_unit
+    (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
+    env var_default;
    
 (* analysis of an expression *)
-and exp env { e_desc; e_info; e_loc } =
+and exp is_continuous env { e_desc; e_info; e_loc } =
   let e_typ = Typinfo.get_type e_info in
   let ti =
     match e_desc with
@@ -223,7 +232,9 @@ and exp env { e_desc; e_info; e_loc } =
     | Eglobal { lname = lname } ->
        let { info } =
          try Modules.find_value lname with | Not_found -> assert false in
-       let ti = Tsmooth.instance_of_global_value info e_typ in ti
+       let ti = Tsmooth.instance_of_global_value info e_typ in
+       (* in a discrete-time context the basic type is [0] *)
+       if is_continuous then ti else Tsmooth.zero_type ti
     | Evar(x) -> 
        let { t_tys } = find x env in
        Tsmooth.instance t_tys e_typ
@@ -232,142 +243,148 @@ and exp env { e_desc; e_info; e_loc } =
        let ty = Tsmooth.fresh_on_i t_last typ_body in
        ty
     | Etuple(e_list) -> 
-       product (List.map (exp env) e_list)
+       product (List.map (exp is_continuous env) e_list)
     | Econstr1 { arg_list } ->
        let i = Tsmooth.new_var () in
-       List.iter (fun e -> exp_less_than_on_i env e i) arg_list;
+       List.iter (fun e -> exp_less_than_on_i is_continuous env e i) arg_list;
        Tsmooth.skeleton_on_i i e_typ
-    | Eop(op, e_list) -> operator env op e_typ e_list
+    | Eop(op, e_list) -> operator is_continuous env op e_typ e_list
     | Eapp { f; arg_list } ->
-       let ti_f = exp env f in app env ti_f arg_list
+       let ti_f = exp is_continuous env f in
+       app is_continuous env ti_f arg_list
     | Erecord_access { arg } -> 
        let i = Tsmooth.new_var () in
-       exp_less_than_on_i env arg i;
+       exp_less_than_on_i is_continuous env arg i;
        Tsmooth.skeleton_on_i i e_typ
     | Erecord(l) -> 
        let i = Tsmooth.new_var () in
-       List.iter (fun { arg } -> exp_less_than_on_i env arg i) l;
+       List.iter (fun { arg } -> exp_less_than_on_i is_continuous env arg i) l;
        Tsmooth.skeleton_on_i i e_typ
     | Erecord_with(e_record, l) -> 
        let i = Tsmooth.new_var () in
-       exp_less_than_on_i env e_record i;
-       List.iter (fun { arg } -> exp_less_than_on_i env arg i) l;
+       exp_less_than_on_i is_continuous env e_record i;
+       List.iter (fun { arg } -> exp_less_than_on_i is_continuous env arg i) l;
        Tsmooth.skeleton_on_i i e_typ
-    | Etypeconstraint(e, _) -> exp env e
+    | Etypeconstraint(e, _) -> exp is_continuous env e
     | Elet(l, e_let) -> 
-       let env = leq env l in
-       exp env e_let
-    | Efun(fe) -> funexp env fe
+       let env = leq is_continuous env l in
+       exp is_continuous env e_let
+    | Efun(fe) -> funexp is_continuous env fe
     | Epresent { handlers; default_opt } ->
-       (* if [e] returns a tuple, all type element are synchronised, i.e., *)
-       (* if one is un-initialized, the whole is un-initialized *)
+       (* we force the conditions to be of type [0] *)
+       (* if the output [e] is a structure, all components are synchronised *)
        let ti = Tsmooth.skeleton_on_i (Tsmooth.new_var ()) e_typ in
-       present_handler_exp_list env handlers default_opt ti;
+       present_handler_exp_list is_continuous env handlers default_opt ti;
        ti
     | Ematch { e; handlers } ->
-       (* we force [e] to be always initialized. This is overly constraining *)
-       (* but correct and simpler to justify *)
-       exp_less_than_on_i env e izero;
+       (* we force [e] to be of type [0] *)
+       exp_less_than_on_i is_continuous env e izero;
        let ti = Tsmooth.skeleton_on_i (Tsmooth.new_var ()) e_typ in
-       match_handler_exp_list env handlers ti;
+       match_handler_exp_list is_continuous env handlers ti;
        ti
     | Ereset(e_body, e_res) ->
-       exp_less_than_on_i env e_res izero;
-       exp env e_body
-    | Eassert { a_body } -> exp env a_body
+       exp_less_than_on_i is_continuous env e_res izero;
+       exp is_continuous env e_body
+    | Eassert { a_body } -> exp is_continuous env a_body
     | Elocal(b_eq, e_body) ->
-       let env = block_eq env b_eq in
-       exp env e_body
-    | Eforloop(fe) -> forloop_exp e_loc env fe
-    | Esizeapp { f } -> exp env f in
+       let env = block_eq is_continuous env b_eq in
+       exp is_continuous env e_body
+    | Eforloop(fe) -> forloop_exp e_loc is_continuous env fe
+    | Esizeapp { f } -> exp is_continuous env f in
   ti
   
 (* Typing an operator *)
-and operator env op ty e_list =
+and operator is_continuous env op ty e_list =
   let i = Tsmooth.new_var () in
   match op, e_list with
   | Eunarypre, [e] -> 
      (* input of a unit delay must be of type 0 *)
-     exp_less_than_on_i env e izero; 
-     Tsmooth.skeleton_on_i ione ty
+     exp_less_than_on_i is_continuous env e izero; 
+     Tsmooth.skeleton_on_i izero ty
   | Efby, [e1;e2] ->
      (* right input of a initialized delay must be of type 0 *)
-     exp_less_than_on_i env e2 izero;
-     exp env e1
+     exp_less_than_on_i is_continuous env e2 izero;
+     exp is_continuous env e1
   | Eminusgreater, [e1;e2] ->
-     let t1 = exp env e1 in
-     let _ = exp env e2 in
+     let t1 = exp is_continuous env e1 in
+     let _ = exp is_continuous env e2 in
      t1
   | Eifthenelse, [e1; e2; e3] ->
      (* a conditional forces the first argument to be constant *)
-     exp_less_than_on_i env e1 i;
-     exp_less_than_on_i env e2 i;
-     exp_less_than_on_i env e3 i;
+     exp_less_than_on_i is_continuous env e1 izero;
+     let i = Tsmooth.new_var () in
+     exp_less_than_on_i is_continuous env e2 i;
+     exp_less_than_on_i is_continuous env e3 i;
      Tsmooth.skeleton_on_i i ty
   | Eup _, [e] ->
-     exp_less_than_on_i env e izero;
+     exp_less_than_on_i is_continuous env e ihalf;
      Tsmooth.skeleton_on_i izero ty
   | Einitial, [] ->
      Tsmooth.skeleton_on_i izero ty
   | (Edisc | Ehorizon _), [e] ->
-     exp_less_than_on_i env e izero;
+     exp_less_than_on_i is_continuous env e ihalf;
      Tsmooth.skeleton_on_i izero ty
   | Eperiod, [e1; e2] ->
-     exp_less_than_on_i env e1 izero;
-     exp_less_than_on_i env e2 izero;
+     exp_less_than_on_i is_continuous env e1 izero;
+     exp_less_than_on_i is_continuous env e2 izero;
      Tsmooth.skeleton_on_i izero ty
   | Eseq, [e1; e2] ->
-     exp_less_than_on_i env e1 izero;
-     exp_less_than_on_i env e2 izero;
+     exp_less_than_on_i is_continuous env e1 izero;
+     exp_less_than_on_i is_continuous env e2 izero;
      Tsmooth.skeleton_on_i izero ty
   | Eatomic, [e] ->
-     exp_less_than_on_i env e i;
+     exp_less_than_on_i is_continuous env e i;
      Tsmooth.skeleton_on_i i ty
   | Etest, [e] ->
      let i = Tsmooth.new_var () in
-     exp_less_than_on_i env e i;
+     exp_less_than_on_i is_continuous env e i;
      Tsmooth.skeleton_on_i i ty
   | Erun _, [e1; e2] ->
-     let t1 = exp env e1 in
+     let t1 = exp is_continuous env e1 in
      let ti1, ti2 = Tsmooth.filter_arrow t1 in
-     exp_less_than env e2 ti1;
+     exp_less_than is_continuous env e2 ti1;
      ti2
-  | Earray(op), e_list -> array_operator env op ty e_list
+  | Earray(op), e_list -> array_operator is_continuous env op ty e_list
   | _ -> assert false
 
-and array_operator env op ty e_list =
+and array_operator is_continuous env op ty e_list =
   (* the type of the result *)
   match op, e_list with
   | Earray_list, e_list ->
-     List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
-     Tsmooth.skeleton_on_i izero ty
+     let i = Tsmooth.new_var () in
+     List.iter (fun e -> exp_less_than_on_i is_continuous env e i) e_list;
+     Tsmooth.skeleton_on_i i ty
   | (Econcat | Eget), [e1; e2] ->
-     exp_less_than_on_i env e1 izero;
-     exp_less_than_on_i env e2 izero;
-     Tsmooth.skeleton_on_i izero ty
+     let i = Tsmooth.new_var () in
+     exp_less_than_on_i is_continuous env e1 i;
+     exp_less_than_on_i is_continuous env e2 i;
+     Tsmooth.skeleton_on_i i ty
   | (Eget_with_default | Eslice _ | Eupdate), l ->
-     List.iter (fun e -> exp_less_than_on_i env e izero) l;
-     Tsmooth.skeleton_on_i izero ty
+     let i = Tsmooth.new_var () in
+     List.iter (fun e -> exp_less_than_on_i is_continuous env e i) l;
+     Tsmooth.skeleton_on_i i ty
   | (Etranspose | Ereverse | Eflatten), [e1] ->
-     exp_less_than_on_i env e1 izero;
-     Tsmooth.skeleton_on_i izero ty
+     let i = Tsmooth.new_var () in
+     exp_less_than_on_i is_continuous env e1 i;
+     Tsmooth.skeleton_on_i i ty
   | _ -> assert false
 
 (** Typing an application *)
-and app env ti_fct arg_list =
+and app is_continuous env ti_fct arg_list =
   (* typing the list of arguments *)
   let rec args ti_fct = function
     | [] -> ti_fct
     | arg :: arg_list ->
        let ti1, ti2 = Tsmooth.filter_arrow ti_fct in
-       exp_less_than env arg ti1;
+       exp_less_than is_continuous env arg ti1;
        args ti2 arg_list in
   args ti_fct arg_list
 
-and funexp env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
+and funexp is_continuous
+    env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
   let env = build_env f_loc f_env env in
   let ti_list = List.map (arg env) f_args in
-  let ti_res = result env f_body in
+  let ti_res = result is_continuous env f_body in
   let actual_ti = Tsmooth.funtype_list ti_list ti_res in
   (* for an atomic node, input/outputs get the same smooth type variable *)
   if f_atomic then
@@ -379,119 +396,118 @@ and funexp env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
 
 and arg env n_list = type_of_vardec_list env n_list
 
-and exp_less_than_on_i env e expected_i =
-  let actual_ti = exp env e in
+and exp_less_than_on_i is_continuous env e expected_i =
+  let actual_ti = exp is_continuous env e in
   let e_typ = Typinfo.get_type e.e_info in
   less_than e.e_loc actual_ti (Tsmooth.skeleton_on_i expected_i e_typ);
 
-and exp_less_than env ({ e_loc } as e) expected_ti =
-  let actual_ty = exp env e in
+and exp_less_than is_continuous env ({ e_loc } as e) expected_ti =
+  let actual_ty = exp is_continuous env e in
   less_than e_loc actual_ty expected_ti
 
 (** Checking equations *)
-and equation_list env eq_list =
-  List.iter (equation env) eq_list
+and equation_list is_continuous env eq_list =
+  List.iter (equation is_continuous env) eq_list
 
-and equation env { eq_desc; eq_loc; eq_write } =
+and equation is_continuous env { eq_desc; eq_loc; eq_write } =
   match eq_desc with
   | EQeq(p, e) -> 
-     let ti = exp env e in
+     let ti = exp is_continuous env e in
      pattern env p ti
   (* TODO: ajouter que si [is_continuous] alors [1 < env(last x)] *)
   | EQder { id; e; e_opt; handlers } ->
      (* e must be of type <= 1/2 *)
-     exp_less_than_on_i env e ihalf;
+     exp_less_than_on_i is_continuous env e ihalf;
      let { t_tys = { typ_body }; t_last } = find id env in 
-      exp_less_than env e typ_body;
+      exp_less_than is_continuous env e typ_body;
       let e_typ = Typinfo.get_type e.e_info in
       less_than eq_loc typ_body (Tsmooth.skeleton_on_i Tsmooth.izero e_typ);
       (match e_opt with
-       | Some(e0) -> exp_less_than_on_i env e0 izero
+       | Some(e0) -> exp_less_than_on_i is_continuous env e0 izero
        | None -> ());
-      present_handler_exp_list env handlers NoDefault typ_body 
+      present_handler_exp_list is_continuous env handlers NoDefault typ_body 
   | EQinit(n, e) ->
-      exp_less_than_on_i env e izero
+      exp_less_than_on_i is_continuous env e izero
   | EQemit(n, e_opt) ->
       let { t_tys = { typ_body } } = find n env in 
       less_than eq_loc typ_body (Tsmooth.atom izero);
       Util.optional_unit
-        (fun i e -> exp_less_than_on_i env e i) izero e_opt
+        (fun i e -> exp_less_than_on_i is_continuous env e i) izero e_opt
   | EQautomaton {is_weak; handlers; state_opt } ->
      automaton_handler_eq_list
-       eq_loc is_weak eq_write env handlers state_opt
+       eq_loc is_continuous is_weak eq_write env handlers state_opt
   | EQif { e; eq_true; eq_false } ->
-     exp_less_than_on_i env e izero;
-     equation env eq_true;
-     equation env eq_false
+     exp_less_than_on_i is_continuous env e izero;
+     equation is_continuous env eq_true;
+     equation is_continuous env eq_false
   | EQmatch { e; handlers } ->
-     exp_less_than_on_i env e izero;
+     exp_less_than_on_i is_continuous env e izero;
      let shared = Defnames.cur_names Ident.S.empty eq_write in
-     match_handler_eq_list shared env handlers
+     match_handler_eq_list is_continuous shared env handlers
   | EQpresent { handlers; default_opt } ->
      let shared = Defnames.cur_names Ident.S.empty eq_write in
-     present_handler_eq_list shared env handlers default_opt
+     present_handler_eq_list is_continuous shared env handlers default_opt
   | EQreset(eq, e) -> 
-     exp_less_than_on_i env e izero;
-     equation env eq
-  | EQand { eq_list } -> equation_list env eq_list
+     exp_less_than_on_i is_continuous env e izero;
+     equation is_continuous env eq
+  | EQand { eq_list } -> equation_list is_continuous env eq_list
   | EQlocal(b_eq) ->
-     ignore (block_eq env b_eq)
+     ignore (block_eq is_continuous env b_eq)
   | EQlet(l_eq, eq) ->
-     let env = leq env l_eq in equation env eq
-  | EQassert { a_body } -> exp_less_than_on_i env a_body izero 
+     let env = leq is_continuous env l_eq in equation is_continuous env eq
+  | EQassert { a_body } -> exp_less_than_on_i is_continuous env a_body izero 
   | EQempty -> ()
-  | EQforloop(f_eq) -> forloop_eq eq_loc env f_eq
-  | EQsizefun(f_size) -> sizefun_t env f_size
+  | EQforloop(f_eq) -> forloop_eq eq_loc is_continuous env f_eq
+  | EQsizefun(f_size) -> sizefun_t is_continuous env f_size
        
 (* typing rule for a present statement *)
-and present_handler_eq_list shared env p_h_list default_opt =
-  present_handlers scondpat equation env p_h_list default_opt
+and present_handler_eq_list is_continuous shared env p_h_list default_opt =
+  present_handlers scondpat equation is_continuous env p_h_list default_opt
 
-and present_handler_exp_list env p_h_list default_opt ti =
-  let exp env e = exp_less_than env e ti in
-  present_handlers scondpat exp env p_h_list default_opt
+and present_handler_exp_list is_continuous env p_h_list default_opt ti =
+  let exp is_continuous env e = exp_less_than is_continuous env e ti in
+  present_handlers scondpat exp is_continuous env p_h_list default_opt
 
-and match_handler_eq_list shared env m_h_list =
-  let equation env eq =
-    equation env eq in
-  match_handlers equation env m_h_list
+and match_handler_eq_list is_continuous shared env m_h_list =
+  let equation is_continuous env eq =
+    equation is_continuous env eq in
+  match_handlers equation is_continuous env m_h_list
 
-and match_handler_exp_list env m_h_list ti =
-  let exp env e = exp_less_than env e ti in
-  match_handlers exp env m_h_list
+and match_handler_exp_list is_continuous env m_h_list ti =
+  let exp is_continuous env e = exp_less_than is_continuous env e ti in
+  match_handlers exp is_continuous env m_h_list
 
-and automaton_handler_eq_list loc is_weak defnames env s_h_list se_opt =
+and automaton_handler_eq_list
+      loc is_continuous is_weak defnames env s_h_list se_opt =
   automaton_handlers
     scondpat exp_less_than_on_i leqs block_eq block_eq
-    loc is_weak defnames env s_h_list se_opt
+    loc is_continuous is_weak defnames env s_h_list se_opt
 
-and block_eq env { b_loc; b_body; b_env } =
+and block_eq is_continuous env { b_loc; b_body; b_env } =
   let env = build_env b_loc b_env env in
-  equation env b_body;
+  equation is_continuous env b_body;
   env
 
-and leq env { l_eq; l_env; l_loc } =
+and leq is_continuous env { l_eq; l_env; l_loc } =
   (* First extend the typing environment *)
   let env = build_env l_loc l_env env in
   (* then type the body *)
-  equation env l_eq;
+  equation is_continuous env l_eq;
   env
 
-and leqs env l = List.fold_left leq env l
-
-(** Signal patterns *)
-(* the signal pattern must be constant during integration *)
-(*- [present s(x) -> ...] forces [s] to be of type [0] and introduces *)
-(* [x] with type [0] *)
-and scondpat env { desc } =
+and leqs is_continuous env l = List.fold_left (leq is_continuous) env l
+               
+(* we force that the signal pattern be initialized. E.g.,
+ *- [present s(x) -> ...] gives the type 0 to s and x *)
+and scondpat is_continuous env { desc } =
   match desc with
   | Econdand(sc1, sc2) | Econdor(sc1, sc2) -> 
-     scondpat env sc1; scondpat env sc2
+     scondpat is_continuous env sc1; scondpat is_continuous env sc2
   | Econdon(sc1, e) ->
-     scondpat env sc1;
-     exp_less_than_on_i env e izero
+     scondpat is_continuous env sc1;
+     exp_less_than_on_i is_continuous env e izero
   | Econdexp(e) | Econdpat(e, _) -> 
-     exp_less_than_on_i env e izero
+     exp_less_than_on_i is_continuous env e izero
 
 (* Computes the result type for [returns (...) eq] *)
 and type_of_vardec env { var_name; var_info } =
@@ -501,43 +517,45 @@ and type_of_vardec env { var_name; var_info } =
 and type_of_vardec_list env n_list = 
   type_of_n_list (type_of_vardec env) n_list
 
-and result env { r_desc; r_info } =
+and result is_continuous env { r_desc; r_info } =
   let ti =
     match r_desc with
-    | Exp(e) -> exp env e
+    | Exp(e) -> exp is_continuous env e
     | Returns({ b_vars } as b) ->
-       let env = block_eq env b in
+       let env = block_eq is_continuous env b in
        type_of_vardec_list env b_vars in
   ti
  
 (* Typing of a for loop *)
-and forloop_exp loc env
+and forloop_exp loc is_continuous env
       { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* inputs, index and outputs must be initialized *)
-  for_size_t env for_size;
-  List.iter (for_input_t env) for_input;
+  for_size_t is_continuous env for_size;
+  List.iter (for_input_t is_continuous env) for_input;
   let env = build_env loc for_env env in
   (* typing local definitions *)
-  let env = leqs env for_let in
-  for_kind_t env for_kind;
-  for_exp_t loc env for_body
+  let env = leqs is_continuous env for_let in
+  for_kind_t is_continuous env for_kind;
+  for_exp_t loc is_continuous env for_body
 
-and for_exp_t loc env for_exp =
+and for_exp_t loc is_continuous env for_exp =
   match for_exp with
   | Forexp { exp = e; default } ->
      let ty = Typinfo.get_type e.e_info in
      let ti_e = Tsmooth.skeleton_on_i Tsmooth.izero ty in
-     exp_less_than env e ti_e;
+     exp_less_than is_continuous env e ti_e;
      Util.optional_with_default
-       (fun e -> exp_less_than_on_i env e Tsmooth.izero) () default;
+       (fun e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
+       () default;
      ti_e
   | Forreturns { r_returns; r_block; r_env } ->
-     List.iter (for_vardec env) r_returns;
+     List.iter (for_vardec is_continuous env) r_returns;
      let env = build_env loc r_env env in
-     let _ = block_eq env r_block in
+     let _ = block_eq is_continuous env r_block in
      type_of_for_vardec_list env r_returns
 
-and for_vardec env { desc = { for_vardec } } = vardec env for_vardec
+and for_vardec is_continuous env { desc = { for_vardec } } =
+  vardec is_continuous env for_vardec
 
 and type_of_for_vardec_list env n_list =
   let type_of { desc = { for_vardec } } =
@@ -545,18 +563,20 @@ and type_of_for_vardec_list env n_list =
   type_of_n_list type_of n_list
 
 (* sizes must be initialized *)
-and for_size_t env for_size_opt =
+and for_size_t is_continuous env for_size_opt =
   Util.optional_unit
     (fun env { for_size_exp } ->
-      exp_less_than_on_i env for_size_exp Tsmooth.izero) env for_size_opt
+      exp_less_than_on_i is_continuous env for_size_exp Tsmooth.izero)
+    env for_size_opt
 
-and for_kind_t env for_kind =
+and for_kind_t is_continuous env for_kind =
   match for_kind with
   | Kforeach -> ()
   | Kforward(for_exit_opt) ->
-     Util.optional_unit for_exit_t env for_exit_opt
+     Util.optional_unit (for_exit_t is_continuous) env for_exit_opt
 
-and for_exit_t env { for_exit } = exp_less_than_on_i env for_exit Tsmooth.izero
+and for_exit_t is_continuous env { for_exit } =
+  exp_less_than_on_i is_continuous env for_exit Tsmooth.izero
 
 and for_index_t for_index_opt =
   Util.optional_with_default
@@ -564,14 +584,15 @@ and for_index_t for_index_opt =
       Env.singleton id { t_last = ione; t_tys = Defsmooth.scheme (atom izero) })
     Env.empty for_index_opt
 
-and for_eq_t loc env { for_out; for_block; for_out_env } =
+and for_eq_t loc is_continuous env { for_out; for_block; for_out_env } =
   (* outputs must be initialized *)
-  List.iter (for_out_t env) for_out;
+  List.iter (for_out_t is_continuous env) for_out;
   let env = build_env loc for_out_env env in
-  let _ = block_eq env for_block in
+  let _ = block_eq is_continuous env for_block in
   ()
 
-and for_out_t env { desc = { for_locals; for_ext; for_info }; loc; } =
+and for_out_t
+    is_continuous env { desc = { for_locals; for_ext; for_info }; loc; } =
   (* find the type of [for_ext] in [env] *)
   let { t_tys = { typ_body = ti } } = find for_ext env in
   let typ = Typinfo.get_type for_info in
@@ -581,35 +602,38 @@ and for_out_t env { desc = { for_locals; for_ext; for_info }; loc; } =
   | OAcc { for_acc = x } | OArray { for_item = x } ->
     (* every initialization and default value must be well initialized *)
     Util.optional_unit
-      (fun env e -> exp_less_than_on_i env e Tsmooth.izero) env x.for_init;
+      (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
+      env x.for_init;
     Util.optional_unit
-      (fun env e -> exp_less_than_on_i env e Tsmooth.izero) env x.for_default;
+      (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
+      env x.for_default;
 
 (* all inputs must be well-initialized *)
-and for_input_t env { desc; loc } =
+and for_input_t is_continuous env { desc; loc } =
   match desc with
   | Einput { e; by } ->
-     exp_less_than_on_i env e Tsmooth.izero;
+     exp_less_than_on_i is_continuous env e Tsmooth.izero;
      Util.optional_unit 
-       (fun env e -> exp_less_than_on_i env e Tsmooth.izero) env by
+       (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
+       env by
   | Eindex { e_left; e_right } ->
-     exp_less_than_on_i env e_left Tsmooth.izero;
-     exp_less_than_on_i env e_right Tsmooth.izero
+     exp_less_than_on_i is_continuous env e_left Tsmooth.izero;
+     exp_less_than_on_i is_continuous env e_right Tsmooth.izero
 
 (* Typing of a for loop *)
-and forloop_eq loc env
+and forloop_eq loc is_continuous env
        { for_env; for_size; for_kind; for_input; for_let; for_body } =
   (* inputs, index and outputs must be initialized *)
-  for_size_t env for_size;
+  for_size_t is_continuous env for_size;
   (* check that all inputs are initialized *)
-  List.iter (for_input_t env) for_input;
+  List.iter (for_input_t is_continuous env) for_input;
   let env = build_env loc for_env env in
   (* typing local definitions *)
-  let env = leqs env for_let in
-  for_kind_t env for_kind;
-  for_eq_t loc env for_body
+  let env = leqs is_continuous env for_let in
+  for_kind_t is_continuous env for_kind;
+  for_eq_t loc is_continuous env for_body
 
-and sizefun_t env { sf_id; sf_id_list; sf_e; sf_loc } =
+and sizefun_t is_continuous env { sf_id; sf_id_list; sf_e; sf_loc } =
   let env_sizes =
     List.fold_left 
       (fun acc id -> 
@@ -617,7 +641,7 @@ and sizefun_t env { sf_id; sf_id_list; sf_e; sf_loc } =
           { t_last = ione; t_tys = Defsmooth.scheme (Tsmooth.atom izero) } acc) 
       Env.empty sf_id_list in
   let env = Env.append env_sizes env in
-  let actual_ti = exp env sf_e in
+  let actual_ti = exp is_continuous env sf_e in
   (* check that [sf_id] can get type [actual_ti] *)
   let { t_tys = { typ_body = expected_ti } } = find sf_id env in
   less_than sf_loc expected_ti actual_ti
@@ -629,7 +653,7 @@ let implementation ff impl =
     | Eletdecl { d_leq } ->
        (* generalisation is done only for global declarations *)
        Misc.push_binding_level ();
-       let env = leq Env.empty d_leq in
+       let env = leq true Env.empty d_leq in
        Misc.pop_binding_level ();
        let env = gen_decl env in
        Env.iter
@@ -638,7 +662,7 @@ let implementation ff impl =
              (Modules.find_value (Lident.Name(Ident.source name))) t_tys)
          env;
        (* output the signature *)
-       if !Misc.print_initialization_types
+       if !Misc.print_smoothness_types
        then
          Env.iter
            (fun name { t_tys } ->
