@@ -89,6 +89,12 @@ let less_than loc actual_ti expected_ti =
   with
     | Tsmooth.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
 
+let less_than_i loc actual_t expected_t =
+  try
+    Tsmooth.less_i actual_t expected_t
+  with
+    | Tsmooth.Clash _ -> error loc (Iless_than_i(actual_t, expected_t))
+
 (* Build an environment from a typing environment *)
 (* [local x in ... x = ...  ... last x ... der x = ...] *)
 (* [x: ti_x] and [last x: ti_x[1/2]] *)
@@ -111,41 +117,54 @@ let type_of_n_list type_of n_list =
 (* Patterns *)
 (* [pattern env p expected_ti] means that the type of [p] must be greater *)
 (* than [expected_ti] *)
-let rec pattern env { pat_desc; pat_loc; pat_info } expected_ti =
-  let pat_typ = Typinfo.get_type pat_info in
-  match pat_desc with
+let pattern is_continuous env pat expected_ti =
+  let rec pattern { pat_desc; pat_loc; pat_info } expected_ti =
+    let pat_typ = Typinfo.get_type pat_info in
+    match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> ()
     | Evarpat(x) -> 
-        let ti =
-          let { t_tys = { typ_body = ti } } = find x env in ti in
-        less_than pat_loc expected_ti ti
+       let ti, t_last =
+         let { t_tys = { typ_body = ti }; t_last } = find x env in ti, t_last in
+       less_than pat_loc expected_ti ti;
+       (* when [is_continuous], env(x) <= 1/2 and 1 <= env(last x) *)
+       if is_continuous then set_x_and_last_x pat_loc pat_info ti t_last
     | Econstr1pat(_, pat_list) | Earraypat(pat_list) ->
        (* a construct is considered to be strict *)
        let i = Tsmooth.new_var () in
-        less_than pat_loc expected_ti (Tsmooth.skeleton_on_i i pat_typ);
-        List.iter
-          (fun p -> pattern_less_than_on_i env p i) pat_list
+       less_than pat_loc expected_ti (Tsmooth.skeleton_on_i i pat_typ);
+       List.iter
+         (fun p -> pattern_less_than_on_i is_continuous env p i) pat_list
     | Etuplepat(pat_list) ->
-        let ty_list = Tsmooth.filter_product expected_ti in
-        List.iter2 (pattern env) pat_list ty_list
+       let ty_list = Tsmooth.filter_product expected_ti in
+       List.iter2 pattern pat_list ty_list
     | Erecordpat(l) -> 
-        let i = Tsmooth.new_var () in
-        List.iter
-          (fun { arg } -> pattern_less_than_on_i env arg i) l
-    | Etypeconstraintpat(p, _) -> pattern env p expected_ti
+       let i = Tsmooth.new_var () in
+       List.iter
+         (fun { arg } -> pattern_less_than_on_i is_continuous env arg i) l
+    | Etypeconstraintpat(p, _) -> pattern p expected_ti
     | Eorpat(p1, p2) -> 
-        pattern env p1 expected_ti;
-        pattern env p2 expected_ti
+       pattern p1 expected_ti;
+       pattern p2 expected_ti
     | Ealiaspat(p, n) -> 
-        pattern env p expected_ti;
-        let { t_tys } = find n env in
-        let ti = Tsmooth.instance t_tys pat_typ in
-        less_than pat_loc expected_ti ti
+       pattern p expected_ti;
+       let { t_tys; t_last } = find n env in
+       let ti = Tsmooth.instance t_tys pat_typ in
+       less_than pat_loc expected_ti ti;
+       (* when [is_continuous], env(x) <= 1/2 and 1 <= env(last x) *)
+       if is_continuous then set_x_and_last_x pat_loc pat_info ti t_last
 
-and pattern_less_than_on_i env ({ pat_info } as pat) i =
-  let pat_typ = Typinfo.get_type pat_info in
-  let expected_ti = Tsmooth.skeleton_on_i i pat_typ in
-  pattern env pat expected_ti
+  and set_x_and_last_x pat_loc pat_info ti t_last =
+    let pat_typ = Typinfo.get_type pat_info in
+    let ti_half = Tsmooth.skeleton_on_i ihalf pat_typ in
+    less_than_i pat_loc ione t_last;
+    less_than pat_loc ti ti_half
+ 
+  and pattern_less_than_on_i is_continuous env ({ pat_info } as pat) i =
+    let pat_typ = Typinfo.get_type pat_info in
+    let expected_ti = Tsmooth.skeleton_on_i i pat_typ in
+    pattern pat expected_ti in
+
+  pattern pat expected_ti
         
 (** Match handler *)
 let match_handlers body is_continuous env m_h_list =
@@ -204,24 +223,11 @@ let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
 let rec vardec_list is_continuous env v_list =
   List.iter (vardec is_continuous env) v_list
 
-<<<<<<< HEAD
-and vardec env ({ var_name; var_default; var_init }) =
-  (* every initialization part is activated discretely *)
-  (* hence, it can be of any type *)
-  (* the default is activated on the base clock of the node *)
-  (* for the moment, we force it to be of type [0] *)
-  Util.optional_unit
-    (fun env e -> exp_less_than_on_i env e Tsmooth.ione) env var_init;
-=======
 and vardec is_continuous env ({ var_name; var_default; var_init }) =
   (* every initialization and default value must be well initialized *)
   Util.optional_unit
     (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
     env var_init;
->>>>>>> 0aac69f313bdb96259a9dd30504c28bcac7a3e84
-  Util.optional_unit
-    (fun env e -> exp_less_than_on_i is_continuous env e Tsmooth.izero)
-    env var_default;
    
 (* analysis of an expression *)
 and exp is_continuous env { e_desc; e_info; e_loc } =
@@ -413,8 +419,9 @@ and equation is_continuous env { eq_desc; eq_loc; eq_write } =
   match eq_desc with
   | EQeq(p, e) -> 
      let ti = exp is_continuous env e in
-     pattern env p ti
-  (* TODO: ajouter que si [is_continuous] alors [1 < env(last x)] *)
+     (* [ti <= env(p)] *)
+     (* if [is_continuous] then [env(x) <= 1/2 /\ 1 <= env(last x)] *)
+     pattern is_continuous env p ti
   | EQder { id; e; e_opt; handlers } ->
      (* e must be of type <= 1/2 *)
      exp_less_than_on_i is_continuous env e ihalf;
