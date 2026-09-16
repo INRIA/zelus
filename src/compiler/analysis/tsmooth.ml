@@ -162,6 +162,10 @@ and less_i left_i right_i =
         | (Ivalue(Ihalf), Ivalue(Ihalf)) -> ()
       | Ivalue(Ione), Ivar -> saturate_i true right_i
       | Ivar, Ivalue(Izero) -> saturate_i false left_i
+      | Ivalue(Ihalf), Ivar ->
+          right_i.i_inf <- add left_i right_i.i_inf
+      | Ivar, Ivalue(Ihalf) ->
+          left_i.i_sup <- add right_i left_i.i_sup
       | Ivar, Ivar ->
           (* i1,...,in < i < j1,...,jk  with  *)
           (* l1,...,lm < r < s1,...,sr *)

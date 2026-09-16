@@ -205,9 +205,12 @@ let rec vardec_list env v_list =
   List.iter (vardec env) v_list
 
 and vardec env ({ var_name; var_default; var_init }) =
-  (* every initialization and default value must be well initialized *)
+  (* every initialization part is activated discretely *)
+  (* hence, it can be of any type *)
+  (* the default is activated on the base clock of the node *)
+  (* for the moment, we force it to be of type [0] *)
   Util.optional_unit
-    (fun env e -> exp_less_than_on_i env e Tsmooth.izero) env var_init;
+    (fun env e -> exp_less_than_on_i env e Tsmooth.ione) env var_init;
   Util.optional_unit
     (fun env e -> exp_less_than_on_i env e Tsmooth.izero) env var_default;
    
@@ -475,9 +478,11 @@ and leq env { l_eq; l_env; l_loc } =
   env
 
 and leqs env l = List.fold_left leq env l
-               
-(* we force that the signal pattern be initialized. E.g.,
- *- [present s(x) -> ...] gives the type 0 to s and x *)
+
+(** Signal patterns *)
+(* the signal pattern must be constant during integration *)
+(*- [present s(x) -> ...] forces [s] to be of type [0] and introduces *)
+(* [x] with type [0] *)
 and scondpat env { desc } =
   match desc with
   | Econdand(sc1, sc2) | Econdor(sc1, sc2) -> 
