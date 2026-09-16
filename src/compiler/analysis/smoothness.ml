@@ -388,6 +388,8 @@ and app is_continuous env ti_fct arg_list =
 
 and funexp is_continuous
     env { f_kind; f_atomic; f_args; f_body; f_env; f_loc } =
+  let expected_body_k = Interface.kindtype f_kind in
+  let is_continuous = not (Types.is_discrete_kind expected_body_k) in
   let env = build_env f_loc f_env env in
   let ti_list = List.map (arg env) f_args in
   let ti_res = result is_continuous env f_body in

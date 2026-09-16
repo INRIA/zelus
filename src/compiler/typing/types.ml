@@ -172,6 +172,10 @@ let is_continuous_kind expected_k =
   match expected_k with
   | Tnode(Tcont) -> true | _ -> false
 
+let is_discrete_kind expected_k = 
+  match expected_k with
+  | Tnode(Tdiscrete) -> true | _ -> false
+
 (* Make a discrete sort. *)
 let lift_to_discrete expected_k =
   match expected_k with
