@@ -54,6 +54,17 @@ open Deftypes
 open Defsmooth
 open Tsmooth
 
+(* Set the smooth type for arithmetic primitives *)
+       (*
+         let prelude () =
+  let m = Modules.find_module "Stdlib" in
+  let ty = let i = Tsmooth.new_var () in
+            Tsmooth.funtype_list
+              [Tsmooth.atom i; Tsmooth.atom i] (Tsmooth.atom i) in
+  let tys = Tmooth.scheme [i] ty in
+  Global.set_smooth info tys
+        *)
+
 let print x = Misc.internal_error "unbound" Printer.name x
 
 let find x env = try Env.find x env with Not_found -> print x
