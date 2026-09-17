@@ -231,7 +231,7 @@ type ('ienv, 'pattern, 'body) match_handler =
     m_loc: Location.t;
     m_reset: bool; (* the handler is reset on entry *)
     mutable m_zero: bool; (* the handler is done at a zero-crossing instant *)
-    mutable m_env: 'ienv Ident.Env.t;
+    mutable m_env: 'ienv Ident.Env.t; (* env for variables in [m_pat] *)
   }
 
 (* the body of a present handler *)
@@ -239,8 +239,8 @@ type ('ienv, 'scondpat, 'body) present_handler =
   { p_cond: 'scondpat;
     p_body: 'body;
     p_loc: Location.t;
-    mutable p_env: 'ienv Ident.Env.t;
-    mutable p_zero: bool;
+    mutable p_env: 'ienv Ident.Env.t; (* env for variables in [p_cond] *)
+    mutable p_zero: bool; (* the handler is done at a zero-crossing instant *)
   }
 
 type ('ienv, 'scondpat, 'exp, 'leq, 'body) escape =
