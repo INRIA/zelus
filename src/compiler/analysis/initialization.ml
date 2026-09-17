@@ -512,7 +512,6 @@ and equation env { eq_desc; eq_loc; eq_write } =
      (* e must be of type 0 *)
      exp_less_than_on_i env e izero;
      let { t_tys = { typ_body }; t_last } = find id env in 
-      exp_less_than env e typ_body;
       let e_typ = Typinfo.get_type e.e_info in
       less_than eq_loc typ_body (Tinit.skeleton_on_i Tinit.izero e_typ);
       (match e_opt with

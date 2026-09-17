@@ -36,12 +36,14 @@
  *- as well as conditions in if/then/else and all control decisions
  *- (present, until/unless conditions in automata)
  *-
- *- val (+.), (-.), ( *. ), (/.) : 'a -> 'a -> 'a
+ *- val (Stdlib.+.), (Stdlib.-.), ( Stdlib.*. ), (Stdlib./.) : 'a -> 'a -> 'a
  *- val (if): 0 -> 'a -> 'a -> 'a
- *- val floor, int_of_float : 0 -> 0
  *- val fix_der : 1 -> (1/2 -> 1/2) -> 1/2
  *- that is: fix_der x0 f = let rec der x = f(x) init x0 in x
  *- the signal to be integrated can only change smoothly
+ *- val floor, int_of_float : 0 -> 0
+ *- more generally, by default, imported primitives have a smooth type
+ *- that force their entries to have type [0]
  *)
 open Misc
 open Ident
@@ -453,15 +455,14 @@ and equation is_zero env { eq_desc; eq_loc; eq_write } =
      (* e must be of type <= 1/2 *)
      exp_less_than_on_i is_zero env e ihalf;
      let { t_tys = { typ_body }; t_last } = find id env in 
-      exp_less_than is_zero env e typ_body;
-      let e_typ = Typinfo.get_type e.e_info in
-      less_than eq_loc typ_body (Tsmooth.skeleton_on_i Tsmooth.izero e_typ);
-      (match e_opt with
-       | Some(e0) -> exp_less_than_on_i is_zero env e0 izero
-       | None -> ());
-      present_handler_exp_list is_zero env handlers NoDefault typ_body 
+     let e_typ = Typinfo.get_type e.e_info in
+     less_than eq_loc typ_body (Tsmooth.skeleton_on_i Tsmooth.ihalf e_typ);
+     (match e_opt with
+      | Some(e0) -> exp_less_than_on_i is_zero env e0 izero
+      | None -> ());
+     present_handler_exp_list is_zero env handlers NoDefault typ_body 
   | EQinit(n, e) ->
-      exp_less_than_on_i is_zero env e izero
+      exp_less_than_on_i true env e izero
   | EQemit(n, e_opt) ->
       let { t_tys = { typ_body } } = find n env in 
       less_than eq_loc typ_body (Tsmooth.atom izero);
