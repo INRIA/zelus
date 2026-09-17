@@ -66,5 +66,5 @@ let scheme t = { typ_vars = []; typ_rel = []; typ_body = t }
 (** An entry in the type environment *)
 type tentry =
     { t_tys: ti_scheme; (* the type [t] of x *)
-      t_last: t;
+      t_last: t option; (* if [last x] is used, its smoothness *)
     }

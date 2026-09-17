@@ -534,7 +534,10 @@ let filter_product ti =
 let penv ff env =
   (* print every entry in the typing environment *)
   let pentry ff (n, { t_tys; t_last }) =
-    Format.fprintf ff "@[%a: %a | %a@]"
-      Printer.source_name n Psmooth.scheme t_tys Psmooth.smooth t_last in
+    let p_last ff t_last =
+      match t_last with
+      | None -> () | Some(i) -> Format.fprintf ff " last %a" Psmooth.smooth i in
+    Format.fprintf ff "@[%a: %a%a@]"
+         Printer.source_name n Psmooth.scheme t_tys p_last t_last in
   let env = Ident.Env.bindings env in
   Pp_tools.print_list_r pentry "{" ";" "}" ff env
