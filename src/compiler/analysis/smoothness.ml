@@ -36,7 +36,8 @@
  *- as well as conditions in if/then/else and all control decisions
  *- (present, until/unless conditions in automata)
  *-
- *- val (Stdlib.+.), (Stdlib.-.), ( Stdlib.*. ), (Stdlib./.) : 'a -> 'a -> 'a
+ *- val (Stdlib.+.), (Stdlib.-.), ( Stdlib.*. ), (Stdlib./.), (Stdlib./.)
+ *-   : 'a -> 'a -> 'a
  *- val (if): 0 -> 'a -> 'a -> 'a
  *- val fix_der : 1 -> (1/2 -> 1/2) -> 1/2
  *- that is: fix_der x0 f = let rec der x = f(x) init x0 in x
@@ -54,16 +55,16 @@ open Deftypes
 open Defsmooth
 open Tsmooth
 
-(* Set the smooth type for arithmetic primitives *)
-       (*
-         let prelude () =
+(* Set the smooth type for arithmetic primitives (+.), ( *.), (/.) and (-.) *)
+(*
+  let add_type_for_primitives_in_stdlib () =
   let m = Modules.find_module "Stdlib" in
   let ty = let i = Tsmooth.new_var () in
             Tsmooth.funtype_list
               [Tsmooth.atom i; Tsmooth.atom i] (Tsmooth.atom i) in
   let tys = Tmooth.scheme [i] ty in
   Global.set_smooth info tys
-        *)
+*)
 
 let print x = Misc.internal_error "unbound" Printer.name x
 
