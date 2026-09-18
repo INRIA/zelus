@@ -118,7 +118,7 @@ and mkind =
 
 (* making types *)
 let make ty =
-  { t_desc = ty; t_level = generic; t_index = Genames.symbol#name }
+  { t_desc = ty; t_level = Misc.generic; t_index = Genames.symbol#name }
 
 let no_typ = make (Tproduct [])
 let rec is_no_typ { t_desc = desc } =

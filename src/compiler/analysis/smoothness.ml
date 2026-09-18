@@ -56,15 +56,17 @@ open Defsmooth
 open Tsmooth
 
 (* Set the smooth type for arithmetic primitives (+.), ( *.), (/.) and (-.) *)
-(*
-  let add_type_for_polymorphic_primitives_in_stdlib () =
-  let m = Modules.find_module "Stdlib" in
-  let ty = let i = Tsmooth.new_var () in
-            Tsmooth.funtype_list
-              [Tsmooth.atom i; Tsmooth.atom i] (Tsmooth.atom i) in
-  let tys = Tmooth.scheme [i] ty in
-  Global.set_smooth info tys
-*)
+let add_type_for_polymorphic_primitives_in_stdlib () =
+  let tys =
+    (* build the type signature: 'a. 'a -> 'a -> 'a *)
+    let i = Defsmooth.make_var () in
+    let ty = Tsmooth.funtype_list
+               [Tsmooth.atom i; Tsmooth.atom i] (Tsmooth.atom i) in
+    { typ_vars = [i]; typ_rel = []; typ_body = ty } in
+  List.iter
+    (fun n -> let info = Modules.find_value (Modname { qual = "Stdlib"; id = n }) in
+              Global.set_smooth info tys)
+    ["+."; "*."; "/."; "-."]
 
 let print x = Misc.internal_error "unbound" Printer.name x
 
@@ -720,5 +722,8 @@ let implementation ff impl =
                           
 (* the main entry function *)
 let program ff ({ p_impl_list } as p) =
+  (* add the type for arithmetic primitives from Stdlib *)
+  add_type_for_polymorphic_primitives_in_stdlib ();
+  (* type check the sequence of declarations *)
   List.iter (implementation ff) p_impl_list;
   p

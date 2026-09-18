@@ -59,6 +59,11 @@ and polarity = Punknown | Pplus | Pminus | Pplusminus
 
 let compare i1 i2 = Stdlib.compare i1.i_index i2.i_index
 
+let make_var () =
+  {  i_desc = Ivar; i_level = Misc.generic;
+     i_index = Genames.symbol#name; i_useful = false;
+     i_polarity = Punknown; i_visited = 0; i_inf = []; i_sup = [] }
+
 let no_typ = Iproduct []
 
 let scheme t = { typ_vars = []; typ_rel = []; typ_body = t }
