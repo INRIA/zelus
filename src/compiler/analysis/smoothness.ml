@@ -57,7 +57,7 @@ open Tsmooth
 
 (* Set the smooth type for arithmetic primitives (+.), ( *.), (/.) and (-.) *)
 (*
-  let add_type_for_primitives_in_stdlib () =
+  let add_type_for_polymorphic_primitives_in_stdlib () =
   let m = Modules.find_module "Stdlib" in
   let ty = let i = Tsmooth.new_var () in
             Tsmooth.funtype_list
