@@ -149,7 +149,7 @@ let main () =
           "-isizes", Arg.Unit set_types_with_size_constraints, doc_print_types;
           "-ic", Arg.Set print_causality_types, doc_print_causality_types;
           "-ii", Arg.Set print_initialization_types,
-          doc_print_initialization_types; 
+                 doc_print_initialization_types; 
           "-is", Arg.Set print_smoothness_types, doc_print_smoothness_types;
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
