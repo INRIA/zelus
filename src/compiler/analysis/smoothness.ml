@@ -472,6 +472,9 @@ and equation is_zero env { eq_desc; eq_loc; eq_write } =
      let { t_tys = { typ_body }; t_last } = find id env in 
      let e_typ = Typinfo.get_type e.e_info in
      less_than eq_loc typ_body (Tsmooth.skeleton_on_i Tsmooth.ihalf e_typ);
+     (* debug *)
+     (* TODO: *)
+     Format.eprintf "%a\n" Psmooth.ptype typ_body;
      (match e_opt with
       | Some(e0) -> exp_less_than_on_i is_zero env e0 izero
       | None -> ());

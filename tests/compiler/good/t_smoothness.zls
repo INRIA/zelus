@@ -1,5 +1,2 @@
-let f x y = x + y, y
-let g x y = x +. y
-
 let hybrid h x =
   let rec der o = x +. 1. init 0. in o
