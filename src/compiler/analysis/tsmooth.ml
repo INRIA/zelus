@@ -501,9 +501,9 @@ let instance { typ_body = ti } ty =
 
 (* type instance *)
 let instance_of_global_value { value_smooth = tis_opt } ty =
-  (* build a default signature *)
-  let default ty =
-    skeleton_on_i (new_var ()) ty in
+  (* build a default signature when no smoothness type is given *)
+  (* the default basic type is [0]: *)
+  let default ty = skeleton_on_i izero ty in
   match tis_opt with
   | None -> 
      (* if no initialization signature is declared, *)

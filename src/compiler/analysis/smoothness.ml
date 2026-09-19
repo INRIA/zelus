@@ -238,7 +238,8 @@ let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
        state is_zero env s1;
        state is_zero env s2 in
   (* transitions *)
-  let escape is_zero env { e_cond; e_let; e_body; e_next_state; e_zero; e_env } =
+  let escape is_zero env
+        { e_cond; e_let; e_body; e_next_state; e_zero; e_env } =
     let env = build_env e_cond.loc e_env env in
     scondpat is_zero env e_cond;
     (* typing local definitions *)
@@ -722,7 +723,7 @@ let implementation ff impl =
                           
 (* the main entry function *)
 let program ff ({ p_impl_list } as p) =
-  (* add the type for arithmetic primitives from Stdlib *)
+  (* add the type for polymorphic primitives (+.,*.,...) from Stdlib *)
   add_type_for_polymorphic_primitives_in_stdlib ();
   (* type check the sequence of declarations *)
   List.iter (implementation ff) p_impl_list;
