@@ -158,9 +158,9 @@ let message loc kind =
   | Elast_forbidden(n) ->
      let s = name n in
      eprintf
-       "@[%aType error: last %s is forbidden. This is either @,\
-        because %s is not a state variable or next %s is defined.@.@]"
-       output_location loc s s s
+       "@[%aType error: last %s is forbidden. This is @,\
+        because %s is not a state variable.@.@]"
+       output_location loc s s 
   | Eonly_last_is_allowed(n) ->
      let s = name n in
      eprintf
