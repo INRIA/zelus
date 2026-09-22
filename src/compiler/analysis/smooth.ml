@@ -129,11 +129,9 @@ let rec saturate_i is_right i =
   match i.i_desc with
   | Ivalue(i) when i = iv -> ()
   | Ivar ->
-     begin
-       i.i_desc <- Ilink(ivalue iv);
-       List.iter
-         (saturate_i is_right) (if is_right then i.i_sup else i.i_inf)
-       end
+     List.iter
+       (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
+     i.i_desc <- Ilink(ivalue iv)       
   | Ilink(i) -> saturate_i is_right i
   | _ -> raise (Clash(Iless_than))
   
