@@ -119,18 +119,21 @@ let increase_polarity p i =
   | Punknown -> i.i_polarity <- p
   | _ -> if p <> i.i_polarity then i.i_polarity <- Pplusminus
       
-(* saturate an smooth type [i]. *)
-(* on the right, [i] and all types [j] such that [i < j] are replaced by 1. *)
-(* on the left, [i] and all types [j] such that [j < i] are replaced by 0 *)
+(* saturate on its right or its left a smooth type [i] *)
+(* when [is_right = true] a type [i] and all [j] such that [i <= j] *)
+(* must be greater or equal to [1] *)
+(* when [not is_right], all types [j] such that [j <= i] must be less than [0] *)
 let rec saturate_i is_right i =
   let i = irepr i in
   let iv = if is_right then Ione else Izero in
   match i.i_desc with
   | Ivalue(i) when i = iv -> ()
   | Ivar ->
-     i.i_desc <- Ilink(ivalue iv);
-     List.iter
-       (saturate_i is_right) (if is_right then i.i_sup else i.i_inf)
+     begin
+       i.i_desc <- Ilink(ivalue iv);
+       List.iter
+         (saturate_i is_right) (if is_right then i.i_sup else i.i_inf)
+       end
   | Ilink(i) -> saturate_i is_right i
   | _ -> raise (Clash(Iless_than))
   
@@ -194,20 +197,6 @@ let rec skeleton_on_i i { t_desc = desc } =
   | Tconstr _ | Tvec _ -> atom i
   | Tlink(ti) -> skeleton_on_i i ti
 
-(* For external values, the skeleton type is over constrained *)
-(* all signals must be of type [0] *)
-let skeleton_for_external_values ty =
-  let rec skeleton_on_i i { t_desc = desc } =
-    match desc with
-    | Tvar -> atom i
-    | Tarrow { ty_arg; ty_res } ->
-        funtype (skeleton_on_i i ty_arg) (skeleton_on_i i ty_res)
-    | Tsizefun { id_list; ty } -> skeleton_on_i i ty
-    | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
-    | Tconstr(_, _, _) | Tvec _ -> atom i
-    | Tlink(ti) -> skeleton_on_i i ti in
-  skeleton_on_i izero ty
-                   
 let rec fresh_on_i i ti =
   match ti with
   | Ifun(left_ti, right_ti) ->
@@ -262,7 +251,7 @@ and visit_i v i =
   | Ivalue _ -> ()
   | Ilink(i) -> visit_i v i
                   
-(** Mark useful/useless types and sets the polarity *)
+(* Mark useful/useless types and sets the polarity *)
 (* reduces dependences by eliminating intermediate variables *)
 (* we first mark useful variables (variables which appear in *)
 (* the final type. We also compute polarities *)
@@ -402,7 +391,7 @@ and igen i =
                         
 and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
                                
-(** Computes the dependence relation from a list of type variables *)
+(* Computes the dependence relation from a list of type variables *)
 (* variables in [already] are disgarded *)
 let relation i_list =
   let rec relation (already, rel) i =
@@ -495,8 +484,12 @@ let rec subtype right ti =
 (* instanciation *)
 let instance { typ_body = ti } ty =
   let ti = copy ti in
+  let l = () in
+  (* Format.eprintf "ti = %a\n" Psmooth.ptype ti; *)
   cleanup ();
   let ti = subtype true ti in
+  let l = () in
+  (* Format.eprintf "ti_sub = %a\n" Psmooth.ptype ti; *)
   instance ti ty
 
 (* type instance *)
@@ -511,7 +504,7 @@ let instance_of_global_value { value_smooth = tis_opt } ty =
      subtype true (default ty)
   | Some(tis) -> instance tis ty
   
-(* floor (bottom) of a type. Replace smooth types by [0] *)
+(* floor (bottom) of a type. All basic elements are [0] *)
 let rec zero_type ti =
   match ti with
   | Ifun(ti1, ti2) -> funtype (zero_type ti1) (zero_type ti2)

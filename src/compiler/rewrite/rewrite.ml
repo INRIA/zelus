@@ -69,8 +69,8 @@ let default_list =
    "pre", "Compilation of memories (fby/pre) into (init/last). See below:",
    nothing,
    Pre.program;
-   "init", "Compilation of initializations. See below:", nothing,
-   Init.program;
+   "arrow", "Compilation of the initialization (->). See below:", nothing,
+   Arrow.program;
    "shared",
    "Normalise equations to shared variables in [x = ...]. See below:", nothing,
    Shared.program;
@@ -122,7 +122,7 @@ let set_steps w =
     | "inline" | "sizerec" | "der" | "period" | "disc"
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
-    | "pre" | "init" | "complete" | "shared" | "encore" | "letin" 
+    | "pre" | "arrow" | "complete" | "shared" | "encore" | "letin" 
     | "schedule" | "distribute" | "deadcode" | "copy" | "exp2eq" | "default"
     | "returns" | "reset" | "set_sorts" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set

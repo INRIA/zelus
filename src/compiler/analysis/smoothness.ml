@@ -53,19 +53,20 @@ open Zelus
 open Location
 open Deftypes
 open Defsmooth
-open Tsmooth
+open Smooth
 
 (* Set the smooth type for arithmetic primitives (+.), ( *.), (/.) and (-.) *)
 let add_type_for_polymorphic_primitives_in_stdlib () =
   let tys =
     (* build the type signature: 'a. 'a -> 'a -> 'a *)
     let i = Defsmooth.make_var () in
-    let ty = Tsmooth.funtype_list
-               [Tsmooth.atom i; Tsmooth.atom i] (Tsmooth.atom i) in
+    let ty = Smooth.funtype_list
+               [Smooth.atom i; Smooth.atom i] (Smooth.atom i) in
     { typ_vars = [i]; typ_rel = []; typ_body = ty } in
   List.iter
-    (fun n -> let info = Modules.find_value (Modname { qual = "Stdlib"; id = n }) in
-              Global.set_smooth info tys)
+    (fun n ->
+      let info = Modules.find_value (Modname { qual = "Stdlib"; id = n }) in
+      Global.set_smooth info tys)
     ["+."; "*."; "/."; "-."]
 
 let print x = Misc.internal_error "unbound" Printer.name x
@@ -84,32 +85,32 @@ let error loc kind = raise (Error(loc, kind))
 let message loc kind =
   begin
     match kind with
-    | Iless_than(expected_ti, actual_ti) ->
+    | Iless_than(left_ti, right_ti) ->
         Format.eprintf
           "%aSmoothness error: this expression \
            has type %a@ which should be less than@ %a.@."
           output_location loc
-          Psmooth.ptype expected_ti Psmooth.ptype actual_ti
-    | Iless_than_i(expected_i, actual_i) ->
+          Psmooth.ptype left_ti Psmooth.ptype right_ti
+    | Iless_than_i(left_i, right_i) ->
         Format.eprintf
           "%aSmoothness error: this expression \
-           has type@ %a which should be less than@ %a.@."
+           has basic type@ %a which should be less than@ %a.@."
           output_location loc
-          Psmooth.smooth expected_i Psmooth.smooth actual_i
+          Psmooth.smooth left_i Psmooth.smooth right_i
    end;
   raise Misc.Error
 
 let less_than loc actual_ti expected_ti =
   try
-    Tsmooth.less actual_ti expected_ti
+    Smooth.less actual_ti expected_ti
   with
-    | Tsmooth.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
+    | Smooth.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
 
 let less_than_i loc actual_t expected_t =
   try
-    Tsmooth.less_i actual_t expected_t
+    Smooth.less_i actual_t expected_t
   with
-    | Tsmooth.Clash _ -> error loc (Iless_than_i(actual_t, expected_t))
+    | Smooth.Clash _ -> error loc (Iless_than_i(actual_t, expected_t))
 
 (* Build an environment from a typing environment *)
 (* [local x in ... x = ...  ... last x ... der x = ...] *)
@@ -117,21 +118,21 @@ let less_than_i loc actual_t expected_t =
 let build_env loc l_env env =
   let open Deftypes in
   let entry x { t_sort; t_tys = { typ_body } } =
-    let i = Tsmooth.new_var () in
+    let i = Smooth.new_var () in
     let t_tys =
-      Defsmooth.scheme (Tsmooth.skeleton_on_i i typ_body) in
+      Defsmooth.scheme (Smooth.skeleton_on_i i typ_body) in
     let t_last =
       match t_sort with
       | Sort_mem { m_mkind = Some(Cont) } ->
          (* [x] is defined by an ODE [der x = ...]. During integration *)
          (* [x = last x] and they get the same type [1/2] *)
-         Some(Tsmooth.ihalf)
+         Some(Smooth.ihalf)
       | Sort_mem { m_last = true } ->
          (* a fresh type variable is used for [last x]. If [x] is defined *)
          (* by an equation [...x... = e] that is activated during integration *)
          (* then [x] should have a type that is less than [1/2] *)
          (* [last x] a type [1] *)
-         Some(Tsmooth.new_var ())
+         Some(Smooth.new_var ())
       | _ -> None in
     { t_tys; t_last } in
   Env.fold (fun n tentry acc -> Env.add n (entry n tentry) acc) l_env env
@@ -140,9 +141,9 @@ let build_env loc l_env env =
 let type_of_n_list type_of n_list =
   let ti_list = List.map type_of n_list in
   match ti_list with
-  | [] -> Tsmooth.atom Tsmooth.izero
+  | [] -> Smooth.atom Smooth.izero
   | [ti] -> ti
-  | _ -> Tsmooth.product ti_list
+  | _ -> Smooth.product ti_list
 
 (* Patterns *)
 (* [pattern env p expected_ti] means that the type of [p] must be greater *)
@@ -153,8 +154,12 @@ let pattern is_zero env pat expected_ti =
     match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> ()
     | Evarpat(x) -> 
+       let l = () in
+       (* Format.eprintf "Expected_ti = %a\n" Psmooth.ptype expected_ti; *)
        let ti, t_last =
          let { t_tys = { typ_body = ti }; t_last } = find x env in ti, t_last in
+       let l = () in
+       (* Format.eprintf "Actual_ti = %a\n" Psmooth.ptype ti; *)
        less_than pat_loc expected_ti ti;
        (* when [not is_zero and [last x] is used] then *)
        (* [env(x) <= 1/2] and [1 <= env(last x)] *)
@@ -162,15 +167,15 @@ let pattern is_zero env pat expected_ti =
        set_x_and_last_x pat_loc is_zero pat_info ti t_last
     | Econstr1pat(_, pat_list) | Earraypat(pat_list) ->
        (* a construct is considered to be strict *)
-       let i = Tsmooth.new_var () in
-       less_than pat_loc expected_ti (Tsmooth.skeleton_on_i i pat_typ);
+       let i = Smooth.new_var () in
+       less_than pat_loc expected_ti (Smooth.skeleton_on_i i pat_typ);
        List.iter
          (fun p -> pattern_less_than_on_i is_zero env p i) pat_list
     | Etuplepat(pat_list) ->
-       let ty_list = Tsmooth.filter_product expected_ti in
+       let ty_list = Smooth.filter_product expected_ti in
        List.iter2 pattern pat_list ty_list
     | Erecordpat(l) -> 
-       let i = Tsmooth.new_var () in
+       let i = Smooth.new_var () in
        List.iter
          (fun { arg } -> pattern_less_than_on_i is_zero env arg i) l
     | Etypeconstraintpat(p, _) -> pattern p expected_ti
@@ -180,7 +185,7 @@ let pattern is_zero env pat expected_ti =
     | Ealiaspat(p, n) -> 
        pattern p expected_ti;
        let { t_tys; t_last } = find n env in
-       let ti = Tsmooth.instance t_tys pat_typ in
+       let ti = Smooth.instance t_tys pat_typ in
        less_than pat_loc expected_ti ti;
        (* when [not is_zero and [last x] is used] then *)
        (* env(x) <= 1/2 and 1 <= env(last x) *)
@@ -191,14 +196,16 @@ let pattern is_zero env pat expected_ti =
     match t_last with
     | Some(i) when not is_zero ->
        let pat_typ = Typinfo.get_type pat_info in
-       let ti_half = Tsmooth.skeleton_on_i ihalf pat_typ in
+       let ti_half = Smooth.skeleton_on_i ihalf pat_typ in
+       (* [1 <= i] *)
        less_than_i pat_loc ione i;
+       (* [ti <= 1/2] *)
        less_than pat_loc ti ti_half
     | _ -> ()
 
   and pattern_less_than_on_i is_zero env ({ pat_info } as pat) i =
     let pat_typ = Typinfo.get_type pat_info in
-    let expected_ti = Tsmooth.skeleton_on_i i pat_typ in
+    let expected_ti = Smooth.skeleton_on_i i pat_typ in
     pattern pat expected_ti in
 
   pattern pat expected_ti
@@ -266,7 +273,7 @@ let rec vardec_list is_zero env v_list =
 and vardec is_zero env ({ var_name; var_default; var_init }) =
   (* every initialization and default value must be well initialized *)
   Util.optional_unit
-    (fun env e -> exp_less_than_on_i is_zero env e Tsmooth.izero)
+    (fun env e -> exp_less_than_on_i is_zero env e Smooth.izero)
     env var_init;
    
 (* analysis of an expression *)
@@ -274,45 +281,45 @@ and exp is_zero env { e_desc; e_info; e_loc } =
   let e_typ = Typinfo.get_type e_info in
   let ti =
     match e_desc with
-    | Econst _ | Econstr0 _ -> Tsmooth.skeleton_on_i (Tsmooth.new_var ()) e_typ
+    | Econst _ | Econstr0 _ -> Smooth.skeleton_on_i (Smooth.new_var ()) e_typ
     | Eglobal { lname = lname } ->
        let { info } =
          try Modules.find_value lname with | Not_found -> assert false in
-       let ti = Tsmooth.instance_of_global_value info e_typ in
+       let ti = Smooth.instance_of_global_value info e_typ in
        (* in a discrete-time context the basic type is [0] *)
-       if is_zero then Tsmooth.zero_type ti else ti
+       if is_zero then Smooth.zero_type ti else ti
     | Evar(x) -> 
        let { t_tys } = find x env in
-       Tsmooth.instance t_tys e_typ
+       Smooth.instance t_tys e_typ
     | Elast { id } -> 
        let { t_tys = { typ_body } ; t_last } = find id env in
        let ty =
          match t_last with
-         | None -> assert false | Some(i) -> Tsmooth.fresh_on_i i typ_body in
+         | None -> assert false | Some(i) -> Smooth.fresh_on_i i typ_body in
        ty
     | Etuple(e_list) -> 
        product (List.map (exp is_zero env) e_list)
     | Econstr1 { arg_list } ->
-       let i = Tsmooth.new_var () in
+       let i = Smooth.new_var () in
        List.iter (fun e -> exp_less_than_on_i is_zero env e i) arg_list;
-       Tsmooth.skeleton_on_i i e_typ
+       Smooth.skeleton_on_i i e_typ
     | Eop(op, e_list) -> operator is_zero env op e_typ e_list
     | Eapp { f; arg_list } ->
        let ti_f = exp is_zero env f in
        app is_zero env ti_f arg_list
     | Erecord_access { arg } -> 
-       let i = Tsmooth.new_var () in
+       let i = Smooth.new_var () in
        exp_less_than_on_i is_zero env arg i;
-       Tsmooth.skeleton_on_i i e_typ
+       Smooth.skeleton_on_i i e_typ
     | Erecord(l) -> 
-       let i = Tsmooth.new_var () in
+       let i = Smooth.new_var () in
        List.iter (fun { arg } -> exp_less_than_on_i is_zero env arg i) l;
-       Tsmooth.skeleton_on_i i e_typ
+       Smooth.skeleton_on_i i e_typ
     | Erecord_with(e_record, l) -> 
-       let i = Tsmooth.new_var () in
+       let i = Smooth.new_var () in
        exp_less_than_on_i is_zero env e_record i;
        List.iter (fun { arg } -> exp_less_than_on_i is_zero env arg i) l;
-       Tsmooth.skeleton_on_i i e_typ
+       Smooth.skeleton_on_i i e_typ
     | Etypeconstraint(e, _) -> exp is_zero env e
     | Elet(l, e_let) -> 
        let env = leq is_zero env l in
@@ -321,13 +328,13 @@ and exp is_zero env { e_desc; e_info; e_loc } =
     | Epresent { handlers; default_opt } ->
        (* we force the conditions to be of type [0] *)
        (* if the output [e] is a structure, all components are synchronised *)
-       let ti = Tsmooth.skeleton_on_i (Tsmooth.new_var ()) e_typ in
+       let ti = Smooth.skeleton_on_i (Smooth.new_var ()) e_typ in
        present_handler_exp_list is_zero env handlers default_opt ti;
        ti
     | Ematch { e; handlers } ->
        (* we force [e] to be of type [0] *)
        exp_less_than_on_i is_zero env e izero;
-       let ti = Tsmooth.skeleton_on_i (Tsmooth.new_var ()) e_typ in
+       let ti = Smooth.skeleton_on_i (Smooth.new_var ()) e_typ in
        match_handler_exp_list is_zero env handlers ti;
        ti
     | Ereset(e_body, e_res) ->
@@ -343,12 +350,12 @@ and exp is_zero env { e_desc; e_info; e_loc } =
   
 (* Typing an operator *)
 and operator is_zero env op ty e_list =
-  let i = Tsmooth.new_var () in
+  let i = Smooth.new_var () in
   match op, e_list with
   | Eunarypre, [e] -> 
      (* input of a unit delay must be of type 0 *)
      exp_less_than_on_i is_zero env e izero; 
-     Tsmooth.skeleton_on_i izero ty
+     Smooth.skeleton_on_i izero ty
   | Efby, [e1;e2] ->
      (* right input of a initialized delay must be of type 0 *)
      exp_less_than_on_i is_zero env e2 izero;
@@ -360,36 +367,36 @@ and operator is_zero env op ty e_list =
   | Eifthenelse, [e1; e2; e3] ->
      (* a conditional forces the first argument to be constant *)
      exp_less_than_on_i is_zero env e1 izero;
-     let i = Tsmooth.new_var () in
+     let i = Smooth.new_var () in
      exp_less_than_on_i is_zero env e2 i;
      exp_less_than_on_i is_zero env e3 i;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | Eup _, [e] ->
      exp_less_than_on_i is_zero env e ihalf;
-     Tsmooth.skeleton_on_i izero ty
+     Smooth.skeleton_on_i izero ty
   | Einitial, [] ->
-     Tsmooth.skeleton_on_i izero ty
+     Smooth.skeleton_on_i izero ty
   | (Edisc | Ehorizon _), [e] ->
      exp_less_than_on_i is_zero env e ihalf;
-     Tsmooth.skeleton_on_i izero ty
+     Smooth.skeleton_on_i izero ty
   | Eperiod, [e1; e2] ->
      exp_less_than_on_i is_zero env e1 izero;
      exp_less_than_on_i is_zero env e2 izero;
-     Tsmooth.skeleton_on_i izero ty
+     Smooth.skeleton_on_i izero ty
   | Eseq, [e1; e2] ->
      exp_less_than_on_i is_zero env e1 izero;
      exp_less_than_on_i is_zero env e2 izero;
-     Tsmooth.skeleton_on_i izero ty
+     Smooth.skeleton_on_i izero ty
   | Eatomic, [e] ->
      exp_less_than_on_i is_zero env e i;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | Etest, [e] ->
-     let i = Tsmooth.new_var () in
+     let i = Smooth.new_var () in
      exp_less_than_on_i is_zero env e i;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | Erun _, [e1; e2] ->
      let t1 = exp is_zero env e1 in
-     let ti1, ti2 = Tsmooth.filter_arrow t1 in
+     let ti1, ti2 = Smooth.filter_arrow t1 in
      exp_less_than is_zero env e2 ti1;
      ti2
   | Earray(op), e_list -> array_operator is_zero env op ty e_list
@@ -399,22 +406,22 @@ and array_operator is_zero env op ty e_list =
   (* the type of the result *)
   match op, e_list with
   | Earray_list, e_list ->
-     let i = Tsmooth.new_var () in
+     let i = Smooth.new_var () in
      List.iter (fun e -> exp_less_than_on_i is_zero env e i) e_list;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | (Econcat | Eget), [e1; e2] ->
-     let i = Tsmooth.new_var () in
+     let i = Smooth.new_var () in
      exp_less_than_on_i is_zero env e1 i;
      exp_less_than_on_i is_zero env e2 i;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | (Eget_with_default | Eslice _ | Eupdate), l ->
-     let i = Tsmooth.new_var () in
+     let i = Smooth.new_var () in
      List.iter (fun e -> exp_less_than_on_i is_zero env e i) l;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | (Etranspose | Ereverse | Eflatten), [e1] ->
-     let i = Tsmooth.new_var () in
+     let i = Smooth.new_var () in
      exp_less_than_on_i is_zero env e1 i;
-     Tsmooth.skeleton_on_i i ty
+     Smooth.skeleton_on_i i ty
   | _ -> assert false
 
 (** Typing an application *)
@@ -423,7 +430,7 @@ and app is_zero env ti_fct arg_list =
   let rec args ti_fct = function
     | [] -> ti_fct
     | arg :: arg_list ->
-       let ti1, ti2 = Tsmooth.filter_arrow ti_fct in
+       let ti1, ti2 = Smooth.filter_arrow ti_fct in
        exp_less_than is_zero env arg ti1;
        args ti2 arg_list in
   args ti_fct arg_list
@@ -435,11 +442,11 @@ and funexp is_zero
   let env = build_env f_loc f_env env in
   let ti_list = List.map (arg env) f_args in
   let ti_res = result is_zero env f_body in
-  let actual_ti = Tsmooth.funtype_list ti_list ti_res in
+  let actual_ti = Smooth.funtype_list ti_list ti_res in
   (* for an atomic node, input/outputs get the same smooth type variable *)
   if f_atomic then
-    let i = Tsmooth.new_var () in
-    let expected_ti = Tsmooth.fresh_on_i i actual_ti in
+    let i = Smooth.new_var () in
+    let expected_ti = Smooth.fresh_on_i i actual_ti in
     less_than f_loc actual_ti expected_ti;
     expected_ti
   else actual_ti
@@ -449,7 +456,7 @@ and arg env n_list = type_of_vardec_list env n_list
 and exp_less_than_on_i is_zero env e expected_i =
   let actual_ti = exp is_zero env e in
   let e_typ = Typinfo.get_type e.e_info in
-  less_than e.e_loc actual_ti (Tsmooth.skeleton_on_i expected_i e_typ);
+  less_than e.e_loc actual_ti (Smooth.skeleton_on_i expected_i e_typ);
 
 and exp_less_than is_zero env ({ e_loc } as e) expected_ti =
   let actual_ty = exp is_zero env e in
@@ -462,7 +469,9 @@ and equation_list is_zero env eq_list =
 and equation is_zero env { eq_desc; eq_loc; eq_write } =
   match eq_desc with
   | EQeq(p, e) -> 
+     let l = () in
      let ti = exp is_zero env e in
+     (* Format.eprintf "exp = %a\n" Psmooth.ptype ti; *)
      (* [ti <= env(p)] *)
      (* if [not is_zero] then [env(x) <= 1/2 /\ 1 <= env(last x)] *)
      pattern is_zero env p ti
@@ -471,10 +480,12 @@ and equation is_zero env { eq_desc; eq_loc; eq_write } =
      exp_less_than_on_i is_zero env e ihalf;
      let { t_tys = { typ_body }; t_last } = find id env in 
      let e_typ = Typinfo.get_type e.e_info in
-     less_than eq_loc typ_body (Tsmooth.skeleton_on_i Tsmooth.ihalf e_typ);
+     less_than eq_loc (Smooth.skeleton_on_i Smooth.ihalf e_typ) typ_body;
      (* debug *)
+     Format.eprintf "%s" (if is_zero then "true" else "false");
+     let l = () in
      (* TODO: *)
-     Format.eprintf "%a\n" Psmooth.ptype typ_body;
+     (* Format.eprintf "%a\n" Psmooth.ptype typ_body; *)
      (match e_opt with
       | Some(e0) -> exp_less_than_on_i is_zero env e0 izero
       | None -> ());
@@ -483,7 +494,7 @@ and equation is_zero env { eq_desc; eq_loc; eq_write } =
       exp_less_than_on_i true env e izero
   | EQemit(n, e_opt) ->
       let { t_tys = { typ_body } } = find n env in 
-      less_than eq_loc typ_body (Tsmooth.atom izero);
+      less_than eq_loc typ_body (Smooth.atom izero);
       Util.optional_unit
         (fun i e -> exp_less_than_on_i is_zero env e i) izero e_opt
   | EQautomaton {is_weak; handlers; state_opt } ->
@@ -595,10 +606,10 @@ and for_exp_t loc is_zero env for_exp =
   match for_exp with
   | Forexp { exp = e; default } ->
      let ty = Typinfo.get_type e.e_info in
-     let ti_e = Tsmooth.skeleton_on_i Tsmooth.izero ty in
+     let ti_e = Smooth.skeleton_on_i Smooth.izero ty in
      exp_less_than is_zero env e ti_e;
      Util.optional_with_default
-       (fun e -> exp_less_than_on_i is_zero env e Tsmooth.izero)
+       (fun e -> exp_less_than_on_i is_zero env e Smooth.izero)
        () default;
      ti_e
   | Forreturns { r_returns; r_block; r_env } ->
@@ -619,7 +630,7 @@ and type_of_for_vardec_list env n_list =
 and for_size_t is_zero env for_size_opt =
   Util.optional_unit
     (fun env { for_size_exp } ->
-      exp_less_than_on_i is_zero env for_size_exp Tsmooth.izero)
+      exp_less_than_on_i is_zero env for_size_exp Smooth.izero)
     env for_size_opt
 
 and for_kind_t is_zero env for_kind =
@@ -629,7 +640,7 @@ and for_kind_t is_zero env for_kind =
      Util.optional_unit (for_exit_t is_zero) env for_exit_opt
 
 and for_exit_t is_zero env { for_exit } =
-  exp_less_than_on_i is_zero env for_exit Tsmooth.izero
+  exp_less_than_on_i is_zero env for_exit Smooth.izero
 
 and for_index_t for_index_opt =
   Util.optional_with_default
@@ -649,29 +660,29 @@ and for_out_t
   (* find the type of [for_ext] in [env] *)
   let { t_tys = { typ_body = ti } } = find for_ext env in
   let typ = Typinfo.get_type for_info in
-  less_than loc ti (Tsmooth.skeleton_on_i Tsmooth.izero typ);
+  less_than loc ti (Smooth.skeleton_on_i Smooth.izero typ);
 
   match for_locals with
   | OAcc { for_acc = x } | OArray { for_item = x } ->
     (* every initialization and default value must be well initialized *)
     Util.optional_unit
-      (fun env e -> exp_less_than_on_i is_zero env e Tsmooth.izero)
+      (fun env e -> exp_less_than_on_i is_zero env e Smooth.izero)
       env x.for_init;
     Util.optional_unit
-      (fun env e -> exp_less_than_on_i is_zero env e Tsmooth.izero)
+      (fun env e -> exp_less_than_on_i is_zero env e Smooth.izero)
       env x.for_default;
 
 (* all inputs must be well-initialized *)
 and for_input_t is_zero env { desc; loc } =
   match desc with
   | Einput { e; by } ->
-     exp_less_than_on_i is_zero env e Tsmooth.izero;
+     exp_less_than_on_i is_zero env e Smooth.izero;
      Util.optional_unit 
-       (fun env e -> exp_less_than_on_i is_zero env e Tsmooth.izero)
+       (fun env e -> exp_less_than_on_i is_zero env e Smooth.izero)
        env by
   | Eindex { e_left; e_right } ->
-     exp_less_than_on_i is_zero env e_left Tsmooth.izero;
-     exp_less_than_on_i is_zero env e_right Tsmooth.izero
+     exp_less_than_on_i is_zero env e_left Smooth.izero;
+     exp_less_than_on_i is_zero env e_right Smooth.izero
 
 (* Typing of a for loop *)
 and forloop_eq loc is_zero env
@@ -691,7 +702,7 @@ and sizefun_t is_zero env { sf_id; sf_id_list; sf_e; sf_loc } =
     List.fold_left 
       (fun acc id -> 
         Env.add id 
-          { t_last = None; t_tys = Defsmooth.scheme (Tsmooth.atom izero) } acc) 
+          { t_last = None; t_tys = Defsmooth.scheme (Smooth.atom izero) } acc) 
       Env.empty sf_id_list in
   let env = Env.append env_sizes env in
   let actual_ti = exp is_zero env sf_e in

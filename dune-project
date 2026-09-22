@@ -1,12 +1,17 @@
 (lang dune 3.21)
+;(using menhir 2.1)
+(map_workspace_root false)
 
+; the debugger does not work with dune 3.0 and above. Why?
+; (lang dune 3.21)
 (using menhir 3.0)
+
 
 ; Disabled for now due to ./configure script
 ; (generate_opam_files)
 
 ; Is (wrapped_executables false) useful?
-
+; not clear; it works also if removed;
 (wrapped_executables false)
 
 (source

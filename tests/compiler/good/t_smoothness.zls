@@ -1,2 +1,6 @@
+let hybrid f2 x = let rec y = x and o = last y in o
+
+let f x = x +. 1.0
+let f1 = (+)
 let hybrid h x =
   let rec der o = x +. 1. init 0. in o
