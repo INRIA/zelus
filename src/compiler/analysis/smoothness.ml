@@ -285,13 +285,14 @@ and exp is_zero env { e_desc; e_info; e_loc } =
        if is_zero then Smooth.zero_type ti else ti
     | Evar(x) -> 
        let { t_tys } = find x env in
-       Smooth.instance t_tys e_typ
+       let ti = Smooth.instance t_tys e_typ in
+       if is_zero then Smooth.zero_type ti else ti
     | Elast { id } -> 
        let { t_tys = { typ_body } ; t_last } = find id env in
-       let ty =
+       let ti =
          match t_last with
          | None -> assert false | Some(i) -> Smooth.fresh_on_i i typ_body in
-       ty
+       if is_zero then Smooth.zero_type ti else ti
     | Etuple(e_list) -> 
        product (List.map (exp is_zero env) e_list)
     | Econstr1 { arg_list } ->
