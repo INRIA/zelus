@@ -119,21 +119,30 @@ let increase_polarity p i =
   | Punknown -> i.i_polarity <- p
   | _ -> if p <> i.i_polarity then i.i_polarity <- Pplusminus
       
-(* saturate on its right or its left a smooth type [i] *)
-(* when [is_right = true] a type [i] and all [j] such that [i <= j] *)
-(* must be greater or equal to [1] *)
-(* when [not is_right], all types [j] such that [j <= i] must be less than [0] *)
+(* saturate on its right or its left a smooth type [i]
+ *- when [is_right = true] a type [i] and all [j] such that [i <= j]
+ *- must be greater or equal to [1]
+ *- when [not is_right], all types [j] such that [j <= i] must be less than [0] 
+ *- when 1 <= a1 and a1 <= a2 and ... an <= an+1 and an+1 <= 1/2
+ *- the function raises an exception because the relation is not verified.
+ *- in that case, all intermediate variables a1,..., an+1 are set to 1/2
+ *)
 let rec saturate_i is_right i =
-  let i = irepr i in
-  let iv = if is_right then Ione else Izero in
-  match i.i_desc with
-  | Ivalue(i) when i = iv -> ()
-  | Ivar ->
-     List.iter
-       (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
-     i.i_desc <- Ilink(ivalue iv)       
-  | Ilink(i) -> saturate_i is_right i
-  | _ -> raise (Clash(Iless_than))
+  let rec saturate_i set_to_half i =
+    let i = irepr i in
+    let iv = if is_right then Ione else Izero in
+    match i.i_desc with
+    | Ivalue(i) when i = iv -> ()
+    | Ivar ->
+       List.iter
+         (saturate_i (i :: set_to_half)) (if is_right then i.i_sup else i.i_inf);
+       i.i_desc <- Ilink(ivalue iv)       
+    | Ilink(i) -> saturate_i set_to_half i
+    | _ ->
+       (* saturate all intermediate variables in [set_to_half] to [1/2] *)
+       List.iter (fun i -> i.i_desc <- Ilink(ihalf)) set_to_half;
+       raise (Clash(Iless_than)) in
+  saturate_i [] i    
   
 and less_v v1 v2 =
   match v1, v2 with
@@ -151,6 +160,11 @@ let rec less left_ti right_ti =
     | Iatom(i1), Iatom(i2) -> less_i i1 i2
     | _ -> raise (Clash(Iless_than))
 
+(* Invariant:
+ *- whenever [1 <= a with a <= a1,...,an], all supremum a, a1,...,an
+ *- are replaced by 1;
+ *- whenever [a <= 0 with a1,...,an <= a, all infimum a, a1,...,an
+ are replaced by 0 *)
 and less_i left_i right_i =
   if left_i == right_i then ()
   else

@@ -118,9 +118,8 @@ let less_than_i loc actual_t expected_t =
 let build_env loc l_env env =
   let open Deftypes in
   let entry x { t_sort; t_tys = { typ_body } } =
-    let i = Smooth.new_var () in
     let t_tys =
-      Defsmooth.scheme (Smooth.skeleton_on_i i typ_body) in
+      Defsmooth.scheme (Smooth.skeleton typ_body) in
     let t_last =
       match t_sort with
       | Sort_mem { m_mkind = Some(Cont) } ->
