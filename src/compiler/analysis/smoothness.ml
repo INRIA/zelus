@@ -153,12 +153,8 @@ let pattern is_zero env pat expected_ti =
     match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> ()
     | Evarpat(x) -> 
-       let l = () in
-       (* Format.eprintf "Expected_ti = %a\n" Psmooth.ptype expected_ti; *)
        let ti, t_last =
          let { t_tys = { typ_body = ti }; t_last } = find x env in ti, t_last in
-       let l = () in
-       (* Format.eprintf "Actual_ti = %a\n" Psmooth.ptype ti; *)
        less_than pat_loc expected_ti ti;
        (* when [not is_zero and [last x] is used] then *)
        (* [env(x) <= 1/2] and [1 <= env(last x)] *)
@@ -468,7 +464,6 @@ and equation_list is_zero env eq_list =
 and equation is_zero env { eq_desc; eq_loc; eq_write } =
   match eq_desc with
   | EQeq(p, e) -> 
-     let l = () in
      let ti = exp is_zero env e in
      (* Format.eprintf "exp = %a\n" Psmooth.ptype ti; *)
      (* [ti <= env(p)] *)
@@ -480,11 +475,6 @@ and equation is_zero env { eq_desc; eq_loc; eq_write } =
      let { t_tys = { typ_body }; t_last } = find id env in 
      let e_typ = Typinfo.get_type e.e_info in
      less_than eq_loc (Smooth.skeleton_on_i Smooth.ihalf e_typ) typ_body;
-     (* debug *)
-     Format.eprintf "%s" (if is_zero then "true" else "false");
-     let l = () in
-     (* TODO: *)
-     (* Format.eprintf "%a\n" Psmooth.ptype typ_body; *)
      (match e_opt with
       | Some(e0) -> exp_less_than_on_i is_zero env e0 izero
       | None -> ());
@@ -556,6 +546,7 @@ and leq is_zero env { l_eq; l_env; l_loc } =
   let env = build_env l_loc l_env env in
   (* then type the body *)
   equation is_zero env l_eq;
+  let l = Env.to_list env in
   env
 
 and leqs is_zero env l = List.fold_left (leq is_zero) env l

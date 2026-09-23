@@ -23,7 +23,7 @@
 (* type scheme *)
 type ti_scheme = 
     { typ_vars: t list; (* list of type variables *)
-      typ_rel: (t * t list) list; (* the relation between variables *)
+      typ_rel: (t list * t list) list; (* the relation between variables *)
       typ_body: ti;        (* type of the result *)
     }
 

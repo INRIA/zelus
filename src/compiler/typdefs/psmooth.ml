@@ -70,13 +70,14 @@ let rec ptype prio ff ti =
 let ptype ff ti = ptype 0 ff ti
 			
 let prelation ff rel =
-  let print ff (i, i_list) =
+  let print ff (i_left_list, i_right_list) =
     Format.fprintf
-      ff "@[%a < %a@]" smooth i (print_list_r smooth "" "," "") i_list in
+      ff "@[%a < %a@]" (print_list_r smooth "" "," "") i_left_list
+      (print_list_r smooth "" "," "") i_right_list in
   print_list_r print "{" ";" "}" ff rel
 	       
 (* print a type scheme *)
-(* { a1 < a2,...,ak; ...; }. ti *)
+(* { a1,...,an < b1,...,bk; ...; }. ti *)
 let scheme ff { typ_rel = rel; typ_body = ty } =
   match rel with
   | [] -> ptype ff ty

@@ -281,7 +281,8 @@ and imark right i =
       polarity_c i right
   | Ivalue _ | Ilink _ -> ()
                               
-(* Garbage collection: only keep dependences of the form a- < b+ *)
+(* Garbage collection: only keep dependences of the form a- <= b+, *)
+(* a- <= 1/2, 1/2 <= b+ where a and b are variables *)
 (* this step is done after having called the function mark *)
 let rec shorten ti =
   match ti with
@@ -296,12 +297,16 @@ and shorten_i i =
   | Ilink(i) -> shorten_i i
   | Ivar ->
      i.i_visited <- 0;
-     (* only keep a dependence a- < b+ *)
+     (* only keep a dependence a- <= b+ *)
      let inf, sup =
        match i.i_polarity with
        | Punknown -> assert false
-       | Pplus -> remove_polarity Pplus (short_list false [] i.i_inf), []
-       | Pminus -> [], remove_polarity Pminus (short_list true [] i.i_sup)
+       | Pplus ->
+          (* only keep [a-] such that [a- <= b+] and [1/2 <= b+ *)
+          remove_polarity Pplus (short_list false [] i.i_inf), []
+       | Pminus ->
+          (* only keep [b+] such that [a- <= b+] and [a- <= 1/2 *)
+          [], remove_polarity Pminus (short_list true [] i.i_sup)
        | Pplusminus ->
          short_list false [] i.i_inf, short_list true [] i.i_sup in
      i.i_inf <- inf;
@@ -312,17 +317,19 @@ and shorten_i i =
 and short_list is_right acc i_list =
   List.fold_left (short is_right) acc i_list
 
-(* only keep a dependence a- < b+ *)
+(* only keep a dependence [a- <= b+], [1/2 <= b+] and [a- <= 1/2] *)
 and remove_polarity p i_list =
   let clear acc i_right =
-    match p, i_right.i_polarity with
-    | (Pplus, Pplus) | (Pminus, Pminus) -> acc
+    match p, i_right.i_polarity, i_right.i_desc with
+    | Pplus, Pplus, Ivar | Pminus, Pminus, Ivar -> acc
     | _ -> i_right :: acc in
   List.fold_left clear [] i_list
     
 and short is_right acc i =
   match i.i_desc with
-  | Ivalue _ -> acc
+  | Ivalue (Izero | Ione) -> acc
+  | Ivalue (Ihalf) -> (* keep [1/2] *)
+     i :: acc
   | Ilink(i) -> short is_right acc i
   | Ivar ->
     match i.i_visited with
@@ -404,14 +411,31 @@ and igen i =
 and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
                                
 (* Computes the dependence relation from a list of type variables *)
-(* variables in [already] are disgarded *)
+(* only print useful variables. variables in [already] are disgarded *)
 let relation i_list =
   let rec relation (already, rel) i =
     let i = irepr i in
     if S.mem i already then already, rel
-    else if i.i_sup = [] then already, rel
-    else List.fold_left
-           relation (S.add i already, (i, set i.i_sup) :: rel) i.i_sup in
+    else
+      let already = S.add i already in
+      match i.i_polarity with
+      | Pplus -> (* add [i1,..., in <= i+] where [ij in i.i_inf] *)
+         relation_list false i (already, rel) i.i_inf
+      | Pminus -> (* add [i- <= i1,..., in] where [ij in i.i_sup] *)
+         relation_list true i (already, rel) i.i_sup
+      | Pplusminus | Punknown ->
+         (* add both sides *)
+         let already, rel = relation_list false i (already, rel) i.i_inf in
+         relation_list true i (already, rel) i.i_sup
+
+  and relation_list is_right i (already, rel) i_list =
+    List.fold_left
+      (fun (already, rel) i_element ->
+        let rel =
+          if is_right
+          then ([i], set i.i_sup) :: rel else (set i.i_inf, [i]) :: rel in
+        relation (already, rel) i_element)
+      (already, rel) i_list in
   let _, rel =
     List.fold_left (fun acc i -> relation acc i) (S.empty, []) i_list in
   rel
@@ -425,7 +449,7 @@ let gen ti =
   shorten ti;
   let ti = simplify true ti in
   mark true ti;
-  shorten ti;
+  (* shorten ti; *)
   gen ti;
   let rel = relation !list_of_vars in
   { typ_vars = !list_of_vars; typ_rel = rel; typ_body = ti }
