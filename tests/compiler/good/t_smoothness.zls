@@ -1,17 +1,9 @@
-let hybrid f2 x = let rec y = x and o = last y in o
-(*
+(* let hybrid f2 x = let rec y = x and o = last y in o *)
+
 let hybrid h x =
-  let rec der o = x +. 1. init 0. in o
+  let rec der o = (* last o +. x +. *) 1. init 0. in o
 
-x: 0
-y:1/2
-last y: 1
-o:1
-
-ax -> 1 <= a1 -> a1
-
-1 <= a1
-a1 <= ax
+(*
 let f x = x +. 1.0
 let f1 = (+)
 let hybrid h x =
