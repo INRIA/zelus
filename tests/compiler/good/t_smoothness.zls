@@ -1,11 +1,18 @@
-(* let hybrid f2 x = let rec y = x and o = last y in o *)
+let hybrid f1 z x = let rec y = x and o = last y in
+                    present z -> o else 0 
 
-let hybrid h x =
-  let rec der o = (* last o +. x +. *) 1. init 0. in o
+let hybrid f2 x =
+  let rec der o = last o +. x +. 1. init 0. in o
 
-(*
-let f x = x +. 1.0
-let f1 = (+)
-let hybrid h x =
-  let rec der o = x +. 1. init 0. in o
-*)
+let hybrid f (z, x0) returns (x)
+  der x = 1.0 init x0 (* reset z -> x0 *)
+
+let hybrid g (z, y0) returns (y)
+  der y = 1.0 init y0 (* reset z -> y0 *)
+
+let hybrid main () returns (x, y)
+  local z
+  do x = f(z, last y)
+  and y = g(z, last x)
+  and z = up(x)
+  done

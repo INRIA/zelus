@@ -476,9 +476,9 @@ and equation is_zero env { eq_desc; eq_loc; eq_write } =
      let e_typ = Typinfo.get_type e.e_info in
      less_than eq_loc (Smooth.skeleton_on_i Smooth.ihalf e_typ) typ_body;
      (match e_opt with
-      | Some(e0) -> exp_less_than_on_i is_zero env e0 izero
+      | Some(e0) -> exp_less_than_on_i true env e0 izero
       | None -> ());
-     present_handler_exp_list is_zero env handlers NoDefault typ_body 
+     present_handler_exp_list true env handlers NoDefault typ_body 
   | EQinit(n, e) ->
       exp_less_than_on_i true env e izero
   | EQemit(n, e_opt) ->
