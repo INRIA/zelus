@@ -1,9 +1,18 @@
-let hybrid f1 z x = let rec y = x and o = last y in
+let hybrid f1 z x =
+  let rec y = x and o = last y in
                     present z -> o else 0 
 
 let hybrid f2 x =
-  let rec der o = last o +. x +. 1. init 0. in o
+  let rec der o = o +. x +. 1. init 0. in o
 
+let hybrid bouncing (x0, x'0, g) =
+  let rec der x' = -. g init x'0 reset up(-. x) -> last x''_
+      and x'_ = -0.8 *. last x'
+      and init x''_ = 0.0
+      and x''_ = x'_ +. 0.0 -. 0.0 and der x = x' init x0 in
+  (x, x')
+
+(*
 let hybrid f (z, x0) returns (x)
   der x = 1.0 init x0 reset z -> x0
 
@@ -16,3 +25,4 @@ let hybrid main () returns (x, y)
   and y = g(z, last x)
   and z = up(x)
   done
+  *)

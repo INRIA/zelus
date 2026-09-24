@@ -1,3 +1,11 @@
+let f11 = inline fun x -> x + 1
+let g11 = inline fun f x -> f (x+1)
+let main11 x = g11 f11 x
+
+let main22 x =
+  let f = (inline fun x -> x + 1) in
+  f (x+1)
+  
 let f x =
   let y = 1 and z = x and t = x in
   let m = y in
@@ -19,7 +27,7 @@ let f3 x =
 let main1 () =
   let x = 1 in
   f3 1
-  
+
 let inline node prop h u = h *. u
 
 let inline node integr h u =
