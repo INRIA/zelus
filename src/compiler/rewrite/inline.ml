@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -12,8 +12,32 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* Inlining of function calls. Expressions [inline fun x1... -> e] *)
-(* are eliminated. If an [inline fun x1... -> e] remains, inlining fails *)
+(* Inlining of function calls. There are two ways to control it *)
+(*
+ *- at the definition point:
+ *- let f = inline fun x1... -> e (or, equivalently, let inline f x1 ... = e
+ *- means that 1/ no code is generated for f and 2/ all use of f is
+ *- replaced by its definition and the function application must be reduced;
+ *- otherwise, inlining fails. For the moment, no static verification
+ *- is made that ensure that, when the program is valid, inlining
+ *- never fails.
+ *-
+ *- at the application point:
+ *- let f = fun x1... -> e (or, equivalently, let f x1... = e
+ *- the definition is stored in a substitution.
+ *- the application inline f e1 ... en means that the body of [f] is inlined.
+ *-
+ *- finally, there is a global compiler flag -inlineall.
+ *- when this flag is on, all function calls are inlined.
+ *-
+ *- warning: functions to be inlined must be in head normal form with
+ *- no computation to be made. E.g., the inlining of:
+ *- let (f, _) = (inline fun x -> e), ... in f ...
+ *- and
+ *- let g x = ... in
+ *- let f = g (x+1) in ... inline f (y+1)
+ *- will fail.
+ *)
 
 open Misc
 open Location
@@ -56,7 +80,8 @@ let keep f_env dv = Env.filter (fun x _ -> S.mem x dv) f_env
 
 let fresh () = Ident.fresh "inline"
 
-(* when [e] has value [v], add an entry [x\v] to [subst] *)
+(* Is [e] a variable (local or global) that has a value in [subst] *)
+(* and returns it. Otherwise, raise exception Cannot_inline *)
 let value { subst } { e_desc } =
   match e_desc with
   | Eglobal { lname } ->
@@ -231,14 +256,14 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc; e_loc } as e) =
      let e_let, acc = Mapfold.expression_it funs acc e_let in
      Aux.let_leq_in_e_loc e_loc leq e_let, acc
   (* TODO: remove the operator Erun; mark function calls instead *)
-  | Eop(Erun i, [f; arg]) ->
+  | Eop(Erun is_inline, [f; arg]) ->
      let f, acc = Mapfold.expression_it funs acc f in
      let arg, acc = Mapfold.expression_it funs acc arg in
      let e, acc =
        try
          apply funs acc f [arg]
        with
-         Cannot_inline -> { e with e_desc = Eop(Erun i, [f; arg]) }, acc in
+         Cannot_inline -> { e with e_desc = Eop(Erun is_inline, [f; arg]) }, acc in
      e, acc
   | _ -> raise Mapfold.Fallback
 
