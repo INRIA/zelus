@@ -134,7 +134,7 @@ module Make (Info: INFO) =
          fprintf ff "@[<hov2>%a.%a@]"
            (print_list_r Ident.fprint_t "<<" "," ">>") id_list
            ptype ty
-      | Etypevec(ty, s) -> fprintf ff "@[[%a]]%a@]" size s ptype ty
+      | Etypevec(ty, s) -> fprintf ff "@[[%a]%a@]" size s ptype ty
 
     (* Print a size constraint *)
     and constraint_t ff sc =
