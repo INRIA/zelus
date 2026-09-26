@@ -37,6 +37,7 @@
  *- (present, until/unless conditions in automata)
  *-
  *- val (Stdlib.+.), (Stdlib.-.), ( Stdlib.*. ), (Stdlib./.), (Stdlib./.)
+ *-     (Stdlib.-), (Stdlib.~-)
  *-   : 'a -> 'a -> 'a
  *- val (if): 0 -> 'a -> 'a -> 'a
  *- val fix_der : 1 -> (1/2 -> 1/2) -> 1/2
@@ -55,19 +56,21 @@ open Deftypes
 open Defsmooth
 open Smooth
 
-(* Set the smooth type for arithmetic primitives (+.), ( *.), (/.) and (-.) *)
+(* Set the smooth type for arithmetic primitives *)
+(* (+.), ( *.), (/.) and (-.), etc *)
 let add_type_for_polymorphic_primitives_in_stdlib () =
-  let tys =
-    (* build the type signature: 'a. 'a -> 'a -> 'a *)
+  let make_ty n =
+    let { info = { value_typ = { typ_body } } } as info =
+      try Modules.find_value (Modname { qual = "Stdlib"; id = n })
+      with | Not_found -> assert false in
     let i = Defsmooth.make_var () in
-    let ty = Smooth.funtype_list
-               [Smooth.atom i; Smooth.atom i] (Smooth.atom i) in
-    { typ_vars = [i]; typ_rel = []; typ_body = ty } in
-  List.iter
-    (fun n ->
-      let info = Modules.find_value (Modname { qual = "Stdlib"; id = n }) in
-      Global.set_smooth info tys)
-    ["+."; "*."; "/."; "-."]
+    let ty = skeleton_on_i i typ_body in
+    let tys = { typ_vars = [i]; typ_rel = []; typ_body = ty } in
+    Global.set_smooth info tys in
+  List.iter make_ty
+    ["+."; "*."; "/."; "-."; "~-."; "sqrt"; "exp"; "log"; "log10";
+     "cos"; "sin"; "tan"; "acos"; "+"; "*"; "asin"; "atan";
+     "atan2"; "cosh"; "sinh"; "tanh"]
 
 let print x = Misc.internal_error "unbound" Printer.name x
 
@@ -547,7 +550,6 @@ and leq is_zero env { l_eq; l_env; l_loc } =
   let env = build_env l_loc l_env env in
   (* then type the body *)
   equation is_zero env l_eq;
-  let l = Env.to_list env in
   env
 
 and leqs is_zero env l = List.fold_left (leq is_zero) env l

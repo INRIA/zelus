@@ -520,12 +520,8 @@ let rec subtype right ti =
 (* instanciation *)
 let instance { typ_body = ti } ty =
   let ti = copy ti in
-  let l = () in
-  (* Format.eprintf "ti = %a\n" Psmooth.ptype ti; *)
   cleanup ();
   let ti = subtype true ti in
-  let l = () in
-  (* Format.eprintf "ti_sub = %a\n" Psmooth.ptype ti; *)
   instance ti ty
 
 (* type instance *)
