@@ -1,5 +1,3 @@
-let ff (x:[4]_) = 1
-
 let hybrid f1 z x =
   let rec y = x and o = last y in
                     present z -> o else 0 
