@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -113,9 +113,9 @@ let number_of_passes = List.length rewrite_list + List.length optim_list
 module S = Set.Make (String)
 let s_all =
   List.fold_left (fun acc (s, _, _, _) -> S.add s acc) S.empty rewrite_list
-let s_set = ref s_all
-let step_list = ref s_all
-let set_steps w =
+
+(* entry function for the compiler option *)
+let set s_set w =
   let set p s =
     match s with
     | "a" -> s_set := if p then s_all else S.empty
@@ -133,6 +133,18 @@ let set_steps w =
   List.iter
     (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
     l_l
+
+(* passes to be printed; by default, empty *)
+let s_printed_set = ref S.empty
+(* steps that are selected *)
+let s_set = ref s_all
+
+let set_print_pass w = set s_printed_set w
+let set_step w = set s_set w
+    
+let rewrite_printed_list () =
+  List.filter (fun (w, _, _, _) -> S.mem w !s_printed_set) rewrite_list
+
 let rewrite_list () =
   List.filter (fun (w, _, _, _) -> S.mem w !s_set) rewrite_list
 

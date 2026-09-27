@@ -41,7 +41,8 @@ let compile file =
  
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
-let doc_print_passes = "\t Output compiler passes"
+let doc_print_passes = "\t Output all compiler passes"
+and doc_print_pass = "\t Output specified compiler passes (format of -step)"
 and doc_version = "\t The version of the compiler"
 and doc_outname = "<name> \t Simulation file name <name>"
 and doc_print_types = "\t Print types"
@@ -83,7 +84,7 @@ and doc_rif =
    \t\t\t I/O to the node being simulated"
 and doc_check = "<n> \t Check equivalence for that amount of steps"
 and doc_no_reduce = "\t No static evaluation of constants"
-and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
+and doc_set_step = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t +<s> turn on step s\n\
     \t\t\t -<s> turn off step s\n\
     \t\t\t +a: takes all; -a: takes none\n\
@@ -103,7 +104,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t init: remove initialization (->) \n\
     \t\t\t complete: complete branches \n\
     \t\t\t encore: add an extra step when a zero-crossing \n\
-    \t\t\t  changes a discrete-time state variable \n\
+    \t\t\t changes a discrete-time state variable \n\
     \t\t\t distribute: distribute tuples and records \n\
     \t\t\t letin: fuse blocks \n\
     \t\t\t schedule: static scheduling \n\
@@ -142,6 +143,7 @@ let main () =
           "-v", Arg.Unit set_verbose, doc_verbose;
           "-vv", Arg.Unit set_vverbose, doc_vverbose;
           "-passes", Arg.Set print_passes, doc_print_passes;
+          "-pass", Arg.String Rewrite.set_print_pass, doc_print_pass;
           "-version", Arg.Unit show_version, doc_version;
           "-o", Arg.String set_outname, doc_outname;
           "-I", Arg.String add_include, doc_include;
@@ -169,7 +171,7 @@ let main () =
           "-nowarning", Arg.Set no_warning, doc_no_warning;
           "-rif", Arg.Set use_rif, doc_rif;
           "-noreduce", Arg.Set no_reduce, doc_no_reduce;
-          "-step", Arg.String Rewrite.set_steps, doc_set_steps;
+          "-step", Arg.String Rewrite.set_step, doc_set_step;
           "-nocausality", Arg.Set no_causality, doc_nocausality;
           "-smoothness", Arg.Set smoothness, doc_smoothness;
           "-nosimplify", Arg.Set no_simplify_causality_types, doc_nosimplify;
