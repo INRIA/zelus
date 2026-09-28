@@ -108,7 +108,7 @@ module Make (Info: INFO) =
       try
         Env.find n env
       with
-      | Not_found -> Error.error loc (Error.Evar(n))
+      | Not_found -> print_endline "AAAAAAA"; Error.error loc (Error.Evar(n))
     
     let shortname = function | Name(n) -> n | Modname({ id }) -> id
     
@@ -630,7 +630,7 @@ module Make (Info: INFO) =
         { Zelus.desc = desc; Zelus.loc = loc }, acc in
       Util.mapfold input acc i_list
     
-    and for_out_t env i_env for_out =
+    and for_out_t env_pat env i_env for_out =
       (* [local_env] is the environment of variables defined *)
       (* in the [returns] clause *)
       let for_out_one local_env ({ desc = ({ for_ext; for_locals}); loc; }) =
@@ -655,11 +655,15 @@ module Make (Info: INFO) =
           else ()
         in
         let find_name loc key env =
+          print_endline "BBBBBB";
+          let tmp = 
           env
           |> Env.find_opt key
           |> Std2.unwrap_or_raise (Error.Err(loc, Error.Evar(key)))
+          in
+          print_endline "CCCCCC"; tmp
         in
-        let ext_name = find_name loc for_ext env in
+        let ext_name = find_name loc for_ext env_pat in
         let for_locals, local_env = match for_locals with
         | OAcc { for_acc; } ->
           let acc_vardec = for_out_vardec for_acc in
@@ -719,7 +723,7 @@ module Make (Info: INFO) =
       let for_let, env = leqs env for_let in
       (* here, we check that names introduced in the [returns] clause *)
       (* are pair-wise distinct from names for inputs *)
-      let for_out, local_env = for_out_t env i_env for_out in
+      let for_out, local_env = for_out_t env_pat env i_env for_out in
       let env = Env.append local_env env in
       let env_pat = Env.append local_env env_pat in
       let env_body, for_block = block equation env_pat env for_block in
