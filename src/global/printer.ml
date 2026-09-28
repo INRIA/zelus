@@ -300,7 +300,7 @@ module Make (Info: INFO) =
       match b_vars with
       | [] -> fprintf ff "@[<hov 0>%a@ %a@]" body b_body print_env b_env
       | _ ->
-         fprintf ff "@[<hov 0>local@ %a@ %ado@ %a%a@]"
+         fprintf ff "@[<hov 0>local@ %a@ %ain@ %a%a@]"
            (vardec_list exp) b_vars
            print_env b_env
            print_writes b_write       
