@@ -115,6 +115,23 @@ let s_all =
   List.fold_left (fun acc (s, _, _, _) -> S.add s acc) S.empty rewrite_list
 
 (* entry function for the compiler option *)
+let set s_all s_set w =
+  let set add_or_minus s =
+    match s with
+    | "a" -> (* all passes turned on or off *)
+       s_set := if add_or_minus then s_all else S.empty
+    | "" -> ()
+    | _ ->
+       if S.mem s s_all then
+         s_set := if add_or_minus then S.add s !s_set else S.remove s !s_set
+       else raise (Arg.Bad ("unknown pass " ^ s)) in
+  let l = String.split_on_char '+' w in
+  let l_l = List.map (String.split_on_char '-') l in
+  List.iter
+    (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
+    l_l
+
+    (*
 let set s_set w =
   let set p s =
     match s with
@@ -133,14 +150,15 @@ let set s_set w =
   List.iter
     (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
     l_l
+     *)
 
 (* passes to be printed; by default, empty *)
 let s_printed_set = ref S.empty
 (* steps that are selected *)
 let s_set = ref s_all
 
-let set_print_pass w = set s_printed_set w
-let set_step w = set s_set w
+let set_print_pass w = set s_all s_printed_set w
+let set_step w = set s_all s_set w
     
 let rewrite_printed_list () =
   List.filter (fun (w, _, _, _) -> S.mem w !s_printed_set) rewrite_list

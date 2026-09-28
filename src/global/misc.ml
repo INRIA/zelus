@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -139,8 +139,12 @@ let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
 let inline_all = ref false
 
-(* output the result of successive the successive passes *)
+(** output the result of successive the successive passes *)
+(* output all passes *)
 let print_passes = ref false
+(* list of passes *)
+let passes =
+  ["scoping"; "write"; "typing"; "causality"; "init"; "smoothness"; "gencode"]
 
 let static_reduction = ref false
 let print_types = ref false
