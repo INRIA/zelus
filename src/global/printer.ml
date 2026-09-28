@@ -197,7 +197,7 @@ module Make (Info: INFO) =
       fprintf ff
         "@[<hov>%s@[%a@]%s@ @[%a@]%s@]" po print1 label sep print2 arg pf
     
-    let rec pattern ff { pat_desc; pat_info } =
+    let rec pattern ff { pat_desc; pat_info; pat_loc } =
       match pat_desc with
       | Evarpat(n) ->
          if !Misc.verbose then
@@ -209,7 +209,13 @@ module Make (Info: INFO) =
       | Econstr1pat(ln, pat_list) ->
          fprintf ff "@[%a%a@]" longname ln (pattern_list "(" "," ")") pat_list
       | Etuplepat(pat_list) ->
-         pattern_list "(" "," ")" ff pat_list
+         let arity = List.length pat_list in
+         (* check the arity; it should be >= 2 *)
+         let s =
+           if arity < 2 then
+             (eprintf "@[%aTuple arity error.@.@]" output_location pat_loc;
+              "(* ERROR *)") else "" in
+         fprintf ff "@[%s%a@]" s (pattern_list "(" "," ")") pat_list
       | Earraypat(pat_list) ->
          pattern_list "[|" ";" "|]" ff pat_list
       | Etypeconstraintpat(p, ty_exp) ->
@@ -389,7 +395,7 @@ module Make (Info: INFO) =
 	automaton_handler_list s_h_list
 	(Pp_tools.print_opt (Pp_tools.print_with_braces state "init " "")) e_opt
     
-    let rec expression ff { e_desc; e_info } =
+    let rec expression ff { e_desc; e_info; e_loc } =
       match e_desc with
       | Evar n -> name ff n
       | Eglobal { lname } -> longname ff lname
@@ -414,7 +420,13 @@ module Make (Info: INFO) =
          fprintf ff "@[(%a%a)@]"
            longname lname (print_list_r expression "(" "," ")") arg_list
       | Etuple(e_list) ->
-         fprintf ff "@[%a@]" (print_list_r expression "(" "," ")") e_list
+         let arity = List.length e_list in
+         (* check the arity; it should be >= 2 *)
+         let s =
+           if arity < 2 then
+             (eprintf "@[%aTuple arity error.@.@]" output_location e_loc;
+              "(* ERROR *)") else "" in
+         fprintf ff "@[%s%a@]" s (print_list_r expression "(" "," ")") e_list
       | Erecord_access { label; arg } ->
          fprintf ff "@[%a.%a@]" expression arg longname label
       | Erecord(ln_e_list) ->
