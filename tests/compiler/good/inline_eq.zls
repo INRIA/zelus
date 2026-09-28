@@ -1,0 +1,5 @@
+let inline eq(x: float) returns (y: float)
+  y = x
+
+let f(x: float) returns (y: float)
+  y = eq(x)
