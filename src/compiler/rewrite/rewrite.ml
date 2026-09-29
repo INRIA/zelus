@@ -109,44 +109,22 @@ let rewrite_list = default_list
 
 let number_of_passes = List.length rewrite_list + List.length optim_list 
 
-(* select the rewritting steps *)
-module S = Set.Make (String)
+(* the set of all rewriting steps *)
 let s_all =
-  List.fold_left (fun acc (s, _, _, _) -> S.add s acc) S.empty rewrite_list
+  List.fold_left
+    (fun acc (s, _, _, _) -> Misc.S.add s acc) Misc.S.empty rewrite_list
 
-(* entry function for the compiler option *)
-let set s_all s_set w =
-  let set add_or_minus s =
-    match s with
-    | "a" -> (* all passes turned on or off *)
-       s_set := if add_or_minus then s_all else S.empty
-    | "" -> ()
-    | _ ->
-       if S.mem s s_all then
-         s_set := if add_or_minus then S.add s !s_set else S.remove s !s_set
-       else raise (Arg.Bad ("unknown pass " ^ s)) in
-  let l = String.split_on_char '+' w in
-  let l_l = List.map (String.split_on_char '-') l in
-  List.iter
-    (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
-    l_l
+(* add the set of rewriting passes in the list of possible passes to print *)
+let _ = Misc.add_print_pass_set s_all
 
-(* passes to be printed; by default, empty *)
-let s_printed_set = ref S.empty
-(* steps that are selected *)
 let s_set = ref s_all
-
-let set_print_pass w = set s_all s_printed_set w
-let set_step w = set s_all s_set w
-    
-let rewrite_printed_list () =
-  List.filter (fun (w, _, _, _) -> S.mem w !s_printed_set) rewrite_list
-
+let set_step w = Misc.set s_all s_set w
 let rewrite_list () =
-  List.filter (fun (w, _, _, _) -> S.mem w !s_set) rewrite_list
+  List.filter (fun (w, _, _, _) -> Misc.S.mem w !s_set) rewrite_list
 
 (* Apply a sequence of source-to-source transformation *)
 (* do equivalence checking for every step if [n_steps <> 0] *)
+(* [is_print = true] when all passes are printed *)
 let main is_print print_message genv0 p n_steps =
   let compare name n_steps genv0 p p' =
   print_message is_print ("Checks the pass " ^ name ^
@@ -158,11 +136,13 @@ let main is_print print_message genv0 p n_steps =
   let pass_number = ref 0 in
 
   let rewrite_and_compare genv p (name, comment, prepass, rewrite) =
+    let is_print = is_print || Misc.is_print_pass name in
     incr pass_number;
     let name_of_the_pass = "Pass " ^ name ^ " (" ^
         (string_of_int !pass_number) ^ "/" ^ (string_of_int number_of_passes)
         ^ "):\n" in
-    print_message is_print (name_of_the_pass ^ comment);
+    print_message is_print
+      (name_of_the_pass ^ comment);
     let p = prepass p in
     let p_after = rewrite genv p in
     if is_print then Printer.program Format.std_formatter p_after;

@@ -42,7 +42,19 @@ let compile file =
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
 let doc_print_passes = "\t Output all compiler passes"
-and doc_print_pass = "\t Output specified compiler passes (format of -step)"
+and doc_print_pass = "\t Output specified compiler passes (format of -step):\n\
+                      \t\t\t Passes to be print are: \n\
+                      \t\t\t scoping\n\
+                      \t\t\t write\n\
+                      \t\t\t typing\n\
+                      \t\t\t causality\n\
+                      \t\t\t init\n\
+                      \t\t\t smoothness\n\
+                      \t\t\t markfunctions\n\
+                      \t\t\t gencode\n\
+                      \t\t\t inout\n\
+                      \t\t\t ocaml\n\
+                      \t\t\t and all the rewriting steps"
 and doc_version = "\t The version of the compiler"
 and doc_outname = "<name> \t Simulation file name <name>"
 and doc_print_types = "\t Print types"
@@ -143,7 +155,7 @@ let main () =
           "-v", Arg.Unit set_verbose, doc_verbose;
           "-vv", Arg.Unit set_vverbose, doc_vverbose;
           "-passes", Arg.Set print_passes, doc_print_passes;
-          "-pass", Arg.String Rewrite.set_print_pass, doc_print_pass;
+          "-pass", Arg.String Misc.set_print_pass, doc_print_pass;
           "-version", Arg.Unit show_version, doc_version;
           "-o", Arg.String set_outname, doc_outname;
           "-I", Arg.String add_include, doc_include;

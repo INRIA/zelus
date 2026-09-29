@@ -138,29 +138,36 @@ let compile modname filename =
     (* Associate unique index to variables *)
     let module Printer = Printer.Make(Ptypinfo) in
     let module Scoping = Scoping.Make(Ptypinfo) in
-    let p = do_step is_print "Scoping done. See below:" Printer.program
+    let p = do_step (is_print || Misc.is_print_pass "scoping")
+              "Scoping done. See below:" Printer.program
               Scoping.program p in
     (* Write defined variables for equations *)
     let module Write = Write.Make(Typinfo) in
-    let p = do_step is_print "Write done. See below: "
+    let p = do_step (is_print || Misc.is_print_pass "write")
+              "Write done. See below: "
               Printer.program Write.program p in
     (* Type inference *)
     if !parseonly then raise Stop;
-    let p = do_step is_print "Typing done. See below:" Printer.program
+    let p = do_step (is_print || Misc.is_print_pass "typing")
+              "Typing done. See below:" Printer.program
               (Typing.program info_ff true) p in
     (* Causality analysis *)
     let p = 
-      do_optional_step !Misc.no_causality is_print "Causality done. See below:"
+      do_optional_step
+        !Misc.no_causality (is_print || Misc.is_print_pass "causality")
+        "Causality done. See below:"
         Printer.program (Causality.program info_ff) p in
     (* Initialisation analysis *)
     let p = 
       do_optional_step
-        !Misc.no_initialization is_print "Initialization done. See below:"
+        !Misc.no_initialization (is_print || Misc.is_print_pass "init")
+        "Initialization done. See below:"
         Printer.program (Initialization.program info_ff) p in
     (* Smoothness analysis *)
     let p = 
       do_optional_step
-        (not !Misc.smoothness) is_print "Smoothness done. See below:"
+        (not !Misc.smoothness) (is_print || Misc.is_print_pass "smoothness")
+        "Smoothness done. See below:"
         Printer.program (Smoothness.program info_ff) p in
 
     (* Write the symbol table into the interface file *)
@@ -170,7 +177,8 @@ let compile modname filename =
 
     (* Mark functions calls to be inlined. This step uses type informations *)
     (* computed during the causality analysis *)
-    let p = do_step is_print "Mark functions calls to be inlined. See below:"
+    let p = do_step (is_print || Misc.is_print_pass "markfunctions")
+              "Mark functions calls to be inlined. See below:"
 	      Printer.program Markfunctions.program p in
     
     (* source-to-source transformations *)
@@ -193,18 +201,20 @@ let compile modname filename =
     if !Misc.rewriteonly then raise Stop;
     
     (* generation of sequential code *)
-    let p = do_step is_print "Generation of sequential code done. See below:"
+    let p = do_step (is_print || Misc.is_print_pass "gencode")
+              "Generation of sequential code done. See below:"
               Oprinter.program Translate.program p in
 
     (* prepare the hybrid code for the interaction with the numerical solvers *)
     let p = 
-      do_step is_print 
+      do_step (is_print || Misc.is_print_pass "inout") 
         "Add code to read/write continuous states and zero-crossing vectors. \
          See below:"
             Oprinter.program Inout.program p in
     
     let mlc = open_out ml_name in
-    let _ = do_step is_print "Print OCaml code. See below:"
+    let _ = do_step (is_print || Misc.is_print_pass "ocaml")
+              "Print OCaml code. See below:"
               Ocamlprinter.program (write_implementation mlc) p in
     ()
   with
