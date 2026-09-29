@@ -66,14 +66,10 @@ let expression funs acc e =
      Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
   | _ -> e, acc
 
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with expression; set_index; get_index; global_funs } in
+    { Mapfold.defaults with expression; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

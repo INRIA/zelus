@@ -386,10 +386,6 @@ let implementation funs acc ({ desc; loc } as impl) =
     | Etypedecl _ -> { acc with defs = impl :: acc.defs } in
   impl, acc
 
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program otc gvalues { p_impl_list; p_index } =
   let global_funs = 
     { Mapfold.default_global_funs with build; var_ident } in

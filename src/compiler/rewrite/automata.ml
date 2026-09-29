@@ -249,13 +249,9 @@ let equation funs acc eq =
      automaton acc is_weak handlers state_opt
   | _ -> eq, acc
          
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with equation; set_index; get_index; global_funs } in
+    { Mapfold.defaults with equation; global_funs } in
   let { p_impl_list } as p, acc = Mapfold.program_it funs [] p in
   { p with p_impl_list = acc @ p_impl_list }

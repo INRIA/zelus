@@ -180,10 +180,6 @@ let funexp funs acc f =
        f_args, Returns { b with b_body }, acc in
   { f with f_args; f_body = { r with r_desc } }, acc
 
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program _ p =
   let global_funs =
     { Mapfold.default_global_funs with build; var_ident; last_ident }  in
@@ -191,7 +187,7 @@ let program _ p =
     { Mapfold.defaults with match_handler_eq; match_handler_e;
                             present_handler_eq; present_handler_e;
                             for_returns; for_eq_t; block; leq_t; funexp;
-                            set_index; get_index; global_funs } in
+                            global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }
  
