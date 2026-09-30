@@ -24,8 +24,11 @@
 (* 0 : the signal is surely constant during integration (do not depend *)
 (*     on the solver *)
 (* 1/2 : the signal may change during integration *)
-(* (it may depend on the solver *)
-(* 1, otherwise *)
+(* (it may depend on the solver, that is, the so-called "minor steps" *)
+(* of Simulink *)
+(* 1, otherwise; it is set at major steps but is not aligned with a *)
+(* specific zero-crossing. E.g., if x is a continuous-time variable *)
+(* last x = hold(z, left x) where left x is the left-limit of x *)
 (* Principle:
  *- 1/ If [x] is defined by an equation [...x... = e] activated continuously
  *- then h(x) <= 1/2 and 1 <= h(last x) where [h] is the typing environment.
