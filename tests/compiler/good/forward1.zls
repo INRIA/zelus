@@ -1,3 +1,10 @@
+let rec plus<<n>>(x:[n]int, y:[n]int) returns (o:[n]int)
+  match size n with
+  | 0 -> o = [||]
+  | _ -> o = [|x.(0) + y.(0)|] ++ (plus<<n-1>>(x.(1 .. ),y.(1 .. )))
+
+let plus42(x,y) = plus<<42>>(plus<<43>>(x, y),y)
+
 let main__1<<n>>() returns (o)
   forward<<n>>[i] returns (oi:[n]_ out o)
     let z1 = forward(i)[j] returns ([|oi|])
