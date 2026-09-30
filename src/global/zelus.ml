@@ -607,5 +607,7 @@ and ('info, 'ienv) implementation_desc =
 
 type ('info, 'ienv) program = 
   { p_impl_list : ('info, 'ienv) implementation list;
-    p_index : Ident.num }
+    p_index : Ident.num; (* [p_index] is such that all indexes *)
+                         (* for variables in [p_impl_list] is less than [p_index] *)
+  }
 
