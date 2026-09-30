@@ -108,7 +108,7 @@ module Make (Info: INFO) =
       try
         Env.find n env
       with
-      | Not_found -> print_endline "AAAAAAA"; Error.error loc (Error.Evar(n))
+      | Not_found -> Error.error loc (Error.Evar(n))
     
     let shortname = function | Name(n) -> n | Modname({ id }) -> id
     
@@ -655,13 +655,9 @@ module Make (Info: INFO) =
           else ()
         in
         let find_name loc key env =
-          print_endline "BBBBBB";
-          let tmp = 
           env
           |> Env.find_opt key
           |> Std2.unwrap_or_raise (Error.Err(loc, Error.Evar(key)))
-          in
-          print_endline "CCCCCC"; tmp
         in
         let ext_name = find_name loc for_ext env_pat in
         let for_locals, local_env = match for_locals with
