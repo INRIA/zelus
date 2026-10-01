@@ -1,28 +1,87 @@
-let hybrid f1 z x =
-  let rec y = x and o = last y in
-                    present z -> o else 0 
-
-let hybrid f2 x =
-  let rec der o = o +. x +. 1. init 0. in o
-
+(* bouncing ball *)
 let hybrid bouncing (x0, x'0, g) =
-  let rec der x' = -. g init x'0 reset up(-. x) -> last x''_
-      and x'_ = -0.8 *. last x'
-      and init x''_ = 0.0
-      and x''_ = x'_ +. 0.0 -. 0.0 and der x = x' init x0 in
+  let rec der x' = -. g init x'0 reset up(-. x) -> -0.8 *. last x'
+      and der x = x' init x0 in
   (x, x')
 
-(*
-let hybrid f (z, x0) returns (x)
-  der x = 1.0 init x0 reset z -> x0
+(* a version where function barriers are added *)
+let hybrid integr (x0, x') = x where rec der x = x' init x0
+let hybrid integr_with_reset (x0, x', z, x1) = x
+  where rec der x = x' init x0 reset z -> x1
 
-let hybrid g (z, y0) returns (y)
-  der y = 1.0 init y0 reset z -> y0
+let hybrid bouncing_compose (x0, x'0, g) =
+  let rec x = integr (x0, x')
+      and x' = integr_with_reset (x'0, g, up(-. x), -0.8 *. last x')
+      and init x' = 0.0 in
+  (x, x')
+
+(* use of [last y] under a present *)
+let hybrid f1 z x =
+  let rec y = x and o = last y in
+  present z -> o else 0 
+
+(* simple ODE *)
+let hybrid f2 x = let rec der o = o -. 1.0 init 10. in o
+
+(* parallel composition *)
+let hybrid f (z, x0, x1) returns (x)
+  der x = 1.0 init x0 reset z -> x0 -> x1
+
+let hybrid g (z, y0, y1) returns (y)
+  der y = 1.0 init y0 reset z -> y0 -> y1
 
 let hybrid main () returns (x, y)
   local z
-  do x = f(z, last y)
-  and y = g(z, last x)
+  do x = f(z, 0.0, last y)
+  and y = g(z, 0.0, last x)
   and z = up(x)
   done
-  *)
+
+(* examples from paper "Building a Hybrid Systems Modeler on
+Synchronous Languages Principles", Proceedings of the IEEE *)
+
+let hybrid falling(y0, v0) = y
+    where
+      rec der v = -9.81 init v0
+      and der y = v init y0
+
+(* The Newton's cradle example *)
+let g = -9.81
+let l = 1.0
+
+let hybrid pend(a, omega0, theta0, r) = (last omega, theta)
+    where
+      rec der theta = omega init theta0
+      and der omega = a *. (sin theta) init 0.0 reset r -> omega0
+
+let hybrid newtons_cradle() = (theta1, theta2)
+    where
+      rec (omega1, theta1) = pend(g *. l, omega2, -1.5, contact)
+      and (omega2, theta2) = pend(g *. l, omega1, 1.1, contact)
+      and contact = (up(-. theta1 +. theta2)) on (omega1 -. omega2 < 0.0)
+
+let node disc_pend(h)(a, omega0, theta0, r) = (last_omega, theta)
+    where
+      rec theta = forward_euler(h)(theta0, omega)
+      and (last_omega, omega) =
+                   forward_euler_r(h)(0.0, r, omega0,a *. (sin theta))
+
+let node disc_newtons_cradle(h) = (theta1, theta2)
+    where
+      rec (omega1, theta1) = disc_pend(h)(g *. l, omega2, -1.5, contact)
+      and (omega2, theta2) =
+                     disc_pend(h)(g *. l, omega1, 1.1, contact)
+      and contact = (up(-. theta1 +. theta2)) on (omega1 -. omega2 < 0.0)
+
+let hybrid cyclic_pend (a, omega0, theta0, res) = (omega, theta)
+    where
+      rec der theta = omega init theta0
+      and der omega = a *. (sin theta) init 0.0 reset res -> omega0
+
+let hybrid cyclic_newtons_cradle() = (theta1, theta2)
+    where
+      rec (omega1, theta1) = cyclic_pend(g *. l, omega2, -1.5, contact)
+      and (omega2, theta2) = cyclic_pend(g *. l, omega1, 1.1, contact)
+      and contact = (up(-. theta1 +. theta2))
+                                       on (omega1 -. omega2 < 0.0)
+				       

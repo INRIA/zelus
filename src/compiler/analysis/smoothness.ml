@@ -44,7 +44,7 @@
  *- that is: fix_der x0 f = let rec der x = f(x) init x0 in x
  *- the signal to be integrated can only change smoothly
  *- val floor, int_of_float : 0 -> 0
- *- more generally, by default, imported primitives have a smooth type
+ *- by default, imported primitives have a smooth type
  *- that force their entries to have type [0]
  *)
 open Misc
