@@ -98,8 +98,8 @@ let hybrid cyclic_newtons_cradle() = (theta1, theta2)
     where
       rec (omega1, theta1) = cyclic_pend(g *. l, omega2, -1.5, contact)
       and (omega2, theta2) = cyclic_pend(g *. l, omega1, 1.1, contact)
-      and contact = (up(-. theta1 +. theta2))
-                                       on (omega1 -. omega2 < 0.0)
+      and contact =
+            (up(-. theta1 +. theta2)) on (omega1 -. omega2 < 0.0)
 
 let node backward_euler_2(h, x0, xprime) = x where
     rec x = x0 -> pre(x) +. h *. xprime
