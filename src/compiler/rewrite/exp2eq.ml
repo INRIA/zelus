@@ -55,10 +55,7 @@ let match_exp_to_eq e_loc acc (is_size, is_total, e, handlers) =
          { is_size; is_total; e; handlers = List.map handler handlers }) in
   (* [let match e with (P_i -> r = e_i)_i in r] *)
   (* or [let match e with (P_i -> emit r = e_i)_i in r *)
-  if is_total then
-    Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
-  else
-    Aux.local_vardec_in_e [Aux.id_vardec result] [eq] (Aux.var result), acc
+  Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
 
 (* translate a reset *)
 let reset_exp_to_eq e_loc acc (e, e_r) =
@@ -87,7 +84,14 @@ let present_exp_to_eq e_loc acc (handlers, default_opt) =
 let for_exp_to_eq e_loc acc
       (for_size, for_kind, for_index,
        for_input, for_let, for_body, for_resume, for_env) =
-  (* let for_body =
+  (* let make_for_out result =
+     let result_local = fresh () in
+     { for_ext = result;
+     for_ty_cstr = None;
+     for_init = None;
+     for_default = None } in
+   *)
+(* let for_body =
     match for_body with
     | Forexp { exp; default } ->
        let result = fresh () in
