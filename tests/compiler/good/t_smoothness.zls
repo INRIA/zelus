@@ -1,3 +1,14 @@
+(* Examples taken frompaper "Building a Hybrid Systems Modeler on
+Synchronous Languages Principles", Benveniste et al., Proceedings of the IEEE *)
+(* 2018 *)
+
+let node forward_euler_discrete(static h)(i, u) = y where
+    rec y = i fby (y +. (h *. u))
+
+let node forward_euler_discrete_r(static h)(i0, i, u, r) = (sy, y)
+    where rec sy = i0 fby (y +. (h *. u))
+    and y = if r then i else sy 
+
 (* bouncing ball *)
 let hybrid bouncing (x0, x'0, g) =
   let rec der x' = -. g init x'0 reset up(-. x) -> -0.8 *. last x'
@@ -6,39 +17,40 @@ let hybrid bouncing (x0, x'0, g) =
 
 (* a version where function barriers are added *)
 let hybrid integr (x0, x') = x where rec der x = x' init x0
-let hybrid integr_with_reset (x0, x', z, x1) = x
+let hybrid integr_with_reset (x0, z, x', x1) = x
   where rec der x = x' init x0 reset z -> x1
+
+let forward_euler = integr
+let hybrid forward_euler_r (x0, z, x') = x where
+  rec x = integr_with_reset (x0, z, x', x0)
 
 let hybrid bouncing_compose (x0, x'0, g) =
   let rec x = integr (x0, x')
-      and x' = integr_with_reset (x'0, g, up(-. x), -0.8 *. last x')
+      and x' = integr_with_reset (x'0, up(-. x), g, -0.8 *. last x')
       and init x' = 0.0 in
   (x, x')
 
 (* use of [last y] under a present *)
 let hybrid f1 z x =
   let rec y = x and o = last y in
-  present z -> o else 0 
+  present z -> o else 0
 
 (* simple ODE *)
 let hybrid f2 x = let rec der o = o -. 1.0 init 10. in o
 
 (* parallel composition *)
-let hybrid f (z, x0, x1) returns (x)
+let hybrid f3 (z, x0, x1) returns (x)
   der x = 1.0 init x0 reset z -> x0 -> x1
 
-let hybrid g (z, y0, y1) returns (y)
+let hybrid f4 (z, y0, y1) returns (y)
   der y = 1.0 init y0 reset z -> y0 -> y1
 
 let hybrid main () returns (x, y)
   local z
-  do x = f(z, 0.0, last y)
-  and y = g(z, 0.0, last x)
+  do x = f3(z, 0.0, last y)
+  and y = f4(z, 0.0, last x)
   and z = up(x)
   done
-
-(* examples from paper "Building a Hybrid Systems Modeler on
-Synchronous Languages Principles", Proceedings of the IEEE *)
 
 let hybrid falling(y0, v0) = y
     where
@@ -60,18 +72,22 @@ let hybrid newtons_cradle() = (theta1, theta2)
       and (omega2, theta2) = pend(g *. l, omega1, 1.1, contact)
       and contact = (up(-. theta1 +. theta2)) on (omega1 -. omega2 < 0.0)
 
-let node disc_pend(h)(a, omega0, theta0, r) = (last_omega, theta)
+let node disc_pend(static h)(a, omega0, theta0, r) = (last_omega, theta)
     where
-      rec theta = forward_euler(h)(theta0, omega)
+      rec theta = forward_euler_discrete(h)(theta0, omega)
       and (last_omega, omega) =
-                   forward_euler_r(h)(0.0, r, omega0,a *. (sin theta))
+                   forward_euler_discrete_r(h)(0.0, omega0, a *. (sin theta), r)
 
-let node disc_newtons_cradle(h) = (theta1, theta2)
+let node up_discrete(x) = false -> (pre(x) <= 0.0) && (x > 0.0)
+let on_if(x, y) = if x then y else false
+
+let node disc_newtons_cradle(static h)() = (theta1, theta2)
     where
       rec (omega1, theta1) = disc_pend(h)(g *. l, omega2, -1.5, contact)
       and (omega2, theta2) =
                      disc_pend(h)(g *. l, omega1, 1.1, contact)
-      and contact = (up(-. theta1 +. theta2)) on (omega1 -. omega2 < 0.0)
+      and contact =
+        on_if (up_discrete(-. theta1 +. theta2), omega1 -. omega2 < 0.0)
 
 let hybrid cyclic_pend (a, omega0, theta0, res) = (omega, theta)
     where
@@ -84,4 +100,12 @@ let hybrid cyclic_newtons_cradle() = (theta1, theta2)
       and (omega2, theta2) = cyclic_pend(g *. l, omega1, 1.1, contact)
       and contact = (up(-. theta1 +. theta2))
                                        on (omega1 -. omega2 < 0.0)
-				       
+
+let node backward_euler_2(h, x0, xprime) = x where
+    rec x = x0 -> pre(x) +. h *. xprime
+
+let node forward_euler_2(h, x0, xprime) = x where
+    rec x = x0 -> pre(x +. h *. xprime)
+
+let hybrid int(x0, z, xprime) = x where
+    rec der x = xprime init x0 reset z -> x0

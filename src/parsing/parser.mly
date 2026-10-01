@@ -1215,6 +1215,8 @@ expression_desc:
       { binop "&&" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression BARBAR e2 = expression
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
+  | e1 = expression ON e2 = expression
+      { binop "on" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
   | LET v = vkind_opt i = is_rec eq = equation_and_list IN e = seq_expression
