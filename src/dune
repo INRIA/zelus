@@ -1,10 +1,10 @@
 (include_subdirs unqualified)
 
 ; the Zelus compiler
+
 (executable
  (name zeluc)
- (modes
-  (byte exe))
+ (modes native byte)
  (libraries unix zelus_global zelus_parsing zelus_zrun zelus_compiler)
  (preprocess
   (pps ppx_deriving.show))
@@ -14,10 +14,10 @@
   (into %{project_root}/bin)))
 
 ; the ZRun interpreter
+
 (executable
  (name zrun)
- (modes
-  (byte exe))
+ (modes native byte)
  (libraries unix zelus_global zelus_parsing zelus_zrun)
  (preprocess
   (pps ppx_deriving.show))

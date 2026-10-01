@@ -131,14 +131,9 @@ let equation funs ({ env } as acc) ({ eq_desc } as eq) =
 
 let pattern funs acc p = p, acc
 
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program _ p =
   let global_funs = Mapfold.default_global_funs  in
   let funs =
-    { Mapfold.defaults with pattern; expression; equation;
-                            set_index; get_index; global_funs } in
+    { Mapfold.defaults with pattern; expression; equation; global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

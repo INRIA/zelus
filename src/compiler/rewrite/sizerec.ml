@@ -426,10 +426,6 @@ let expression funs ({ env = { env_of_sizefun; env_of_sizes } } as acc)
      e, acc
   | _ -> raise Mapfold.Fallback
 
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let letdecl funs acc (d_names, ({ l_rec; l_eq; l_loc } as d_leq)) =
   match Typing.eq_or_sizefun l_loc l_eq with
   | Either.Left _ ->
@@ -469,8 +465,7 @@ let program genv p =
   let global_funs = { Mapfold.default_global_funs with size_t } in
   let funs =
     { Mapfold.defaults with
-      global_funs; equation; expression; letdecl; open_t;
-      set_index; get_index; } in
+      global_funs; equation; expression; letdecl; open_t; } in
   let { p_impl_list } as p, acc =
     if !Misc.nosizerec then p, empty
     else Mapfold.program_it funs empty p in

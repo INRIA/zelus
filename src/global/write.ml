@@ -97,13 +97,10 @@ module Make (Info: INFO) =
            List.fold_left handler acc handlers
         | EQempty | EQassert _ -> acc
         | EQforloop { for_body = { for_out } } ->
-           let for_out_one bounded ({ dv } as acc) { desc = { for_locals = (
-             OAcc { for_acc = { for_name } }
-             | OArray { for_item = { for_name } }
-           ) } } =
-             if S.mem for_name bounded then acc
-             else if S.mem for_name dv then acc
-             else { acc with dv = S.add for_name dv } in
+           let for_out_one bounded ({ dv } as acc) { desc = { for_ext } } =
+             if S.mem for_ext bounded then acc
+             else if S.mem for_ext dv then acc
+             else { acc with dv = S.add for_ext dv } in
            List.fold_left (for_out_one bounded) acc for_out
         and block bounded acc { b_vars; b_body } =
           let bounded =

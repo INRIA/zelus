@@ -1140,13 +1140,14 @@ let rec set_index_it funs acc n =
   try funs.set_index funs acc n
   with Fallback -> set_index funs acc n
 
-and set_index funs acc n = n, acc
+and set_index funs acc n =
+  let _ = Ident.set n in n, acc
 
 let rec get_index_it funs acc n =
   try funs.get_index funs acc n
   with Fallback -> get_index funs acc n
 
-and get_index funs acc n = n, acc
+and get_index funs acc n = Ident.get (), acc
 
 let rec program_it funs acc p =
   try funs.program funs acc p

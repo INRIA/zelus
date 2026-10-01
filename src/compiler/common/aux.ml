@@ -263,6 +263,7 @@ let returns_of_vardec_make { var_name } = emake (Evar(var_name))
 let returns_of_vardec_list_make vardec_list =
   match vardec_list with
   | [] -> emake (Econst(Evoid))
+  | [v] -> returns_of_vardec_make v
   | _ -> emake (Etuple(List.map returns_of_vardec_make vardec_list))
 
 let e_present handlers default_opt =

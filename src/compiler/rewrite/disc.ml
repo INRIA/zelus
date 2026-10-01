@@ -90,14 +90,9 @@ let assert_t funs acc ({ a_body; a_hidden_env } as a) =
   else
     Mapfold.assert_t funs acc a
       
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with funexp; expression; assert_t; set_index; get_index;
-                            global_funs } in
+    { Mapfold.defaults with funexp; expression; assert_t; global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

@@ -111,14 +111,9 @@ let result funs acc ({ r_desc } as r) =
        Returns { b with b_body = local_in_eq acc_local b_body }, acc in
   { r with r_desc }, acc
 
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
-
 let program _ p =
   let global_funs = { Mapfold.default_global_funs with build } in
   let funs =
-    { Mapfold.defaults with vardec; equation; result; set_index; get_index;
-                            global_funs } in
+    { Mapfold.defaults with vardec; equation; result; global_funs } in
   let { p_impl_list } as p, _ = Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

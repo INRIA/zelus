@@ -290,9 +290,8 @@ let leq_t funs acc leq =
 
 (* all local names can restart from 0. For the moment, we start from the *)
 (* current maximal value *)
-let set_index funs acc n =
-  let _ = Ident.set n in n, acc
-let get_index funs acc n = Ident.get (), acc
+let set_index = Mapfold.set_index
+let get_index = Mapfold.get_index
 
 (* a post-pass verification checking that all *)
 (* [inline fun x1...xn -> e] have been removed *)

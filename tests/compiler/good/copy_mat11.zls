@@ -1,0 +1,16 @@
+let mul_mat_mat_1_152 =
+(fun (r: [1][1]float) returns (o)
+	local
+	r00,
+	o00,
+	tmp,
+	r0
+	in
+	do
+	r0 = r.(0) and
+	r00 = (tmp.(0)) and
+	tmp = r0 and
+	o00 = r00 and
+	o = [|[|o00|]|]
+	done
+)

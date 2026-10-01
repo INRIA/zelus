@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2025 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2026 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -140,7 +140,48 @@ let set_inlining_level l = inlining_level := l
 let inline_all = ref false
 
 (* output the result of successive the successive passes *)
+
+(* output all passes *)
 let print_passes = ref false
+
+module S = Set.Make (String)
+
+(* turn a pass on and off. Syntax is:
+ *- -/+a (-a turn off all passes; +a add all passes
+ *- -/+p turn on or off pass p *)
+let set s_all s_set w =
+  let set add_or_minus s =
+    match s with
+    | "a" -> (* all passes turned on or off *)
+       s_set := if add_or_minus then s_all else S.empty
+    | "" -> ()
+    | _ ->
+       if S.mem s s_all then
+         s_set := if add_or_minus then S.add s !s_set else S.remove s !s_set
+       else raise (Arg.Bad ("unknown pass " ^ s)) in
+  let l = String.split_on_char '+' w in
+  let l_l = List.map (String.split_on_char '-') l in
+  List.iter
+    (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
+    l_l
+
+(* list of passes *)
+let s_print_pass_all =
+  ref
+    (List.fold_left (fun acc s -> S.add s acc) S.empty
+       ["scoping"; "write"; "typing"; "causality"; "init"; "smoothness";
+        "markfunctions"; "gencode"; "inout"; "ocaml"])
+
+let add_print_pass_set s_set =
+  let s_all = !s_print_pass_all in
+  s_print_pass_all := S.union s_all s_set
+
+let s_print_pass = ref S.empty
+
+let set_print_pass w =
+  set !s_print_pass_all s_print_pass w
+
+let is_print_pass p = S.mem p !s_print_pass
 
 let static_reduction = ref false
 let print_types = ref false
