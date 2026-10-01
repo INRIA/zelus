@@ -1,6 +1,6 @@
-(* Examples taken frompaper "Building a Hybrid Systems Modeler on
-Synchronous Languages Principles", Benveniste et al., Proceedings of the IEEE *)
-(* 2018 *)
+(* Examples taken from paper "Building a Hybrid Systems Modeler on
+Synchronous Languages Principles", Benveniste, Bourke, Caillaud,
+Colaço, Pasteur and Pouzet, Proceedings of the IEEE, 2018 *)
 
 let node forward_euler_discrete(static h)(i, u) = y where
     rec y = i fby (y +. (h *. u))
@@ -89,6 +89,8 @@ let node disc_newtons_cradle(static h)() = (theta1, theta2)
       and contact =
         on_if (up_discrete(-. theta1 +. theta2), omega1 -. omega2 < 0.0)
 
+(* the following version is cyclic; it is rejected by the causality analysis *)
+(*
 let hybrid cyclic_pend (a, omega0, theta0, res) = (omega, theta)
     where
       rec der theta = omega init theta0
@@ -100,6 +102,7 @@ let hybrid cyclic_newtons_cradle() = (theta1, theta2)
       and (omega2, theta2) = cyclic_pend(g *. l, omega1, 1.1, contact)
       and contact =
             (up(-. theta1 +. theta2)) on (omega1 -. omega2 < 0.0)
+*)
 
 let node backward_euler_2(h, x0, xprime) = x where
     rec x = x0 -> pre(x) +. h *. xprime
