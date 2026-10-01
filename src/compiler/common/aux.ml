@@ -25,6 +25,9 @@ open Deftypes
 
 module Write =  Write.Make(Typinfo)
 
+(* add location to equations *)
+let eq_location eq_loc eq = { eq with eq_loc }
+
 (* Constant expressions - simple and sufficient condition for [e] to be *)
 (* constant *)
 let rec const { e_desc } =
