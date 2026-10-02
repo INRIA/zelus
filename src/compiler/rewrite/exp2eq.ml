@@ -91,7 +91,7 @@ let for_exp_to_eq e_loc acc
      for_init = None;
      for_default = None } in
    *)
-(* let for_body =
+   (* let for_body =
     match for_body with
     | Forexp { exp; default } ->
        let result = fresh () in
