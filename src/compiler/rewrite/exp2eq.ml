@@ -81,33 +81,65 @@ let present_exp_to_eq e_loc acc (handlers, default_opt) =
   Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
 
 (* translate a for loop *)
+(*  [returns e default e eq] => returns (result default e) eq]
+ *- [returns ([|xi init ei default e'i |] ...) eq =>
+       returns (result1_i init ei default e'i out result1,...)] *)
 let for_exp_to_eq e_loc acc
       (for_size, for_kind, for_index,
        for_input, for_let, for_body, for_resume, for_env) =
-  (* let make_for_out result =
-     let result_local = fresh () in
-     { for_ext = result;
-     for_ty_cstr = None;
-     for_init = None;
-     for_default = None } in
-   *)
-   (* let for_body =
+  raise Fallback;
+
+  (* this code is not finished *)
+  let for_out_from_returns { desc = { for_array; for_vardec; for_as } } =
+    let result = fresh () in
+    let for_out_vardec
+          { var_loc; var_name; var_default; var_init; var_typeconstraint } =
+      var_loc,
+      { for_name = result;
+        for_ty_cstr = var_typeconstraint;
+        for_init = var_init;
+        for_default = var_default } in
+    let loc, f = for_out_vardec for_vardec in
+    { desc =
+        { for_ext = result;
+          for_locals =
+            (if for_array < 1 then OAcc { for_acc = f }
+             else
+               let for_as =
+                 match for_as with
+                 | None -> fresh () | Some(for_as) -> for_as in
+               OArray { for_item = f; for_as });
+          for_info = Typinfo.no_info };
+      loc = loc } in
+  let for_out_from_exp loc result default =
+     let for_item =
+       { for_name = result; for_ty_cstr = None;
+         for_init = None; for_default = default } in
+     { desc = { for_ext = result;
+                for_locals = OArray { for_item; for_as = result };
+                for_info = Typinfo.no_info };
+       loc } in
+  let for_body =
     match for_body with
     | Forexp { exp; default } ->
+       (* [...returns (e default e') eq] *)
        let result = fresh () in
        let eq = Aux.id_eq result exp in
-       { for_out = [make_for_out result];
-         for_block = Aux.block_eq eq;
-         for_out_env = Env.empty }
+       { for_out = [for_out_from_exp exp.e_loc result default];
+         for_block = Aux.block_make [] [eq];
+         for_out_env = Aux.env_of (S.singleton result) }
     | Forreturns { r_returns; r_block; r_env } ->
-       { for_out = [];
+       (* [...returns ([|x init exi default fxi|],..., yi init eyi fyi,...)] *)
+       { for_out = List.map for_out_from_returns r_returns;
          for_block  = r_block;
-       for_out_env = r_env } in
+         for_out_env = r_env } in
+  let result = fresh () in
   let eq =
-    EQforloop { for_size; for_kind; for_index;
-                for_input; for_let; for_body; for_resume; for_env } in
-  eq, acc *)
-  raise Fallback
+    Aux.eqmake (Defnames.empty)
+      (EQforloop { for_size; for_kind; for_index;
+                   for_input; for_let; for_body; for_resume; for_env }) in
+  Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
+    
 
 let expression funs acc e =
   let { e_desc; e_loc } as e, acc = Mapfold.expression_it funs acc e in 
