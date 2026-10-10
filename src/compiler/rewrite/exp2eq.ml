@@ -87,19 +87,40 @@ let present_exp_to_eq e_loc acc (handlers, default_opt) =
 let for_exp_to_eq e_loc acc
       (for_size, for_kind, for_index,
        for_input, for_let, for_body, for_resume, for_env) =
-  let make_for_out_vardec_for_vardec result { for_array; for_vardec; for_as } =
-    let result_local = fresh () in
-     { for_name = result;
-       for_ty_cstr = None;
-       for_init = None;
-       for_default = None } in
-  let make_for_out_vardec_returns result default =
-     let result_local = fresh () in
-     { for_name = result;
-       for_ty_cstr = None;
-       for_init = None;
-       for_default = default } in
-  (* let for_body =
+  raise Fallback;
+
+  (* this code is not finished *)
+  let for_out_from_returns { desc = { for_array; for_vardec; for_as } } =
+    let result = fresh () in
+    let for_out_vardec
+          { var_loc; var_name; var_default; var_init; var_typeconstraint } =
+      var_loc,
+      { for_name = result;
+        for_ty_cstr = var_typeconstraint;
+        for_init = var_init;
+        for_default = var_default } in
+    let loc, f = for_out_vardec for_vardec in
+    { desc =
+        { for_ext = result;
+          for_locals =
+            (if for_array < 1 then OAcc { for_acc = f }
+             else
+               let for_as =
+                 match for_as with
+                 | None -> fresh () | Some(for_as) -> for_as in
+               OArray { for_item = f; for_as });
+          for_info = Typinfo.no_info };
+      loc = loc } in
+
+  let for_out_from_exp loc result default =
+     let for_item =
+       { for_name = result; for_ty_cstr = None;
+         for_init = None; for_default = default } in
+     { desc = { for_ext = result;
+                for_locals = OArray { for_item; for_as = result };
+                for_info = Typinfo.no_info };
+       loc } in
+  let for_body =
     match for_body with
     | Forexp { exp; default } ->
        (* [...returns (e default e') eq] *)
@@ -120,7 +141,6 @@ let for_exp_to_eq e_loc acc
                    for_input; for_let; for_body; for_resume; for_env }) in
   Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
     
-
 let expression funs acc e =
   let { e_desc; e_loc } as e, acc = Mapfold.expression_it funs acc e in 
   match e_desc with
@@ -130,11 +150,12 @@ let expression funs acc e =
      reset_exp_to_eq e_loc acc (e, e_r)
   | Epresent { handlers; default_opt } ->
      present_exp_to_eq e_loc acc (handlers, default_opt)
-  | Eforloop  { for_size; for_kind; for_index;
+  | _ -> e, acc
+  (* | Eforloop  { for_size; for_kind; for_index;
                 for_input; for_let; for_body; for_resume; for_env } ->
      for_exp_to_eq e_loc acc
        (for_size, for_kind, for_index,
-        for_input, for_let, for_body, for_resume, for_env)
+        for_input, for_let, for_body, for_resume, for_env) *)
   | _ -> e, acc
 
 (* test *)
