@@ -87,8 +87,6 @@ let present_exp_to_eq e_loc acc (handlers, default_opt) =
 let for_exp_to_eq e_loc acc
       (for_size, for_kind, for_index,
        for_input, for_let, for_body, for_resume, for_env) =
-  raise Fallback;
-
   (* this code is not finished *)
   let for_out_from_returns { desc = { for_array; for_vardec; for_as } } =
     let result = fresh () in
@@ -150,7 +148,6 @@ let expression funs acc e =
      reset_exp_to_eq e_loc acc (e, e_r)
   | Epresent { handlers; default_opt } ->
      present_exp_to_eq e_loc acc (handlers, default_opt)
-  | _ -> e, acc
   (* | Eforloop  { for_size; for_kind; for_index;
                 for_input; for_let; for_body; for_resume; for_env } ->
      for_exp_to_eq e_loc acc
