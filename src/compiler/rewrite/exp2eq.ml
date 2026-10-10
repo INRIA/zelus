@@ -140,7 +140,7 @@ let for_exp_to_eq e_loc acc
   Aux.let_leq_in_e (Aux.leq false [eq]) (Aux.var result), acc
     
 let expression funs acc e =
-  let { e_desc; e_loc } as e, acc = Mapfold.expression_it funs acc e in 
+  let { e_desc; e_loc } as e, acc = Mapfold.expression funs acc e in 
   match e_desc with
   | Ematch { is_size; is_total; e; handlers } ->
      match_exp_to_eq e_loc acc (is_size, is_total, e, handlers)
