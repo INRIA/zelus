@@ -96,12 +96,12 @@ module Make (Info: INFO) =
              equation (fv_bounded_pat bounded S.empty m_pat) acc m_body in
            List.fold_left handler acc handlers
         | EQempty | EQassert _ -> acc
-        | EQforloop { for_body = { for_out } } ->
+        | EQforloop { for_body = { for_eq_out } } ->
            let for_out_one bounded ({ dv } as acc) { desc = { for_ext } } =
              if S.mem for_ext bounded then acc
              else if S.mem for_ext dv then acc
              else { acc with dv = S.add for_ext dv } in
-           List.fold_left (for_out_one bounded) acc for_out
+           List.fold_left (for_out_one bounded) acc for_eq_out
         and block bounded acc { b_vars; b_body } =
           let bounded =
             List.fold_left (fun bounded { var_name } -> S.add var_name bounded)
@@ -199,7 +199,8 @@ module Make (Info: INFO) =
         | EQassert({ a_body } as a) ->
            EQassert({ a with a_body = expression a_body }), Defnames.empty
         | EQforloop({ for_size; for_kind; for_index;
-                      for_input; for_let; for_body = { for_out; for_block } } as f) ->
+                      for_input; for_let;
+                      for_body = { for_eq_out; for_eq_block } } as f) ->
           let for_size = Util.optional_map for_size_expression for_size in
           let for_kind =
             match for_kind with
@@ -234,16 +235,16 @@ module Make (Info: INFO) =
             let desc = { for_ext; for_locals; for_info; } in
             { desc; loc; }, (acc, h_out)
           in
-          let for_out, (dv_out, h_out) =
-            Util.mapfold for_out_one (S.empty, Env.empty) for_out in
+          let for_eq_out, (dv_out, h_out) =
+            Util.mapfold for_out_one (S.empty, Env.empty) for_eq_out in
           let for_let = lets for_let in
-          let for_block, defnames, dv_for_block = block for_block in
+          let for_eq_block, defnames, dv_for_block = block for_eq_block in
           let defnames = Defnames.subst defnames h_out in
           let for_env = build_from_names dv_input in
-          let for_out_env = build_from_names dv_out in
+          let for_eq_env = build_from_names dv_out in
           EQforloop({ f with for_size; for_kind; for_input; for_env;
                              for_let;
-                             for_body = { for_out; for_block; for_out_env; }}),
+                             for_body = { for_eq_out; for_eq_block; for_eq_env; }}),
           defnames in
       (* set the names defined in the equation *)
       { eq with eq_desc = eq_desc; eq_write = def }, def

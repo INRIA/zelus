@@ -840,7 +840,8 @@ and forloop_eq env loop_path code { for_size; for_kind; for_index; for_input;
        (for_size, exit_opt, for_index, for_input, for_body, for_resume, for_env)
 
 and foreach_eq env loop_path code
-  (for_size, for_index, for_input, { for_out; for_block }, for_resume, for_env) =
+   (for_size, for_index, for_input,
+   { for_eq_out; for_eq_block }, for_resume, for_env) =
   (* [forall i in e1..e2, xi in ei,..., oi in o,... do body done]
       * is translated into:
       * for i = e1 to e2 do
@@ -905,13 +906,13 @@ and foreach_eq env loop_path code
      (* extend the environment [env] with inputs *)
      let env_acc, code = List.fold_left (input ix) (env.env, code) for_input in
      (* extend the environment [env] with output variables *)
-     let env_acc, code = List.fold_left (output ix) (env_acc, code) for_out in
+     let env_acc, code = List.fold_left (output ix) (env_acc, code) for_eq_out in
      let env = { env with env = env_acc } in
      let loop_path = { kind = Foreach; index = ix; size = size } :: loop_path in
      let step,
          { mem = m_code; init = i_code; instances = j_code; reset = r_code;
            assertions = a_code } =
-       block env loop_path for_block (Oaux.void, empty_code) in
+       block env loop_path for_eq_block (Oaux.void, empty_code) in
      (* transforms instances into arrays *)
      let j_code =
        Parseq.map (array_of_instance size) j_code in
@@ -920,7 +921,7 @@ and foreach_eq env loop_path code
      (* generate the initialization code *)
      let initialization_list,
          { mem = m; instances = j; init = i; reset = r; assertions = a } =
-       Util.mapfold init code for_out in
+       Util.mapfold init code for_eq_out in
      Oaux.seq (Oaux.sequence initialization_list)
        (for_loop true ix e1 e2 step),
      { mem = Parseq.seq m_code m; instances = Parseq.seq j_code j;

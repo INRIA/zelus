@@ -1944,7 +1944,7 @@ and for_exp_t
          Util.optional_with_default
            (fun e -> expect expected_k h e actual_ty) (Tfun(Tconst)) default in
        (* for a forward loop, the type of the output is [actual_ty] *)
-       (* whereas for a oreach loop, it is [size]actual_ty *)
+       (* whereas for a foreach loop, it is [size]actual_ty *)
        let ty_res =
          if is_a_forward_loop then actual_ty
          else Types.vec actual_ty size in
@@ -2026,25 +2026,25 @@ and for_index_t expected_k for_index =
 
 (* [[let [rec] eq1 in]* do eq *)
 and for_eq_t
-        loc expected_k size for_index h for_let ({ for_out; for_block } as f) =
+        loc expected_k size for_index h for_let ({ for_eq_out; for_eq_block } as f) =
   let h_out, actual_k_out =
     List.fold_left
       (for_out_t loc expected_k size for_index h)
-      (Env.empty, Tfun(Tconst)) for_out in
+      (Env.empty, Tfun(Tconst)) for_eq_out in
   let h = Env.append h_out h in
   (* type check the sequence of local equations *)
   let h, actual_k_let = leqs expected_k h for_let in
-  let _, h, d_names, actual_k = block_eq expected_k h for_block in
+  let _, h, d_names, actual_k = block_eq expected_k h for_eq_block in
   (* set the type environment *)
-  f.for_out_env <- h_out;
+  f.for_eq_env <- h_out;
   (* remove entries for variables introduced with [... as x] *)
   let h_out = remove_entry_for_as_variables_in_env h_out in
   let d_names =
     List.fold_left
-      (defnames_for_out d_names) Defnames.empty for_out in
+      (defnames_for_out d_names) Defnames.empty for_eq_out in
   (* [is_zero = true] when (at least) one output has no default value *)
   let size_must_be_not_null =
-    not (List.for_all has_a_default_value for_out) in
+    not (List.for_all has_a_default_value for_eq_out) in
   size_must_be_not_null, h, h_out, d_names,
   Kind.sup actual_k_out (Kind.sup actual_k_let actual_k)
 

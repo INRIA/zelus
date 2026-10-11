@@ -1343,14 +1343,14 @@ foreach_loop_eq:
     l = let_list
     f = block(equation_empty_and_list)
     DONE
-    { (s_opt, i_opt, li, l, { for_out = lo; for_block = f }) }
+    { (s_opt, i_opt, li, l, { for_eq_out = lo; for_eq_block = f }) }
   | s_opt = optional(for_size_expression) i_opt = optional(index)
     li = input_list RETURNS lo = output_list
     l = let_list
     eq = simple_stream_equation
     { (s_opt, i_opt, li, l,
-       { for_out = lo;
-	 for_block = block_of_equation eq ($startpos(eq)) ($endpos(eq)) }) }
+       { for_eq_out = lo;
+	 for_eq_block = block_of_equation eq ($startpos(eq)) ($endpos(eq)) }) }
 ;
 
 forward_loop_eq:
@@ -1360,14 +1360,14 @@ forward_loop_eq:
     f = block(equation_empty_and_list)
     o_opt = optional(loop_exit_condition)
     DONE
-    { (s_opt, i_opt, li, o_opt, l, { for_out = lo; for_block = f }) }
+    { (s_opt, i_opt, li, o_opt, l, { for_eq_out = lo; for_eq_block = f }) }
   | s_opt = optional(for_size_expression) i_opt = optional(index)
     li = input_list RETURNS lo = output_list
     l = let_list
     eq = simple_stream_equation
     { (s_opt, i_opt, li, None, l,
-       { for_out = lo;
-	 for_block = block_of_equation eq ($startpos(eq)) ($endpos(eq)) }) }
+       { for_eq_out = lo;
+	 for_eq_block = block_of_equation eq ($startpos(eq)) ($endpos(eq)) }) }
 ;
 
 %inline for_size_expression:

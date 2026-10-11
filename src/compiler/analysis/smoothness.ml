@@ -644,11 +644,11 @@ and for_index_t for_index_opt =
       Env.singleton id { t_last = None; t_tys = Defsmooth.scheme (atom izero) })
     Env.empty for_index_opt
 
-and for_eq_t loc is_zero env { for_out; for_block; for_out_env } =
+and for_eq_t loc is_zero env { for_eq_out; for_eq_block; for_eq_env } =
   (* outputs must be initialized *)
-  List.iter (for_out_t is_zero env) for_out;
-  let env = build_env loc for_out_env env in
-  let _ = block_eq is_zero env for_block in
+  List.iter (for_out_t is_zero env) for_eq_out;
+  let env = build_env loc for_eq_env env in
+  let _ = block_eq is_zero env for_eq_block in
   ()
 
 and for_out_t

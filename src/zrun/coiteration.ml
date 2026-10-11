@@ -768,7 +768,7 @@ and ieq is_fun genv env { eq_desc; eq_loc  } =
      let* se = iexp is_fun genv env a_body in
      return se
   | EQforloop({ for_size; for_kind; for_input;
-              for_body = { for_out; for_block }; for_resume }) ->
+              for_body = { for_eq_out; for_eq_block }; for_resume }) ->
      (* if the size is not given there should be at least one input *)
      match for_size, for_input with
      | None, [] -> error { kind = Eloop_cannot_determine_size; loc = eq_loc }
@@ -778,8 +778,8 @@ and ieq is_fun genv env { eq_desc; eq_loc  } =
         (* can be stateful *)
         let* s_input_list = map (ifor_input is_fun genv env) for_input in
         let* so_list = 
-          map (ifor_output is_fun for_resume genv env) for_out in
-        let* s_body = iblock (is_fun && for_resume) genv env for_block in
+          map (ifor_output is_fun for_resume genv env) for_eq_out in
+        let* s_body = iblock (is_fun && for_resume) genv env for_eq_block in
         let* s_size, s_body =
           ifor_kind genv env for_size for_kind s_body in
         return (Slist (s_size :: Slist (s_body :: so_list) :: s_input_list))
@@ -2092,7 +2092,7 @@ and sforloop_eq_step loc genv env
   return (r, (s_for_block, so_list, si_list))
 
 and sforloop_eq
-  loc genv env size for_kind for_resume { for_out; for_block }
+  loc genv env size for_kind for_resume { for_eq_out; for_eq_block }
   i_env s_for_block so_list =
   let init_for_out_env v for_out =
     let init_env acc { desc = { for_ext } } =
@@ -2103,8 +2103,8 @@ and sforloop_eq
   let nil_for_out_env for_out = init_for_out_env Vnil for_out in
 
   match i_env with
-  | Vbot -> return (bot_for_out_env for_out, s_for_block, so_list)
-  | Vnil -> return (nil_for_out_env for_out, s_for_block, so_list)
+  | Vbot -> return (bot_for_out_env for_eq_out, s_for_block, so_list)
+  | Vnil -> return (nil_for_out_env for_eq_out, s_for_block, so_list)
   | Value(i_env) ->
      (* 1/ computes the environment from the [returns] *)
      (* environment [acc_env + as_env]. Vars in [acc_env] *)
@@ -2113,20 +2113,20 @@ and sforloop_eq
      (* iteration index. *)
      let* (acc_env, as_env), so_list =
        mapfold2 { kind = Estate; loc }
-         (sfor_out genv env) (Env.empty, Env.empty) for_out so_list in
+         (sfor_out genv env) (Env.empty, Env.empty) for_eq_out so_list in
      (* 2/ runs the body *)
      let* nb_of_missing_iterations, env_list, acc_env, s_for_block =
        match for_kind, s_for_block with
        | Kforeach, Slist(s_list) ->
           let sbody env acc_env s =
-            sforblock genv env acc_env for_block None s in
+            sforblock genv env acc_env for_eq_block None s in
           let* env_list, acc_env, s_list =
             Forloop.foreach_eq loc
               sbody env i_env acc_env as_env s_list in
           return (0, env_list, acc_env, Slist(s_list))
        | Kforward(exit), _ ->
           let sbody env acc_env s =
-            sforblock genv env acc_env for_block exit s in
+            sforblock genv env acc_env for_eq_block exit s in
           let* env_list, acc_env, s_for_block_new =
             Forloop.forward_eq loc
               sbody env i_env acc_env as_env size s_for_block in
@@ -2140,10 +2140,10 @@ and sforloop_eq
      (* when [resume = true] *)
      let* so_list = 
        if for_resume then
-         map2 { kind = Estate; loc } (set_foreq_out acc_env) for_out so_list
+         map2 { kind = Estate; loc } (set_foreq_out acc_env) for_eq_out so_list
        else return so_list in
      let* env =
-       for_env_out nb_of_missing_iterations env_list acc_env loc for_out in
+       for_env_out nb_of_missing_iterations env_list acc_env loc for_eq_out in
      Debug.print_ienv "For loop: output env = " env;
      return (env, s_for_block, so_list)
 

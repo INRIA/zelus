@@ -557,14 +557,14 @@ and for_eq_it funs acc for_body =
   try funs.for_eq_t funs acc for_body
   with Fallback -> for_eq_t funs acc for_body
 
-and for_eq_t funs acc { for_out; for_block; for_out_env } =
+and for_eq_t funs acc { for_eq_out; for_eq_block; for_eq_env } =
   (* names in [for_out_env] are local to the for_block *)
-  let for_out_env, acc =
-    build_it funs.global_funs acc for_out_env in
-  let for_out, acc =
-    Util.mapfold (for_out_it funs) acc for_out in
-  let for_block, acc = block_it funs acc for_block in
-  { for_out; for_block; for_out_env }, acc
+  let for_eq_env, acc =
+    build_it funs.global_funs acc for_eq_env in
+  let for_eq_eout, acc =
+    Util.mapfold (for_out_it funs) acc for_eq_out in
+  let for_eq_block, acc = block_it funs acc for_eq_block in
+  { for_eq_out; for_eq_block; for_eq_env }, acc
 
 and slet_it funs acc leq_list =
   try funs.slet_t funs acc leq_list

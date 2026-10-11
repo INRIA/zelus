@@ -74,6 +74,8 @@ let infinity : Typinfo.exp =
   global (Modname(Initial.stdlib_name "infinity"))
 let tuplepat pat_list = pmake (Etuplepat(pat_list))
 let tuple e_list = emake (Etuple(e_list))
+let tuple_or_single e_list =
+  match e_list with | [] -> assert false | [e] -> e | _ -> tuple e_list
 let record l_list e_list =
   emake (Erecord(List.map2 (fun label arg -> { label; arg }) l_list e_list))
 let ifthenelse e e_true e_false =

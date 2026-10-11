@@ -332,12 +332,12 @@ and for_vardec_desc =
   }
 
 and for_eq =
-  { for_out : for_out_desc localized list;
+  { for_eq_out : for_out_desc localized list;
     (* [xi init vi] *)
     (* [xi] is an output; the successive values are accumulated *)
     (* [xi out x] *)
     (* [xi] are local output; [x] is the output st [xi = x.(i)] *)
-    for_block : (exp, eq) block; (* loop body *)
+    for_eq_block : (exp, eq) block; (* loop body *)
   }
 
 and for_kind =

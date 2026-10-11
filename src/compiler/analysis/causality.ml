@@ -882,11 +882,11 @@ and for_kind_t env c_latest c_out for_kind =
 and for_exit_t env c_latest c_out { for_exit } = 
   exp_less_than_on_c env c_latest for_exit c_out
 
-and for_eq_t env c_latest c_out { for_out; for_block; for_out_env } =
+and for_eq_t env c_latest c_out { for_eq_out; for_eq_block; for_eq_env } =
   (* outputs must be initialized *)
-  List.iter (for_out_t env c_latest c_out) for_out;
-  let env = build_env_on_c c_out for_out_env env in
-  let _ = block_eq Ident.S.empty env c_latest for_block in
+  List.iter (for_out_t env c_latest c_out) for_eq_out;
+  let env = build_env_on_c c_out for_eq_env env in
+  let _ = block_eq Ident.S.empty env c_latest for_eq_block in
   ()
 
 and for_out_t

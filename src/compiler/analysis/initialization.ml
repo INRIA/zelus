@@ -688,11 +688,11 @@ and for_index_t for_index_opt =
       Env.singleton id { t_last = ione; t_tys = Definit.scheme (atom izero) })
     Env.empty for_index_opt
 
-and for_eq_t loc env { for_out; for_block; for_out_env } =
+and for_eq_t loc env { for_eq_out; for_eq_block; for_eq_env } =
   (* outputs must be initialized *)
-  List.iter (for_out_t env) for_out;
-  let env = build_env loc for_out_env env in
-  let _ = block_eq Ident.S.empty env for_block in
+  List.iter (for_out_t env) for_eq_out;
+  let env = build_env loc for_eq_env env in
+  let _ = block_eq Ident.S.empty env for_eq_block in
   ()
 
 and for_out_t env { desc = { for_locals; for_ext; for_info }; loc; } =

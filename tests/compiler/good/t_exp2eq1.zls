@@ -1,0 +1,8 @@
+let ff x returns o
+  forward<<4>> returns (o) o = 42
+
+let node h x = foreach<<4>> do (let rec o = 0 fby o + 1 in o) default 0 done
+
+(*
+let g x = forward<<4>> do (let rec o = 0 fby o + 1 in o) default 0 done
+*)

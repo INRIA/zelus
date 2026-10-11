@@ -243,11 +243,11 @@ let for_exp_t funs acc for_body =
      let f, acc = Mapfold.for_returns_it funs acc f in
      Forreturns f, acc
 
-let for_eq_t funs acc ({ for_out; for_block } as for_eq) =
-  let for_out, _ =
-    Util.mapfold (Mapfold.for_out_it funs) empty for_out in
-  let for_block, _ = Mapfold.block_it funs empty for_block in
-  { for_eq with for_out; for_block }, acc
+let for_eq_t funs acc ({ for_eq_out; for_eq_block } as for_eq) =
+  let for_eq_out, _ =
+    Util.mapfold (Mapfold.for_out_it funs) empty for_eq_out in
+  let for_eq_block, _ = Mapfold.block_it funs empty for_eq_block in
+  { for_eq with for_eq_out; for_eq_block }, acc
 
 let for_out_t funs acc { desc = { for_locals; for_ext; for_info }; loc; } =
   let for_out_vardec { for_name; for_ty_cstr; for_init; for_default } =

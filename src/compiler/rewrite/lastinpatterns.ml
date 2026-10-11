@@ -146,12 +146,12 @@ let for_returns funs acc ({ r_returns; r_block } as r) =
   let r_block, acc = Mapfold.block_it funs acc r_block in
   { r with r_returns; r_block }, acc
 
-let for_eq_t funs acc ({ for_out; for_block } as f) =
+let for_eq_t funs acc ({ for_eq_out; for_eq_block } as f) =
   (* no use of the [build] function here *)
-  let for_out, acc =
-    Util.mapfold (Mapfold.for_out_it funs) acc for_out in
-  let for_block, acc = Mapfold.block_it funs acc for_block in
-  { f with for_out; for_block }, acc
+  let for_eq_out, acc =
+    Util.mapfold (Mapfold.for_out_it funs) acc for_eq_out in
+  let for_eq_block, acc = Mapfold.block_it funs acc for_eq_block in
+  { f with for_eq_out; for_eq_block }, acc
 
 (* variables in blocks are unchanged *)
 let block funs acc ({ b_vars; b_body; b_write } as b) =

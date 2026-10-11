@@ -663,7 +663,7 @@ module Make (Info: INFO) =
       | EQassert a -> p_assert ff a
       | EQforloop
         ({ for_size; for_kind; for_index; for_input; for_env; for_resume;
-           for_let; for_body = { for_out; for_block; for_out_env } }) ->
+           for_let; for_body = { for_eq_out; for_eq_block; for_eq_env } }) ->
         let print_for_out ff l =
           let for_out_vardec ff { for_name; for_ty_cstr; for_init; for_default } =
             fprintf ff "@[%a%a%a%a@]"
@@ -693,10 +693,10 @@ module Make (Info: INFO) =
           index_opt for_index
           input_list for_input
           print_env for_env
-          print_for_out for_out
-          print_env for_out_env
+          print_for_out for_eq_out
+          print_env for_eq_env
           leqs for_let
-          block_of_equation for_block
+          block_of_equation for_eq_block
           for_exit_condition for_kind
     
     and and_equation ordered po pf ff eq_list =

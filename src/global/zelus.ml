@@ -331,13 +331,14 @@ and ('info, 'ienv) for_size =
     for_size_exp: ('info, 'ienv) exp; 
   }
 
+(* the body of a for loop when it is an equation *)
 and ('info, 'ienv) for_eq = {
   (* outputs declarations *)
-  for_out : ('info, 'ienv) for_out list;
+  for_eq_out : ('info, 'ienv) for_out list;
   (* loop body *)
-  for_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
-  (* local names declared in [for_out] *)
-  mutable for_out_env: 'ienv Ident.Env.t;
+  for_eq_block : ('info, 'ienv, ('info, 'ienv) exp, ('info, 'ienv) eq) block; 
+  (* local names declared in [for_eq_out] *)
+  mutable for_eq_env: 'ienv Ident.Env.t;
 }
 
 (* TODO: remove 'exp parameter *)
@@ -354,7 +355,7 @@ and 'exp for_exit =
 
 and for_exit_kind = | Ewhile | Euntil | Eunless
 
-(* result expression of a loop *)
+(* the body of a loop when it is an expression *)
 and ('info, 'ienv) for_exp =
   | Forexp of { exp : ('info, 'ienv) exp; default : ('info, 'ienv) exp option } 
   (* [for[each|ward] ... do e done] *)
@@ -468,16 +469,17 @@ and 'exp for_input_desc =
 (* output of a for loop in equational form *)
 and ('info, 'ienv) for_out = ('info, 'ienv) for_out_desc localized
 
-(* declaration of a for loop output variable [x [: t] [init e1] [default e2]] *)
-and ('info, 'ienv) for_out_vardec = {
-  (* name of the variable: x *)
-  for_name: Ident.t;
-  (* type constraint: [: t] *)
-  for_ty_cstr: type_expression option;
-  (* initial value: [init e1] *)
-  for_init: ('info, 'ienv) exp option;
-  (* default value: [default e2] *)
-  for_default: ('info, 'ienv) exp option;
+(* output of a for loop in equational form *)
+(* accumulator form: o_ext as o_int [: t] [init v1] [default v2] *)
+(* array form: oj [: t] [init v1] [default v2] out o_ext as o_int *)
+(* if [o_ext as] is ommited, [o_ext] defaults to [o_int] *)
+and ('info, 'ienv) for_out_desc = {
+  (* external variable defined by the loop: o_ext *)
+  for_ext: Ident.t;
+  (* local variables defined in the loop *)
+  for_locals: ('info, 'ienv) for_out_locals;
+  (* type information *)
+  mutable for_info: 'info;
 }
 
 (* for loop local output variables *)
@@ -495,18 +497,18 @@ and ('info, 'ienv) for_out_locals =
     for_as: Ident.t;
   }
 
-(* output of a for loop in equational form *)
-(* accumulator form: o_ext as o_int [: t] [init v1] [default v2] *)
-(* array form: oj [: t] [init v1] [default v2] out o_ext as o_int *)
-(* if [o_ext as] is ommited, [o_ext] defaults to [o_int] *)
-and ('info, 'ienv) for_out_desc = {
-  (* external variable defined by the loop: o_ext *)
-  for_ext: Ident.t;
-  (* local variables defined in the loop *)
-  for_locals: ('info, 'ienv) for_out_locals;
-  (* type information *)
-  mutable for_info: 'info;
+(* declaration of a for loop output variable [x [: t] [init e1] [default e2]] *)
+and ('info, 'ienv) for_out_vardec = {
+  (* name of the variable: x *)
+  for_name: Ident.t;
+  (* type constraint: [: t] *)
+  for_ty_cstr: type_expression option;
+  (* initial value: [init e1] *)
+  for_init: ('info, 'ienv) exp option;
+  (* default value: [default e2] *)
+  for_default: ('info, 'ienv) exp option;
 }
+
 
 (* signal patterns *)
 and ('info, 'ienv) scondpat = ('info, 'ienv) scondpat_desc localized

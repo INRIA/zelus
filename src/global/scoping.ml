@@ -401,7 +401,7 @@ module Make (Info: INFO) =
       let _, defnames_e_body = build_block S.empty e_body in
       S.union defnames defnames_e_body
     
-    and build_for_body_eq defnames { for_out; for_block } =
+    and build_for_body_eq defnames { for_eq_out; for_eq_block } =
       (* for_ext is visible outside *)
       (* all other names are visible only inside *)
       let build_for_out (output_names, local_names, as_names)
@@ -434,10 +434,10 @@ module Make (Info: INFO) =
       in
 
       let acc_out_names, acc_xi_local_names, _ =
-        List.fold_left build_for_out (S.empty, S.empty, S.empty) for_out in
+        List.fold_left build_for_out (S.empty, S.empty, S.empty) for_eq_out in
       
       (* computes defnames for the block *)
-      let _, defnames_body = build_block defnames for_block in
+      let _, defnames_body = build_block defnames for_eq_block in
       S.union defnames
         (S.union (* remove [xi] in defnames *)
            (S.diff defnames_body acc_xi_local_names) acc_out_names)
@@ -703,7 +703,7 @@ module Make (Info: INFO) =
     (* translation of for loops *)
     and forloop_eq env_pat env
        { for_size; for_kind; for_index; for_input; for_resume; for_let;
-         for_body = { for_out; for_block } } =
+         for_body = { for_eq_out; for_eq_block } } =
       let for_size = Util.optional_map (for_size_expression env) for_size in
       let for_index, i_env =
         match for_index with
@@ -719,10 +719,10 @@ module Make (Info: INFO) =
       let for_let, env = leqs env for_let in
       (* here, we check that names introduced in the [returns] clause *)
       (* are pair-wise distinct from names for inputs *)
-      let for_out, local_env = for_out_t env_pat env i_env for_out in
+      let for_eq_out, local_env = for_out_t env_pat env i_env for_eq_out in
       let env = Env.append local_env env in
       let env_pat = Env.append local_env env_pat in
-      let env_body, for_block = block equation env_pat env for_block in
+      let env_body, for_eq_block = block equation env_pat env for_eq_block in
       let for_kind =
         match for_kind with
         | Kforeach -> Zelus.Kforeach
@@ -733,7 +733,7 @@ module Make (Info: INFO) =
         Zelus.for_index = for_index;
         Zelus.for_input = for_input;
         Zelus.for_let = for_let;
-        Zelus.for_body = { for_out; for_block; for_out_env = Ident.Env.empty };
+        Zelus.for_body = { for_eq_out; for_eq_block; for_eq_env = Ident.Env.empty };
         Zelus.for_resume = for_resume;
         Zelus.for_env = Ident.Env.empty }
 
