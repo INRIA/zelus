@@ -101,16 +101,13 @@ let for_exp_to_eq e_loc is_a_forward_loop acc
            OArray { for_item = for_out_vardec; for_as = result_as } in
     { desc = { for_ext = result;
                for_locals; for_info = Typinfo.no_info }; loc = e_loc } in
-  
   let for_out_from_returns { desc = { for_array; for_vardec; for_as } } =
     let result = fresh () in
     let for_out_vardec_t
           { var_loc; var_name; var_default; var_init; var_typeconstraint } =
       var_loc,
-      { for_name = result;
-        for_ty_cstr = var_typeconstraint;
-        for_init = var_init;
-        for_default = var_default } in
+      { for_name = result; for_ty_cstr = var_typeconstraint;
+        for_init = var_init; for_default = var_default } in
     let loc, for_out_vardec = for_out_vardec_t for_vardec in
     Aux.var result,
     { desc =
@@ -119,8 +116,7 @@ let for_exp_to_eq e_loc is_a_forward_loop acc
             (if for_array < 1 then OAcc { for_acc = for_out_vardec }
              else
                let for_as =
-                 match for_as with
-                 | None -> fresh () | Some(for_as) -> for_as in
+                 match for_as with | None -> fresh () | Some(for_as) -> for_as in
                OArray { for_item = for_out_vardec; for_as });
           for_info = Typinfo.no_info };
       loc = loc } in
@@ -161,12 +157,12 @@ let expression funs acc e =
      reset_exp_to_eq e_loc acc (e, e_r)
   | Epresent { handlers; default_opt } ->
      present_exp_to_eq e_loc acc (handlers, default_opt)
-  (* | Eforloop  { for_size; for_kind; for_index;
+  | Eforloop  { for_size; for_kind; for_index;
                 for_input; for_let; for_body; for_resume; for_env } ->
      let is_a_forward_loop = match for_kind with | Kforward _ -> true | _ -> false in
      for_exp_to_eq e_loc is_a_forward_loop acc
        (for_size, for_kind, for_index,
-        for_input, for_let, for_body, for_resume, for_env) *)
+        for_input, for_let, for_body, for_resume, for_env)
   | _ -> e, acc
 
 let program _ p =
