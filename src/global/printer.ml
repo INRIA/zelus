@@ -750,12 +750,12 @@ module Make (Info: INFO) =
             else fprintf ff "@[<hov 1>[|@,%a@,|]@]" (print_array_of (n-1)) x in
           fprintf ff
             "@[%a%a@]" (print_array_of for_array) for_vardec (opt as_name) for_as in
-        print_list_r for_vardec "(" "" ")" ff for_vardec_list in
+        print_list_r for_vardec "(" "," ")" ff for_vardec_list in
       match r with
       | Forexp { exp; default = d} ->
          fprintf ff "@[ do %a%a done@]" expression exp (opt (default expression)) d
       | Forreturns { r_returns; r_block; r_env } ->
-         fprintf ff "@[<hov 2> returns@ (%a)@ @[%a@]@ @[%a@,%a@]@]"
+         fprintf ff "@[<hov 2> returns@ %a@ @[%a@]@ @[%a@,%a@]@]"
            for_returns r_returns
            print_env r_env
            leqs for_let
