@@ -106,35 +106,38 @@ let for_exp_to_eq e_loc is_a_forward_loop acc
     let for_out_vardec_t
           { var_loc; var_name; var_default; var_init; var_typeconstraint } =
       var_loc,
-      { for_name = result; for_ty_cstr = var_typeconstraint;
+      { for_name = var_name; for_ty_cstr = var_typeconstraint;
         for_init = var_init; for_default = var_default } in
     let loc, for_out_vardec = for_out_vardec_t for_vardec in
-    Aux.var result,
-    { desc =
-        { for_ext = result;
-          for_locals =
-            (if for_array < 1 then OAcc { for_acc = for_out_vardec }
-             else
-               let for_as =
-                 match for_as with | None -> fresh () | Some(for_as) -> for_as in
-               OArray { for_item = for_out_vardec; for_as });
-          for_info = Typinfo.no_info };
-      loc = loc } in
-
+    let for_as =
+      match for_as with | None -> fresh () | Some(for_as) -> for_as in
+    let for_locals =
+      if for_array < 1 then
+        OArray { for_item = for_out_vardec; for_as }
+      else OAcc { for_acc = for_out_vardec } in
+    let for_eq_out =
+      { desc = { for_ext = result; for_locals; for_info = Typinfo.no_info };
+        loc } in
+        Aux.var result, for_eq_out in
   let result, for_body =
     match for_body with
     | Forexp { exp; default } ->
        (* [...do (e default e_d)] *)
        let result = fresh () in
        let result_l = fresh () in
-       (* rewrites to [...returns (result as result_l default e_d) result_l = e] *)
+       (* rewrites to *)
+       (* [...returns (result as result_l default e_d) result_l = e] *)
        let eq = Aux.id_eq result_l exp in
        Aux.var result,
        { for_eq_out = [for_out_from_exp exp.e_loc result result_l default];
          for_eq_block = Aux.block_make [] [eq];
          for_eq_env = Aux.env_of (S.singleton result_l) }
     | Forreturns { r_returns; r_block; r_env } ->
-       (* [...returns ([|x init exi default fxi|],..., yi init eyi fyi,...)] *)
+       (* [...returns ([|xi init exi default fxi|],...,
+                         yi init eyi default fyi,...)] *)
+       (* rewrites to *)
+       (* returns (xi init exi default fxi out result_i,...,
+                   ..., result_i as yi init eyi default fyi) *)
        let result_for_eq_out_list =
          List.map for_out_from_returns r_returns in
        let result_list, for_eq_out_list = List.split result_for_eq_out_list in
