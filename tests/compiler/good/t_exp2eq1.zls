@@ -4,8 +4,6 @@ let f x returns o
 let i x = forward<<4>> returns (o1, o2)
             do o1 = 42 and o2 = 43 done
 
-(*
 let node g x = foreach<<4>> do (let rec o = 0 fby o + 1 in o) default 0 done
 
 let h x = forward<<4>> do (let rec o = 0 fby o + 1 in o) default 0 done
-*)
